@@ -15,8 +15,9 @@
  * @see lib/integrations/google/oauth-tokens.ts - Token management
  * @see docs/09-integrations/IMPLEMENTATION-COMPLETE.md - Implementation guide
  */
+import { logSecurityError } from '@/lib/constants/security';
 import { storeGoogleTokens } from '@/lib/integrations/google/oauth-tokens';
-import { logAuditEvent } from '@/lib/utils/server/audit-workos';
+import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -138,6 +139,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(successUrl);
   } catch (error) {
     console.error('[Google OAuth Callback] Error processing callback:', error);
+    logSecurityError(error, 'GOOGLE_OAUTH_CALLBACK', 'oauth_token', 'google_calendar');
 
     // Return user to settings with error message
     return NextResponse.redirect(

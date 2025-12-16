@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { PaymentTransfersTable } from '@/drizzle/schema-workos';
+import { PaymentTransfersTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_COMPLETED } from '@/lib/constants/payment-transfers';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';

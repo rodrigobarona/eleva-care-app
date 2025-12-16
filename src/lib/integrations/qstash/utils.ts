@@ -1,6 +1,16 @@
-import crypto from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 
 import { validateQStashConfig } from './config';
+
+/** Maximum age of a verification token (30 minutes) */
+const TOKEN_MAX_AGE_SECONDS = 1800;
+
+/**
+ * Allowed clock skew for future-dated tokens (60 seconds).
+ * Tokens with timestamps more than this amount ahead of current time are rejected.
+ * This tolerance accommodates minor clock drift between servers.
+ */
+const ALLOWED_CLOCK_SKEW_SECONDS = 60;
 
 /**
  * Verify that a request genuinely came from QStash and was properly verified
@@ -90,21 +100,34 @@ export async function isVerifiedQStashRequest(headers: Headers): Promise<boolean
       return false;
     }
 
-    // Check if the token is too old (30 minutes max - increased from 10 for reliability)
+    // Validate timestamp is a valid number
     const tokenTime = Number.parseInt(timestamp, 10);
+    if (Number.isNaN(tokenTime)) {
+      console.warn('QStash verification token has invalid timestamp');
+      return false;
+    }
+
     const now = Math.floor(Date.now() / 1000);
-    if (now - tokenTime > 1800) {
-      // 30 minutes
+
+    // Check if the token is from the future (beyond allowed clock skew)
+    // This prevents replay attacks with pre-generated future tokens
+    if (tokenTime - now > ALLOWED_CLOCK_SKEW_SECONDS) {
+      console.warn('QStash verification token timestamp is in the future');
+      return false;
+    }
+
+    // Check if the token is too old (expired)
+    if (now - tokenTime > TOKEN_MAX_AGE_SECONDS) {
       console.warn('QStash verification token expired');
       return false;
     }
 
-    // Verify HMAC signature
-    const hmac = crypto.createHmac('sha256', currentKey);
-    hmac.update(timestamp);
-    const expectedSignature = hmac.digest('hex');
+    // Verify HMAC signature using Bun.CryptoHasher
+    const hasher = new Bun.CryptoHasher('sha256', currentKey);
+    hasher.update(timestamp);
+    const expectedSignature = hasher.digest('hex');
 
-    const isValidSignature = crypto.timingSafeEqual(
+    const isValidSignature = timingSafeEqual(
       Buffer.from(signature, 'hex'),
       Buffer.from(expectedSignature, 'hex'),
     );

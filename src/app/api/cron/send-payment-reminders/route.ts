@@ -5,7 +5,7 @@ import {
   ProfilesTable,
   SlotReservationsTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import {
   sendHeartbeatFailure,

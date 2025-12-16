@@ -14,7 +14,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { ExpertSetupTable } from '@/drizzle/schema-workos';
+import { ExpertSetupTable } from '@/drizzle/schema';
 import type { SetupStats, SetupStatus, SetupStepType } from '@/types/expert-setup';
 import { SetupStep } from '@/types/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';

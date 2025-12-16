@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

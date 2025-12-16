@@ -14,7 +14,7 @@
  * 4. Identifies newly eligible experts (for future notification)
  */
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { updateEligibilityMetrics } from '@/server/actions/eligibility';
 import { inArray } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';

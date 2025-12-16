@@ -22,7 +22,7 @@ import {
   ProfilesTable,
   UserOrgMembershipsTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import type { OrganizationMembership, User as WorkOSUser } from '@workos-inc/node';
 import { and, eq } from 'drizzle-orm';
 

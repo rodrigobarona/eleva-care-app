@@ -13,7 +13,7 @@
  */
 // Load environment variables first
 import { db } from '@/drizzle/db';
-import { OrganizationsTable, UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
+import { OrganizationsTable, UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema';
 import { workos } from '@/lib/integrations/workos/client';
 import 'dotenv/config';
 import { and, eq } from 'drizzle-orm';

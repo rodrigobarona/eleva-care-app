@@ -1,6 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -9,9 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(_request: NextRequest) {
   try {
-    // Get authenticated user from Clerk
+    // Get authenticated user from WorkOS AuthKit
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -20,13 +19,12 @@ export async function GET(_request: NextRequest) {
     // Use the authenticated userId as subscriberId
     const subscriberId = userId;
 
-    // Generate HMAC hash for secure authentication
+    // Generate HMAC hash for secure authentication using Bun.CryptoHasher
     let subscriberHash = '';
     if (ENV_CONFIG.NOVU_SECRET_KEY) {
-      subscriberHash = crypto
-        .createHmac('sha256', ENV_CONFIG.NOVU_SECRET_KEY)
-        .update(subscriberId)
-        .digest('hex');
+      const hasher = new Bun.CryptoHasher('sha256', ENV_CONFIG.NOVU_SECRET_KEY);
+      hasher.update(subscriberId);
+      subscriberHash = hasher.digest('hex');
     }
 
     const secureData = {

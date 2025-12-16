@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';

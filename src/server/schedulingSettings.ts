@@ -6,7 +6,7 @@
  * how bookings are made and ensure sufficient time between meetings.
  */
 import { db } from '@/drizzle/db';
-import { SchedulingSettingsTable } from '@/drizzle/schema-workos';
+import { SchedulingSettingsTable } from '@/drizzle/schema';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,

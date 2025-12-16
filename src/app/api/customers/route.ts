@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
+import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { withAuth } from '@workos-inc/authkit-nextjs';

@@ -7,7 +7,7 @@
  * @route POST /api/expert/accept-practitioner-agreement
  */
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';

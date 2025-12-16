@@ -17,5 +17,7 @@
 export * from './formatters';
 export * from './cache-keys';
 export * from './customerUtils';
-export * from './encryption';
 export * from './revalidation';
+
+// Note: Encryption is now handled exclusively by WorkOS Vault
+// Import from '@/lib/integrations/workos/vault' for encryption operations

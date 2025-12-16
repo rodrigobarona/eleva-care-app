@@ -4,8 +4,8 @@
  * Provides health check functions for all external services used by Eleva Care.
  * Compatible with Better Stack status page monitoring.
  */
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
-import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { redisManager } from '@/lib/redis/manager';
@@ -54,31 +54,64 @@ export async function checkNeonDatabase(): Promise<ServiceHealthResult> {
 }
 
 /**
- * Check Neon audit database connectivity
+ * Check Sentry SDK initialization and configuration
+ *
+ * Note: This only verifies local SDK state (client initialization, DSN configured).
+ * It does NOT make network calls to Sentry servers. This is intentional to avoid
+ * Sentry outages affecting the health check status of our application.
+ * A "healthy" result means the SDK is properly configured to send events.
  */
-export async function checkAuditDatabase(): Promise<ServiceHealthResult> {
+export async function checkSentry(): Promise<ServiceHealthResult> {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
 
   try {
-    await auditDb.execute(sql`SELECT 1 as health_check`);
+    const client = Sentry.getClient();
+
+    if (!client) {
+      return {
+        service: 'sentry',
+        status: 'down',
+        responseTime: 0,
+        message: 'Sentry client not initialized',
+        error: 'Sentry SDK not configured',
+        timestamp,
+      };
+    }
+
+    // Check if DSN is configured
+    const dsn = client.getDsn();
+    if (!dsn) {
+      return {
+        service: 'sentry',
+        status: 'degraded',
+        responseTime: Date.now() - startTime,
+        message: 'Sentry initialized but DSN not configured',
+        timestamp,
+      };
+    }
+
     const responseTime = Date.now() - startTime;
 
     return {
-      service: 'audit-database',
+      service: 'sentry',
       status: 'healthy',
       responseTime,
-      message: `Audit database connection successful (${responseTime}ms)`,
+      message: `Sentry SDK initialized (${responseTime}ms)`,
+      details: {
+        hasDsn: true,
+        environment: process.env.NODE_ENV,
+      },
       timestamp,
     };
   } catch (error) {
     const responseTime = Date.now() - startTime;
     return {
-      service: 'audit-database',
+      service: 'sentry',
       status: 'down',
       responseTime,
-      message: 'Audit database connection failed',
-      error: error instanceof Error ? error.message : 'Unknown database error',
+      message: 'Sentry health check failed',
+      error: error instanceof Error ? error.message : 'Unknown Sentry error',
       timestamp,
     };
   }
@@ -132,63 +165,72 @@ export async function checkStripe(): Promise<ServiceHealthResult> {
 }
 
 /**
- * Check Clerk API connectivity
+ * Check WorkOS API connectivity
  */
-export async function checkClerk(): Promise<ServiceHealthResult> {
+export async function checkWorkOS(): Promise<ServiceHealthResult> {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
 
-  if (!ENV_CONFIG.CLERK_SECRET_KEY) {
+  if (!ENV_CONFIG.WORKOS_API_KEY) {
     return {
-      service: 'clerk',
+      service: 'workos',
       status: 'down',
       responseTime: 0,
-      message: 'Clerk API key not configured',
-      error: 'Missing CLERK_SECRET_KEY',
+      message: 'WorkOS API key not configured',
+      error: 'Missing WORKOS_API_KEY',
       timestamp,
     };
   }
 
   try {
-    // Make a lightweight API call to check Clerk connectivity
-    const response = await fetch('https://api.clerk.com/v1/users?limit=1', {
+    // Make a lightweight API call to check WorkOS connectivity
+    const response = await fetch('https://api.workos.com/user_management/users?limit=1', {
       headers: {
-        Authorization: `Bearer ${ENV_CONFIG.CLERK_SECRET_KEY}`,
+        Authorization: `Bearer ${ENV_CONFIG.WORKOS_API_KEY}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(5000), // 5s timeout to prevent hanging health checks
     });
 
     const responseTime = Date.now() - startTime;
 
     if (!response.ok) {
       return {
-        service: 'clerk',
+        service: 'workos',
         status: 'down',
         responseTime,
-        message: 'Clerk API returned error',
+        message: 'WorkOS API returned error',
         error: `HTTP ${response.status}: ${response.statusText}`,
         timestamp,
       };
     }
 
     return {
-      service: 'clerk',
+      service: 'workos',
       status: 'healthy',
       responseTime,
-      message: `Clerk API connection successful (${responseTime}ms)`,
+      message: `WorkOS API connection successful (${responseTime}ms)`,
       timestamp,
     };
   } catch (error) {
     const responseTime = Date.now() - startTime;
     return {
-      service: 'clerk',
+      service: 'workos',
       status: 'down',
       responseTime,
-      message: 'Clerk API connection failed',
-      error: error instanceof Error ? error.message : 'Unknown Clerk error',
+      message: 'WorkOS API connection failed',
+      error: error instanceof Error ? error.message : 'Unknown WorkOS error',
       timestamp,
     };
   }
+}
+
+/**
+ * Check Clerk API connectivity (deprecated - use checkWorkOS instead)
+ * @deprecated Use checkWorkOS() instead
+ */
+export async function checkClerk(): Promise<ServiceHealthResult> {
+  return checkWorkOS();
 }
 
 /**
@@ -493,13 +535,13 @@ export async function checkAllServices(): Promise<{
   const timestamp = new Date().toISOString();
 
   // Run all health checks in parallel
-  const [vercel, neonDb, auditDb, stripe, clerk, redis, qstash, resend, posthog, novu] =
+  const [vercel, neonDb, sentry, stripe, workos, redis, qstash, resend, posthog, novu] =
     await Promise.all([
       checkVercel(),
       checkNeonDatabase(),
-      checkAuditDatabase(),
+      checkSentry(),
       checkStripe(),
-      checkClerk(),
+      checkWorkOS(),
       checkRedis(),
       checkQStash(),
       checkResend(),
@@ -507,7 +549,7 @@ export async function checkAllServices(): Promise<{
       checkNovu(),
     ]);
 
-  const services = [vercel, neonDb, auditDb, stripe, clerk, redis, qstash, resend, posthog, novu];
+  const services = [vercel, neonDb, sentry, stripe, workos, redis, qstash, resend, posthog, novu];
 
   // Calculate summary
   const summary = {
@@ -542,9 +584,9 @@ export function getServiceHealthCheck(
   const serviceMap: Record<string, () => Promise<ServiceHealthResult>> = {
     vercel: checkVercel,
     'neon-database': checkNeonDatabase,
-    'audit-database': checkAuditDatabase,
+    sentry: checkSentry,
     stripe: checkStripe,
-    clerk: checkClerk,
+    workos: checkWorkOS,
     'upstash-redis': checkRedis,
     'upstash-qstash': checkQStash,
     resend: checkResend,
@@ -562,9 +604,9 @@ export function getAvailableServices(): string[] {
   return [
     'vercel',
     'neon-database',
-    'audit-database',
+    'sentry',
     'stripe',
-    'clerk',
+    'workos',
     'upstash-redis',
     'upstash-qstash',
     'resend',

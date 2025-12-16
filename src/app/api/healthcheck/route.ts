@@ -23,6 +23,13 @@ function getPostHogClient(): PostHog | null {
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
+/**
+ * Detect runtime environment (Bun or Node.js)
+ */
+const isBunRuntime = typeof Bun !== 'undefined';
+const runtime = isBunRuntime ? 'bun' : 'node';
+const runtimeVersion = isBunRuntime ? Bun.version : process.version;
+
 interface HealthCheckData {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
@@ -30,7 +37,9 @@ interface HealthCheckData {
   uptime: number;
   version: string;
   environment: string;
-  nodeVersion: string;
+  runtime: 'bun' | 'node';
+  runtimeVersion: string;
+  isBun: boolean;
   memory: {
     used: number;
     total: number;
@@ -183,7 +192,9 @@ export async function GET(request: Request) {
       uptime: process.uptime(),
       version: process.env.npm_package_version || '0.3.1',
       environment: ENV_CONFIG.NODE_ENV,
-      nodeVersion: process.version,
+      runtime,
+      runtimeVersion,
+      isBun: isBunRuntime,
       memory: {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
@@ -254,7 +265,9 @@ export async function GET(request: Request) {
       uptime: process.uptime(),
       environment: ENV_CONFIG.NODE_ENV,
       version: process.env.npm_package_version || '0.3.1',
-      nodeVersion: process.version,
+      runtime,
+      runtimeVersion,
+      isBun: isBunRuntime,
       memory: {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
@@ -309,7 +322,9 @@ export async function POST(request: Request) {
       uptime: process.uptime(),
       version: process.env.npm_package_version || '0.3.1',
       environment: ENV_CONFIG.NODE_ENV,
-      nodeVersion: process.version,
+      runtime,
+      runtimeVersion,
+      isBun: isBunRuntime,
       memory: {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
@@ -340,7 +355,9 @@ export async function POST(request: Request) {
       method: 'POST',
       environment: ENV_CONFIG.NODE_ENV,
       version: process.env.npm_package_version || '0.3.1',
-      nodeVersion: process.version,
+      runtime,
+      runtimeVersion,
+      isBun: isBunRuntime,
       memory: {
         used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
         total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),

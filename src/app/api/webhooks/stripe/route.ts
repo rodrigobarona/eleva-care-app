@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { PaymentTransfersTable, SlotReservationsTable } from '@/drizzle/schema-workos';
+import { PaymentTransfersTable, SlotReservationsTable } from '@/drizzle/schema';
 import {
   isValidPaymentStatus,
   PAYMENT_STATUS_PENDING,

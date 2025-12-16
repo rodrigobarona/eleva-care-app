@@ -1,0 +1,221 @@
+---
+description: Bun Runtime Configuration and Best Practices
+globs: ['package.json', 'bunfig.toml', 'scripts/**/*.{ts,js}', '.github/workflows/*.yml']
+alwaysApply: false
+---
+
+# Bun Runtime Rules
+
+## Overview
+
+This project uses Bun as the JavaScript/TypeScript runtime. Bun provides faster package installation, native TypeScript execution, and improved performance over Node.js.
+
+## Quick Reference
+
+**Package Management:**
+
+```bash
+bun install          # Install dependencies
+bun add <pkg>        # Add dependency
+bun add -d <pkg>     # Add dev dependency
+bun remove <pkg>     # Remove dependency
+bunx <pkg>           # Execute package (like npx)
+```
+
+**Script Execution:**
+
+```bash
+bun run <script>     # Run package.json script
+bun <file.ts>        # Run TypeScript directly
+bun --bun next dev   # Force Bun runtime for Next.js
+```
+
+## Script Patterns
+
+### Next.js Commands
+
+Always use `--bun` flag to ensure Bun runtime:
+
+```json
+{
+  "scripts": {
+    "dev:next": "bun --bun next dev --port 3000",
+    "build": "bun --bun next build",
+    "start": "bun --bun next start"
+  }
+}
+```
+
+### TypeScript Execution
+
+Run TypeScript files directly without tsx:
+
+```json
+{
+  "scripts": {
+    "postbuild": "bun scripts/utilities/update-qstash-schedules.ts",
+    "qstash:update": "bun scripts/utilities/update-qstash-schedules.ts"
+  }
+}
+```
+
+### Package Execution
+
+Use `bunx` instead of `npx`:
+
+```json
+{
+  "scripts": {
+    "qstash:dev": "bunx @upstash/qstash-cli@latest dev",
+    "novu:sync": "bunx novu@latest sync ..."
+  }
+}
+```
+
+## Configuration
+
+### vercel.json
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x"
+}
+```
+
+### bunfig.toml (Optional)
+
+```toml
+[install]
+frozenLockfile = false
+
+[install.lockfile]
+save = true
+
+[test]
+# Future: Bun test runner configuration
+```
+
+## GitHub Actions
+
+Use `oven-sh/setup-bun@v2`:
+
+```yaml
+- name: 📦 Setup Bun
+  uses: oven-sh/setup-bun@v2
+  with:
+    bun-version: latest
+
+- name: 📦 Install dependencies
+  run: bun install --frozen-lockfile
+```
+
+## Common Mistakes
+
+**❌ Using pnpm/npm/yarn:**
+
+```json
+"dev": "pnpm run dev:next"
+```
+
+**✅ Correct - Use bun:**
+
+```json
+"dev": "bun run dev:next"
+```
+
+**❌ Using tsx for TypeScript:**
+
+```json
+"script": "tsx scripts/file.ts"
+```
+
+**✅ Correct - Bun runs TypeScript natively:**
+
+```json
+"script": "bun scripts/file.ts"
+```
+
+**❌ Using npx:**
+
+```json
+"cmd": "npx some-package"
+```
+
+**✅ Correct - Use bunx:**
+
+```json
+"cmd": "bunx some-package"
+```
+
+**❌ Missing --bun flag for Next.js:**
+
+```json
+"dev": "next dev"
+```
+
+**✅ Correct - Force Bun runtime:**
+
+```json
+"dev": "bun --bun next dev"
+```
+
+## Built-in APIs (Future Use)
+
+### Bun.CryptoHasher (HMAC)
+
+```typescript
+const hasher = new Bun.CryptoHasher("sha256", secretKey);
+hasher.update(payload);
+const hash = hasher.digest("base64");
+```
+
+### Bun.password (Password Hashing)
+
+```typescript
+// Hash with Argon2id (default)
+const hash = await Bun.password.hash(password);
+
+// Verify
+const isValid = await Bun.password.verify(password, hash);
+```
+
+### Bun.file (File Operations)
+
+```typescript
+const file = Bun.file("path/to/file.txt");
+const text = await file.text();
+const bytes = await file.arrayBuffer();
+```
+
+## Dependencies to Keep (Not Bun-replaceable)
+
+These are serverless-optimized and should NOT be replaced:
+
+| Package | Reason |
+|---------|--------|
+| `@neondatabase/serverless` | HTTP-based for Vercel Functions |
+| `@upstash/redis` | REST API for serverless |
+| `@vercel/blob` | Vercel-specific storage |
+| `drizzle-orm` | ORM layer (driver-agnostic) |
+
+## Performance Tips
+
+1. **Parallel Operations**: Bun handles concurrency well
+2. **Native TypeScript**: No transpilation needed for scripts
+3. **Fast Installs**: `bun install` is 4x faster than pnpm
+4. **Hot Reloading**: Bun's file watcher is faster
+
+## Lockfile
+
+- Bun 1.3+ uses `bun.lock` (text-based, human-readable)
+- Older versions used `bun.lockb` (binary)
+- Keep `bun.lock` in version control
+- Remove `pnpm-lock.yaml` after full migration
+
+## Tech Stack Integration
+
+- **Runtime**: Bun 1.3.4
+- **Framework**: Next.js 16 with App Router
+- **Deployment**: Vercel with `bunVersion: "1.x"`
+- **CI/CD**: GitHub Actions with `oven-sh/setup-bun@v2`

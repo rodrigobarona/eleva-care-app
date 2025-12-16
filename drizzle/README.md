@@ -9,7 +9,9 @@ This directory contains database migrations managed by Drizzle ORM.
 
 ## Current Schema
 
-The project uses `schema-workos.ts` which contains all tables for WorkOS authentication.
+The project uses `schema.ts` which contains all tables for WorkOS authentication.
+
+**Note:** `schema-clerk-legacy.ts` is preserved for future data migration scripts only.
 
 ### Main Tables
 
@@ -71,13 +73,13 @@ Manual migrations are optional SQL scripts for:
 
 ```bash
 # Generate new migration
-pnpm db:generate
+bun db:generate
 
 # Apply pending migrations
-pnpm db:migrate
+bun db:migrate
 
 # View database in Drizzle Studio
-pnpm db:studio
+bun db:studio
 ```
 
 ### Manual Migrations
@@ -100,10 +102,10 @@ psql $DATABASE_URL -f drizzle/migrations-manual/xxx_rollback.sql
 
 ## Schema Changes Workflow
 
-1. Edit `drizzle/schema-workos.ts`
-2. Run `pnpm db:generate` to create migration
+1. Edit `drizzle/schema.ts`
+2. Run `bun db:generate` to create migration
 3. Review generated SQL in `migrations/`
-4. Run `pnpm db:migrate` to apply
+4. Run `bun db:migrate` to apply
 5. Commit both schema and migration files
 
 ## Troubleshooting
@@ -150,7 +152,8 @@ pnpm db:push
 
 ---
 
-**Last Updated:** November 9, 2025  
-**Current Schema Version:** 0016 (expert_applications)  
+**Last Updated:** December 16, 2025  
+**Current Schema Version:** 0017 (audit consolidation)  
 **Database:** PostgreSQL 15+ (Neon)  
-**ORM:** Drizzle ORM
+**ORM:** Drizzle ORM  
+**Runtime:** Bun 1.x

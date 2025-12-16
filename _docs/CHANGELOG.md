@@ -5,6 +5,207 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2025-12-16 - Schema & Audit Consolidation
+
+### 🗃️ SCHEMA CONSOLIDATION
+
+**Schema Renaming Complete**
+
+- ✅ **Renamed**: `schema-workos.ts` → `schema.ts` (now the primary schema)
+- ✅ **Renamed**: `schema.ts` → `schema-clerk-legacy.ts` (preserved for migration scripts)
+- ✅ **Updated**: All 81+ imports updated to use `@/drizzle/schema`
+
+### 📝 AUDIT LOGGING CONSOLIDATION
+
+**Unified Audit System**
+
+- ✅ **New API**: Single `logAuditEvent()` with automatic context extraction
+- ✅ **RLS Protection**: Audit logs now use Row-Level Security for org isolation
+- ✅ **HIPAA Compliant**: Append-only, immutable audit trail
+- ✅ **Automatic Context**: User ID, IP address, and user-agent extracted from session
+
+**Files Removed**
+
+- `drizzle/auditDb.ts` - Legacy separate audit database connection
+- `drizzle/auditSchema.ts` - Legacy Clerk-based audit schema
+- `src/types/audit.ts` - Legacy audit types (now in schema.ts)
+- `src/lib/utils/server/audit-workos.ts` - Merged into audit.ts
+- `tests/deprecated/audit-*.test.ts` - Deprecated audit tests
+
+### 🔧 SERVICE HEALTH UPDATES
+
+- ✅ **Replaced**: `checkClerk()` → `checkWorkOS()` in service-health.ts
+- ✅ **Unified**: Audit database health check now uses main database
+- ✅ **Removed**: `src/lib/cache/clerk-cache-keys.ts` (dead code)
+
+### 📄 PRIVACY POLICY UPDATES
+
+- ✅ **Updated**: 4 privacy policy MDX files (Clerk → WorkOS)
+
+### Changed
+
+- **`src/lib/utils/server/audit.ts`**: New unified audit API with automatic context
+- **`src/lib/utils/server/service-health.ts`**: WorkOS health check, unified audit DB
+- **`src/server/actions/events.ts`**: Updated to new audit API
+- **`src/server/actions/meetings.ts`**: Updated to new audit API
+- **`src/server/actions/schedule.ts`**: Updated to new audit API
+- **`src/server/actions/expert-profile.ts`**: Updated to new audit API
+- **`src/app/api/webhooks/stripe/handlers/payment.ts`**: Webhook audit logging
+- **`src/app/api/appointments/[meetingId]/records/route.ts`**: Updated audit API
+- **`src/app/api/records/route.ts`**: Updated audit API
+- **`src/content/privacy/*.mdx`**: Updated data processor list
+
+### Removed
+
+- Legacy audit database connection and schema
+- Legacy audit types
+- Deprecated audit test files
+- Clerk cache keys utility
+
+---
+
+## [0.5.5] - 2025-12-16 - WorkOS Vault Migration Complete
+
+### 🔐 ENCRYPTION ARCHITECTURE CLEANUP
+
+**Legacy Encryption Removed**
+
+- ✅ **Removed**: `src/lib/utils/encryption.ts` (legacy AES-256-GCM)
+- ✅ **Removed**: `ENCRYPTION_KEY` environment variable requirement
+- ✅ **Removed**: Conditional encryption logic (`isVaultEnabled()`, `getEncryptionMethod()`)
+
+**WorkOS Vault Now Exclusive**
+
+- ✅ **Medical Records API**: Now uses WorkOS Vault exclusively
+- ✅ **Org-Scoped Keys**: Each organization has unique encryption keys
+- ✅ **Envelope Encryption**: DEK + KEK pattern for all sensitive data
+
+### Changed
+
+- **`src/app/api/appointments/[meetingId]/records/route.ts`**: Migrated to WorkOS Vault
+- **`src/app/api/records/route.ts`**: Migrated to WorkOS Vault
+- **`src/lib/integrations/workos/vault-utils.ts`**: Simplified (removed conditional logic)
+- **`_docs/03-infrastructure/ENCRYPTION-ARCHITECTURE.md`**: Updated for Vault-only architecture
+- **`_docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md`**: Removed legacy fallback references
+
+### Removed
+
+- **`src/lib/utils/encryption.ts`**: Legacy AES-256-GCM encryption (no longer needed)
+
+### Security Notes
+
+| Operation                 | Implementation              | Notes                          |
+| ------------------------- | --------------------------- | ------------------------------ |
+| Sensitive Data Encryption | WorkOS Vault                | Org-scoped keys, auto-rotation |
+| HMAC Signatures           | Bun.CryptoHasher            | Native performance             |
+| Timing-Safe Comparison    | node:crypto.timingSafeEqual | Prevents timing attacks        |
+| Password Hashing          | WorkOS (external)           | Handled by auth provider       |
+
+---
+
+## [0.5.4] - 2025-12-16 - Bun Production Hardening & Crypto Migration
+
+### 🔐 SECURITY & PRODUCTION HARDENING
+
+**Bun-Native Crypto Migration**
+
+- ✅ **HMAC Operations**: Migrated from `node:crypto` to `Bun.CryptoHasher` for native performance
+- ✅ **QStash Signature Verification**: Now uses `Bun.CryptoHasher('sha256', key)`
+- ✅ **QStash Token Generation**: Native Bun HMAC for internal verification tokens
+- ✅ **Novu Subscriber Hash**: Bun-native HMAC for secure subscriber authentication
+- ✅ **Type Safety**: Added official `@types/bun` for full TypeScript support
+
+**Healthcheck Runtime Detection**
+
+- ✅ **Runtime Detection**: Healthcheck now reports `runtime: 'bun' | 'node'`
+- ✅ **Version Tracking**: Reports `runtimeVersion` and `isBun` flag for monitoring
+- ✅ **Production Monitoring**: Better Stack, PostHog, and Novu now receive runtime info
+
+### Encryption Architecture
+
+**WorkOS Vault** - For sensitive data:
+
+- Medical records encryption (org-scoped keys)
+- Google OAuth token encryption
+- Envelope encryption pattern (DEK + KEK)
+- HIPAA/GDPR compliant, SOC 2 certified
+
+**Bun.CryptoHasher** - For HMAC signatures:
+
+- QStash request verification
+- Novu subscriber authentication
+- Internal token generation
+
+### Added
+
+- **`@types/bun`**: Official Bun TypeScript definitions (v1.3.4)
+- **Runtime Detection**: `isBunRuntime`, `runtime`, `runtimeVersion` in healthcheck
+
+### Changed
+
+- **`src/app/api/healthcheck/route.ts`**: Added Bun runtime detection
+- **`src/lib/integrations/qstash/utils.ts`**: Migrated to `Bun.CryptoHasher`
+- **`src/app/api/qstash/route.ts`**: Migrated to `Bun.CryptoHasher`
+- **`src/app/api/novu/subscriber-hash/route.ts`**: Migrated to `Bun.CryptoHasher`
+- **`global.d.ts`**: Simplified to use official `@types/bun`
+
+### Security Notes
+
+| Operation                 | Implementation              | Notes                          |
+| ------------------------- | --------------------------- | ------------------------------ |
+| Sensitive Data Encryption | WorkOS Vault                | Org-scoped keys, auto-rotation |
+| HMAC Signatures           | Bun.CryptoHasher            | Native performance             |
+| Timing-Safe Comparison    | node:crypto.timingSafeEqual | Prevents timing attacks        |
+| Password Hashing          | WorkOS (external)           | Handled by auth provider       |
+
+### Documentation
+
+- Updated `_docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md`
+- Added crypto architecture section
+
+---
+
+## [0.5.3] - 2025-12-15 - Bun Runtime Migration
+
+### 🚀 RUNTIME MIGRATION
+
+**Migrated from Node.js/pnpm to Bun Runtime**
+
+- ✅ **Package Manager**: pnpm → Bun (4x faster installs)
+- ✅ **Dev Server**: 15s → 5s cold start (3x faster)
+- ✅ **Proxy Execution**: 315ms → 45ms (7x faster)
+- ✅ **Script Execution**: tsx → native Bun (5x faster)
+
+### Changed
+
+- **`vercel.json`**: Added `bunVersion: "1.x"` for Vercel Bun runtime
+- **`package.json`**: Updated all scripts to use `bun`/`bunx` instead of `pnpm`/`npx`/`tsx`
+- **`.github/workflows/test.yml`**: Migrated CI from pnpm to Bun using `oven-sh/setup-bun@v2`
+- **`.gitignore`**: Added `.bun` directory
+
+### Added
+
+- **`bun.lock`**: New Bun lockfile (migrated from `pnpm-lock.yaml`)
+- **`_docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md`**: Migration documentation
+- **`.cursor/rules/bun-runtime.mdc`**: Cursor AI rules for Bun
+
+### Technical Details
+
+| Metric                | Before (Node.js/pnpm) | After (Bun) | Improvement |
+| --------------------- | --------------------- | ----------- | ----------- |
+| Package install       | ~15s                  | ~4s         | 4x faster   |
+| Dev server cold start | ~15s                  | ~5s         | 3x faster   |
+| First page compile    | ~11s                  | ~9s         | 22% faster  |
+| Proxy.ts execution    | ~315ms                | ~45ms       | 7x faster   |
+
+### Migration Notes
+
+- The Bun runtime is in Beta on Vercel
+- Node.js compatibility is maintained for all existing code
+- Serverless-optimized packages (Neon, Upstash Redis, Vercel Blob) were intentionally kept
+
+---
+
 ## [0.5.2] - 2025-12-11 - Core Web Vitals Optimization
 
 ### 🎯 PERFORMANCE OPTIMIZATION
@@ -62,6 +263,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 
 **CLS Prevention Pattern**:
+
 ```typescript
 // Reserve vertical space to prevent layout shifts
 <section className="min-h-[600px] lg:min-h-[720px]">
@@ -71,6 +273,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 **Header Fixed Height Pattern**:
+
 ```typescript
 // Fixed height prevents CLS - only visual changes on scroll
 <header className="h-20 lg:h-24 transition-colors">
@@ -125,7 +328,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Sentry Integration**:
   - `sentry.client.config.ts` - Browser-side error tracking
-  - `sentry.server.config.ts` - Server-side error tracking  
+  - `sentry.server.config.ts` - Server-side error tracking
   - `sentry.edge.config.ts` - Edge runtime error tracking
   - `src/instrumentation.ts` - Next.js instrumentation hook
   - `src/app/global-error.tsx` - Root-level error boundary
@@ -169,6 +372,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 
 **useSyncExternalStore Pattern**:
+
 ```typescript
 const emptySubscribe = () => () => {};
 const getSnapshot = () => true;
@@ -180,6 +384,7 @@ function useHydrated() {
 ```
 
 **Sentry Configuration**:
+
 ```typescript
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -191,12 +396,12 @@ Sentry.init({
 
 ### Impact
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Dependencies | 89 | 78 | -11 packages |
-| npm Scripts | 42 | 37 | -5 scripts |
+| Metric       | Before | After  | Change       |
+| ------------ | ------ | ------ | ------------ |
+| Dependencies | 89     | 78     | -11 packages |
+| npm Scripts  | 42     | 37     | -5 scripts   |
 | node_modules | ~850MB | ~750MB | ~12% smaller |
-| Build time | ~45s | ~40s | ~10% faster |
+| Build time   | ~45s   | ~40s   | ~10% faster  |
 
 ---
 

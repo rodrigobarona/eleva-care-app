@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { RolesTable, UsersTable } from '@/drizzle/schema-workos';
+import { RolesTable, UsersTable } from '@/drizzle/schema';
 import type { UserRoles } from '@/lib/auth/roles';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';

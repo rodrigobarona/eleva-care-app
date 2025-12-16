@@ -2,7 +2,7 @@
 
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import {
   createStripeConnectAccount,
   getStripeConnectSetupOrLoginLink,

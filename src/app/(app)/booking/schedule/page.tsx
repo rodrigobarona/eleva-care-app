@@ -1,7 +1,7 @@
 import type { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import { ScheduleForm } from '@/components/features/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
-import { SchedulesTable } from '@/drizzle/schema-workos';
+import { SchedulesTable } from '@/drizzle/schema';
 import { getBlockedDates } from '@/server/actions/blocked-dates';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';

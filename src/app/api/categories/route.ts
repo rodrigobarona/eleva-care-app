@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { CategoriesTable } from '@/drizzle/schema-workos';
+import { CategoriesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 

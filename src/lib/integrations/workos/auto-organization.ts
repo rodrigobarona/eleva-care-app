@@ -22,7 +22,7 @@ import {
   OrganizationsTable,
   type OrganizationType,
   UserOrgMembershipsTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import { workos } from '@/lib/integrations/workos/client';
 
 /**

@@ -5,7 +5,7 @@
  * Used by AuthorizationProvider for client-side role checks.
  */
 import { db } from '@/drizzle/db';
-import { RolesTable } from '@/drizzle/schema-workos';
+import { RolesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

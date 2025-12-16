@@ -5,7 +5,7 @@
  * Uses Drizzle ORM with Neon Postgres.
  */
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { eq, isNull } from 'drizzle-orm';
 
 /**

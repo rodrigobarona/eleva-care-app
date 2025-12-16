@@ -1,7 +1,7 @@
 /**
  * WorkOS Vault Utility Functions
  *
- * Synchronous utility functions for Vault configuration and validation.
+ * Synchronous utility functions for Vault validation.
  * Separated from vault.ts to comply with Next.js 16 'use server' requirements.
  *
  * Note: This file does NOT have 'use server' because it contains synchronous functions.
@@ -9,24 +9,6 @@
  *
  * @module WorkOSVaultUtils
  */
-
-/**
- * Check if WorkOS Vault is enabled for encryption
- *
- * @returns true if Vault should be used for new encryptions
- */
-export function isVaultEnabled(): boolean {
-  return process.env.WORKOS_VAULT_ENABLED === 'true';
-}
-
-/**
- * Get the encryption method to use based on Vault enablement
- *
- * @returns 'vault' if enabled, 'aes-256-gcm' otherwise
- */
-export function getEncryptionMethod(): 'vault' | 'aes-256-gcm' {
-  return isVaultEnabled() ? 'vault' : 'aes-256-gcm';
-}
 
 /**
  * Validate that an organization ID is properly formatted

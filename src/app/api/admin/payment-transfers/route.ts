@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { PaymentTransfersTable } from '@/drizzle/schema-workos';
+import { PaymentTransfersTable } from '@/drizzle/schema';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import {
   PAYMENT_TRANSFER_STATUSES,

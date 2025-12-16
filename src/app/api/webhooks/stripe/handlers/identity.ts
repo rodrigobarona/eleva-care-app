@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,

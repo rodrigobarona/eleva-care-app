@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransfersTable } from '@/drizzle/schema-workos';
+import { PaymentTransfersTable } from '@/drizzle/schema';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';

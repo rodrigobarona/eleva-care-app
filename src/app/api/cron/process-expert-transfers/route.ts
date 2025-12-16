@@ -1,7 +1,7 @@
 import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventsTable, PaymentTransfersTable, UsersTable } from '@/drizzle/schema-workos';
+import { EventsTable, PaymentTransfersTable, UsersTable } from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_COMPLETED,

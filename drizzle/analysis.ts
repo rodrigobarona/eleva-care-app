@@ -1,4 +1,4 @@
-import * as schema from '@/drizzle/schema-workos';
+import * as schema from '@/drizzle/schema';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import 'dotenv/config';

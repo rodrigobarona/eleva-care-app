@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -104,7 +104,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     // If no user found by verification ID, check metadata for workosUserId
     if (!user && session.metadata && session.metadata.workosUserId) {
       const workosUserId = session.metadata.workosUserId as string;
-      console.log('Looking up user by Clerk ID from metadata:', workosUserId);
+      console.log('Looking up user by WorkOS ID from metadata:', workosUserId);
 
       user = await db.query.UsersTable.findFirst({
         where: eq(UsersTable.workosUserId, workosUserId),
@@ -198,9 +198,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
                 console.log(`Sync attempt ${attempt} failed: ${result.message}`);
                 lastError = new Error(result.message);
 
-                // Wait before retrying (exponential backoff)
+                // Wait before retrying (linear backoff)
                 if (attempt < 3) {
-                  const delay = attempt * 1000; // 1s, 2s, 3s
+                  const delay = attempt * 1000; // 1s, 2s
                   await new Promise((resolve) => setTimeout(resolve, delay));
                 }
               }
@@ -208,9 +208,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
               console.error(`Error in sync attempt ${attempt}:`, syncError);
               lastError = syncError instanceof Error ? syncError : new Error('Unknown error');
 
-              // Wait before retrying (exponential backoff)
+              // Wait before retrying (linear backoff)
               if (attempt < 3) {
-                const delay = attempt * 1000;
+                const delay = attempt * 1000; // 1s, 2s
                 await new Promise((resolve) => setTimeout(resolve, delay));
               }
             }

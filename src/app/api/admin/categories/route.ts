@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { CategoriesTable } from '@/drizzle/schema-workos';
+import { CategoriesTable } from '@/drizzle/schema';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import type { ApiResponse } from '@/types/api';
 import { checkBotId } from 'botid/server';

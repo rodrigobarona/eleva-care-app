@@ -6,7 +6,7 @@ import {
   MeetingsTable,
   PaymentTransfersTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_COMPLETED,
   PAYMENT_TRANSFER_STATUS_PAID_OUT,

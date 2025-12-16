@@ -2,16 +2,11 @@
 
 import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getRequestMetadata } from '@/lib/utils/server/server-utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
-import {
-  PRACTITIONER_AGREEMENT_ACCEPTED,
-  PROFILE_PUBLISHED,
-  PROFILE_UNPUBLISHED,
-} from '@/types/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -72,9 +67,6 @@ export async function toggleProfilePublication() {
     }
     // If unpublishing, we don't need to check for completion status - allow it regardless
 
-    // Get request metadata for audit logging
-    const { ipAddress, userAgent } = await getRequestMetadata();
-
     // Prepare update data
     const updateData: {
       published: boolean;
@@ -87,6 +79,7 @@ export async function toggleProfilePublication() {
 
     // If publishing for the first time, record agreement acceptance
     if (targetPublishedStatus === true && !profile.practitionerAgreementAcceptedAt) {
+      const { ipAddress } = await getRequestMetadata();
       updateData.practitionerAgreementAcceptedAt = new Date();
       updateData.practitionerAgreementVersion = PRACTITIONER_AGREEMENT_CONFIG.version;
       updateData.practitionerAgreementIpAddress = ipAddress;
@@ -95,59 +88,58 @@ export async function toggleProfilePublication() {
     // Update the published status (and agreement data if first time publishing)
     await db.update(ProfilesTable).set(updateData).where(eq(ProfilesTable.workosUserId, userId));
 
-    // Log to audit database
+    // Log to audit database (user context automatically extracted)
     try {
       if (targetPublishedStatus === true) {
         // Log profile publication
         await logAuditEvent(
-          userId,
-          PROFILE_PUBLISHED,
+          'PROFILE_UPDATED',
           'profile',
           profile.id,
-          { published: false },
           {
-            published: true,
-            publishedAt: new Date().toISOString(),
-            expertName: `${user.firstName} ${user.lastName}`,
+            oldValues: { published: false },
+            newValues: {
+              published: true,
+              publishedAt: new Date().toISOString(),
+              expertName: `${user.firstName} ${user.lastName}`,
+            },
           },
-          ipAddress,
-          userAgent,
+          { action: 'publish' },
         );
 
         // Log agreement acceptance (if first time)
         if (!profile.practitionerAgreementAcceptedAt) {
           await logAuditEvent(
-            userId,
-            PRACTITIONER_AGREEMENT_ACCEPTED,
-            'legal_agreement',
+            'COMPLIANCE_REPORT_GENERATED',
+            'compliance',
             `expert-agreement-${profile.id}`,
-            null,
             {
-              agreementType: 'practitioner_agreement',
-              version: PRACTITIONER_AGREEMENT_CONFIG.version,
-              acceptedAt: new Date().toISOString(),
-              documentPath: PRACTITIONER_AGREEMENT_CONFIG.documentPath,
-              expertName: `${user.firstName} ${user.lastName}`,
+              newValues: {
+                agreementType: 'practitioner_agreement',
+                version: PRACTITIONER_AGREEMENT_CONFIG.version,
+                acceptedAt: new Date().toISOString(),
+                documentPath: PRACTITIONER_AGREEMENT_CONFIG.documentPath,
+                expertName: `${user.firstName} ${user.lastName}`,
+              },
             },
-            ipAddress,
-            userAgent,
+            { consentType: 'practitioner_agreement' },
           );
         }
       } else {
         // Log profile unpublication
         await logAuditEvent(
-          userId,
-          PROFILE_UNPUBLISHED,
+          'PROFILE_UPDATED',
           'profile',
           profile.id,
-          { published: true },
           {
-            published: false,
-            unpublishedAt: new Date().toISOString(),
-            expertName: `${user.firstName} ${user.lastName}`,
+            oldValues: { published: true },
+            newValues: {
+              published: false,
+              unpublishedAt: new Date().toISOString(),
+              expertName: `${user.firstName} ${user.lastName}`,
+            },
           },
-          ipAddress,
-          userAgent,
+          { action: 'unpublish' },
         );
       }
     } catch (auditError) {

@@ -1,6 +1,5 @@
-import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
 import { redisManager } from '@/lib/redis/manager';
@@ -232,11 +231,10 @@ export async function GET(request: Request) {
       };
     }
 
-    // 2. Database connectivity checks
+    // 2. Database connectivity check
     let mainDbStatus = 'healthy';
-    let auditDbStatus = 'healthy';
 
-    // Check main database
+    // Check main database (audit logs are now in the main database)
     console.log('🗄️ Checking main database connectivity...');
     try {
       await db.execute(sql`SELECT 1 as main_db_health_check`);
@@ -244,16 +242,6 @@ export async function GET(request: Request) {
     } catch (error) {
       console.error('❌ Main database health check failed:', error);
       mainDbStatus = 'unhealthy';
-    }
-
-    // Check audit database
-    console.log('🗄️ Checking audit database connectivity...');
-    try {
-      await auditDb.execute(sql`SELECT 1 as audit_db_health_check`);
-      console.log('✅ Audit database health check: OK');
-    } catch (error) {
-      console.error('❌ Audit database health check failed:', error);
-      auditDbStatus = 'unhealthy';
     }
 
     // 3. Redis health check and cache maintenance
@@ -432,13 +420,11 @@ export async function GET(request: Request) {
         overall:
           healthCheckResult?.status === 'healthy' &&
           mainDbStatus === 'healthy' &&
-          auditDbStatus === 'healthy' &&
           (!metrics.redisHealth || metrics.redisHealth.status === 'healthy') &&
           (!metrics.qstashHealth || metrics.qstashHealth.status === 'healthy')
             ? 'healthy'
             : 'unhealthy',
         mainDatabase: mainDbStatus,
-        auditDatabase: auditDbStatus,
         redis: metrics.redisHealth?.status || 'unknown',
         qstash: metrics.qstashHealth?.status || 'unknown',
         tokenRefresh: metrics.failedRefreshes === 0 ? 'healthy' : 'degraded',
@@ -500,7 +486,6 @@ export async function GET(request: Request) {
         systemHealth: {
           overall: 'unhealthy',
           mainDatabase: 'unknown',
-          auditDatabase: 'unknown',
           redis: metrics.redisHealth?.status || 'unknown',
           qstash: metrics.qstashHealth?.status || 'unknown',
           tokenRefresh: 'failed',
