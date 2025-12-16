@@ -5,6 +5,107 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2025-12-16 - WorkOS Vault Migration Complete
+
+### 🔐 ENCRYPTION ARCHITECTURE CLEANUP
+
+**Legacy Encryption Removed**
+
+- ✅ **Removed**: `src/lib/utils/encryption.ts` (legacy AES-256-GCM)
+- ✅ **Removed**: `ENCRYPTION_KEY` environment variable requirement
+- ✅ **Removed**: Conditional encryption logic (`isVaultEnabled()`, `getEncryptionMethod()`)
+
+**WorkOS Vault Now Exclusive**
+
+- ✅ **Medical Records API**: Now uses WorkOS Vault exclusively
+- ✅ **Org-Scoped Keys**: Each organization has unique encryption keys
+- ✅ **Envelope Encryption**: DEK + KEK pattern for all sensitive data
+
+### Changed
+
+- **`src/app/api/appointments/[meetingId]/records/route.ts`**: Migrated to WorkOS Vault
+- **`src/app/api/records/route.ts`**: Migrated to WorkOS Vault
+- **`src/lib/integrations/workos/vault-utils.ts`**: Simplified (removed conditional logic)
+- **`_docs/03-infrastructure/ENCRYPTION-ARCHITECTURE.md`**: Updated for Vault-only architecture
+- **`_docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md`**: Removed legacy fallback references
+
+### Removed
+
+- **`src/lib/utils/encryption.ts`**: Legacy AES-256-GCM encryption (no longer needed)
+
+### Security Notes
+
+| Operation                 | Implementation              | Notes                          |
+| ------------------------- | --------------------------- | ------------------------------ |
+| Sensitive Data Encryption | WorkOS Vault                | Org-scoped keys, auto-rotation |
+| HMAC Signatures           | Bun.CryptoHasher            | Native performance             |
+| Timing-Safe Comparison    | node:crypto.timingSafeEqual | Prevents timing attacks        |
+| Password Hashing          | WorkOS (external)           | Handled by auth provider       |
+
+---
+
+## [0.5.4] - 2025-12-16 - Bun Production Hardening & Crypto Migration
+
+### 🔐 SECURITY & PRODUCTION HARDENING
+
+**Bun-Native Crypto Migration**
+
+- ✅ **HMAC Operations**: Migrated from `node:crypto` to `Bun.CryptoHasher` for native performance
+- ✅ **QStash Signature Verification**: Now uses `Bun.CryptoHasher('sha256', key)`
+- ✅ **QStash Token Generation**: Native Bun HMAC for internal verification tokens
+- ✅ **Novu Subscriber Hash**: Bun-native HMAC for secure subscriber authentication
+- ✅ **Type Safety**: Added official `@types/bun` for full TypeScript support
+
+**Healthcheck Runtime Detection**
+
+- ✅ **Runtime Detection**: Healthcheck now reports `runtime: 'bun' | 'node'`
+- ✅ **Version Tracking**: Reports `runtimeVersion` and `isBun` flag for monitoring
+- ✅ **Production Monitoring**: Better Stack, PostHog, and Novu now receive runtime info
+
+### Encryption Architecture
+
+**WorkOS Vault** - For sensitive data:
+
+- Medical records encryption (org-scoped keys)
+- Google OAuth token encryption
+- Envelope encryption pattern (DEK + KEK)
+- HIPAA/GDPR compliant, SOC 2 certified
+
+**Bun.CryptoHasher** - For HMAC signatures:
+
+- QStash request verification
+- Novu subscriber authentication
+- Internal token generation
+
+### Added
+
+- **`@types/bun`**: Official Bun TypeScript definitions (v1.3.4)
+- **Runtime Detection**: `isBunRuntime`, `runtime`, `runtimeVersion` in healthcheck
+
+### Changed
+
+- **`src/app/api/healthcheck/route.ts`**: Added Bun runtime detection
+- **`src/lib/integrations/qstash/utils.ts`**: Migrated to `Bun.CryptoHasher`
+- **`src/app/api/qstash/route.ts`**: Migrated to `Bun.CryptoHasher`
+- **`src/app/api/novu/subscriber-hash/route.ts`**: Migrated to `Bun.CryptoHasher`
+- **`global.d.ts`**: Simplified to use official `@types/bun`
+
+### Security Notes
+
+| Operation                 | Implementation              | Notes                          |
+| ------------------------- | --------------------------- | ------------------------------ |
+| Sensitive Data Encryption | WorkOS Vault                | Org-scoped keys, auto-rotation |
+| HMAC Signatures           | Bun.CryptoHasher            | Native performance             |
+| Timing-Safe Comparison    | node:crypto.timingSafeEqual | Prevents timing attacks        |
+| Password Hashing          | WorkOS (external)           | Handled by auth provider       |
+
+### Documentation
+
+- Updated `_docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md`
+- Added crypto architecture section
+
+---
+
 ## [0.5.3] - 2025-12-15 - Bun Runtime Migration
 
 ### 🚀 RUNTIME MIGRATION

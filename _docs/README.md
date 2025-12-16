@@ -2,7 +2,7 @@
 
 **Complete technical documentation for the Eleva Care platform**
 
-**Last Updated:** February 6, 2025  
+**Last Updated:** December 16, 2025  
 **Status:** ✅ Active & Maintained
 
 ---
@@ -106,6 +106,8 @@ This documentation follows the **[Diátaxis Framework](https://diataxis.fr/)** -
 | **[WorkOS Authentication](./WorkOS-migration/reference/workos-authentication.md)** | JWT, OAuth, sessions                 | Auth Spec    |
 | **[Org-Per-User Model](./WorkOS-migration/reference/org-per-user-model.md)** | Multi-tenancy architecture           | Architecture |
 | **[Row-Level Security](./WorkOS-migration/reference/neon-auth-rls.md)**   | RLS policies and implementation      | Database     |
+| **[Encryption Architecture](./03-infrastructure/ENCRYPTION-ARCHITECTURE.md)** | WorkOS Vault, Bun.CryptoHasher       | Security     |
+| **[Bun Runtime](./03-infrastructure/BUN-RUNTIME-MIGRATION.md)**           | Bun 1.3.4, crypto migration          | Infrastructure |
 | **[Subscription Pricing](../.cursor/plans/SUBSCRIPTION-PRICING-MASTER.md)** | Pricing tiers and calculations       | Business     |
 | **[Role Progression](./02-core-systems/ROLE-PROGRESSION-SYSTEM.md)**       | Expert tier system                   | Business     |
 | **[Stripe Integration](./02-core-systems/payments/02-stripe-integration.md)** | Payment API reference                | Payments     |
@@ -168,6 +170,8 @@ This documentation follows the **[Diátaxis Framework](https://diataxis.fr/)** -
 - Analytics (PostHog)
 - Email (Resend)
 - Storage (Vercel Blob)
+- **[Bun Runtime](./03-infrastructure/BUN-RUNTIME-MIGRATION.md)** - Bun 1.3.4 migration and crypto
+- **[Encryption Architecture](./03-infrastructure/ENCRYPTION-ARCHITECTURE.md)** - WorkOS Vault, Bun.CryptoHasher
 
 ---
 

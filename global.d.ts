@@ -6,3 +6,5 @@ declare module 'next-intl' {
     Messages: typeof messagesEn;
   }
 }
+
+// Bun types are provided by @types/bun package

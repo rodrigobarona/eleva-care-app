@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 
 import { validateQStashConfig } from './config';
 
@@ -99,12 +99,12 @@ export async function isVerifiedQStashRequest(headers: Headers): Promise<boolean
       return false;
     }
 
-    // Verify HMAC signature
-    const hmac = crypto.createHmac('sha256', currentKey);
-    hmac.update(timestamp);
-    const expectedSignature = hmac.digest('hex');
+    // Verify HMAC signature using Bun.CryptoHasher
+    const hasher = new Bun.CryptoHasher('sha256', currentKey);
+    hasher.update(timestamp);
+    const expectedSignature = hasher.digest('hex');
 
-    const isValidSignature = crypto.timingSafeEqual(
+    const isValidSignature = timingSafeEqual(
       Buffer.from(signature, 'hex'),
       Buffer.from(expectedSignature, 'hex'),
     );

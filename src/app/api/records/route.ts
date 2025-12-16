@@ -1,11 +1,54 @@
 import { db } from '@/drizzle/db';
-import { RecordsTable } from '@/drizzle/schema-workos';
-import { decryptRecord } from '@/lib/utils/encryption';
+import { OrganizationsTable, RecordsTable, UserOrgMembershipsTable } from '@/drizzle/schema-workos';
+import { decryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+/**
+ * Get WorkOS organization ID for the current user
+ *
+ * Looks up the user's primary organization and returns the WorkOS org ID.
+ *
+ * @param workosUserId - The WorkOS user ID
+ * @returns WorkOS org ID (format: org_xxx) or null if not found
+ */
+async function getUserWorkosOrgId(workosUserId: string): Promise<string | null> {
+  // Get user's primary organization membership
+  const membership = await db.query.UserOrgMembershipsTable.findFirst({
+    where: eq(UserOrgMembershipsTable.workosUserId, workosUserId),
+    columns: { orgId: true },
+  });
+
+  if (!membership?.orgId) return null;
+
+  // Get the WorkOS org ID
+  const org = await db.query.OrganizationsTable.findFirst({
+    where: eq(OrganizationsTable.id, membership.orgId),
+    columns: { workosOrgId: true },
+  });
+
+  return org?.workosOrgId || null;
+}
+
+/**
+ * Get WorkOS organization ID from internal UUID
+ *
+ * @param internalOrgId - Internal UUID from database
+ * @returns WorkOS org ID (format: org_xxx) or null if not found
+ */
+async function getWorkosOrgId(internalOrgId: string | null): Promise<string | null> {
+  if (!internalOrgId) return null;
+
+  const org = await db.query.OrganizationsTable.findFirst({
+    where: eq(OrganizationsTable.id, internalOrgId),
+    columns: { workosOrgId: true },
+  });
+
+  return org?.workosOrgId || null;
+}
 
 export async function GET() {
   try {
@@ -21,14 +64,59 @@ export async function GET() {
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
-    // Decrypt the records
-    const decryptedRecords = records.map((record) => ({
-      ...record,
-      content: decryptRecord(record.vaultEncryptedContent),
-      metadata: record.vaultEncryptedMetadata
-        ? JSON.parse(decryptRecord(record.vaultEncryptedMetadata))
-        : null,
-    }));
+    // Get user's default WorkOS org ID for decryption
+    const userWorkosOrgId = await getUserWorkosOrgId(workosUserId);
+
+    // Decrypt the records using WorkOS Vault
+    // Each record may have its own orgId, so we decrypt per-record
+    const decryptedRecords = await Promise.all(
+      records.map(async (record) => {
+        // Use record's org if available, otherwise fall back to user's org
+        const workosOrgId = record.orgId ? await getWorkosOrgId(record.orgId) : userWorkosOrgId;
+
+        if (!workosOrgId) {
+          console.error('No organization found for record:', record.id);
+          return {
+            ...record,
+            content: '[Decryption Error: Organization not found]',
+            metadata: null,
+            decryptionError: true,
+          };
+        }
+
+        try {
+          const content = await decryptForOrg(workosOrgId, record.vaultEncryptedContent, {
+            userId: workosUserId,
+            dataType: 'medical_record',
+            recordId: record.id,
+          });
+
+          const metadata = record.vaultEncryptedMetadata
+            ? JSON.parse(
+                await decryptForOrg(workosOrgId, record.vaultEncryptedMetadata, {
+                  userId: workosUserId,
+                  dataType: 'medical_record',
+                  recordId: record.id,
+                }),
+              )
+            : null;
+
+          return {
+            ...record,
+            content,
+            metadata,
+          };
+        } catch (decryptError) {
+          console.error('Failed to decrypt record:', record.id, decryptError);
+          return {
+            ...record,
+            content: '[Decryption Error]',
+            metadata: null,
+            decryptionError: true,
+          };
+        }
+      }),
+    );
 
     // Log audit event
     const headersList = await headers();
@@ -36,13 +124,13 @@ export async function GET() {
       await logAuditEvent(
         workosUserId,
         'READ_MEDICAL_RECORDS_FOR_MEETING',
-        'medical_record', // resourceType could also be 'expert_records_collection'
+        'medical_record',
         workosUserId, // Using expert's workosUserId as the resource identifier for this bulk action
         null,
         {
           expertId: workosUserId,
           recordsFetched: decryptedRecords.length,
-          recordIds: decryptedRecords.map((r) => r.id), // Log IDs of all records accessed
+          recordIds: decryptedRecords.map((r) => r.id),
         },
         headersList.get('x-forwarded-for') ?? 'Unknown',
         headersList.get('user-agent') ?? 'Unknown',

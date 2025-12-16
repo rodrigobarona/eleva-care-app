@@ -85,6 +85,21 @@ Background automation and system maintenance.
 
 ---
 
+### 6. Runtime & Security
+
+Bun runtime migration and encryption architecture.
+
+- **Bun Runtime**: Bun 1.3.4 with Node.js compatibility
+- **Encryption**: WorkOS Vault (primary), Bun.CryptoHasher (HMAC)
+- **Healthcheck**: Runtime detection and monitoring
+
+📄 **Key Files:**
+
+- [Bun Runtime Migration](./BUN-RUNTIME-MIGRATION.md) ⭐ **Runtime and crypto migration**
+- [Encryption Architecture](./ENCRYPTION-ARCHITECTURE.md) ⭐ **Security architecture**
+
+---
+
 ## Platform Architecture
 
 ### Hosting & Deployment
@@ -109,7 +124,7 @@ Background automation and system maintenance.
 | **Neon**        | Database       | EU     | 🟢 Operational |
 | **Upstash**     | Redis & QStash | Global | 🟢 Operational |
 | **Stripe**      | Payments       | Global | 🟢 Operational |
-| **Clerk**       | Authentication | Global | 🟢 Operational |
+| **WorkOS**      | Auth & Vault   | Global | 🟢 Operational |
 | **Novu**        | Notifications  | US     | 🟢 Operational |
 | **BetterStack** | Monitoring     | EU/US  | 🟢 Operational |
 
@@ -130,15 +145,15 @@ curl https://eleva.care/api/healthcheck?services=true
 ```bash
 curl https://eleva.care/api/health/stripe
 curl https://eleva.care/api/health/neon-database
-curl https://eleva.care/api/health/clerk
+curl https://eleva.care/api/health/workos
 curl https://eleva.care/api/health/upstash-redis
 ```
 
 ### Alert Configuration
 
-| Priority    | Services                | Alert Time | Escalation |
-| ----------- | ----------------------- | ---------- | ---------- |
-| 🔴 Critical | Database, Stripe, Clerk | Immediate  | 5 min      |
+| Priority    | Services                 | Alert Time | Escalation |
+| ----------- | ------------------------ | ---------- | ---------- |
+| 🔴 Critical | Database, Stripe, WorkOS | Immediate  | 5 min      |
 | 🟡 High     | Redis, QStash, Novu     | 2 failures | 10 min     |
 | 🟢 Medium   | PostHog, Analytics      | 3 failures | 30 min     |
 

@@ -1,6 +1,6 @@
 # Bun Runtime Migration
 
-> **Status**: Implemented (Phase 1 & 2)
+> **Status**: Implemented (Phase 1, 2 & 3 - Crypto)
 > **Date**: December 2025
 > **Version**: Bun 1.3.4
 
@@ -12,32 +12,32 @@ The eleva-care-app has migrated from Node.js/pnpm to the Bun runtime for improve
 
 ### Runtime Configuration
 
-| Component | Before | After |
-|-----------|--------|-------|
-| Runtime | Node.js 24+ | Bun 1.3.4 (with Node.js fallback) |
-| Package Manager | pnpm 9.2.0 | Bun |
-| Script Execution | tsx | Bun (native TypeScript) |
-| Package Execution | npx | bunx |
-| Lockfile | pnpm-lock.yaml | bun.lock |
+| Component         | Before         | After                             |
+| ----------------- | -------------- | --------------------------------- |
+| Runtime           | Node.js 24+    | Bun 1.3.4 (with Node.js fallback) |
+| Package Manager   | pnpm 9.2.0     | Bun                               |
+| Script Execution  | tsx            | Bun (native TypeScript)           |
+| Package Execution | npx            | bunx                              |
+| Lockfile          | pnpm-lock.yaml | bun.lock                          |
 
 ### Files Modified
 
-| File | Changes |
-|------|---------|
-| `vercel.json` | Added `bunVersion: "1.x"` for Vercel Bun runtime |
-| `package.json` | Updated all scripts to use `bun`/`bunx` |
-| `.github/workflows/test.yml` | Migrated CI to use `oven-sh/setup-bun@v2` |
-| `.gitignore` | Added `.bun` directory |
+| File                         | Changes                                          |
+| ---------------------------- | ------------------------------------------------ |
+| `vercel.json`                | Added `bunVersion: "1.x"` for Vercel Bun runtime |
+| `package.json`               | Updated all scripts to use `bun`/`bunx`          |
+| `.github/workflows/test.yml` | Migrated CI to use `oven-sh/setup-bun@v2`        |
+| `.gitignore`                 | Added `.bun` directory                           |
 
 ## Performance Improvements
 
-| Metric | Node.js/pnpm | Bun | Improvement |
-|--------|--------------|-----|-------------|
-| Package install | ~15s | ~4s | **4x faster** |
-| Dev server cold start | ~15s | ~5s | **3x faster** |
-| First page compile | ~11s | ~9s | **22% faster** |
-| Proxy.ts execution | ~315ms | ~45ms | **7x faster** |
-| Script execution (tsx → bun) | ~500ms | ~100ms | **5x faster** |
+| Metric                       | Node.js/pnpm | Bun    | Improvement    |
+| ---------------------------- | ------------ | ------ | -------------- |
+| Package install              | ~15s         | ~4s    | **4x faster**  |
+| Dev server cold start        | ~15s         | ~5s    | **3x faster**  |
+| First page compile           | ~11s         | ~9s    | **22% faster** |
+| Proxy.ts execution           | ~315ms       | ~45ms  | **7x faster**  |
+| Script execution (tsx → bun) | ~500ms       | ~100ms | **5x faster**  |
 
 ## Configuration
 
@@ -65,10 +65,10 @@ Key script patterns:
     "dev:next": "bun --bun next dev --port 3000",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
-    
+
     // Native TypeScript execution (no tsx needed)
     "postbuild": "bun scripts/utilities/update-qstash-schedules.ts",
-    
+
     // Package execution
     "qstash:dev": "bunx @upstash/qstash-cli@latest dev"
   }
@@ -164,13 +164,13 @@ bun --bun next build
 
 These dependencies are specifically optimized for serverless/edge environments and were intentionally kept:
 
-| Dependency | Reason |
-|------------|--------|
+| Dependency                 | Reason                                           |
+| -------------------------- | ------------------------------------------------ |
 | `@neondatabase/serverless` | HTTP-based driver optimized for Vercel Functions |
-| `@upstash/redis` | REST API for serverless (Bun's Redis uses TCP) |
-| `@vercel/blob` | Proprietary Vercel storage |
-| `drizzle-orm` | ORM layer (works with any driver) |
-| `googleapis` | Complex SDK with no Bun equivalent |
+| `@upstash/redis`           | REST API for serverless (Bun's Redis uses TCP)   |
+| `@vercel/blob`             | Proprietary Vercel storage                       |
+| `drizzle-orm`              | ORM layer (works with any driver)                |
+| `googleapis`               | Complex SDK with no Bun equivalent               |
 
 ## CI/CD Configuration
 
@@ -225,40 +225,154 @@ Or use the `dev` command without QStash:
 bun dev  # Runs Next.js + video sync only
 ```
 
-## Future Improvements (Phase 3+)
+## Encryption & Crypto Architecture
 
-### Testing Migration
+### Overview
+
+The application uses a layered encryption architecture optimized for both security and performance:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Encryption Architecture                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  WorkOS Vault (Primary) - Sensitive Data                │    │
+│  │  • Medical records                                       │    │
+│  │  • OAuth tokens (Google Calendar)                        │    │
+│  │  • Org-scoped keys (unique per organization)             │    │
+│  │  • Automatic key rotation                                │    │
+│  │  • SOC 2 Type II certified                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Bun.CryptoHasher - HMAC Signatures                     │    │
+│  │  • QStash request verification                          │    │
+│  │  • Internal token generation                            │    │
+│  │  • Novu subscriber authentication                       │    │
+│  │  • Native Bun performance                               │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### WorkOS Vault (Primary Encryption)
+
+For all sensitive data, we use WorkOS Vault with envelope encryption:
+
+```typescript
+// src/lib/integrations/workos/vault.ts
+import { WorkOS } from '@workos-inc/node';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+
+// Encrypt medical records with org-scoped keys
+const encrypted = await encryptForOrg(orgId, plaintext, {
+  userId: workosUserId,
+  dataType: 'medical_record',
+  recordId: recordId,
+});
+
+// Decrypt
+const decrypted = await decryptForOrg(orgId, encrypted, context);
+```
+
+**Key Features:**
+
+- **Org-scoped keys**: Each organization has unique encryption keys
+- **Envelope encryption**: DEK (Data Encryption Key) + KEK (Key Encryption Key)
+- **Automatic rotation**: WorkOS manages key rotation transparently
+- **Audit logging**: All operations logged for compliance
+- **HIPAA/GDPR ready**: SOC 2 Type II certified infrastructure
+
+### Bun.CryptoHasher (HMAC Operations) ✅ IMPLEMENTED
+
+All HMAC signature operations now use Bun's native `CryptoHasher`:
+
+```typescript
+// Timing-safe comparison (still uses node:crypto)
+import { timingSafeEqual } from 'node:crypto';
+
+// QStash signature verification
+// src/lib/integrations/qstash/utils.ts
+const hasher = new Bun.CryptoHasher('sha256', currentKey);
+hasher.update(timestamp);
+const expectedSignature = hasher.digest('hex');
+
+const isValid = timingSafeEqual(
+  Buffer.from(signature, 'hex'),
+  Buffer.from(expectedSignature, 'hex'),
+);
+```
+
+**Files Using Bun.CryptoHasher:**
+
+| File                                        | Usage                     |
+| ------------------------------------------- | ------------------------- |
+| `src/lib/integrations/qstash/utils.ts`      | Signature verification    |
+| `src/app/api/qstash/route.ts`               | Token generation          |
+| `src/app/api/novu/subscriber-hash/route.ts` | Subscriber authentication |
+
+### Type Safety
+
+Official Bun types are provided by `@types/bun`:
+
+```bash
+bun add -d @types/bun
+```
+
+This provides full TypeScript support for:
+
+- `Bun.CryptoHasher`
+- `Bun.version`
+- `Bun.password` (if needed in future)
+- All Bun-specific APIs
+
+### Healthcheck Runtime Detection
+
+The healthcheck endpoint now reports runtime information:
+
+```typescript
+// src/app/api/healthcheck/route.ts
+const isBunRuntime = typeof Bun !== 'undefined';
+const runtime = isBunRuntime ? 'bun' : 'node';
+const runtimeVersion = isBunRuntime ? Bun.version : process.version;
+
+// Response includes:
+{
+  "runtime": "bun",
+  "runtimeVersion": "1.3.4",
+  "isBun": true,
+  // ... other health data
+}
+```
+
+**Benefits:**
+
+- **Production Monitoring**: Better Stack, PostHog track runtime info
+- **Debugging**: Easy identification of runtime environment
+- **Fallback Detection**: Know if Node.js fallback is active
+
+## Future Improvements (Phase 4+)
+
+### Testing Migration (Optional)
 
 Migrate from Vitest to Bun's built-in test runner:
 
 ```typescript
-// Before (Vitest)
+// Before (Vitest) - CURRENT
 import { describe, it, expect, vi } from 'vitest';
 
-// After (Bun)
+// After (Bun) - OPTIONAL
 import { describe, it, expect, mock } from 'bun:test';
 ```
 
 Expected improvement: 14-23x faster test execution.
 
-### Crypto Optimization
+**Note:** We chose to keep Vitest for now due to its mature ecosystem and Jest compatibility.
 
-Replace Node.js `crypto` with Bun's built-in APIs:
+### Password Hashing (Not Needed)
 
-```typescript
-// Before (Node.js)
-import crypto from 'crypto';
-crypto.createHmac('sha256', key).update(payload).digest('base64');
-
-// After (Bun)
-const hasher = new Bun.CryptoHasher("sha256", key);
-hasher.update(payload);
-hasher.digest("base64");
-```
-
-### Password Hashing
-
-Use Bun's built-in password hashing:
+Bun provides built-in password hashing:
 
 ```typescript
 // Bun built-in (Argon2id by default)
@@ -266,10 +380,11 @@ const hash = await Bun.password.hash(password);
 const isValid = await Bun.password.verify(password, hash);
 ```
 
+**Note:** We don't use this because WorkOS handles all password hashing externally through AuthKit.
+
 ## Resources
 
 - [Bun Documentation](https://bun.sh/docs)
 - [Bun on Vercel](https://vercel.com/docs/functions/runtimes/bun)
 - [Bun GitHub](https://github.com/oven-sh/bun)
 - [Migration Guide: npm to Bun](https://bun.sh/docs/guides/install/from-npm-install-to-bun-install)
-

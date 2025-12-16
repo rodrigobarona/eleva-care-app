@@ -2,7 +2,6 @@ import { validateQStashConfig } from '@/lib/integrations/qstash/config';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import crypto from 'node:crypto';
 
 // Add route segment config
 export const preferredRegion = 'auto';
@@ -87,9 +86,9 @@ async function handler(req: NextRequest): Promise<NextResponse> {
       // Generate a secure verification token for internal use
       // This token contains a timestamp and HMAC signature to prevent spoofing
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const hmac = crypto.createHmac('sha256', process.env.QSTASH_CURRENT_SIGNING_KEY || '');
-      hmac.update(timestamp);
-      const signature = hmac.digest('hex');
+      const hasher = new Bun.CryptoHasher('sha256', process.env.QSTASH_CURRENT_SIGNING_KEY || '');
+      hasher.update(timestamp);
+      const signature = hasher.digest('hex');
       const verificationToken = `${timestamp}.${signature}`;
 
       // Forward the request to the target endpoint

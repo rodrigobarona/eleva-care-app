@@ -1,11 +1,30 @@
 import { db } from '@/drizzle/db';
-import { RecordsTable } from '@/drizzle/schema-workos';
-import { decryptRecord, encryptRecord } from '@/lib/utils/encryption';
+import { OrganizationsTable, RecordsTable } from '@/drizzle/schema-workos';
+import { decryptForOrg, encryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+/**
+ * Get WorkOS organization ID for Vault encryption
+ *
+ * Looks up the WorkOS org ID from the internal UUID to use with Vault API.
+ *
+ * @param internalOrgId - Internal UUID from database
+ * @returns WorkOS org ID (format: org_xxx) or null if not found
+ */
+async function getWorkosOrgId(internalOrgId: string | null): Promise<string | null> {
+  if (!internalOrgId) return null;
+
+  const org = await db.query.OrganizationsTable.findFirst({
+    where: eq(OrganizationsTable.id, internalOrgId),
+    columns: { workosOrgId: true },
+  });
+
+  return org?.workosOrgId || null;
+}
 
 export async function POST(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
@@ -28,19 +47,40 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
       return NextResponse.json({ error: 'Meeting not found or unauthorized' }, { status: 404 });
     }
 
-    // Encrypt the content and metadata
-    const vaultEncryptedContent = encryptRecord(content);
-    const vaultEncryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
+    // Get WorkOS org ID for Vault encryption
+    const workosOrgId = await getWorkosOrgId(meeting.orgId);
+    if (!workosOrgId) {
+      console.error('No organization found for meeting:', params.meetingId);
+      return NextResponse.json(
+        { error: 'Organization not found for encryption' },
+        { status: 500 },
+      );
+    }
 
-    // Create the record
+    // Encrypt the content and metadata using WorkOS Vault
+    const vaultEncryptedContent = await encryptForOrg(workosOrgId, content, {
+      userId: workosUserId,
+      dataType: 'medical_record',
+    });
+
+    const vaultEncryptedMetadata = metadata
+      ? await encryptForOrg(workosOrgId, JSON.stringify(metadata), {
+          userId: workosUserId,
+          dataType: 'medical_record',
+        })
+      : null;
+
+    // Create the record with orgId for RLS
     const [record] = await db
       .insert(RecordsTable)
       .values({
+        orgId: meeting.orgId,
         meetingId: params.meetingId,
         expertId: workosUserId,
         guestEmail: meeting.guestEmail,
         vaultEncryptedContent,
         vaultEncryptedMetadata: vaultEncryptedMetadata || undefined,
+        encryptionMethod: 'vault',
       })
       .returning();
 
@@ -60,6 +100,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
           guestEmail: meeting.guestEmail,
           contentProvided: !!content,
           metadataProvided: !!metadata,
+          encryptionMethod: 'vault',
         },
         headersList.get('x-forwarded-for') ?? 'Unknown',
         headersList.get('user-agent') ?? 'Unknown',
@@ -84,7 +125,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
           error.message.includes('Unauthorized') ||
           error.message.includes('permission') ||
           error.message.includes('access denied') ||
-          error.message.includes('forbidden'));
+          error.message.includes('forbidden') ||
+          error.message.includes('Vault'));
 
       const auditAction = isSecuritySensitive
         ? 'FAILED_CREATE_MEDICAL_RECORD_UNAUTHORIZED'
@@ -133,20 +175,48 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       return NextResponse.json({ error: 'Meeting not found or unauthorized' }, { status: 404 });
     }
 
+    // Get WorkOS org ID for Vault decryption
+    const workosOrgId = await getWorkosOrgId(meeting.orgId);
+    if (!workosOrgId) {
+      console.error('No organization found for meeting:', params.meetingId);
+      return NextResponse.json(
+        { error: 'Organization not found for decryption' },
+        { status: 500 },
+      );
+    }
+
     // Get all records for this meeting
     const records = await db.query.RecordsTable.findMany({
       where: eq(RecordsTable.meetingId, params.meetingId),
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
-    // Decrypt the records
-    const decryptedRecords = records.map((record) => ({
-      ...record,
-      content: decryptRecord(record.vaultEncryptedContent),
-      metadata: record.vaultEncryptedMetadata
-        ? JSON.parse(decryptRecord(record.vaultEncryptedMetadata))
-        : null,
-    }));
+    // Decrypt the records using WorkOS Vault
+    const decryptedRecords = await Promise.all(
+      records.map(async (record) => {
+        const content = await decryptForOrg(workosOrgId, record.vaultEncryptedContent, {
+          userId: workosUserId,
+          dataType: 'medical_record',
+          recordId: record.id,
+        });
+
+        const metadata = record.vaultEncryptedMetadata
+          ? JSON.parse(
+              await decryptForOrg(workosOrgId, record.vaultEncryptedMetadata, {
+                userId: workosUserId,
+                dataType: 'medical_record',
+                recordId: record.id,
+              }),
+            )
+          : null;
+
+        return {
+          ...record,
+          content,
+          metadata,
+        };
+      }),
+    );
 
     // Log audit event
     const headersList = await headers();
@@ -154,14 +224,14 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       await logAuditEvent(
         workosUserId,
         'READ_MEDICAL_RECORDS_FOR_MEETING',
-        'medical_record', // resourceType could also be 'meeting_records'
-        params.meetingId, // Using meetingId as the primary resource identifier for this action
+        'medical_record',
+        params.meetingId,
         null,
         {
           meetingId: params.meetingId,
           expertId: workosUserId,
           recordsFetched: decryptedRecords.length,
-          recordIds: decryptedRecords.map((r) => r.id), // Log IDs of records accessed
+          recordIds: decryptedRecords.map((r) => r.id),
         },
         headersList.get('x-forwarded-for') ?? 'Unknown',
         headersList.get('user-agent') ?? 'Unknown',
@@ -186,7 +256,8 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
           error.message.includes('permission') ||
           error.message.includes('access denied') ||
           error.message.includes('forbidden') ||
-          error.message.includes('decrypt'));
+          error.message.includes('decrypt') ||
+          error.message.includes('Vault'));
 
       const auditAction = isSecuritySensitive
         ? 'FAILED_READ_MEDICAL_RECORDS_UNAUTHORIZED'
@@ -237,9 +308,30 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
       return NextResponse.json({ error: 'Record not found or unauthorized' }, { status: 404 });
     }
 
-    // Encrypt the updated content and metadata
-    const newVaultEncryptedContent = encryptRecord(content);
-    const newVaultEncryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
+    // Get WorkOS org ID for Vault encryption
+    const workosOrgId = await getWorkosOrgId(oldRecord.orgId);
+    if (!workosOrgId) {
+      console.error('No organization found for record:', recordId);
+      return NextResponse.json(
+        { error: 'Organization not found for encryption' },
+        { status: 500 },
+      );
+    }
+
+    // Encrypt the updated content and metadata using WorkOS Vault
+    const newVaultEncryptedContent = await encryptForOrg(workosOrgId, content, {
+      userId: workosUserId,
+      dataType: 'medical_record',
+      recordId,
+    });
+
+    const newVaultEncryptedMetadata = metadata
+      ? await encryptForOrg(workosOrgId, JSON.stringify(metadata), {
+          userId: workosUserId,
+          dataType: 'medical_record',
+          recordId,
+        })
+      : null;
 
     // Update the record
     const [updatedRecord] = await db
@@ -263,19 +355,17 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
         recordId,
         {
           oldVersion: oldRecord.version,
-          // To avoid logging actual old encrypted content in audit,
-          // we indicate if it changed by comparing new encrypted values with old ones.
-          // This assumes that if the encrypted string is the same, the content is the same.
-          contentChanged: oldRecord.vaultEncryptedContent !== newVaultEncryptedContent,
-          metadataChanged: oldRecord.vaultEncryptedMetadata !== newVaultEncryptedMetadata,
+          contentChanged: true, // With Vault, encrypted content is always different due to unique DEKs
+          metadataChanged: !!metadata,
         },
         {
           newVersion: updatedRecord.version,
           recordId: updatedRecord.id,
           meetingId: params.meetingId,
           expertId: workosUserId,
-          contentProvided: !!content, // Indicates if new content was part of the update payload
-          metadataProvided: !!metadata, // Indicates if new metadata was part of the update payload
+          contentProvided: !!content,
+          metadataProvided: !!metadata,
+          encryptionMethod: 'vault',
         },
         headersList.get('x-forwarded-for') ?? 'Unknown',
         headersList.get('user-agent') ?? 'Unknown',
@@ -301,7 +391,8 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
           error.message.includes('access denied') ||
           error.message.includes('forbidden') ||
           error.message.includes('encrypt') ||
-          error.message.includes('decrypt'));
+          error.message.includes('decrypt') ||
+          error.message.includes('Vault'));
 
       const auditAction = isSecuritySensitive
         ? 'FAILED_UPDATE_MEDICAL_RECORD_UNAUTHORIZED'
