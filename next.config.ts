@@ -152,6 +152,17 @@ export default withNextVideo(
     // otherwise reporting of client-side errors will fail.
     tunnelRoute: '/monitoring',
 
+    // Source map upload configuration
+    sourcemaps: {
+      // Ignore Next.js internal manifest files that don't have source maps
+      // These are auto-generated RSC metadata files, not application code
+      ignore: [
+        'node_modules/**',
+        '**/client-reference-manifest.js',
+        '**/*_client-reference-manifest.js',
+      ],
+    },
+
     // Webpack-specific Sentry configuration (moved from root level in SDK v10+)
     webpack: {
       // Automatically tree-shake Sentry logger statements to reduce bundle size
