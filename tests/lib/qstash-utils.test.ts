@@ -2,37 +2,18 @@
  * Unit tests for QStash verification utilities
  *
  * Tests the isVerifiedQStashRequest function which validates incoming QStash requests
- * using HMAC-SHA256 signatures computed with Bun.CryptoHasher.
+ * using HMAC-SHA256 signatures.
  *
- * Note: Tests use Node.js crypto module to compute signatures since Vitest runs in Node.js,
- * but this produces identical results to Bun.CryptoHasher with 'sha256' and 'hex' encoding.
+ * The production code uses the runtime-aware crypto utility from @/lib/utils/crypto,
+ * which automatically uses node:crypto in test/Vercel environments and Bun.CryptoHasher
+ * locally. This means tests run with the same crypto implementation as production on Vercel.
+ *
+ * @see {@link src/lib/utils/crypto.ts} for the runtime-aware crypto implementation
+ * @see {@link _docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md} for hybrid approach details
  */
-import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock Bun.CryptoHasher for Node.js compatibility
-// Bun.CryptoHasher with a key creates an HMAC, equivalent to Node's createHmac
-class MockCryptoHasher {
-  private hmac: ReturnType<typeof createHmac>;
-
-  constructor(algorithm: string, key: string) {
-    this.hmac = createHmac(algorithm, key);
-  }
-
-  update(data: string): this {
-    this.hmac.update(data);
-    return this;
-  }
-
-  digest(encoding: 'hex'): string {
-    return this.hmac.digest(encoding);
-  }
-}
-
-// Set up Bun global mock before any imports that use it
-(globalThis as unknown as { Bun: { CryptoHasher: typeof MockCryptoHasher } }).Bun = {
-  CryptoHasher: MockCryptoHasher,
-};
+import { createHmacSha256 } from '@/lib/utils/crypto';
 
 // Mock the config module before importing the function under test
 vi.mock('@/lib/integrations/qstash/config', () => ({
@@ -79,11 +60,11 @@ describe('isVerifiedQStashRequest', () => {
   });
 
   /**
-   * Helper to compute HMAC-SHA256 signature using Node.js crypto
-   * This produces identical output to Bun.CryptoHasher('sha256', key).update(data).digest('hex')
+   * Helper to compute HMAC-SHA256 signature using the runtime-aware crypto utility
+   * In tests, this uses node:crypto (same as Vercel production)
    */
   function computeSignature(timestamp: string, key: string): string {
-    return createHmac('sha256', key).update(timestamp).digest('hex');
+    return createHmacSha256(key, timestamp);
   }
 
   /**
@@ -498,10 +479,8 @@ describe('isVerifiedQStashRequest', () => {
       const tokenTimestamp = Math.floor(currentTime / 1000) - 60;
       const timestampStr = tokenTimestamp.toString();
 
-      // Compute expected signature using Node.js crypto (equivalent to Bun.CryptoHasher)
-      const expectedSignature = createHmac('sha256', TEST_SIGNING_KEY)
-        .update(timestampStr)
-        .digest('hex');
+      // Compute expected signature using the runtime-aware crypto utility
+      const expectedSignature = createHmacSha256(TEST_SIGNING_KEY, timestampStr);
 
       // Verify signature is 64 hex characters (256 bits = 32 bytes = 64 hex chars)
       expect(expectedSignature).toHaveLength(64);

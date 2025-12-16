@@ -1,5 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 
+import { createHmacSha256 } from '@/lib/utils/crypto';
+
 import { validateQStashConfig } from './config';
 
 /** Maximum age of a verification token (30 minutes) */
@@ -122,10 +124,8 @@ export async function isVerifiedQStashRequest(headers: Headers): Promise<boolean
       return false;
     }
 
-    // Verify HMAC signature using Bun.CryptoHasher
-    const hasher = new Bun.CryptoHasher('sha256', currentKey);
-    hasher.update(timestamp);
-    const expectedSignature = hasher.digest('hex');
+    // Verify HMAC signature using runtime-aware crypto
+    const expectedSignature = createHmacSha256(currentKey, timestamp);
 
     const isValidSignature = timingSafeEqual(
       Buffer.from(signature, 'hex'),

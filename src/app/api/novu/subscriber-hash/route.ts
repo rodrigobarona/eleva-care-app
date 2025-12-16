@@ -1,4 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
+import { createHmacSha256 } from '@/lib/utils/crypto';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -19,12 +20,10 @@ export async function GET(_request: NextRequest) {
     // Use the authenticated userId as subscriberId
     const subscriberId = userId;
 
-    // Generate HMAC hash for secure authentication using Bun.CryptoHasher
+    // Generate HMAC hash for secure authentication using runtime-aware crypto
     let subscriberHash = '';
     if (ENV_CONFIG.NOVU_SECRET_KEY) {
-      const hasher = new Bun.CryptoHasher('sha256', ENV_CONFIG.NOVU_SECRET_KEY);
-      hasher.update(subscriberId);
-      subscriberHash = hasher.digest('hex');
+      subscriberHash = createHmacSha256(ENV_CONFIG.NOVU_SECRET_KEY, subscriberId);
     }
 
     const secureData = {

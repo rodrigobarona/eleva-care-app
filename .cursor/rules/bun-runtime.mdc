@@ -1,18 +1,24 @@
 ---
-description: Bun Runtime Configuration and Best Practices
-globs: ['package.json', 'bunfig.toml', 'scripts/**/*.{ts,js}', '.github/workflows/*.yml']
+description: Bun Runtime Configuration and Best Practices (Hybrid Approach)
+globs:
+  ['package.json', 'bunfig.toml', 'scripts/**/*.{ts,js}', '.github/workflows/*.yml', 'vercel.json']
 alwaysApply: false
 ---
 
-# Bun Runtime Rules
+# Bun Runtime Rules (Hybrid Approach)
 
 ## Overview
 
-This project uses Bun as the JavaScript/TypeScript runtime. Bun provides faster package installation, native TypeScript execution, and improved performance over Node.js.
+This project uses a **hybrid runtime approach**:
+
+- **🐰 Bun** for local development (fast installs, native TypeScript, excellent DX)
+- **🟢 Node.js 24.x** for Vercel production (stability, full npm compatibility)
+
+This provides the best of both worlds: fast local development with stable production deployments.
 
 ## Quick Reference
 
-**Package Management:**
+**Package Management (Bun):**
 
 ```bash
 bun install          # Install dependencies
@@ -27,26 +33,36 @@ bunx <pkg>           # Execute package (like npx)
 ```bash
 bun run <script>     # Run package.json script
 bun <file.ts>        # Run TypeScript directly
-bun --bun next dev   # Force Bun runtime for Next.js
+bun --bun next dev   # Force Bun runtime for local dev
 ```
 
 ## Script Patterns
 
-### Next.js Commands
-
-Always use `--bun` flag to ensure Bun runtime:
+### Development (Uses Bun)
 
 ```json
 {
   "scripts": {
+    "dev": "bun run dev:next",
     "dev:next": "bun --bun next dev --port 3000",
-    "build": "bun --bun next build",
-    "start": "bun --bun next start"
+    "dev:only": "bun --bun next dev --port 3000"
   }
 }
 ```
 
-### TypeScript Execution
+### Production (Uses Node.js)
+
+```json
+{
+  "scripts": {
+    "build": "next build",
+    "start": "next start",
+    "build:bun": "bun --bun next build"
+  }
+}
+```
+
+### TypeScript Execution (Uses Bun)
 
 Run TypeScript files directly without tsx:
 
@@ -74,14 +90,28 @@ Use `bunx` instead of `npx`:
 
 ## Configuration
 
+### package.json
+
+```json
+{
+  "engines": {
+    "node": "24.x"
+  }
+}
+```
+
+Note: `engines.node` is set for Vercel production. Bun is used locally regardless.
+
 ### vercel.json
 
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "bunVersion": "1.x"
+  "crons": [...]
 }
 ```
+
+**Important:** Do NOT add `bunVersion` - Vercel uses Node.js for stability.
 
 ### bunfig.toml (Optional)
 
@@ -91,14 +121,11 @@ frozenLockfile = false
 
 [install.lockfile]
 save = true
-
-[test]
-# Future: Bun test runner configuration
 ```
 
 ## GitHub Actions
 
-Use `oven-sh/setup-bun@v2`:
+Use `oven-sh/setup-bun@v2` for fast installs:
 
 ```yaml
 - name: 📦 Setup Bun
@@ -110,7 +137,88 @@ Use `oven-sh/setup-bun@v2`:
   run: bun install --frozen-lockfile
 ```
 
+## Runtime-Aware Code
+
+### Crypto Operations
+
+Use the unified crypto utility for HMAC operations:
+
+```typescript
+// ✅ Correct - Use runtime-aware utility
+import { createHmacSha256, generateVerificationToken } from '@/lib/utils/crypto';
+
+const signature = createHmacSha256(key, data);
+const token = generateVerificationToken(key);
+```
+
+```typescript
+// ❌ Wrong - Don't use Bun.CryptoHasher directly
+const hasher = new Bun.CryptoHasher('sha256', key);
+```
+
+### Runtime Detection
+
+```typescript
+import { getRuntimeInfo, isBunRuntime } from '@/lib/utils/crypto';
+
+if (isBunRuntime) {
+  // Bun-specific code (local dev)
+} else {
+  // Node.js code (Vercel production)
+}
+
+const { runtime, version } = getRuntimeInfo();
+// { runtime: 'node', version: '24.0.0' } on Vercel
+// { runtime: 'bun', version: '1.3.4' } locally
+```
+
 ## Common Mistakes
+
+**❌ Adding bunVersion to vercel.json:**
+
+```json
+{
+  "bunVersion": "1.x"
+}
+```
+
+**✅ Correct - Let Vercel use Node.js:**
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json"
+}
+```
+
+**❌ Using Bun-specific APIs directly:**
+
+```typescript
+const hasher = new Bun.CryptoHasher('sha256', key);
+```
+
+**✅ Correct - Use runtime-aware utilities:**
+
+```typescript
+import { createHmacSha256 } from '@/lib/utils/crypto';
+
+const signature = createHmacSha256(key, data);
+```
+
+**❌ Using nested npm overrides (not supported by Bun):**
+
+```json
+"overrides": {
+  "botid": { "next": "$next" }
+}
+```
+
+**✅ Correct - Use flat overrides only:**
+
+```json
+"overrides": {
+  "react": "19.2.3"
+}
+```
 
 **❌ Using pnpm/npm/yarn:**
 
@@ -136,72 +244,20 @@ Use `oven-sh/setup-bun@v2`:
 "script": "bun scripts/file.ts"
 ```
 
-**❌ Using npx:**
-
-```json
-"cmd": "npx some-package"
-```
-
-**✅ Correct - Use bunx:**
-
-```json
-"cmd": "bunx some-package"
-```
-
-**❌ Missing --bun flag for Next.js:**
-
-```json
-"dev": "next dev"
-```
-
-**✅ Correct - Force Bun runtime:**
-
-```json
-"dev": "bun --bun next dev"
-```
-
-## Built-in APIs (Future Use)
-
-### Bun.CryptoHasher (HMAC)
-
-```typescript
-const hasher = new Bun.CryptoHasher("sha256", secretKey);
-hasher.update(payload);
-const hash = hasher.digest("base64");
-```
-
-### Bun.password (Password Hashing)
-
-```typescript
-// Hash with Argon2id (default)
-const hash = await Bun.password.hash(password);
-
-// Verify
-const isValid = await Bun.password.verify(password, hash);
-```
-
-### Bun.file (File Operations)
-
-```typescript
-const file = Bun.file("path/to/file.txt");
-const text = await file.text();
-const bytes = await file.arrayBuffer();
-```
-
 ## Dependencies to Keep (Not Bun-replaceable)
 
 These are serverless-optimized and should NOT be replaced:
 
-| Package | Reason |
-|---------|--------|
+| Package                    | Reason                          |
+| -------------------------- | ------------------------------- |
 | `@neondatabase/serverless` | HTTP-based for Vercel Functions |
-| `@upstash/redis` | REST API for serverless |
-| `@vercel/blob` | Vercel-specific storage |
-| `drizzle-orm` | ORM layer (driver-agnostic) |
+| `@upstash/redis`           | REST API for serverless         |
+| `@vercel/blob`             | Vercel-specific storage         |
+| `drizzle-orm`              | ORM layer (driver-agnostic)     |
 
 ## Performance Tips
 
-1. **Parallel Operations**: Bun handles concurrency well
+1. **Local Dev**: Use `bun --bun` flag for Next.js dev server
 2. **Native TypeScript**: No transpilation needed for scripts
 3. **Fast Installs**: `bun install` is 4x faster than pnpm
 4. **Hot Reloading**: Bun's file watcher is faster
@@ -209,13 +265,12 @@ These are serverless-optimized and should NOT be replaced:
 ## Lockfile
 
 - Bun 1.3+ uses `bun.lock` (text-based, human-readable)
-- Older versions used `bun.lockb` (binary)
 - Keep `bun.lock` in version control
-- Remove `pnpm-lock.yaml` after full migration
+- Vercel uses `bun.lock` for dependency resolution, Node.js for runtime
 
 ## Tech Stack Integration
 
-- **Runtime**: Bun 1.3.4
+- **Local Runtime**: Bun 1.3.4
+- **Vercel Runtime**: Node.js 24.x
 - **Framework**: Next.js 16 with App Router
-- **Deployment**: Vercel with `bunVersion: "1.x"`
 - **CI/CD**: GitHub Actions with `oven-sh/setup-bun@v2`
