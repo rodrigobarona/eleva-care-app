@@ -2,7 +2,7 @@
  * Eleva Subscription Pricing Configuration
  *
  * Defines pricing tiers, commission rates, and eligibility criteria
- * for the Eleva expert marketplace pricing model.
+ * for the Eleva expert platform pricing model.
  *
  * 🏗️ BUSINESS MODEL ARCHITECTURE:
  *

@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 
 /**
- * Handles Stripe Connect payout events for marketplace payments
+ * Handles Stripe Connect payout events for platform payments
  */
 export async function handlePayoutPaid(payout: Stripe.Payout) {
   return Sentry.startSpan(
@@ -103,12 +103,12 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
               locale: 'en',
             },
           });
-          Sentry.logger.info('Marketplace payout notification sent via Novu', {
+          Sentry.logger.info('Platform payout notification sent via Novu', {
             payoutId: payout.id,
             workosUserId: user.workosUserId,
           });
         } catch (novuError) {
-          Sentry.logger.error('Failed to trigger marketplace payout notification', {
+          Sentry.logger.error('Failed to trigger platform payout notification', {
             payoutId: payout.id,
             error: novuError instanceof Error ? novuError.message : 'Unknown error',
           });
@@ -193,7 +193,7 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
         // Trigger Novu workflow for payout failure notification
         try {
           await triggerWorkflow({
-            workflowId: 'marketplace-universal',
+            workflowId: 'platform-payments-universal',
             to: {
               subscriberId: user.workosUserId,
               email: user.email || 'no-email@eleva.care',
@@ -209,12 +209,12 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
               message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
             },
           });
-          Sentry.logger.info('Marketplace payout failure notification sent via Novu', {
+          Sentry.logger.info('Platform payout failure notification sent via Novu', {
             payoutId: payout.id,
             workosUserId: user.workosUserId,
           });
         } catch (novuError) {
-          Sentry.logger.error('Failed to trigger marketplace payout failure notification', {
+          Sentry.logger.error('Failed to trigger platform payout failure notification', {
             payoutId: payout.id,
             error: novuError instanceof Error ? novuError.message : 'Unknown error',
           });

@@ -327,10 +327,10 @@ export const getSystemHealthLinks = (_alertType: string = 'general'): Notificati
 };
 
 // ============================================================================
-// MARKETPLACE LINKS
+// PLATFORM EXPERT LINKS
 // ============================================================================
 
-export const getMarketplaceLinks = (eventType: string, expertId?: string): NotificationLinks => {
+export const getPlatformExpertLinks = (eventType: string, expertId?: string): NotificationLinks => {
   switch (eventType) {
     case 'new-expert':
       return {
@@ -404,8 +404,8 @@ export const getNotificationLinks = (
     case 'system-health':
       return getSystemHealthLinks(context.alertType as string);
 
-    case 'marketplace-universal':
-      return getMarketplaceLinks(context.eventType as string, context.expertId as string);
+    case 'platform-payments-universal':
+      return getPlatformExpertLinks(context.eventType as string, context.expertId as string);
 
     default:
       return {

@@ -299,8 +299,8 @@
       "linkedin": "Follow us on LinkedIn"
     },
     "platformDisclaimer": {
-      "title": "We're a healthcare technology platform",
-      "description": "We help you connect with independent, licensed care experts. We provide the technology; your chosen expert provides your care."
+      "title": "We're a digital health platform",
+      "description": "Eleva.care enables the delivery of remote healthcare services (teleconsultations) by independent, licensed professionals. We provide the technology; your chosen expert provides your care."
     },
     "compliance": {
       "gdpr": "GDPR Compliant",
@@ -338,10 +338,10 @@
     },
     "platform": {
       "title": "How Eleva Care works",
-      "description": "Eleva Care is a trusted platform that connects you with independent, licensed care experts. We don't provide medical services; your chosen expert provides your care.",
+      "description": "Eleva Care is a digital health platform that enables the delivery of remote healthcare services by independent, licensed professionals. Eleva.care does not provide clinical care; your chosen expert provides your care.",
       "weAre": "What we provide",
       "weAreList": {
-        "marketplace": "A trusted platform",
+        "platform": "A trusted digital health platform",
         "technology": "Booking, scheduling, and payment processing tools",
         "secure": "Encrypted storage for expert clinical notes"
       },
@@ -435,7 +435,7 @@
       "subject": "Security Alert",
       "body": "{message}"
     },
-    "marketplacePaymentReceived": {
+    "platformPaymentReceived": {
       "subject": "Payment Received: €{amount}",
       "body": "You've received a payment of €{amount} from {clientName} for your session on {sessionDate}. Transfer will be processed according to your payout schedule.",
       "email": {
@@ -451,7 +451,7 @@
         "cta": "View Payment Details"
       }
     },
-    "marketplacePayoutProcessed": {
+    "platformPayoutProcessed": {
       "subject": "Payout Processed: €{amount}",
       "body": "Your payout of €{amount} has been processed and sent to your bank account. Expected arrival: {expectedArrival}.",
       "email": {
@@ -1028,7 +1028,7 @@
         {
           "icon": "user-check",
           "title": "Licensed Healthcare Professionals",
-          "description": "Only licensed women's health clinicians provide teleconsultations. All experts are verified and maintain current credentials in their specialties."
+          "description": "Teleconsultations are delivered by independent, duly licensed clinicians who meet our onboarding requirements. You can review their credentials and professional background in their profile."
         },
         {
           "icon": "lock",
@@ -1038,7 +1038,7 @@
         {
           "icon": "file-check",
           "title": "Evidence-Based Clinical Protocols",
-          "description": "Clear clinical protocols based on international guidelines and peer-reviewed evidence. We follow published telemedicine protocols and escalate when needed."
+          "description": "The platform supports evidence-based practices aligned with international guidelines and peer-reviewed research. Experts maintain clinical independence and follow escalation pathways when appropriate."
         },
         {
           "icon": "shield",

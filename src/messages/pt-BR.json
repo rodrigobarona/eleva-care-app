@@ -291,8 +291,8 @@
       "linkedin": "Siga-nos no LinkedIn"
     },
     "platformDisclaimer": {
-      "title": "Somos uma plataforma tecnológica de saúde",
-      "description": "Ajudamos a ligar‑se a profissionais de saúde independentes e licenciados. Nós fornecemos a tecnologia; o(a) profissional que escolhe presta os seus cuidados."
+      "title": "Somos uma plataforma digital de saúde",
+      "description": "A Eleva.care permite a prestação de serviços de saúde remotos (teleconsultas) por profissionais independentes e licenciados. Nós fornecemos a tecnologia; o(a) profissional que escolhe presta os seus cuidados."
     },
     "compliance": {
       "gdpr": "Conforme com o RGPD",
@@ -330,10 +330,10 @@
     },
     "platform": {
       "title": "Como a Eleva Care funciona",
-      "description": "A Eleva Care é uma plataforma confiável que a liga a especialistas independentes e licenciados. Não prestamos serviços médicos; o(a) especialista que escolhe presta os seus cuidados.",
+      "description": "A Eleva Care é uma plataforma digital de saúde que permite a prestação de serviços de saúde remotos por profissionais independentes e licenciados. A Eleva.care não presta cuidados clínicos; o(a) especialista que escolhe presta os seus cuidados.",
       "weAre": "O que fornecemos",
       "weAreList": {
-        "marketplace": "Uma plataforma confiável",
+        "platform": "Uma plataforma digital de saúde confiável",
         "technology": "Marcação, agendamento e pagamentos",
         "secure": "Armazenamento encriptado de notas clínicas"
       },
@@ -434,7 +434,7 @@
       "subject": "Alerta de Segurança",
       "body": "{message}"
     },
-    "marketplacePaymentReceived": {
+    "platformPaymentReceived": {
       "subject": "Pagamento Recebido: €{amount}",
       "body": "Recebeu um pagamento de €{amount} de {clientName} pela sua sessão em {sessionDate}. A transferência será processada de acordo com o seu cronograma de pagamento.",
       "email": {
@@ -450,7 +450,7 @@
         "cta": "Ver Detalhes do Pagamento"
       }
     },
-    "marketplacePayoutProcessed": {
+    "platformPayoutProcessed": {
       "subject": "Pagamento Processado: €{amount}",
       "body": "O seu pagamento de €{amount} foi processado e enviado para a sua conta bancária. Chegada esperada: {expectedArrival}.",
       "email": {

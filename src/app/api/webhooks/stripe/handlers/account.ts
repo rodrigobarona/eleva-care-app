@@ -109,10 +109,10 @@ export async function handleAccountUpdated(account: Stripe.Account) {
               },
             });
 
-            // Also trigger Novu workflow for enhanced marketplace notifications
+            // Also trigger Novu workflow for enhanced platform payment notifications
             try {
               await triggerWorkflow({
-                workflowId: 'marketplace-connect-status',
+                workflowId: 'platform-payments-universal',
                 to: {
                   subscriberId: user.workosUserId,
                   email: user.email || 'no-email@eleva.care',

@@ -504,13 +504,13 @@ export const appointmentWorkflow = workflow(
   },
 );
 
-// 6. Marketplace Universal Workflow
-export const marketplaceWorkflow = workflow(
-  'marketplace-universal',
+// 6. Platform Payments Universal Workflow
+export const platformPaymentsWorkflow = workflow(
+  'platform-payments-universal',
   async ({ payload, step }) => {
-    await step.inApp('marketplace-notification', async () => ({
-      subject: `💰 Marketplace Update`,
-      body: `${payload.message || 'Marketplace update for your account'}`,
+    await step.inApp('payment-notification', async () => ({
+      subject: `💰 Payment Update`,
+      body: `${payload.message || 'Payment update for your account'}`,
       data: {
         eventType: payload.eventType,
         amount: payload.amount,
@@ -519,19 +519,19 @@ export const marketplaceWorkflow = workflow(
       },
     }));
 
-    await step.email('marketplace-email', async () => ({
-      subject: `💰 Marketplace Update - Eleva Care`,
+    await step.email('payment-email', async () => ({
+      subject: `💰 Payment Update - Eleva Care`,
       body: `
-<h2>Marketplace Update</h2>
+<h2>Payment Update</h2>
 <p>Hi ${payload.expertName || 'there'},</p>
-<p>${payload.message || 'Your marketplace account has been updated.'}</p>
-<p>Thank you for being part of our marketplace!</p>
+<p>${payload.message || 'Your payment account has been updated.'}</p>
+<p>Thank you for being part of our platform!</p>
       `,
     }));
   },
   {
-    name: 'Marketplace Updates',
-    description: 'Notifications for marketplace account and payment status changes',
+    name: 'Platform Payment Updates',
+    description: 'Notifications for payment account and payout status changes',
     payloadSchema: z.object({
       eventType: z.enum(['payment-received', 'payout-processed', 'connect-account-status']),
       amount: z.string().optional(),
@@ -541,7 +541,7 @@ export const marketplaceWorkflow = workflow(
       locale: z.string().optional(),
       country: z.string().optional(),
     }),
-    tags: ['marketplace'],
+    tags: ['payments'],
     preferences: {
       all: { enabled: true },
       channels: {
@@ -921,7 +921,7 @@ export const workflows = [
   paymentWorkflow,
   expertManagementWorkflow,
   appointmentWorkflow,
-  marketplaceWorkflow,
+  platformPaymentsWorkflow,
   systemHealthWorkflow,
   appointmentConfirmationWorkflow,
   multibancoBookingPendingWorkflow,

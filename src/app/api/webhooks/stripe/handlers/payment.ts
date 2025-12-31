@@ -972,7 +972,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             // Notify the expert about the successful payment
             await notifyExpertOfPaymentSuccess(transfer);
 
-            // Also trigger Novu marketplace workflow for enhanced notifications
+            // Also trigger Novu platform payments workflow for enhanced notifications
             try {
               const user = await db.query.UsersTable.findFirst({
                 where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
@@ -992,7 +992,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 };
 
                 await triggerWorkflow({
-                  workflowId: 'marketplace-payment-received',
+                  workflowId: 'platform-payments-universal',
                   to: {
                     subscriberId: user.workosUserId,
                     email: user.email || 'no-email@eleva.care',
@@ -1013,10 +1013,10 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                     },
                   },
                 });
-                console.log('✅ Marketplace payment notification sent via Novu');
+                console.log('✅ Platform payment notification sent via Novu');
               }
             } catch (novuError) {
-              console.error('❌ Failed to trigger marketplace payment notification:', novuError);
+              console.error('❌ Failed to trigger platform payment notification:', novuError);
               // Don't fail the entire webhook for Novu errors
             }
           } else {

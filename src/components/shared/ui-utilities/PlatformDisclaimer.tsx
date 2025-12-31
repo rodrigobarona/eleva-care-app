@@ -17,7 +17,7 @@ import { useState } from 'react';
  * PlatformDisclaimer Component
  *
  * Modal dialog displaying critical legal disclaimers about the platform nature and emergency services.
- * Required for legal compliance to clarify that Eleva Care is a marketplace, not a healthcare provider.
+ * Required for legal compliance to clarify that Eleva Care is a digital health platform that does not provide clinical care.
  *
  * @example
  * ```tsx
@@ -67,7 +67,7 @@ export function PlatformDisclaimer({ children }: { children: React.ReactNode }) 
                     >
                       ✓
                     </span>
-                    <span>{t('platform.weAreList.marketplace')}</span>
+                    <span>{t('platform.weAreList.platform')}</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <span

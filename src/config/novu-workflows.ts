@@ -39,8 +39,8 @@ export const WORKFLOW_IDS = {
   EXPERT_MANAGEMENT: 'expert-management',
   EXPERT_ACCOUNT_UPDATED: 'expert-account-updated',
 
-  // Marketplace
-  MARKETPLACE_UNIVERSAL: 'marketplace-universal',
+  // Platform Payments
+  PLATFORM_PAYMENTS_UNIVERSAL: 'platform-payments-universal',
 
   // System Health
   SYSTEM_HEALTH: 'system-health',
@@ -122,7 +122,7 @@ export const WORKFLOW_CATEGORIES = {
   ],
   EXPERTS: [
     WORKFLOW_IDS.EXPERT_MANAGEMENT,
-    WORKFLOW_IDS.MARKETPLACE_UNIVERSAL,
+    WORKFLOW_IDS.PLATFORM_PAYMENTS_UNIVERSAL,
     WORKFLOW_IDS.EXPERT_ACCOUNT_UPDATED,
   ],
   SYSTEM: [WORKFLOW_IDS.SYSTEM_HEALTH],

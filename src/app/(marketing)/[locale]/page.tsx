@@ -30,7 +30,7 @@ const FALLBACK_METADATA = {
     'women health',
     'healthcare experts',
     'menopause care',
-    'healthcare marketplace',
+    'digital health platform',
     'find experts',
   ],
 };
