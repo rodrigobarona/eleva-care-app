@@ -319,7 +319,7 @@
     "description": "Encuentra y reserva especialistas confiables en fisioterapia y salud femenina. Nuestra plataforma te conecta con especialistas calificados listos para apoyar tu viaje único de salud y bienestar.",
     "disclaimerLink": "Más información sobre nuestra plataforma",
     "topExpertBadge": "Destacado",
-    "topExpertDisclaimer": "Los especialistas en Eleva Care son profesionales independientes que auto-certifican sus credenciales.",
+    "topExpertDisclaimer": "Los especialistas en Eleva Care son profesionales independientes que autodeclaran sus credenciales y estatus profesional. Eleva.care puede solicitar documentación y realizar verificaciones razonables cuando sea necesario para la integridad de la plataforma, el cumplimiento normativo o la gestión de riesgos.",
     "sessionLabel": "Sesión",
     "expertImageAlt": "Foto de perfil de {name}",
     "verifiedBadgeAlt": "Especialista Auto-Certificado"
@@ -350,7 +350,7 @@
         "employer": "Empleo o supervisión de especialistas",
         "responsible": "Responsabilidad médica (tu especialista es responsable de tu atención)"
       },
-      "footer": "Los especialistas en Eleva Care son profesionales independientes que auto‑certifican sus credenciales y son responsables de la atención que brindan. Para más detalles, revisa nuestros",
+      "footer": "Los especialistas en Eleva Care son profesionales independientes que autodeclaran sus credenciales y estatus profesional. Eleva.care puede solicitar documentación y realizar verificaciones razonables cuando sea necesario para la integridad de la plataforma, el cumplimiento normativo o la gestión de riesgos. Los especialistas siguen siendo exclusivamente responsables de la atención clínica que brindan. Para más detalles, revisa nuestros",
       "termsLink": "Términos y Condiciones"
     }
   },

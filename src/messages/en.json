@@ -320,7 +320,7 @@
     "description": "Find and book trusted experts specializing in physiotherapy and women's health. Our platform connects you with qualified care experts ready to support your unique health and wellness journey.",
     "disclaimerLink": "Learn more about our platform",
     "topExpertBadge": "Featured",
-    "topExpertDisclaimer": "Experts on Eleva Care are independent professionals who self-certify their credentials.",
+    "topExpertDisclaimer": "Experts on Eleva Care are independent professionals who self-certify their credentials and professional status. Eleva.care may request documentation and perform reasonable checks where required for platform integrity, regulatory compliance, or risk management.",
     "sessionLabel": "Session",
     "expertImageAlt": "Profile photo of {name}",
     "verifiedBadgeAlt": "Self-Certified Expert"
@@ -351,7 +351,7 @@
         "employer": "Employment or supervision of experts",
         "responsible": "Medical liability (your expert is responsible for your care)"
       },
-      "footer": "Experts on Eleva Care are independent professionals who self‑certify their credentials and are solely responsible for the care they provide. For full details, please read our",
+      "footer": "Experts on Eleva Care are independent professionals who self-certify their credentials and professional status. Eleva.care may request documentation and perform reasonable checks where required for platform integrity, regulatory compliance, or risk management. Experts remain solely responsible for the clinical care they provide. For full details, please read our",
       "termsLink": "Terms and Conditions"
     }
   },
