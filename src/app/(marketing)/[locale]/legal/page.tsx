@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: 'Eleva.care - Legal',
-    description: 'Legal information and documents for Eleva.care',
+    description: 'Legal information and documents for the Eleva.care digital health platform',
     openGraph: {
       title: 'Eleva.care - Legal',
-      description: 'Legal information and documents for Eleva.care',
+      description: 'Legal information and documents for the Eleva.care digital health platform',
       siteName: 'Eleva.care',
     },
   };
