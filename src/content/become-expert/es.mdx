@@ -1,9 +1,9 @@
 export const metadata = {
-  title: "Conviértete en Experto | Comparte tu Conocimiento | Eleva Care",
-  description: "Únete a nuestra comunidad de profesionales de la salud, coaches y consultores. Establece tus propias tarifas, gestiona tu horario y ayuda a las personas a alcanzar sus objetivos.",
+  title: "Únete como Especialista | Eleva Care",
+  description: "Únete a Eleva Care como profesional de la salud independiente. Establece tus propias tarifas, gestiona tu agenda y presta atención a través de nuestra plataforma segura.",
   og: {
-    title: "Conviértete en Experto | Comparte tu Conocimiento | Eleva Care",
-    description: "Únete a nuestra comunidad de profesionales de la salud, coaches y consultores. Establece tus propias tarifas y gana según tu horario.",
+    title: "Únete como Especialista | Eleva Care",
+    description: "Únete a Eleva Care como profesional de la salud independiente y licenciado. Establece tus tarifas y presta atención a través de nuestra plataforma segura.",
     siteName: "Eleva Care"
   }
 };
@@ -17,22 +17,27 @@ import FinalCTASection from '@/components/sections/become-expert/FinalCTASection
 import { Sparkles, TrendingUp } from 'lucide-react';
 
 <HeroSection
-  badge="Únete a Nuestra Red de Expertos"
-  title="Comparte tu Experiencia,"
-  subtitle="Gana en tus Propios Términos"
-  description="Ayuda a las personas a alcanzar sus objetivos de salud y bienestar mientras construyes una práctica flexible. Establece tu propio horario, tarifas y trabaja desde cualquier lugar."
+  badge="Para Profesionales de la Salud Independientes"
+  title="Presta Atención,"
+  subtitle="En Tus Propios Términos"
+  description="Únete a Eleva Care como profesional de la salud independiente y licenciado. Mantienes tu autonomía clínica completa mientras nosotros proporcionamos la plataforma tecnológica segura—agenda, videoconsultas, pagos y gestión de clientes."
   ctaButton="Comenzar"
   signInButton="Iniciar Sesión"
-  features="✓ Sin costos iniciales  ✓ Conserva el 80% de ganancias  ✓ Soporte profesional"
+  features="✓ Independencia total  ✓ Conserva el 80% de ganancias  ✓ Plataforma segura y conforme con RGPD"
 />
 
 <BenefitsSection
   title="¿Por Qué Unirte a Eleva Care?"
   benefits={[
     {
+      icon: 'shield',
+      title: 'Independencia Clínica Total',
+      description: 'Eres un profesional independiente con autonomía clínica completa. Tú decides cómo atender a tus clientes—Eleva.care solo proporciona la plataforma tecnológica.',
+    },
+    {
       icon: 'dollar',
       title: 'Establece tus Propias Tarifas',
-      description: 'Tú decides cuánto vale tu tiempo. Conserva el 80% de tus ganancias y recibe pagos semanales.',
+      description: 'Tú decides cuánto vale tu tiempo. Conserva el 80% de tus ganancias y recibe pagos semanales mediante procesamiento seguro.',
     },
     {
       icon: 'calendar',
@@ -40,24 +45,19 @@ import { Sparkles, TrendingUp } from 'lucide-react';
       description: 'Controla completamente tu calendario. Trabaja tanto o tan poco como quieras, cuando quieras.',
     },
     {
-      icon: 'users',
-      title: 'Clientes de Calidad',
-      description: 'Conecta con clientes motivados que se toman en serio su viaje de salud y bienestar.',
-    },
-    {
       icon: 'video',
-      title: 'Sesiones Virtuales',
-      description: 'Realiza sesiones desde cualquier lugar. Solo necesitas una computadora y conexión a internet.',
+      title: 'Videoconsultas Seguras',
+      description: 'Realiza sesiones desde cualquier lugar en nuestra plataforma cifrada y conforme con RGPD. Solo necesitas un ordenador y conexión a internet.',
     },
     {
-      icon: 'shield',
-      title: 'Pagos Seguros',
-      description: 'Facturación automática y procesamiento seguro de pagos. Sin perseguir pagos ni trámites.',
+      icon: 'users',
+      title: 'Alcanza Más Clientes',
+      description: 'Sé descubierto por clientes que buscan servicios de salud femenina a través de nuestra plataforma. Enfócate en la atención, no en marketing.',
     },
     {
       icon: 'trending',
-      title: 'Apoyo en Marketing',
-      description: 'Sé descubierto por nuevos clientes a través de nuestra plataforma. Enfócate en tu experiencia, no en marketing.',
+      title: 'Herramientas Profesionales',
+      description: 'Gestión de clientes, facturación automática, páginas de reserva y analíticas—todo lo que necesitas para gestionar tu práctica independiente.',
     },
   ]}
 />
@@ -241,35 +241,35 @@ import { Sparkles, TrendingUp } from 'lucide-react';
 
 
 <RequirementsSection
-  title="Lo Que Necesitas"
+  title="Requisitos para Unirte"
   requirements={[
     {
       icon: 'badge',
-      title: 'Credenciales Profesionales',
-      description: 'Licencia o certificación válida en tu campo (salud, coaching, consultoría, etc.)',
+      title: 'Licencia Profesional Válida',
+      description: 'Licencia o certificación activa en tu campo de la salud. Autocertificas tus credenciales y eres responsable de tu estatus profesional.',
+    },
+    {
+      icon: 'shield',
+      title: 'Seguro de Responsabilidad Profesional',
+      description: 'Cobertura de responsabilidad civil profesional o mala praxis adecuada para tu área de práctica.',
     },
     {
       icon: 'globe',
-      title: 'Internet Confiable',
-      description: 'Conexión a internet estable para sesiones virtuales y comunicación en la plataforma',
-    },
-    {
-      icon: 'message',
-      title: 'Habilidades de Comunicación',
-      description: 'Capacidad para conectar con clientes de manera profesional y compasiva',
+      title: 'Internet y Equipo Fiable',
+      description: 'Conexión a internet estable y entorno adecuado para videoconsultas profesionales.',
     },
     {
       icon: 'heart',
-      title: 'Pasión por Ayudar',
-      description: 'Deseo genuino de ayudar a las personas a mejorar su salud y bienestar',
+      title: 'Compromiso con la Calidad',
+      description: 'Dedicación a prácticas basadas en evidencia y a ofrecer una atención excelente a tus clientes.',
     },
   ]}
 />
 
 <FinalCTASection
-  title="¿Listo para Marcar la Diferencia?"
-  description="Únete a cientos de expertos que ya están ayudando a clientes a alcanzar sus objetivos en Eleva Care. Comienza a construir tu práctica flexible hoy."
-  button="Crear Perfil de Experto"
+  title="¿Listo para Unirte como Especialista Independiente?"
+  description="Únete a nuestra red de profesionales de la salud independientes y licenciados. Tú prestas la atención; nosotros proporcionamos la plataforma tecnológica segura para apoyar tu práctica."
+  button="Crear tu Perfil de Especialista"
   questions="¿Tienes preguntas?"
   contact="Contáctanos"
 />

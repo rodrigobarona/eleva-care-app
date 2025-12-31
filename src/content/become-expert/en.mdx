@@ -1,9 +1,9 @@
 export const metadata = {
-  title: "Become an Expert | Share Your Knowledge | Eleva Care",
-  description: "Join our community of healthcare professionals, coaches, and consultants. Set your own rates, manage your schedule, and help people achieve their goals.",
+  title: "Become an Expert | Join Our Platform | Eleva Care",
+  description: "Join Eleva Care as an independent healthcare professional. Set your own rates, manage your schedule, and deliver care on your terms through our secure platform.",
   og: {
-    title: "Become an Expert | Share Your Knowledge | Eleva Care",
-    description: "Join our community of healthcare professionals, coaches, and consultants. Set your own rates and earn on your schedule.",
+    title: "Become an Expert | Join Our Platform | Eleva Care",
+    description: "Join Eleva Care as an independent, licensed healthcare professional. Set your own rates and deliver care through our secure platform.",
     siteName: "Eleva Care"
   }
 };
@@ -17,22 +17,27 @@ import FinalCTASection from '@/components/sections/become-expert/FinalCTASection
 import { Sparkles, TrendingUp } from 'lucide-react';
 
 <HeroSection
-  badge="Join Our Expert Network"
-  title="Share Your Expertise,"
-  subtitle="Earn on Your Terms"
-  description="Help people achieve their health and wellness goals while building a flexible practice. Set your own schedule, rates, and work from anywhere."
+  badge="For Independent Healthcare Professionals"
+  title="Deliver Care,"
+  subtitle="On Your Terms"
+  description="Join Eleva Care as an independent, licensed healthcare professional. You maintain full clinical autonomy while we provide the secure platform technology—scheduling, video consultations, payments, and client management."
   ctaButton="Get Started"
   signInButton="Sign In"
-  features="✓ No upfront costs  ✓ Keep 80% of earnings  ✓ Professional support"
+  features="✓ You remain fully independent  ✓ Keep 80% of earnings  ✓ Secure, GDPR-compliant platform"
 />
 
 <BenefitsSection
   title="Why Join Eleva Care?"
   benefits={[
     {
+      icon: 'shield',
+      title: 'Full Clinical Independence',
+      description: 'You remain an independent professional with full clinical autonomy. You decide how to care for your clients—Eleva.care simply provides the platform technology.',
+    },
+    {
       icon: 'dollar',
       title: 'Set Your Own Rates',
-      description: 'You decide what your time is worth. Keep 80% of your earnings and get paid weekly.',
+      description: 'You decide what your time is worth. Keep 80% of your earnings and get paid weekly through secure payment processing.',
     },
     {
       icon: 'calendar',
@@ -40,24 +45,19 @@ import { Sparkles, TrendingUp } from 'lucide-react';
       description: 'Control your calendar completely. Work as much or as little as you want, whenever you want.',
     },
     {
-      icon: 'users',
-      title: 'Quality Clients',
-      description: 'Connect with motivated clients who are serious about their health and wellness journey.',
-    },
-    {
       icon: 'video',
-      title: 'Virtual Sessions',
-      description: 'Conduct sessions from anywhere. All you need is a computer and internet connection.',
+      title: 'Secure Video Consultations',
+      description: 'Conduct sessions from anywhere on our encrypted, GDPR-compliant platform. All you need is a computer and internet connection.',
     },
     {
-      icon: 'shield',
-      title: 'Secure Payments',
-      description: 'Automatic invoicing and secure payment processing. No chasing payments or paperwork hassles.',
+      icon: 'users',
+      title: 'Reach More Clients',
+      description: 'Get discovered by clients seeking women's health services through our platform. Focus on care, not marketing.',
     },
     {
       icon: 'trending',
-      title: 'Marketing Support',
-      description: 'Get discovered by new clients through our platform. Focus on your expertise, not marketing.',
+      title: 'Professional Tools',
+      description: 'Client management, automated invoicing, booking pages, and analytics—everything you need to run your independent practice.',
     },
   ]}
 />
@@ -239,35 +239,35 @@ import { Sparkles, TrendingUp } from 'lucide-react';
 />
 
 <RequirementsSection
-  title="What You Need"
+  title="What You Need to Join"
   requirements={[
     {
       icon: 'badge',
-      title: 'Professional Credentials',
-      description: 'Valid license or certification in your field (healthcare, coaching, consulting, etc.)',
+      title: 'Valid Professional License',
+      description: 'Active license or certification in your healthcare field. You self-certify your credentials and remain responsible for your professional status.',
+    },
+    {
+      icon: 'shield',
+      title: 'Professional Liability Insurance',
+      description: 'Appropriate malpractice or professional indemnity coverage for your practice area.',
     },
     {
       icon: 'globe',
-      title: 'Reliable Internet',
-      description: 'Stable internet connection for virtual sessions and platform communication',
-    },
-    {
-      icon: 'message',
-      title: 'Communication Skills',
-      description: 'Ability to connect with clients professionally and compassionately',
+      title: 'Reliable Internet & Equipment',
+      description: 'Stable internet connection and suitable environment for professional video consultations.',
     },
     {
       icon: 'heart',
-      title: 'Passion for Helping',
-      description: 'Genuine desire to help people improve their health and wellbeing',
+      title: 'Commitment to Quality Care',
+      description: 'Dedication to evidence-based practices and delivering excellent care to your clients.',
     },
   ]}
 />
 
 <FinalCTASection
-  title="Ready to Make a Difference?"
-  description="Join hundreds of experts already helping clients achieve their goals on Eleva Care. Start building your flexible practice today."
-  button="Create Expert Profile"
+  title="Ready to Join as an Independent Expert?"
+  description="Join our network of independent, licensed healthcare professionals. You deliver the care; we provide the secure platform technology to support your practice."
+  button="Create Your Expert Profile"
   questions="Have questions?"
   contact="Contact us"
 />
