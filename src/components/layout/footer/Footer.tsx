@@ -166,6 +166,22 @@ export default function Footer() {
                             </li>
                             <li>
                               <Link
+                                href="/become-expert"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.company.becomeExpert')}
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/become-partner"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.company.becomePartner')}
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
                                 href="/register"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
