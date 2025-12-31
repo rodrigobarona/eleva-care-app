@@ -109,6 +109,7 @@ export const RESERVED_ROUTES = [
 export const SEO_REDIRECTS = {
   '/legal/security': '/trust/security',
   '/legal/dpa': '/trust/dpa',
+  '/become-partner': '/for-organizations',
 } as const;
 
 /**

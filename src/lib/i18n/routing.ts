@@ -36,6 +36,8 @@ export const routing = {
     '/services/pregnancy': '/services/pregnancy',
     '/services/postpartum': '/services/postpartum',
     '/services/menopause': '/services/menopause',
+    '/become-expert': '/become-expert',
+    '/for-organizations': '/for-organizations',
 
     // ----------------
     // Dynamic routes last (lower priority)
