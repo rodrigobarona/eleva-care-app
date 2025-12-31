@@ -174,7 +174,7 @@ export default function Footer() {
                             </li>
                             <li>
                               <Link
-                                href="/become-partner"
+                                href="/for-organizations"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.company.becomePartner')}

@@ -10,24 +10,24 @@ type PageProps = {
 };
 
 /**
- * Become a Partner Page - CMS-ready architecture with MDX content
+ * For Organizations Page - CMS-ready architecture with MDX content
  *
  * @description
- * Marketing page for healthcare businesses, wellness centers, and organizations
- * to join Eleva Care's partner network. Content is stored in MDX files for easy
- * management and future CMS integration (e.g., Sanity).
+ * Marketing page for healthcare businesses, wellness centers, clinics, employers,
+ * and organizations to use Eleva Care's platform technology. Content is stored
+ * in MDX files for easy management and future CMS integration (e.g., Sanity).
  *
  * @architecture
  * - MDX content with native metadata export (`export const metadata`)
- * - Presentation components receive data as props (see `@/components/sections/become-partner/`)
+ * - Presentation components receive data as props (see `@/components/sections/become-partner/` - kept for backward compatibility)
  * - Dynamic imports for native Next.js 16 MDX support
  * - Static generation with `generateStaticParams`
  *
  * @features
  * - Multi-language support (en, es, pt, pt-BR)
- * - Partner types: Medical practices, wellness centers, coaching, nutrition, fitness, mental health
+ * - Target audience: Clinics, employers, healthcare organizations
  * - Pricing preview with workspace subscription model
- * - CTA-optimized for partner acquisition
+ * - B2B-focused CTA for organizational partnerships
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
@@ -35,22 +35,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   try {
     // Dynamically import metadata from MDX file using Next.js 16 native approach
-    const { metadata } = await import(`@/content/become-partner/${safeLocale}.mdx`);
+    const { metadata } = await import(`@/content/for-organizations/${safeLocale}.mdx`);
 
     return generateGenericPageMetadata(
       safeLocale,
-      '/become-partner',
+      '/for-organizations',
       metadata.title,
       metadata.description,
       'primary', // Use primary variant for CTA page
       [
-        'become a partner',
-        'partner organization',
+        'for organizations',
         'healthcare business',
         'wellness center',
-        'practice growth',
-        'women health partner',
-        'clinic partnership',
+        'clinic technology',
+        'women health platform',
+        'digital health services',
+        'employer health program',
       ],
     );
   } catch (error) {
@@ -58,16 +58,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     return generateGenericPageMetadata(
       safeLocale,
-      '/become-partner',
-      'Become a Partner - Grow Your Practice',
-      "Partner with Eleva Care to expand your women's health practice. Access our technology platform, grow your expert network, and reach more clients.",
+      '/for-organizations',
+      'For Organizations - Eleva Care Technology',
+      "Power your women's health services with Eleva Care technology. Clinics, employers, and healthcare organizations use our platform to deliver digital care.",
       'primary',
       [
-        'become a partner',
-        'partner organization',
+        'for organizations',
         'healthcare business',
-        'wellness center',
-        'practice growth',
+        'clinic technology',
+        'digital health platform',
       ],
     );
   }
@@ -82,22 +81,22 @@ export function generateStaticParams() {
 }
 
 /**
- * Become a Partner Page Component
+ * For Organizations Page Component
  * Server Component with native Next.js 16 MDX imports
  */
-export default async function BecomePartnerPage({ params }: PageProps) {
+export default async function ForOrganizationsPage({ params }: PageProps) {
   const { locale } = await params;
 
   if (!locales.includes(locale as Locale)) {
-    redirect('/become-partner'); // Default locale (en) has no prefix
+    redirect('/for-organizations'); // Default locale (en) has no prefix
   }
 
   // Native Next.js 16 MDX import - Turbopack optimized
   // Dynamic import with proper error handling
-  let BecomePartnerContent: React.ComponentType<any>;
+  let ForOrganizationsContent: React.ComponentType<any>;
   try {
-    const mdxModule = await import(`@/content/become-partner/${locale}.mdx`);
-    BecomePartnerContent = mdxModule.default;
+    const mdxModule = await import(`@/content/for-organizations/${locale}.mdx`);
+    ForOrganizationsContent = mdxModule.default;
   } catch (error) {
     console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();
@@ -105,7 +104,7 @@ export default async function BecomePartnerPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
-      <BecomePartnerContent
+      <ForOrganizationsContent
         components={
           {
             // Presentation components are imported directly in MDX
