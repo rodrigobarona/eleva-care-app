@@ -19,7 +19,7 @@ type PageProps = {
  *
  * @architecture
  * - MDX content with native metadata export (`export const metadata`)
- * - Presentation components receive data as props (see `@/components/sections/become-partner/` - kept for backward compatibility)
+ * - Presentation components receive data as props (see `@/components/sections/for-organizations/`)
  * - Dynamic imports for native Next.js 16 MDX support
  * - Static generation with `generateStaticParams`
  *
@@ -62,12 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       'For Organizations - Eleva Care Technology',
       "Power your women's health services with Eleva Care technology. Clinics, employers, and healthcare organizations use our platform to deliver digital care.",
       'primary',
-      [
-        'for organizations',
-        'healthcare business',
-        'clinic technology',
-        'digital health platform',
-      ],
+      ['for organizations', 'healthcare business', 'clinic technology', 'digital health platform'],
     );
   }
 }
