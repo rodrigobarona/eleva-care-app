@@ -78,7 +78,10 @@ export function SearchDialog() {
     return source ? badges[source] : null;
   };
 
-  const results = (query.data?.results || []) as SearchResult[];
+  // Handle different return types from Fumadocs search
+  const results: SearchResult[] = query.data && query.data !== 'empty' 
+    ? (Array.isArray(query.data) ? query.data : []) as unknown as SearchResult[]
+    : [];
   const isLoading = query.isLoading;
 
   return (
