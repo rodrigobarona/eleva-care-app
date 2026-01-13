@@ -2,7 +2,7 @@ import { createFromSource } from 'fumadocs-core/search/server';
 import {
   patientSource,
   expertSource,
-  organizationSource,
+  workspaceSource,
   developerSource,
 } from '@/lib/source';
 
@@ -12,12 +12,12 @@ import {
  * This endpoint provides full-text search across all documentation portals:
  * - Patient Help Center
  * - Expert Resources
- * - Organization Portal
+ * - Workspace Portal
  * - Developer Docs
  *
  * Query Parameters:
  * - query: Search string
- * - tag: Optional tag filter (e.g., 'patient', 'expert', 'organization', 'developer')
+ * - tag: Optional tag filter (e.g., 'patient', 'expert', 'workspace', 'developer')
  * - locale: Optional locale filter (e.g., 'en', 'es', 'pt', 'pt-BR')
  *
  * @example
@@ -27,7 +27,7 @@ import {
  */
 
 // Combine all documentation sources for unified search
-const allSources = [patientSource, expertSource, organizationSource, developerSource];
+const allSources = [patientSource, expertSource, workspaceSource, developerSource];
 
 // Create search handlers for each source with locale support
 const searchHandlers = allSources.map((source) =>
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     const sourceIndex = {
       patient: 0,
       expert: 1,
-      organization: 2,
+      workspace: 2,
       developer: 3,
     }[tag];
 
@@ -75,7 +75,7 @@ export async function GET(request: Request) {
           const response = await handler.GET(request);
           const data = await response.json();
           // Add source tag to each result
-          const sourceTag = ['patient', 'expert', 'organization', 'developer'][index];
+          const sourceTag = ['patient', 'expert', 'workspace', 'developer'][index];
           return (data.results || []).map((result: Record<string, unknown>) => ({
             ...result,
             source: sourceTag,

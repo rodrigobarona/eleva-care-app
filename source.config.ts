@@ -22,7 +22,7 @@ export default defineConfig({
  * Fumadocs Content Collections Configuration
  *
  * This file defines all content collections for the Eleva Care platform:
- * - Documentation portals (Patient, Expert, Organization, Developer) - Use Fumadocs UI
+ * - Documentation portals (Patient, Expert, Workspace, Developer) - Use Fumadocs UI
  * - Marketing pages - Use Fumadocs Core (headless) with Eleva components
  * - Legal documents - Use Fumadocs Core (headless)
  * - Trust center - Use Fumadocs Core (headless)
@@ -49,12 +49,13 @@ export const { docs: expertDocs, meta: expertMeta } = defineDocs({
 });
 
 /**
- * Organization Portal
- * Documentation for B2B organizations (clinics, wellness centers, employers)
- * Aligns with the "For Organizations" marketing philosophy
+ * Workspace Portal
+ * Documentation for workspace management (clinics, wellness centers, employers)
+ * Internal terminology: "Workspace" (e.g., "Dr. Patricia's workspace")
+ * Marketing terminology: "For Organizations" (external sales/SEO)
  */
-export const { docs: organizationDocs, meta: organizationMeta } = defineDocs({
-  dir: 'src/content/docs/organization',
+export const { docs: workspaceDocs, meta: workspaceMeta } = defineDocs({
+  dir: 'src/content/docs/workspace',
 });
 
 /**

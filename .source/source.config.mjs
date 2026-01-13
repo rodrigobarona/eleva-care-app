@@ -18,8 +18,8 @@ var { docs: patientDocs, meta: patientMeta } = defineDocs({
 var { docs: expertDocs, meta: expertMeta } = defineDocs({
   dir: "src/content/docs/expert"
 });
-var { docs: organizationDocs, meta: organizationMeta } = defineDocs({
-  dir: "src/content/docs/organization"
+var { docs: workspaceDocs, meta: workspaceMeta } = defineDocs({
+  dir: "src/content/docs/workspace"
 });
 var { docs: developerDocs, meta: developerMeta } = defineDocs({
   dir: "src/content/docs/developer"
@@ -50,9 +50,9 @@ export {
   expertMeta,
   legal,
   marketing,
-  organizationDocs,
-  organizationMeta,
   patientDocs,
   patientMeta,
-  trust
+  trust,
+  workspaceDocs,
+  workspaceMeta
 };

@@ -4,8 +4,8 @@ import {
   patientMeta,
   expertDocs,
   expertMeta,
-  organizationDocs,
-  organizationMeta,
+  workspaceDocs,
+  workspaceMeta,
   developerDocs,
   developerMeta,
   marketing,
@@ -57,14 +57,15 @@ export const expertSource = loader({
 });
 
 /**
- * Organization Portal Source
+ * Workspace Portal Source
  *
- * Documentation for B2B organizations (clinics, wellness centers, employers).
- * Routes: /docs/organization/*
+ * Documentation for workspace management (clinics, wellness centers, employers).
+ * Internal: "Workspace" | Marketing: "For Organizations"
+ * Routes: /docs/workspace/*
  */
-export const organizationSource = loader({
-  baseUrl: '/docs/organization',
-  source: toFumadocsSource(organizationDocs, organizationMeta),
+export const workspaceSource = loader({
+  baseUrl: '/docs/workspace',
+  source: toFumadocsSource(workspaceDocs, workspaceMeta),
   i18n,
 });
 
@@ -127,7 +128,7 @@ export const trustSource = loader({
 export const personaSources = {
   patient: patientSource,
   expert: expertSource,
-  organization: organizationSource,
+  workspace: workspaceSource,
   developer: developerSource,
 } as const;
 
