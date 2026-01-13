@@ -1,60 +1,40 @@
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import { File, Files, Folder } from 'fumadocs-ui/components/files';
+import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { TypeTable } from 'fumadocs-ui/components/type-table';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
-import Image from 'next/image';
-import type { ImageProps } from 'next/image';
 import Link from 'next/link';
+import type { ComponentPropsWithoutRef } from 'react';
 import type { ReactNode } from 'react';
 
 /**
  * Fumadocs MDX Components
  *
  * Custom MDX components for documentation pages (/docs/*).
- * Extends Fumadocs defaults to preserve ToC anchors, Callouts, and syntax highlighting.
+ * Extends Fumadocs defaults with all built-in components for rich documentation.
+ *
+ * Built-in components included:
+ * - Accordion/Accordions - Collapsible FAQ sections
+ * - Steps/Step - Sequential guides
+ * - Tabs/Tab - Tabbed content
+ * - Files/Folder/File - File tree displays
+ * - TypeTable - API type documentation
+ * - ImageZoom - Zoomable images
+ * - Callout - Info/warning/error boxes (via defaultMdxComponents)
+ * - Cards/Card - Navigation cards
  *
  * REQUIRES: docs.css loaded (provides fd-* CSS variables)
  *
  * @see https://fumadocs.vercel.app/docs/ui/mdx
+ * @see https://fumadocs.vercel.app/docs/ui/components
  */
 
 // =============================================================================
 // CUSTOM COMPONENTS
 // =============================================================================
-
-/**
- * Custom image component with Next.js optimization
- */
-function DocsImage(props: ImageProps & { src: string }) {
-  const { src, alt = '', width, height, ...rest } = props;
-
-  if (width && height) {
-    return (
-      <div className="my-6 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
-        <Image
-          className="h-auto w-full object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          src={src}
-          alt={alt}
-          width={width}
-          height={height}
-          {...rest}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative my-6 aspect-video overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
-      <Image
-        className="object-cover"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        src={src}
-        alt={alt}
-        fill
-        {...rest}
-      />
-    </div>
-  );
-}
 
 /**
  * Smart link component with external link handling
@@ -104,15 +84,7 @@ function DocsCards({ children }: { children: ReactNode }) {
  * Card component with Eleva branding
  * Uses fd-* classes that require Fumadocs CSS
  */
-function DocsCard({
-  title,
-  href,
-  children,
-}: {
-  title: string;
-  href: string;
-  children: ReactNode;
-}) {
+function DocsCard({ title, href, children }: { title: string; href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
@@ -133,24 +105,36 @@ function DocsCard({
 /**
  * MDX components for Fumadocs documentation pages
  *
- * Extends Fumadocs defaults to preserve:
+ * Includes all Fumadocs built-in components:
  * - Heading IDs for ToC navigation
- * - Built-in Callout, Accordion, Steps, etc.
+ * - Callout, Accordion, Steps, Tabs, Files
  * - Code syntax highlighting with Shiki
  *
- * Custom overrides:
- * - Cards/Card: Eleva-branded grid cards
- * - img: Next.js Image optimization
+ * Custom overrides with Eleva branding:
+ * - Cards/Card: Navigation grid cards
+ * - img: Zoomable images with Next.js optimization
  * - a: External link handling
  */
 export const docsMdxComponents: MDXComponents = {
   // Spread Fumadocs defaults FIRST (includes headings with IDs, Callout, etc.)
   ...defaultMdxComponents,
 
+  // Fumadocs built-in components for rich documentation
+  Accordion,
+  Accordions,
+  Step,
+  Steps,
+  Tab,
+  Tabs,
+  File,
+  Files,
+  Folder,
+  TypeTable,
+
   // Override specific components with Eleva branding
   Cards: DocsCards,
   Card: DocsCard,
-  img: DocsImage as MDXComponents['img'],
+  img: (props) => <ImageZoom {...(props as ComponentPropsWithoutRef<typeof ImageZoom>)} />,
   a: DocsLink,
 };
 
@@ -163,4 +147,3 @@ export function getDocsMDXComponents(components?: MDXComponents): MDXComponents 
     ...components,
   };
 }
-
