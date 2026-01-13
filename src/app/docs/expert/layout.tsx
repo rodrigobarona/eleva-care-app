@@ -1,3 +1,4 @@
+import { SearchDialog } from '@/components/docs/SearchDialog';
 import { expertSource } from '@/lib/source';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -28,7 +29,7 @@ export default async function ExpertDocsLayout({
   return (
     <div className="flex min-h-screen bg-eleva-neutral-100/50">
       {/* Sidebar */}
-      <aside className="docs-sidebar fixed inset-y-0 left-0 z-30 w-72 overflow-y-auto">
+      <aside className="docs-sidebar fixed inset-y-0 left-0 z-30 flex w-72 flex-col overflow-y-auto">
         <div className="flex h-16 items-center border-b border-border px-6">
           <Link 
             href="/" 
@@ -37,10 +38,14 @@ export default async function ExpertDocsLayout({
             ← Back to Eleva Care
           </Link>
         </div>
-        <div className="p-6">
-          <h2 className="docs-sidebar-title mb-6 text-xl">
+        <div className="flex-1 p-6">
+          <h2 className="docs-sidebar-title mb-4 text-xl">
             Expert Resources
           </h2>
+          {/* Search */}
+          <div className="mb-6">
+            <SearchDialog />
+          </div>
           <nav className="space-y-1">
             <NavigationTree tree={tree} locale={locale} />
           </nav>
