@@ -5,7 +5,7 @@
  * WorkOS RBAC must be configured manually via the Dashboard UI.
  *
  * Usage:
- *   pnpm tsx scripts/configure-workos-rbac.ts --guide
+ *   bun scripts/configure-workos-rbac.ts --guide
  *
  * @see _docs/_WorkOS RABAC implemenation/WORKOS-DASHBOARD-QUICK-SETUP.md
  */

@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     '**/node_modules/**',
     'coverage/**',
     '**/dist/**',
+    '.source/**', // Generated Fumadocs output
     // Migrated from .eslintignore
     'migrate-to-workos.js',
     'migrate-clerk-to-workos.sh',

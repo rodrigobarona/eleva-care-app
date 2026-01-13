@@ -5,7 +5,7 @@
  * The Stripe MCP tool only creates one-time prices, so we need to manually
  * create the recurring annual prices.
  *
- * Run with: pnpm tsx scripts/utilities/setup-stripe-recurring-prices.ts
+ * Run with: bun scripts/utilities/setup-stripe-recurring-prices.ts
  */
 import { STRIPE_CONFIG } from '@/config/stripe';
 import dotenv from 'dotenv';

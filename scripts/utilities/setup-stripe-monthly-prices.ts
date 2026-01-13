@@ -4,7 +4,7 @@
  * This script creates recurring monthly prices for the subscription products.
  * Complements the existing annual prices with monthly options.
  *
- * Run with: pnpm tsx scripts/utilities/setup-stripe-monthly-prices.ts
+ * Run with: bun scripts/utilities/setup-stripe-monthly-prices.ts
  */
 import { STRIPE_CONFIG } from '@/config/stripe';
 import dotenv from 'dotenv';

@@ -1,7 +1,4 @@
-import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
-// Import after mocks
-import { redisManager } from '@/lib/redis/manager';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 /**
  * Keep-Alive Service Integration Tests
@@ -10,29 +7,33 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, test, vi } from 
  * In test mode, Redis falls back to in-memory mode.
  */
 
-// Use vi.hoisted for mocks
-const mocks = vi.hoisted(() => ({
-  redisSet: vi.fn(),
-  redisGet: vi.fn(),
-  redisDel: vi.fn(),
-  redisHealthCheck: vi.fn(),
-  qstashHealthCheck: vi.fn(),
-}));
-
 // Mock Redis manager
 vi.mock('@/lib/redis/manager', () => ({
   redisManager: {
-    set: mocks.redisSet,
-    get: mocks.redisGet,
-    del: mocks.redisDel,
-    healthCheck: mocks.redisHealthCheck,
+    set: vi.fn(),
+    get: vi.fn(),
+    del: vi.fn(),
+    healthCheck: vi.fn(),
   },
 }));
 
 // Mock QStash config
 vi.mock('@/lib/integrations/qstash/config', () => ({
-  qstashHealthCheck: mocks.qstashHealthCheck,
+  qstashHealthCheck: vi.fn(),
 }));
+
+// Import after mocks are set up
+import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
+import { redisManager } from '@/lib/redis/manager';
+
+// Create typed mock references for easier access in tests
+const mocks = {
+  redisSet: redisManager.set as Mock,
+  redisGet: redisManager.get as Mock,
+  redisDel: redisManager.del as Mock,
+  redisHealthCheck: redisManager.healthCheck as Mock,
+  qstashHealthCheck: qstashHealthCheck as Mock,
+};
 
 describe('Keep-Alive Service Integration Tests', () => {
   beforeEach(() => {
