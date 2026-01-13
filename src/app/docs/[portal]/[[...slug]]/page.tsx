@@ -1,8 +1,13 @@
 import * as Sentry from '@sentry/nextjs';
 import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
-import { mdxComponents } from '@/mdx-components';
+import { docsMdxComponents } from '@/app/docs/mdx-components';
 import type { TOCItemType } from 'fumadocs-core/toc';
-import { DocsBody, DocsPage } from 'fumadocs-ui/layouts/docs/page';
+import {
+  DocsBody,
+  DocsDescription,
+  DocsPage,
+  DocsTitle,
+} from 'fumadocs-ui/layouts/docs/page';
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
@@ -13,6 +18,8 @@ import { notFound } from 'next/navigation';
  *
  * Renders MDX content for any documentation portal.
  * Portal is determined by the [portal] route segment.
+ *
+ * @see https://fumadocs.vercel.app/docs/ui/layouts/page
  */
 
 interface PageProps {
@@ -86,9 +93,10 @@ export default async function PortalDocsPage({ params }: PageProps) {
 
   return (
     <DocsPage toc={data.toc}>
+      <DocsTitle>{data.title}</DocsTitle>
+      {data.description && <DocsDescription>{data.description}</DocsDescription>}
       <DocsBody>
-        <h1>{data.title}</h1>
-        <MDXContent components={mdxComponents} />
+        <MDXContent components={docsMdxComponents} />
       </DocsBody>
     </DocsPage>
   );

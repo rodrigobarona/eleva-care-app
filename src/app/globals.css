@@ -1,7 +1,5 @@
 @import 'tailwindcss';
 
-@source '../../node_modules/fumadocs-ui/dist/**/*.js';
-
 @custom-variant dark (&:is(.dark *));
 
 @utility container {
@@ -16,15 +14,13 @@
 }
 
 @theme {
-  --font-serif:
-    var(--font-lora), ui-serif, Georgia, Cambria, 'Times New Roman', Times,
-    serif;
+  --font-serif: var(--font-lora), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-sans:
-    var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --font-mono:
-    var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
-    Consolas, 'Liberation Mono', 'Courier New', monospace;
+    var(--font-ibm-plex-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
 
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
   --animate-accordion-down: accordion-down 0.2s ease-out;
@@ -148,7 +144,7 @@
 }
 
 @layer utilities {
-  /* Smooth scroll offset for fixed header */
+  /* Smooth scroll offset for fixed header - marketing pages only */
   [id] {
     scroll-margin-top: 120px;
   }
