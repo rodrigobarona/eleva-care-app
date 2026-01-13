@@ -1,4 +1,4 @@
-import createMDX from '@next/mdx';
+import { createMDX } from 'fumadocs-mdx/next';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
@@ -14,17 +14,20 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 
 /**
- * MDX configuration for Turbopack compatibility
+ * MDX configuration using Fumadocs MDX
  *
- * IMPORTANT: Turbopack requires plugins to be specified as strings (not imported functions)
- * because the Rust-based compiler cannot execute JavaScript functions.
+ * Fumadocs MDX provides:
+ * - Build-time MDX compilation with content collections
+ * - Virtual module imports (fumadocs-mdx:collections/server)
+ * - Type-safe frontmatter with Zod schemas
+ * - Automatic TOC generation
  *
- * For more info: https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack
+ * @see https://fumadocs.vercel.app/docs/mdx
  */
 const withMDX = createMDX({
-  extension: /\.mdx?$/,
-  options: {
-    // Plugins must be strings for Turbopack compatibility
+  // Configure MDX options
+  mdxOptions: {
+    // Plugins for Turbopack compatibility (specified as strings)
     remarkPlugins: ['remark-gfm'],
     rehypePlugins: [],
   },

@@ -8,6 +8,7 @@ const config: Config = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/emails/**/*.{js,ts,jsx,tsx,mdx}',
     './src/content/**/*.{md,mdx}',
+    './node_modules/fumadocs-ui/dist/**/*.js',
   ],
   theme: {
     container: {

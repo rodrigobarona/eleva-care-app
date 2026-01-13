@@ -4,58 +4,58 @@ overview: Implement Fumadocs as a centralized, multi-persona content management 
 todos:
   - id: install-fumadocs
     content: Install fumadocs-core, fumadocs-ui, fumadocs-mdx packages via bun
-    status: pending
+    status: completed
   - id: source-config
     content: Create source.config.ts with persona collections (patient, expert, clinic, developer)
-    status: pending
+    status: completed
     dependencies:
       - install-fumadocs
   - id: i18n-config
     content: Create lib/fumadocs-i18n.ts with 4-locale config and UI translations
-    status: pending
+    status: completed
     dependencies:
       - install-fumadocs
   - id: content-adapter
     content: Create lib/content/adapter.ts interface for CMS-ready architecture
-    status: pending
+    status: completed
     dependencies:
       - install-fumadocs
   - id: source-loaders
     content: Create lib/source.ts with persona-specific and marketing source loaders
-    status: pending
+    status: completed
     dependencies:
       - source-config
       - i18n-config
   - id: next-config
     content: Update next.config.ts to integrate Fumadocs MDX plugin alongside existing MDX
-    status: pending
+    status: completed
     dependencies:
       - install-fumadocs
   - id: restructure-docs
     content: Create src/content/docs/ structure with patient/ and expert/ directories
-    status: pending
+    status: completed
     dependencies:
       - source-config
   - id: docs-layout
     content: Create (docs) layout with RootProvider, DocsLayout, and PersonaSwitcher
-    status: pending
+    status: completed
     dependencies:
       - source-loaders
   - id: patient-portal
     content: Build Patient Help Center at /docs/patient with getting-started, booking, faq
-    status: pending
+    status: completed
     dependencies:
       - docs-layout
       - restructure-docs
   - id: expert-portal
     content: Build Expert Resources at /docs/expert with profile, services, earnings guides
-    status: pending
+    status: completed
     dependencies:
       - docs-layout
       - restructure-docs
   - id: search-integration
     content: Add Orama search integration across all documentation portals
-    status: pending
+    status: in_progress
     dependencies:
       - patient-portal
       - expert-portal

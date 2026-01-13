@@ -1,0 +1,238 @@
+/**
+ * Fumadocs Documentation Styles
+ *
+ * Custom styles for documentation pages that work with Tailwind v3.
+ * These styles provide basic Fumadocs UI compatibility without requiring
+ * the full Fumadocs Tailwind plugin (which requires Tailwind v4).
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Fumadocs CSS Variables
+ * These are required for Fumadocs UI components to render correctly.
+ */
+:root {
+  /* Primary colors - Eleva green theme */
+  --fd-primary: 142 76% 36%;
+  --fd-primary-foreground: 0 0% 100%;
+
+  /* Background colors */
+  --fd-background: 0 0% 100%;
+  --fd-foreground: 222.2 84% 4.9%;
+  --fd-background-fd: 0 0% 100%;
+
+  /* Muted colors */
+  --fd-muted: 210 40% 96.1%;
+  --fd-muted-foreground: 215.4 16.3% 46.9%;
+
+  /* Border colors */
+  --fd-border: 214.3 31.8% 91.4%;
+
+  /* Card colors */
+  --fd-card: 0 0% 100%;
+  --fd-card-foreground: 222.2 84% 4.9%;
+
+  /* Accent colors */
+  --fd-accent: 210 40% 96.1%;
+  --fd-accent-foreground: 222.2 47.4% 11.2%;
+
+  /* Popover */
+  --fd-popover: 0 0% 100%;
+  --fd-popover-foreground: 222.2 84% 4.9%;
+
+  /* Secondary */
+  --fd-secondary: 210 40% 96.1%;
+  --fd-secondary-foreground: 222.2 47.4% 11.2%;
+
+  /* Ring */
+  --fd-ring: 142 76% 36%;
+}
+
+.dark {
+  /* Dark mode overrides */
+  --fd-primary: 142 76% 46%;
+  --fd-primary-foreground: 0 0% 100%;
+
+  --fd-background: 222.2 84% 4.9%;
+  --fd-foreground: 210 40% 98%;
+  --fd-background-fd: 222.2 84% 4.9%;
+
+  --fd-muted: 217.2 32.6% 17.5%;
+  --fd-muted-foreground: 215 20.2% 65.1%;
+
+  --fd-border: 217.2 32.6% 17.5%;
+
+  --fd-card: 222.2 84% 4.9%;
+  --fd-card-foreground: 210 40% 98%;
+
+  --fd-accent: 217.2 32.6% 17.5%;
+  --fd-accent-foreground: 210 40% 98%;
+
+  --fd-popover: 222.2 84% 4.9%;
+  --fd-popover-foreground: 210 40% 98%;
+
+  --fd-secondary: 217.2 32.6% 17.5%;
+  --fd-secondary-foreground: 210 40% 98%;
+
+  --fd-ring: 142 76% 46%;
+}
+
+/**
+ * Base styles for documentation layout
+ */
+.fd-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.fd-sidebar {
+  width: 280px;
+  border-right: 1px solid hsl(var(--fd-border));
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.fd-main {
+  flex: 1;
+  max-width: 100%;
+}
+
+.fd-toc {
+  width: 240px;
+  border-left: 1px solid hsl(var(--fd-border));
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/**
+ * Typography styles for documentation content
+ */
+.fd-prose {
+  max-width: 65ch;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.fd-prose h1 {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.fd-prose h2 {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.fd-prose h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.fd-prose p {
+  margin-bottom: 1rem;
+  line-height: 1.75;
+}
+
+.fd-prose ul,
+.fd-prose ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.fd-prose li {
+  margin-bottom: 0.25rem;
+}
+
+.fd-prose code {
+  background: hsl(var(--fd-muted));
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+.fd-prose pre {
+  background: hsl(var(--fd-muted));
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.fd-prose pre code {
+  background: none;
+  padding: 0;
+}
+
+.fd-prose a {
+  color: hsl(var(--fd-primary));
+  text-decoration: underline;
+}
+
+.fd-prose a:hover {
+  text-decoration: none;
+}
+
+.fd-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.fd-prose th,
+.fd-prose td {
+  border: 1px solid hsl(var(--fd-border));
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.fd-prose th {
+  background: hsl(var(--fd-muted));
+  font-weight: 600;
+}
+
+/**
+ * Callout/admonition styles
+ */
+.fd-callout {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid;
+}
+
+.fd-callout-info {
+  background: hsl(210 100% 97%);
+  border-color: hsl(210 100% 50%);
+}
+
+.fd-callout-warning {
+  background: hsl(38 100% 97%);
+  border-color: hsl(38 100% 50%);
+}
+
+.fd-callout-success {
+  background: hsl(142 76% 97%);
+  border-color: hsl(142 76% 36%);
+}
+
+.fd-callout-tip {
+  background: hsl(142 76% 97%);
+  border-color: hsl(142 76% 36%);
+}
