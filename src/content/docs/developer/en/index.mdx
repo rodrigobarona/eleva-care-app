@@ -1,0 +1,296 @@
+---
+title: Developer Documentation
+description: Technical documentation for integrating with the Eleva Care platform. Build custom integrations, embed booking widgets, and connect via webhooks.
+---
+
+# Developer Documentation
+
+Welcome to Eleva Care's developer documentation. This guide covers everything you need to integrate with our platform, build custom solutions, and extend our functionality.
+
+<Callout type="info">
+  **API Access**: API access is available on Enterprise plans. Contact sales@eleva.care to discuss your integration needs.
+</Callout>
+
+## Quick Start
+
+Get started with the Eleva Care API in three steps:
+
+<Cards>
+  <Card title="1. Get API Credentials" href="/docs/developer/api/authentication">
+    Obtain your API key from the Partner Dashboard
+  </Card>
+  <Card title="2. Make Your First Request" href="/docs/developer/api/endpoints">
+    Explore available endpoints and make test calls
+  </Card>
+  <Card title="3. Set Up Webhooks" href="/docs/developer/webhooks/overview">
+    Receive real-time notifications for events
+  </Card>
+</Cards>
+
+## Platform Overview
+
+### Architecture
+
+Eleva Care is built on modern, scalable technology:
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Your App      │    │   Eleva Care    │    │   External      │
+│                 │◄──►│   API           │◄──►│   Services      │
+│ • Web App       │    │ • REST API      │    │ • Stripe        │
+│ • Mobile App    │    │ • Webhooks      │    │ • Google Cal    │
+│ • Backend       │    │ • OAuth 2.0     │    │ • Video (Daily) │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL (Neon)
+- **ORM**: Drizzle ORM
+- **Auth**: WorkOS AuthKit
+- **Payments**: Stripe
+- **Notifications**: Novu
+- **Video**: Daily.co
+
+## API Overview
+
+### Base URL
+
+```
+Production: https://api.eleva.care/v1
+Sandbox:    https://api-sandbox.eleva.care/v1
+```
+
+### Authentication
+
+All API requests require authentication via API key:
+
+```bash
+curl -X GET "https://api.eleva.care/v1/experts" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+### Rate Limits
+
+| Plan | Requests/Minute | Requests/Day |
+|------|----------------|--------------|
+| Enterprise | 100 | 10,000 |
+| Custom | Negotiable | Negotiable |
+
+### Response Format
+
+All responses follow a consistent format:
+
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 157
+    }
+  }
+}
+```
+
+Error responses:
+
+```json
+{
+  "success": false,
+  "error": "Descriptive error message",
+  "code": "ERROR_CODE",
+  "details": {}
+}
+```
+
+## Key Features
+
+### Expert Management
+
+- List and search experts
+- Retrieve expert profiles
+- Check expert availability
+- View expert services
+
+### Booking System
+
+- Create bookings
+- Retrieve booking details
+- Cancel or reschedule bookings
+- Handle payment flows
+
+### Webhook Events
+
+Receive real-time notifications for:
+
+- Booking created/confirmed/cancelled
+- Payment succeeded/failed
+- Expert availability changes
+- Patient updates
+
+### Embed Components
+
+Embed Eleva Care functionality in your application:
+
+- Booking widget
+- Expert profiles
+- Availability calendar
+- Video consultation launcher
+
+## Common Use Cases
+
+### 1. Embed Booking in Your Website
+
+```html
+<script src="https://cdn.eleva.care/embed.js"></script>
+<div
+  id="eleva-booking"
+  data-org-id="YOUR_ORG_ID"
+  data-expert-id="EXPERT_ID"
+  data-theme="light"
+></div>
+```
+
+### 2. Sync Bookings to Your CRM
+
+```typescript
+// Webhook handler for booking events
+app.post('/webhooks/eleva', (req, res) => {
+  const event = req.body;
+  
+  if (event.type === 'booking.confirmed') {
+    const { booking, patient, expert } = event.data;
+    
+    // Sync to your CRM
+    await crm.createAppointment({
+      patientEmail: patient.email,
+      expertName: expert.name,
+      scheduledAt: booking.startTime,
+      service: booking.serviceName,
+    });
+  }
+  
+  res.status(200).json({ received: true });
+});
+```
+
+### 3. Build Custom Availability Calendar
+
+```typescript
+// Fetch expert availability
+const availability = await fetch(
+  'https://api.eleva.care/v1/experts/EXPERT_ID/availability',
+  {
+    headers: {
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+  }
+);
+
+const slots = await availability.json();
+// Render custom calendar with available slots
+```
+
+## SDKs & Libraries
+
+### Official SDKs
+
+We provide official SDKs for popular languages:
+
+- **TypeScript/JavaScript**: `@eleva-care/sdk`
+- **Python**: `eleva-care-python`
+- **PHP**: `eleva-care/php-sdk`
+
+### Installation
+
+```bash
+# TypeScript/JavaScript
+npm install @eleva-care/sdk
+
+# Python
+pip install eleva-care
+
+# PHP
+composer require eleva-care/php-sdk
+```
+
+### Quick Example
+
+```typescript
+import { ElevaCare } from '@eleva-care/sdk';
+
+const client = new ElevaCare({
+  apiKey: process.env.ELEVA_API_KEY,
+});
+
+// List experts
+const experts = await client.experts.list({
+  category: 'womens-health',
+  available: true,
+});
+
+// Create a booking
+const booking = await client.bookings.create({
+  expertId: 'exp_123',
+  serviceId: 'svc_456',
+  startTime: '2024-01-15T10:00:00Z',
+  patient: {
+    name: 'Jane Doe',
+    email: 'jane@example.com',
+  },
+});
+```
+
+## Sandbox Environment
+
+Test your integration safely in our sandbox:
+
+- **URL**: `https://api-sandbox.eleva.care/v1`
+- **Test Cards**: Use Stripe test cards
+- **Test Webhooks**: Configure sandbox webhook URL
+- **Data**: Isolated from production
+
+<Callout type="warning">
+  **Sandbox Data**: Sandbox data is reset weekly. Don't rely on it for persistent storage.
+</Callout>
+
+## Support & Resources
+
+### Getting Help
+
+- **API Reference**: Detailed endpoint documentation
+- **Postman Collection**: Import our API collection
+- **Status Page**: [status.eleva.care](https://status.eleva.care)
+- **Developer Support**: developers@eleva.care
+
+### Community
+
+- **GitHub**: Report issues and request features
+- **Discord**: Join our developer community
+- **Changelog**: Stay updated on API changes
+
+## Next Steps
+
+<Cards>
+  <Card title="Authentication" href="/docs/developer/api/authentication">
+    Set up API authentication
+  </Card>
+  <Card title="API Endpoints" href="/docs/developer/api/endpoints">
+    Explore available endpoints
+  </Card>
+  <Card title="Webhooks" href="/docs/developer/webhooks/overview">
+    Configure webhook notifications
+  </Card>
+  <Card title="Integrations" href="/docs/developer/integrations/stripe">
+    Learn about third-party integrations
+  </Card>
+</Cards>
+

@@ -1,0 +1,293 @@
+---
+title: Calendar Integration
+description: Sync Eleva Care bookings with Google Calendar and other calendar services.
+---
+
+# Calendar Integration
+
+Eleva Care integrates with Google Calendar to sync expert availability and bookings. This guide covers how the integration works and how to leverage it.
+
+## How It Works
+
+```
+Expert's Google Calendar ↔ Eleva Care ↔ Your Application
+         ↓                      ↓
+   Busy/Free Status        Bookings
+```
+
+### Two-Way Sync
+
+1. **Availability Sync**: Expert's busy times from Google Calendar block booking slots
+2. **Booking Sync**: New Eleva Care bookings create events in Google Calendar
+
+## Expert Calendar Setup
+
+### OAuth Connection
+
+Experts connect their Google Calendar during setup:
+
+1. Expert goes to Settings → Calendar
+2. Clicks "Connect Google Calendar"
+3. Authorizes Eleva Care to access their calendar
+4. Selects which calendars to sync
+
+### Permissions Required
+
+| Permission | Purpose |
+|------------|---------|
+| `calendar.readonly` | Read busy/free status |
+| `calendar.events` | Create booking events |
+
+## Availability Management
+
+### Blocking Times
+
+Expert's existing calendar events automatically block booking slots:
+
+```json
+{
+  "type": "expert.availability_updated",
+  "data": {
+    "expertId": "exp_abc123",
+    "source": "google_calendar_sync",
+    "blockedTimes": [
+      {
+        "start": "2024-01-15T09:00:00Z",
+        "end": "2024-01-15T10:00:00Z",
+        "reason": "google_calendar_event"
+      }
+    ]
+  }
+}
+```
+
+### Sync Frequency
+
+| Event Type | Sync Timing |
+|------------|-------------|
+| Expert adds Google event | Within 5 minutes |
+| New Eleva Care booking | Immediate |
+| Cancellation | Immediate |
+
+## Booking Calendar Events
+
+### Event Creation
+
+When a booking is confirmed, a Google Calendar event is created:
+
+```json
+{
+  "summary": "Eleva Care: Initial Consultation with Jane Doe",
+  "description": "Video consultation booked via Eleva Care\n\nPatient: Jane Doe\nService: Initial Consultation\nMeeting Link: https://meet.eleva.care/bkg_xxx",
+  "start": {
+    "dateTime": "2024-01-20T10:00:00",
+    "timeZone": "Europe/Lisbon"
+  },
+  "end": {
+    "dateTime": "2024-01-20T11:00:00",
+    "timeZone": "Europe/Lisbon"
+  },
+  "conferenceData": {
+    "entryPoints": [{
+      "entryPointType": "video",
+      "uri": "https://meet.eleva.care/bkg_xxx"
+    }]
+  },
+  "attendees": [
+    { "email": "expert@example.com" },
+    { "email": "patient@example.com" }
+  ]
+}
+```
+
+### Event Updates
+
+| Booking Change | Calendar Action |
+|----------------|-----------------|
+| Rescheduled | Event time updated |
+| Cancelled | Event deleted |
+| Patient changed | Attendees updated |
+
+## API Access
+
+### Get Expert Calendar Status
+
+```http
+GET /experts/:id/calendar
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "connected": true,
+    "provider": "google",
+    "connectedAt": "2024-01-10T14:00:00Z",
+    "calendars": [
+      {
+        "id": "primary",
+        "name": "Main Calendar",
+        "synced": true
+      }
+    ],
+    "lastSyncAt": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+### Trigger Manual Sync
+
+```http
+POST /experts/:id/calendar/sync
+```
+
+Forces an immediate sync of the expert's calendar.
+
+## Webhook Events
+
+### calendar.connected
+
+Fired when expert connects their calendar:
+
+```json
+{
+  "type": "calendar.connected",
+  "data": {
+    "expertId": "exp_abc123",
+    "provider": "google",
+    "calendarsCount": 3
+  }
+}
+```
+
+### calendar.disconnected
+
+Fired when expert disconnects their calendar:
+
+```json
+{
+  "type": "calendar.disconnected",
+  "data": {
+    "expertId": "exp_abc123",
+    "reason": "user_revoked"
+  }
+}
+```
+
+### calendar.sync_failed
+
+Fired when calendar sync fails:
+
+```json
+{
+  "type": "calendar.sync_failed",
+  "data": {
+    "expertId": "exp_abc123",
+    "error": "invalid_grant",
+    "requiresReauthorization": true
+  }
+}
+```
+
+## Integration Patterns
+
+### Building a Custom Calendar View
+
+Fetch availability and render your own calendar:
+
+```typescript
+// Get expert availability for date range
+const availability = await elevaCare.experts.getAvailability('exp_abc123', {
+  startDate: '2024-01-15',
+  endDate: '2024-01-21',
+  timezone: 'Europe/Lisbon',
+});
+
+// Render in your UI
+availability.slots.forEach(day => {
+  day.times.forEach(slot => {
+    renderSlot(slot.start, slot.end, slot.available);
+  });
+});
+```
+
+### Syncing to Your Calendar System
+
+Subscribe to booking events and create events in your system:
+
+```typescript
+// Webhook handler
+app.post('/webhooks/eleva', (req, res) => {
+  const event = req.body;
+  
+  if (event.type === 'booking.confirmed') {
+    const { booking, patient, expert } = event.data;
+    
+    // Create event in your calendar system
+    await yourCalendar.createEvent({
+      title: `${patient.name} - ${expert.name}`,
+      start: booking.startTime,
+      end: booking.endTime,
+      location: booking.meetingUrl,
+    });
+  }
+  
+  res.status(200).json({ received: true });
+});
+```
+
+## Troubleshooting
+
+### Sync Not Working
+
+Common issues:
+
+| Issue | Solution |
+|-------|----------|
+| Token expired | Expert needs to reconnect |
+| Calendar not selected | Check sync settings |
+| API limits | Wait and retry |
+
+### Events Not Appearing
+
+Check:
+
+1. Is the expert's calendar connected?
+2. Is the correct calendar selected for sync?
+3. Is the booking confirmed (not pending)?
+
+### Duplicate Events
+
+Ensure idempotency:
+
+```typescript
+// Include booking ID in event to prevent duplicates
+const event = {
+  id: `eleva_${booking.id}`,
+  summary: '...',
+  // ...
+};
+```
+
+## Supported Calendars
+
+| Calendar | Status |
+|----------|--------|
+| Google Calendar | ✅ Supported |
+| Microsoft Outlook | 🔜 Coming Soon |
+| Apple iCloud | 🔜 Coming Soon |
+| CalDAV | 📋 Planned |
+
+## Next Steps
+
+<Cards>
+  <Card title="Stripe Integration" href="/docs/developer/integrations/stripe">
+    Learn about payment processing
+  </Card>
+  <Card title="API Endpoints" href="/docs/developer/api/endpoints">
+    Explore the REST API
+  </Card>
+</Cards>
+

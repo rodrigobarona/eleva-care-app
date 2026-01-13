@@ -1,0 +1,18 @@
+{
+  "title": "Developer Documentation",
+  "description": "Technical documentation for integrating with the Eleva Care platform.",
+  "pages": [
+    "index",
+    "---API Reference---",
+    "api/authentication",
+    "api/endpoints",
+    "api/errors",
+    "---Webhooks---",
+    "webhooks/overview",
+    "webhooks/events",
+    "---Integrations---",
+    "integrations/stripe",
+    "integrations/calendar"
+  ]
+}
+
