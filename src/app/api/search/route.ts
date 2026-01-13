@@ -1,4 +1,4 @@
-import { createFromSource } from 'fumadocs-core/search/server';
+import { createSearchAPI, type AdvancedIndex } from 'fumadocs-core/search/server';
 import {
   patientSource,
   expertSource,
@@ -7,13 +7,10 @@ import {
 } from '@/lib/source';
 
 /**
- * Unified Documentation Search API
+ * Unified Documentation Search API (Optimized)
  *
- * This endpoint provides full-text search across all documentation portals:
- * - Patient Help Center
- * - Expert Resources
- * - Workspace Portal
- * - Developer Docs
+ * Single Orama index with tag-based filtering for better performance.
+ * Uses Fumadocs' createSearchAPI to build a unified search index.
  *
  * Query Parameters:
  * - query: Search string
@@ -23,83 +20,59 @@ import {
  * @example
  * GET /api/search?query=booking&tag=patient&locale=en
  *
- * @see https://fumadocs.vercel.app/docs/headless/search
+ * @see https://fumadocs.dev/docs/headless/search/orama
  */
-
-// Combine all documentation sources for unified search
-const allSources = [patientSource, expertSource, workspaceSource, developerSource];
-
-// Create search handlers for each source with locale support
-const searchHandlers = allSources.map((source) =>
-  createFromSource(source, {
-    // Configure language for search algorithm based on locale
-    localeMap: {
-      en: { language: 'english' },
-      es: { language: 'spanish' },
-      pt: { language: 'portuguese' },
-      'pt-BR': { language: 'portuguese' },
-    },
-  })
-);
 
 /**
- * GET handler for search requests
- *
- * Searches across all documentation portals and returns combined results
+ * Source configuration with tag identifiers
  */
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get('query') || '';
-  const tag = searchParams.get('tag');
-  const locale = searchParams.get('locale') || 'en';
+const sources = [
+  { source: patientSource, tag: 'patient' },
+  { source: expertSource, tag: 'expert' },
+  { source: workspaceSource, tag: 'workspace' },
+  { source: developerSource, tag: 'developer' },
+] as const;
 
-  // If a specific tag/portal is requested, search only that source
-  if (tag) {
-    const sourceIndex = {
-      patient: 0,
-      expert: 1,
-      workspace: 2,
-      developer: 3,
-    }[tag];
+/**
+ * Build unified search indexes from all documentation sources
+ *
+ * Each page is tagged with its source portal for filtering.
+ * Creates a single Orama index instead of 4 separate ones.
+ */
+function buildUnifiedIndexes(): AdvancedIndex[] {
+  const indexes: AdvancedIndex[] = [];
 
-    if (sourceIndex !== undefined && searchHandlers[sourceIndex]) {
-      return searchHandlers[sourceIndex].GET(request);
+  for (const { source, tag } of sources) {
+    // Get all pages from each source
+    const pages = source.getPages();
+
+    for (const page of pages) {
+      indexes.push({
+        id: `${tag}:${page.url}`,
+        title: page.data.title,
+        description: page.data.description,
+        url: page.url,
+        structuredData: page.data.structuredData,
+        tag, // Tag for filtering by portal
+      });
     }
   }
 
-  // For unified search, query all sources and combine results
-  try {
-    const results = await Promise.all(
-      searchHandlers.map(async (handler, index) => {
-        try {
-          const response = await handler.GET(request);
-          const data = await response.json();
-          // Add source tag to each result
-          const sourceTag = ['patient', 'expert', 'workspace', 'developer'][index];
-          return (data.results || []).map((result: Record<string, unknown>) => ({
-            ...result,
-            source: sourceTag,
-          }));
-        } catch {
-          return [];
-        }
-      })
-    );
-
-    // Flatten and sort results by relevance (assuming score is provided)
-    const flatResults = results
-      .flat()
-      .sort((a, b) => ((b.score as number) || 0) - ((a.score as number) || 0))
-      .slice(0, 20); // Limit to 20 results
-
-    return Response.json({
-      results: flatResults,
-      query,
-      locale,
-    });
-  } catch (error) {
-    console.error('Search error:', error);
-    return Response.json({ results: [], error: 'Search failed' }, { status: 500 });
-  }
+  return indexes;
 }
 
+/**
+ * Create unified search API with tag filtering support
+ *
+ * Benefits over previous implementation:
+ * - Single Orama index (vs 4 separate indexes)
+ * - Native tag filtering (via tag property on each index)
+ * - Better memory efficiency
+ * - Faster search queries
+ *
+ * Tag filtering is automatically enabled when indexes have the `tag` property.
+ * Use ?tag=patient to filter by portal.
+ */
+export const { GET } = createSearchAPI('advanced', {
+  indexes: buildUnifiedIndexes(),
+});
