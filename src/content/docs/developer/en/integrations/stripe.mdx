@@ -1,0 +1,286 @@
+---
+title: Stripe Integration
+description: Understanding Eleva Care's Stripe integration for payments, payouts, and subscription management.
+---
+
+# Stripe Integration
+
+Eleva Care uses Stripe for all payment processing. This guide explains how our Stripe integration works and how you can leverage it in your integration.
+
+## Architecture Overview
+
+```
+Patient → Eleva Care → Stripe → Expert's Bank Account
+                ↓
+         Your Organization (via webhooks)
+```
+
+### Payment Flow
+
+1. Patient initiates booking
+2. Eleva Care creates a PaymentIntent via Stripe
+3. Patient completes payment (card, Multibanco, etc.)
+4. Stripe notifies Eleva Care via webhook
+5. Eleva Care confirms booking
+6. Eleva Care notifies your application via webhook
+7. Funds are held until appointment completion
+8. Payout is initiated to expert's Stripe Connect account
+
+## Stripe Connect
+
+Experts use Stripe Connect to receive payouts:
+
+### Connect Account Types
+
+| Type | Use Case |
+|------|----------|
+| Standard | Expert manages their own Stripe dashboard |
+| Express | Simplified onboarding, Eleva manages dashboard |
+
+### Expert Onboarding
+
+When experts join, they complete Stripe Connect onboarding:
+
+```typescript
+// Webhook: expert.joined
+{
+  "type": "expert.joined",
+  "data": {
+    "expert": {
+      "id": "exp_abc123",
+      "stripeConnectStatus": "pending"
+    }
+  }
+}
+
+// Later: expert.connect_completed
+{
+  "type": "expert.connect_completed",
+  "data": {
+    "expert": {
+      "id": "exp_abc123",
+      "stripeConnectStatus": "active",
+      "stripeAccountId": "acct_xxx"
+    }
+  }
+}
+```
+
+## Payment Methods
+
+### Supported Methods
+
+| Method | Countries | Processing Time |
+|--------|-----------|-----------------|
+| Card | Global | Instant |
+| Multibanco | Portugal | 1-3 days |
+| iDEAL | Netherlands | Instant |
+| Bancontact | Belgium | Instant |
+| SEPA Direct Debit | Eurozone | 5-14 days |
+
+### Multibanco Integration
+
+For Portuguese payments, we support Multibanco:
+
+```typescript
+// Payment created with Multibanco
+{
+  "type": "payment.pending",
+  "data": {
+    "payment": {
+      "id": "pay_xxx",
+      "method": "multibanco",
+      "status": "pending",
+      "multibancoDetails": {
+        "entity": "12345",
+        "reference": "123 456 789",
+        "expiresAt": "2024-01-18T23:59:59Z"
+      }
+    }
+  }
+}
+```
+
+We automatically send reminder notifications before expiration.
+
+## Commission Structure
+
+### Revenue Split
+
+For each payment, funds are distributed:
+
+```
+Gross Payment: €100.00
+├─ Stripe Processing: ~€2.90 (2.9% + €0.25)
+├─ Platform Fee: €8.00 (8% for Top Expert)
+├─ Workspace Fee: €15.00 (15%)
+└─ Expert Net: €74.10
+```
+
+### Payout Timeline
+
+| Expert Tier | Payout Frequency |
+|-------------|------------------|
+| Community | Weekly (Fridays) |
+| Top | Daily |
+| Custom | Configurable |
+
+## Using Stripe in Your Integration
+
+### Accessing Payment Data
+
+Payment events include Stripe references:
+
+```json
+{
+  "type": "payment.succeeded",
+  "data": {
+    "payment": {
+      "id": "pay_xxx",
+      "stripePaymentIntentId": "pi_xxx",
+      "stripeChargeId": "ch_xxx"
+    }
+  }
+}
+```
+
+### Reconciliation
+
+Match Eleva Care transactions with Stripe:
+
+```typescript
+// Get booking with payment details
+const booking = await elevaCare.bookings.get('bkg_xxx', {
+  include: ['payment'],
+});
+
+// Cross-reference with Stripe
+const stripePayment = await stripe.paymentIntents.retrieve(
+  booking.payment.stripePaymentIntentId
+);
+```
+
+### Refund Handling
+
+Refunds flow through Eleva Care, not directly via Stripe:
+
+```typescript
+// Request refund via Eleva Care API
+const refund = await elevaCare.bookings.refund('bkg_xxx', {
+  amount: 10000, // Full or partial
+  reason: 'customer_request',
+});
+
+// Webhook notification
+{
+  "type": "payment.refunded",
+  "data": {
+    "refund": {
+      "id": "ref_xxx",
+      "stripeRefundId": "re_xxx",
+      "amount": 10000
+    }
+  }
+}
+```
+
+## Stripe Webhooks
+
+### Eleva Care Handles These
+
+You don't need to process Stripe webhooks directly. Eleva Care handles:
+
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `charge.refunded`
+- `account.updated` (Connect)
+- `payout.paid`
+
+### Your Application Receives
+
+Eleva Care transforms Stripe events into our webhook format:
+
+| Stripe Event | Eleva Care Event |
+|--------------|------------------|
+| `payment_intent.succeeded` | `payment.succeeded` |
+| `payment_intent.payment_failed` | `payment.failed` |
+| `charge.refunded` | `payment.refunded` |
+| `payout.paid` | `payout.completed` |
+
+## Testing
+
+### Stripe Test Mode
+
+In sandbox, use Stripe test cards:
+
+| Card Number | Scenario |
+|-------------|----------|
+| `4242424242424242` | Successful payment |
+| `4000000000000002` | Card declined |
+| `4000000000009995` | Insufficient funds |
+| `4000002500003155` | Requires authentication |
+
+### Test Multibanco
+
+In sandbox, Multibanco payments auto-complete after 1 minute.
+
+## Security
+
+### PCI Compliance
+
+Eleva Care is PCI DSS Level 1 compliant. Card data never touches your servers.
+
+### Sensitive Data
+
+We never expose full card numbers:
+
+```json
+{
+  "payment": {
+    "card": {
+      "last4": "4242",
+      "brand": "visa",
+      "expiryMonth": 12,
+      "expiryYear": 2025
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### Payment Failed
+
+Check the failure code:
+
+```json
+{
+  "type": "payment.failed",
+  "data": {
+    "failureCode": "card_declined",
+    "failureMessage": "Your card was declined",
+    "declineCode": "insufficient_funds"
+  }
+}
+```
+
+### Payout Delayed
+
+Expert payouts may be delayed if:
+
+- Stripe Connect verification incomplete
+- Bank account details incorrect
+- Fraud review triggered
+
+## Next Steps
+
+<Cards>
+  <Card title="Calendar Integration" href="/docs/developer/integrations/calendar">
+    Sync with Google Calendar
+  </Card>
+  <Card title="Webhook Events" href="/docs/developer/webhooks/events">
+    See all payment events
+  </Card>
+</Cards>
+
+

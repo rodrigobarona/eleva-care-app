@@ -5,7 +5,7 @@
  * Verifies that user identification, role-based grouping, and cross-platform
  * context linking work correctly.
  */
-import { vi, type Mock } from 'vitest';
+import { vi } from 'vitest';
 
 // Mock PostHog
 const mockPostHogIdentify = vi.fn();

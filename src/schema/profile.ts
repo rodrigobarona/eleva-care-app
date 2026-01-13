@@ -40,8 +40,8 @@ export const profileFormSchema = z.object({
   primaryCategoryId: z.string().uuid('Invalid category ID').min(1, 'Primary category is required'),
   secondaryCategoryId: z.string().uuid('Invalid category ID').optional().or(z.literal('')),
   socialLinks: z.array(socialLinkSchema),
-  isVerified: z.boolean().default(false),
-  isTopExpert: z.boolean().default(false),
+  isVerified: z.boolean(),
+  isTopExpert: z.boolean(),
 });
 
 export const profileActionSchema = profileFormSchema.extend({

@@ -2,13 +2,101 @@ import type { MDXComponents } from 'mdx/types';
 import Image from 'next/image';
 import type { ImageProps } from 'next/image';
 import Link from 'next/link';
-import type { TdHTMLAttributes, ThHTMLAttributes } from 'react';
+import type { ReactNode, TdHTMLAttributes, ThHTMLAttributes } from 'react';
+
+/**
+ * Callout component for documentation
+ * Supports: info, warning, tip, success types
+ */
+interface CalloutProps {
+  type?: 'info' | 'warning' | 'tip' | 'success';
+  children: ReactNode;
+}
+
+function Callout({ type = 'info', children }: CalloutProps) {
+  const styles = {
+    info: {
+      bg: 'bg-blue-50 dark:bg-blue-950/30',
+      border: 'border-blue-200 dark:border-blue-800',
+      icon: '💡',
+    },
+    warning: {
+      bg: 'bg-amber-50 dark:bg-amber-950/30',
+      border: 'border-amber-200 dark:border-amber-800',
+      icon: '⚠️',
+    },
+    tip: {
+      bg: 'bg-green-50 dark:bg-green-950/30',
+      border: 'border-green-200 dark:border-green-800',
+      icon: '💡',
+    },
+    success: {
+      bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+      border: 'border-emerald-200 dark:border-emerald-800',
+      icon: '✅',
+    },
+  };
+
+  const style = styles[type];
+
+  return (
+    <div className={`my-4 rounded-lg border p-4 ${style.bg} ${style.border}`}>
+      <div className="flex gap-3">
+        <span className="text-lg">{style.icon}</span>
+        <div className="flex-1 text-sm [&>p]:mb-0">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Cards container for documentation
+ */
+interface CardsProps {
+  children: ReactNode;
+}
+
+function Cards({ children }: CardsProps) {
+  return (
+    <div className="not-prose my-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Card component for documentation links
+ */
+interface CardProps {
+  title: string;
+  href: string;
+  children: ReactNode;
+}
+
+function Card({ title, href, children }: CardProps) {
+  return (
+    <Link
+      href={href}
+      className="group block rounded-lg border border-gray-200 p-4 no-underline transition-colors hover:border-eleva-primary hover:bg-gray-50 dark:border-gray-800 dark:hover:border-eleva-primary dark:hover:bg-gray-900"
+    >
+      <h3 className="mb-2 font-semibold text-gray-900 group-hover:text-eleva-primary dark:text-gray-100">
+        {title}
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400">{children}</p>
+    </Link>
+  );
+}
 
 /**
  * Base MDX components with custom styling
  * Can be used directly in server components without hooks
  */
 export const mdxComponents: MDXComponents = {
+  // Custom components
+  Callout,
+  Cards,
+  Card,
+
   // Headings
   h1: ({ children }) => (
     <h1 className="mb-6 mt-8 text-balance font-serif text-4xl/[0.9] font-light tracking-tight text-eleva-primary md:text-5xl/[0.9] lg:text-6xl/[0.9]">

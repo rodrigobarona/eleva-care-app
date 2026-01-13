@@ -308,7 +308,7 @@ Created comprehensive migration plan for major version updates:
 
 - ✅ **UPDATED**: `HeroSkeleton` to match actual Hero dimensions
 - ✅ **REFACTORED**: `ApproachSkeleton` with correct negative margins and gradient
-- ✅ **FIXED**: `ServicesSkeleton` image aspect ratio (`aspect-[2/3]`)
+- ✅ **FIXED**: `ServicesSkeleton` image aspect ratio (`aspect-2/3`)
 
 **Third-Party Optimizations**
 
@@ -938,7 +938,7 @@ Sentry.init({
   - **Date display enhancement**: Improved reservation notices to show full dates (`Jun 2, 3:45 PM`) instead of time-only for multi-day holds
 
 - **UI Performance Enhancements**:
-  - Removed `backdrop-blur` from `Footer.tsx` for better rendering performance.
+  - Removed `backdrop-blur-sm` from `Footer.tsx` for better rendering performance.
   - Enhanced `VideoPlayer.tsx` with optimized preload settings and container sizing.
   - Improved scroll event handling in header components.
   - Added skeleton loading states for dynamically imported sections.

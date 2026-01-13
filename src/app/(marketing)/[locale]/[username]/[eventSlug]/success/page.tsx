@@ -148,7 +148,7 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
               <Card className="h-fit">
                 <CardContent className="p-0">
                   <div>
-                    <div className="relative aspect-[28/38] rounded-t-xl">
+                    <div className="relative aspect-28/38 rounded-t-xl">
                       <Image
                         src={expertImage}
                         alt={expertName || 'Expert'}
@@ -348,7 +348,7 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
                   <Card className="h-fit">
                     <CardContent className="p-6">
                       <div className="flex items-center space-x-4">
-                        <div className="relative h-16 w-16 flex-shrink-0">
+                        <div className="relative h-16 w-16 shrink-0">
                           <Image
                             src={expertImage}
                             alt={expertName || 'Expert'}

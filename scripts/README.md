@@ -23,16 +23,16 @@ scripts/
 
 ```bash
 # Clear cache for development environment
-pnpm tsx scripts/utilities/cache-manager.ts clear-clerk --env=development
+bun scripts/utilities/cache-manager.ts clear-clerk --env=development
 
 # Check Redis health
-pnpm tsx scripts/utilities/cache-manager.ts health
+bun scripts/utilities/cache-manager.ts health
 
 # View cache statistics
-pnpm tsx scripts/utilities/cache-manager.ts stats
+bun scripts/utilities/cache-manager.ts stats
 
 # Clear all cache entries
-pnpm tsx scripts/utilities/cache-manager.ts clear-all
+bun scripts/utilities/cache-manager.ts clear-all
 ```
 
 ### QStash Management
@@ -62,7 +62,7 @@ node scripts/utilities/qstash-manager.js cleanup
 
 ```bash
 # Update all schedules based on config/qstash.ts
-pnpm tsx scripts/utilities/update-qstash-schedules.ts
+bun scripts/utilities/update-qstash-schedules.ts
 ```
 
 ### Health Checks
@@ -90,19 +90,19 @@ bash scripts/utilities/test-health-endpoints.sh
 
 ```bash
 # Show configuration summary
-pnpm tsx scripts/utilities/workos-rbac-config.ts summary
+bun scripts/utilities/workos-rbac-config.ts summary
 
 # Validate configuration
-pnpm tsx scripts/utilities/workos-rbac-config.ts validate
+bun scripts/utilities/workos-rbac-config.ts validate
 
 # Generate all formats (JSON, CSV, Markdown, TypeScript)
-pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
+bun scripts/utilities/workos-rbac-config.ts generate-all
 
 # Generate specific format
-pnpm tsx scripts/utilities/workos-rbac-config.ts generate-json
-pnpm tsx scripts/utilities/workos-rbac-config.ts generate-csv
-pnpm tsx scripts/utilities/workos-rbac-config.ts generate-markdown
-pnpm tsx scripts/utilities/workos-rbac-config.ts generate-typescript
+bun scripts/utilities/workos-rbac-config.ts generate-json
+bun scripts/utilities/workos-rbac-config.ts generate-csv
+bun scripts/utilities/workos-rbac-config.ts generate-markdown
+bun scripts/utilities/workos-rbac-config.ts generate-typescript
 ```
 
 ## Best Practices
@@ -123,7 +123,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-typescript
 
 4. **Use TypeScript for Node.js scripts:**
    - Use `.ts` extension for TypeScript
-   - Run with `pnpm tsx scripts/<script-name>.ts`
+   - Run with `bun scripts/<script-name>.ts`
    - Use `.js` only for legacy or pure Node scripts
    - Use `.sh` for shell scripts
 
@@ -137,7 +137,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-typescript
 **TypeScript scripts:**
 
 ```bash
-pnpm tsx scripts/utilities/<script-name>.ts
+bun scripts/utilities/<script-name>.ts
 ```
 
 **JavaScript scripts:**
@@ -185,21 +185,21 @@ BETTERSTACK_HEARTBEAT_URL=https://...
 
 - Ensure all required environment variables are set
 - Check file permissions (`chmod +x script-name.sh` for shell scripts)
-- Verify dependencies are installed (`pnpm install`)
+- Verify dependencies are installed (`bun install`)
 
 ### Redis connection errors
 
 - Verify `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
-- Check Redis health: `pnpm tsx scripts/utilities/cache-manager.ts health`
+- Check Redis health: `bun scripts/utilities/cache-manager.ts health`
 
 ### QStash errors
 
 - Verify `QSTASH_TOKEN` and signing keys are set in `.env`
-- Test with: `pnpm tsx scripts/utilities/update-qstash-schedules.ts`
+- Test with: `bun scripts/utilities/update-qstash-schedules.ts`
 
 ### TypeScript errors
 
-- Ensure `tsx` is installed: `pnpm add -D tsx`
+- Ensure `tsx` is installed: `bun add -D tsx`
 - Check tsconfig.json is properly configured
 
 ## Contributing

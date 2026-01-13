@@ -51,10 +51,10 @@ const ServiceSection: React.FC = () => {
     >
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="mb-12">
-          <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60">
+          <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70 data-dark:text-eleva-neutral-900/60">
             {t('title')}
           </h2>
-          <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-[dark]:text-eleva-neutral-100 sm:text-6xl">
+          <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-dark:text-eleva-neutral-100 sm:text-6xl">
             {t('subtitle')}
           </h3>
         </div>
@@ -67,7 +67,7 @@ const ServiceSection: React.FC = () => {
               key={service.title}
               className="flex flex-col overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative aspect-[2/3] max-h-72 w-full shrink-0 overflow-hidden">
+              <div className="relative aspect-2/3 max-h-72 w-full shrink-0 overflow-hidden">
                 <Image
                   src={service.image}
                   alt={service.title}

@@ -93,7 +93,7 @@ export default function ClinicalAreasSection({ title, subtitle, areas }: Clinica
               <AccordionItem
                 key={area.id}
                 value={area.id}
-                className="rounded-xl border border-eleva-neutral-200 bg-white px-6 shadow-sm transition-all hover:border-eleva-primary/30 hover:shadow-md"
+                className="rounded-xl border border-eleva-neutral-200 bg-white px-6 shadow-xs transition-all hover:border-eleva-primary/30 hover:shadow-md"
               >
                 <AccordionTrigger className="py-6 text-left text-xl font-semibold tracking-tight text-eleva-neutral-900 transition-colors hover:text-eleva-primary hover:no-underline">
                   {area.title}
@@ -113,7 +113,7 @@ export default function ClinicalAreasSection({ title, subtitle, areas }: Clinica
                   </p>
 
                   {/* Key Finding - Eleva brand colors */}
-                  <div className="relative overflow-hidden rounded-lg border border-eleva-primary/20 bg-gradient-to-br from-eleva-accent/40 via-eleva-primary-light/10 to-eleva-accent/40 p-6 shadow-sm">
+                  <div className="relative overflow-hidden rounded-lg border border-eleva-primary/20 bg-linear-to-br from-eleva-accent/40 via-eleva-primary-light/10 to-eleva-accent/40 p-6 shadow-xs">
                     <div className="relative">
                       <div className="mb-3 flex items-center gap-2">
                         <div className="rounded-md bg-eleva-primary/10 p-1.5">

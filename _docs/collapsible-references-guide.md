@@ -63,7 +63,7 @@ The references section is now **collapsible** and beautifully styled with Eleva 
 ### Container
 ```tsx
 // Gradient background (Eleva brand)
-bg-gradient-to-br 
+bg-linear-to-br 
   from-eleva-accent/30        // Pale Lavender (top-left)
   via-white                   // White (middle)
   to-eleva-primary-light/10   // Sage Green (bottom-right)
@@ -72,7 +72,7 @@ bg-gradient-to-br
 border-eleva-neutral-200      // Light Grey
 
 // Shadow
-shadow-sm                     // Subtle
+shadow-xs                     // Subtle
 ```
 
 **Result**: Soft, elegant gradient that feels premium ✨
@@ -113,7 +113,7 @@ text-eleva-primary     // Deep Teal (#006D77)
 #### Number Badge:
 ```tsx
 // Gradient circle
-bg-gradient-to-br 
+bg-linear-to-br 
   from-eleva-primary       // Deep Teal
   to-eleva-primary-light   // Sage Green
 

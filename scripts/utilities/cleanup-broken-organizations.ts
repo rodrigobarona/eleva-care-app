@@ -9,7 +9,7 @@
  * 3. Connects users to their organizations
  * 4. Creates missing organizations if needed
  *
- * Run with: pnpm tsx scripts/utilities/cleanup-broken-organizations.ts
+ * Run with: bun scripts/utilities/cleanup-broken-organizations.ts
  */
 // Load environment variables first
 import { db } from '@/drizzle/db';
@@ -287,7 +287,7 @@ async function main() {
   if (dryRun) {
     console.log('\n🔵 This was a dry run. No changes were made.');
     console.log('Run with --apply to execute the fixes:\n');
-    console.log('  pnpm tsx scripts/utilities/cleanup-broken-organizations.ts --apply\n');
+    console.log('  bun scripts/utilities/cleanup-broken-organizations.ts --apply\n');
   } else {
     console.log('\n✅ Cleanup complete!\n');
   }

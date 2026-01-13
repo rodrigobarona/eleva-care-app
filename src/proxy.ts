@@ -273,7 +273,8 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'appointments' ||
     firstSegment === 'booking' ||
     firstSegment === 'admin' ||
-    firstSegment === 'partner';
+    firstSegment === 'partner' ||
+    firstSegment === 'docs'; // Documentation routes don't need locale prefix
 
   // If auth/app route, skip i18n and use JWT-based RBAC
   if (isAuthOrAppRoute) {

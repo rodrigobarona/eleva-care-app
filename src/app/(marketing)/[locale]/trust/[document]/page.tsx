@@ -1,6 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
 import { locales } from '@/lib/i18n/routing';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
+import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
@@ -89,7 +90,7 @@ export default async function TrustDocumentPage({ params }: PageProps) {
   }
 
   // Native Next.js 16 MDX import - Turbopack optimized
-  let TrustContent: React.ComponentType<any>;
+  let TrustContent: React.ComponentType<{ components?: typeof mdxComponents }>;
   try {
     const mdxModule = await import(`@/content/trust/${document}/${locale}.mdx`);
     TrustContent = mdxModule.default;
@@ -98,11 +99,5 @@ export default async function TrustDocumentPage({ params }: PageProps) {
     return notFound();
   }
 
-  return (
-    <div className="card mx-auto max-w-4xl">
-      <div className="p-6 sm:p-10">
-        <TrustContent />
-      </div>
-    </div>
-  );
+  return <TrustContent components={mdxComponents} />;
 }

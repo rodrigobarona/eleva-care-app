@@ -10,18 +10,18 @@
  * Usage:
  * ```bash
  * # Generate all formats
- * pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
+ * bun scripts/utilities/workos-rbac-config.ts generate-all
  *
  * # Generate specific format
- * pnpm tsx scripts/utilities/workos-rbac-config.ts generate-json
- * pnpm tsx scripts/utilities/workos-rbac-config.ts generate-csv
- * pnpm tsx scripts/utilities/workos-rbac-config.ts generate-markdown
+ * bun scripts/utilities/workos-rbac-config.ts generate-json
+ * bun scripts/utilities/workos-rbac-config.ts generate-csv
+ * bun scripts/utilities/workos-rbac-config.ts generate-markdown
  *
  * # Validate configuration
- * pnpm tsx scripts/utilities/workos-rbac-config.ts validate
+ * bun scripts/utilities/workos-rbac-config.ts validate
  *
  * # Show summary
- * pnpm tsx scripts/utilities/workos-rbac-config.ts summary
+ * bun scripts/utilities/workos-rbac-config.ts summary
  * ```
  *
  * Note: WorkOS doesn't provide a public API for creating roles/permissions.
@@ -1514,7 +1514,7 @@ async function main() {
     default:
       console.log('\n📚 WorkOS RBAC Configuration Manager\n');
       console.log('Usage:');
-      console.log('  pnpm tsx scripts/utilities/workos-rbac-config.ts <command>\n');
+      console.log('  bun scripts/utilities/workos-rbac-config.ts <command>\n');
       console.log('Commands:');
       console.log('  summary              Show configuration summary');
       console.log('  validate             Validate configuration');

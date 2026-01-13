@@ -84,7 +84,7 @@ export default async function ProfilePage() {
           <h1 className="text-3xl font-bold">My Profile</h1>
           <p className="text-muted-foreground">Manage your public profile information</p>
         </div>
-        <div className="mb-8 rounded-lg border bg-card p-6 shadow-sm">
+        <div className="mb-8 rounded-lg border bg-card p-6 shadow-xs">
           <ProfilePublishToggle initialPublishedStatus={false} />
         </div>
         <ExpertForm initialData={transformedProfile as ExpertFormValues} />

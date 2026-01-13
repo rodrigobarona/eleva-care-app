@@ -34,6 +34,20 @@ import { useState } from 'react';
  * ```
  */
 
+/**
+ * LogoutButton Component
+ *
+ * Client-side logout button with loading states and error handling.
+ * Follows brijr pattern with elegant UX.
+ *
+ * Usage:
+ * ```tsx
+ * <LogoutButton />
+ * // or with custom text
+ * <LogoutButton>Sign Out</LogoutButton>
+ * ```
+ */
+
 interface LogoutButtonProps {
   children?: React.ReactNode;
   /**
@@ -50,7 +64,14 @@ interface LogoutButtonProps {
    * Button variant
    * @default 'ghost'
    */
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  variant?:
+    | 'default'
+    | 'destructive'
+    | 'destructiveGhost'
+    | 'outline'
+    | 'secondary'
+    | 'ghost'
+    | 'link';
   /**
    * Button size
    * @default 'default'

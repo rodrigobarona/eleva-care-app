@@ -36,17 +36,13 @@ export const createPriceSchema = z.object({
     .min(0, 'Amount must be positive')
     .max(999999999, 'Amount is too large'),
 
-  currency: z
-    .string()
-    .length(3, 'Currency must be 3 characters')
-    .toLowerCase()
-    .default('usd'),
+  currency: z.string().length(3, 'Currency must be 3 characters').toLowerCase(),
 
   // Recurring billing
   recurring: z
     .object({
       interval: billingIntervalSchema,
-      intervalCount: z.number().int().min(1).max(12).default(1),
+      intervalCount: z.number().int().min(1).max(12),
     })
     .optional(),
 
@@ -69,11 +65,14 @@ export const createPriceSchema = z.object({
     .string()
     .min(1)
     .max(200)
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Lookup key can only contain letters, numbers, hyphens, and underscores')
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      'Lookup key can only contain letters, numbers, hyphens, and underscores',
+    )
     .optional()
     .describe('Unique lookup key for easy price retrieval'),
 
-  active: z.boolean().default(true),
+  active: z.boolean(),
 });
 
 export type CreatePriceInput = z.infer<typeof createPriceSchema>;
@@ -95,10 +94,13 @@ export const updatePriceSchema = z.object({
     .string()
     .min(1)
     .max(200)
-    .regex(/^[a-zA-Z0-9_-]+$/, 'Lookup key can only contain letters, numbers, hyphens, and underscores')
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      'Lookup key can only contain letters, numbers, hyphens, and underscores',
+    )
     .optional(),
 
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
 });
 
 export type UpdatePriceInput = z.infer<typeof updatePriceSchema>;
@@ -152,4 +154,3 @@ export function parseCommissionRate(percentage: string): number {
   const cleaned = percentage.replace(/[^0-9.]/g, '');
   return Math.round(parseFloat(cleaned) * 100);
 }
-

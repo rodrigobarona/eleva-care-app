@@ -234,7 +234,7 @@ export function ConnectGoogleCalendar() {
   }
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
+    <div className="rounded-lg border bg-card p-6 shadow-xs">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">

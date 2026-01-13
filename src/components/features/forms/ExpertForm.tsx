@@ -26,8 +26,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { SOCIAL_MEDIA_LIST } from '@/lib/constants/social-media';
 import { cn } from '@/lib/utils';
 import { profileFormSchema } from '@/schema/profile';
-import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Info } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
@@ -35,9 +35,6 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 type ExpertFormValues = z.infer<typeof profileFormSchema> & {
-  isVerified?: boolean;
-  isTopExpert?: boolean;
-  profilePicture: string;
   username?: string;
 };
 
@@ -147,7 +144,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     try {
       // Clean up any existing blob URL before creating a new one
       const currentProfilePicture = form.getValues('profilePicture');
-      cleanupBlobUrl(currentProfilePicture);
+      if (currentProfilePicture) {
+        cleanupBlobUrl(currentProfilePicture);
+      }
 
       setSelectedFile(file);
       const previewUrl = URL.createObjectURL(file);
@@ -267,7 +266,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     return () => {
       // Cleanup blob URLs when component unmounts
       const profilePicture = form.getValues('profilePicture');
-      cleanupBlobUrl(profilePicture);
+      if (profilePicture) {
+        cleanupBlobUrl(profilePicture);
+      }
     };
   }, [form, cleanupBlobUrl]);
 
@@ -286,7 +287,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                 <div className="space-y-4">
                   <div className="flex items-center gap-8">
                     {field.value && (
-                      <div className="relative h-96 w-64 overflow-hidden rounded-lg border-2 border-border">
+                      <div className="border-border relative h-96 w-64 overflow-hidden rounded-lg border-2">
                         <Image
                           src={field.value}
                           alt="Profile picture"
@@ -300,7 +301,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                               cleanupBlobUrl(field.value);
                               // Fallback to WorkOS profile picture if available
                               const workosImageUrl =
-                                (user as any)?.profilePictureUrl || (user as any)?.profile_picture_url || '';
+                                (user as any)?.profilePictureUrl ||
+                                (user as any)?.profile_picture_url ||
+                                '';
                               form.setValue('profilePicture', workosImageUrl);
                               setSelectedFile(null);
                             }
@@ -313,7 +316,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                         <label
                           htmlFor="picture-upload"
                           className={cn(
-                            'flex h-9 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                            'border-input bg-background ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring flex h-9 cursor-pointer items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                             isUploading && 'pointer-events-none opacity-50',
                           )}
                         >
@@ -333,14 +336,16 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                             onClick={() => {
                               // Clean up blob URL if removing
                               const currentProfilePicture = form.getValues('profilePicture');
-                              cleanupBlobUrl(currentProfilePicture);
+                              if (currentProfilePicture) {
+                                cleanupBlobUrl(currentProfilePicture);
+                              }
 
                               // WorkOS doesn't have imageUrl - just clear the field
                               form.setValue('profilePicture', '');
                               setSelectedFile(null);
                             }}
                             className={cn(
-                              'flex h-9 items-center justify-center rounded-md border border-destructive bg-destructive/10 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                              'border-destructive bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground focus-visible:ring-ring flex h-9 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-hidden',
                               isUploading && 'pointer-events-none opacity-50',
                             )}
                             disabled={isUploading}
@@ -349,8 +354,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           </button>
                         )}
                         {isUploading && (
-                          <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                            <span className="border-primary h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
                             Uploading...
                           </span>
                         )}
@@ -420,12 +425,12 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               </Badge>
               <Popover>
                 <PopoverTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
+                  <Info className="text-muted-foreground hover:text-foreground h-4 w-4 transition-colors" />
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="space-y-2">
                     <h4 className="font-medium">Verified Expert Status</h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Verified experts have had their credentials and expertise validated by our
                       team. This badge helps users identify trusted professionals on our platform.
                     </p>
@@ -443,12 +448,12 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               </Badge>
               <Popover>
                 <PopoverTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
+                  <Info className="text-muted-foreground hover:text-foreground h-4 w-4 transition-colors" />
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="space-y-2">
                     <h4 className="font-medium">Top Expert Status</h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Top Experts are recognized leaders in their field with exceptional
                       contributions and engagement on our platform. This status is awarded to our
                       most distinguished members.
@@ -659,15 +664,15 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       {platform.name.charAt(0).toUpperCase() + platform.name.slice(1)}
                     </FormLabel>
                     <div className="flex w-full items-center overflow-hidden rounded-md border">
-                      <div className="flex h-full items-center bg-muted px-3 py-2 text-sm text-muted-foreground">
+                      <div className="bg-muted text-muted-foreground flex h-full items-center px-3 py-2 text-sm">
                         {platform.baseUrl.replace(/^https?:\/\//, '')}
                       </div>
-                      <div className="w-px self-stretch bg-border" />
+                      <div className="bg-border w-px self-stretch" />
                       <FormControl>
                         <Input
                           placeholder="username"
                           {...field}
-                          className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                          className="bg-background flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
                       </FormControl>
                     </div>

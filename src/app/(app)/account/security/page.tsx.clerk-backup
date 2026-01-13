@@ -678,7 +678,7 @@ export default function SecurityPage() {
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 flex-shrink-0 cursor-help text-eleva-neutral-900/50 hover:text-eleva-primary" />
+                                <Info className="h-4 w-4 shrink-0 cursor-help text-eleva-neutral-900/50 hover:text-eleva-primary" />
                               </TooltipTrigger>
                               <TooltipContent
                                 side="bottom"
@@ -1133,7 +1133,7 @@ export default function SecurityPage() {
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                   <div className="flex items-start space-x-3">
                     <svg
-                      className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600"
+                      className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >

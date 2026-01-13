@@ -1,22 +1,17 @@
-import { vi, describe, it, expect, beforeEach, beforeAll, test } from 'vitest';
-
-// Use vi.hoisted for mocks that need to be available in vi.mock factories
-const mocks = vi.hoisted(() => ({
-  sendEmail: vi.fn(),
-}));
+import { vi, describe, expect, beforeEach, beforeAll, test, type Mock } from 'vitest';
 
 // Only mock in unit test mode
 if (process.env.EMAIL_INTEGRATION_TEST !== 'true') {
   vi.mock('@/lib/integrations/novu/email', () => ({
-    sendEmail: mocks.sendEmail,
+    sendEmail: vi.fn(),
   }));
 }
 
 // Import after mocking
 import { sendEmail } from '@/lib/integrations/novu/email';
 
-// Re-export for use in tests
-const mockSendEmail = mocks.sendEmail;
+// Cast to mock for easier typing in tests
+const mockSendEmail = sendEmail as Mock;
 
 describe('Email Service Integration Tests', () => {
   const INTEGRATION_MODE = process.env.EMAIL_INTEGRATION_TEST === 'true';

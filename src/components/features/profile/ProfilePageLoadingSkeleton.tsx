@@ -8,7 +8,7 @@ export function ProfileColumnSkeleton() {
   return (
     <div className="space-y-6">
       {/* Profile Image Skeleton */}
-      <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
+      <div className="relative aspect-18/21 w-full overflow-hidden rounded-lg">
         <Skeleton className="h-full w-full" />
       </div>
 

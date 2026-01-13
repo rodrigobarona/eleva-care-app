@@ -347,11 +347,11 @@ function validateAndParseMetadata<T>(
     if (error instanceof z.ZodError) {
       console.error(`Invalid ${type} metadata structure:`, {
         sessionId,
-        errors: error.errors,
+        errors: error.issues,
         rawData,
       });
       throw new Error(
-        `Invalid ${type} metadata structure: ${error.errors.map((e) => e.message).join(', ')}`,
+        `Invalid ${type} metadata structure: ${error.issues.map((e) => e.message).join(', ')}`,
       );
     }
     throw error;

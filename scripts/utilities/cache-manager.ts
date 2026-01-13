@@ -9,7 +9,7 @@
  * - General Redis cache operations
  *
  * Usage:
- *   pnpm tsx scripts/utilities/cache-manager.ts <command> [options]
+ *   bun scripts/utilities/cache-manager.ts <command> [options]
  *
  * Commands:
  *   clear-clerk [--env=dev|prod|test]  - Clear Clerk cache for specific environment
@@ -18,9 +18,9 @@
  *   stats                              - Show cache statistics
  *
  * Examples:
- *   pnpm tsx scripts/utilities/cache-manager.ts clear-clerk --env=development
- *   pnpm tsx scripts/utilities/cache-manager.ts clear-all
- *   pnpm tsx scripts/utilities/cache-manager.ts health
+ *   bun scripts/utilities/cache-manager.ts clear-clerk --env=development
+ *   bun scripts/utilities/cache-manager.ts clear-all
+ *   bun scripts/utilities/cache-manager.ts health
  */
 import { redisManager } from '@/lib/redis/manager';
 
@@ -133,7 +133,7 @@ async function showHelp() {
 📚 Cache Manager - Help
 
 Usage:
-  pnpm tsx scripts/utilities/cache-manager.ts <command> [options]
+  bun scripts/utilities/cache-manager.ts <command> [options]
 
 Commands:
   clear-clerk [--env=dev|prod|test]  Clear Clerk cache for specific environment
@@ -143,9 +143,9 @@ Commands:
   help                               Show this help message
 
 Examples:
-  pnpm tsx scripts/utilities/cache-manager.ts clear-clerk --env=development
-  pnpm tsx scripts/utilities/cache-manager.ts health
-  pnpm tsx scripts/utilities/cache-manager.ts stats
+  bun scripts/utilities/cache-manager.ts clear-clerk --env=development
+  bun scripts/utilities/cache-manager.ts health
+  bun scripts/utilities/cache-manager.ts stats
 
 Options:
   --env=<environment>  Specify environment (development, production, test)

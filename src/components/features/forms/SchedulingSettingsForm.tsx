@@ -35,15 +35,15 @@ import { toast } from 'sonner';
 
 // Define schema for scheduling settings form
 const formSchema = z.object({
-  beforeEventBuffer: z.coerce
+  beforeEventBuffer: z
     .number()
     .min(0, 'Buffer time cannot be negative')
     .max(120, 'Buffer time cannot exceed 2 hours'),
-  afterEventBuffer: z.coerce
+  afterEventBuffer: z
     .number()
     .min(0, 'Buffer time cannot be negative')
     .max(120, 'Buffer time cannot exceed 2 hours'),
-  minimumNotice: z.coerce
+  minimumNotice: z
     .number()
     .min(60, 'Minimum notice must be at least 1 hour')
     .max(20160, 'Minimum notice cannot exceed 2 weeks')
@@ -51,12 +51,12 @@ const formSchema = z.object({
       (val) => MINIMUM_NOTICE_OPTIONS.some((option) => option.value === val),
       'Please select a valid minimum notice period',
     ),
-  timeSlotInterval: z.coerce
+  timeSlotInterval: z
     .number()
     .refine((val) => val % 5 === 0, 'Time slot interval must be in 5-minute increments')
     .refine((val) => val >= 5, 'Time slot interval must be at least 5 minutes')
     .refine((val) => val <= 120, 'Time slot interval cannot exceed 2 hours'),
-  bookingWindowDays: z.coerce
+  bookingWindowDays: z
     .number()
     .min(7, 'Booking window must be at least 1 week')
     .max(365, 'Booking window cannot exceed 1 year'),

@@ -26,7 +26,7 @@ export default function FinalCTASection({
   return (
     <section className="container mx-auto px-4 py-16 md:py-24">
       <div className="mx-auto max-w-4xl">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-purple-600 p-12 text-center text-white shadow-2xl">
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-primary to-purple-600 p-12 text-center text-white shadow-2xl">
           {/* Background decoration */}
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />

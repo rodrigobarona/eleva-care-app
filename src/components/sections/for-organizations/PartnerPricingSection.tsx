@@ -64,7 +64,7 @@ export default function PartnerPricingSection({
 
                 <CardHeader className="pb-6">
                   <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                  <CardDescription className="min-h-[3rem]">{tier.description}</CardDescription>
+                  <CardDescription className="min-h-12">{tier.description}</CardDescription>
 
                   <div className="mt-6">
                     <div className="flex items-baseline gap-1">

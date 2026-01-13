@@ -61,7 +61,7 @@ export function HeroVideo() {
       nohotkeys
       // Tailwind: positioning, z-index, border-radius
       // CSS Module: Shadow DOM styles (aspect-ratio, ::part, internal video)
-      className={`${styles.heroMuxPlayer} lg:rounded-5xl z-[1] rounded-2xl object-cover`}
+      className={`${styles.heroMuxPlayer} lg:rounded-5xl z-1 rounded-2xl object-cover`}
       onError={handleVideoError}
     />
   );

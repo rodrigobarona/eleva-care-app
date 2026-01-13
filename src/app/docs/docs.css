@@ -1,0 +1,93 @@
+@import 'tailwindcss';
+
+@source '../../components/**/*.{ts,tsx}';
+@source '../../content/docs/**/*.{md,mdx}';
+@source '../../../node_modules/fumadocs-ui/dist/**/*.js';
+
+/**
+ * Eleva Care Documentation Styles
+ *
+ * Custom styling for documentation pages that aligns with the
+ * Eleva Care brand (legal/trust pages visual style).
+ * Uses brand colors, serif headings, and consistent spacing.
+ */
+
+/* Documentation sidebar styling */
+.docs-sidebar {
+  background-color: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
+}
+
+.docs-sidebar-title {
+  color: rgb(var(--eleva-primary));
+  font-family: var(--font-serif);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+}
+
+.docs-sidebar-link {
+  color: rgb(var(--eleva-neutral-900));
+  font-weight: 300;
+  transition: color 0.2s;
+}
+
+.docs-sidebar-link:hover {
+  color: rgb(var(--eleva-primary));
+}
+
+.docs-sidebar-link.active {
+  color: rgb(var(--eleva-primary));
+  font-weight: 500;
+}
+
+/* Documentation content card styling (matches legal/trust pages) */
+.docs-content-card {
+  background-color: hsl(var(--card));
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.1),
+    0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+/* Table of Contents styling */
+.docs-toc {
+  color: rgb(var(--eleva-neutral-900));
+}
+
+.docs-toc-title {
+  color: rgb(var(--eleva-primary));
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+
+.docs-toc-link {
+  color: rgb(var(--eleva-neutral-900) / 0.7);
+  font-weight: 300;
+  transition: color 0.2s;
+}
+
+.docs-toc-link:hover {
+  color: rgb(var(--eleva-primary));
+}
+
+/* Override prose defaults to use Eleva colors */
+.docs-prose {
+  --tw-prose-body: rgb(var(--eleva-neutral-900));
+  --tw-prose-headings: rgb(var(--eleva-primary));
+  --tw-prose-lead: rgb(var(--eleva-neutral-900) / 0.8);
+  --tw-prose-links: rgb(var(--eleva-primary));
+  --tw-prose-bold: rgb(var(--eleva-neutral-900));
+  --tw-prose-counters: rgb(var(--eleva-neutral-900) / 0.6);
+  --tw-prose-bullets: rgb(var(--eleva-primary) / 0.4);
+  --tw-prose-hr: rgb(var(--eleva-neutral-200));
+  --tw-prose-quotes: rgb(var(--eleva-neutral-900));
+  --tw-prose-quote-borders: rgb(var(--eleva-primary) / 0.3);
+  --tw-prose-captions: rgb(var(--eleva-neutral-900) / 0.6);
+  --tw-prose-code: rgb(var(--eleva-neutral-900));
+  --tw-prose-pre-code: rgb(var(--eleva-neutral-900));
+  --tw-prose-pre-bg: hsl(var(--muted));
+  --tw-prose-th-borders: rgb(var(--eleva-neutral-200));
+  --tw-prose-td-borders: rgb(var(--eleva-neutral-200));
+}
+

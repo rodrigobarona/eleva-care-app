@@ -7,7 +7,6 @@ import { afterAll, beforeAll, vi } from 'vitest';
 
 // Declare types for global mocks
 declare global {
-  // eslint-disable-next-line no-var
   var __mocks: {
     db: unknown;
     workosUser: unknown;
@@ -308,6 +307,27 @@ vi.mock('next/cache', () => ({
   updateTag: vi.fn(),
   cacheLife: vi.fn(),
   cacheTag: vi.fn(),
+}));
+
+// Mock Next.js navigation
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT:${url}`);
+  }),
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  })),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useParams: vi.fn(() => ({})),
+  notFound: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND');
+  }),
 }));
 
 // Make common mocks available to tests

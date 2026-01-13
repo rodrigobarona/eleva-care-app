@@ -32,7 +32,7 @@ export default function FAQSection({ title, subtitle, faqs }: FAQSectionProps) {
             <AccordionItem
               key={faq.id}
               value={faq.id}
-              className="rounded-xl border border-eleva-neutral-200 bg-white px-6 shadow-sm transition-all hover:border-eleva-primary/30 hover:shadow-md"
+              className="rounded-xl border border-eleva-neutral-200 bg-white px-6 shadow-xs transition-all hover:border-eleva-primary/30 hover:shadow-md"
             >
               <AccordionTrigger className="py-6 text-left text-lg font-semibold tracking-tight text-eleva-neutral-900 transition-colors hover:text-eleva-primary hover:no-underline">
                 {faq.question}

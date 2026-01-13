@@ -5,7 +5,7 @@
  * to the new WorkOS native RBAC system.
  *
  * Usage:
- *   pnpm tsx scripts/migrate-roles-to-workos.ts [--dry-run]
+ *   bun scripts/migrate-roles-to-workos.ts [--dry-run]
  *
  * Prerequisites:
  *   - WorkOS RBAC configured in Dashboard (permissions and roles created)

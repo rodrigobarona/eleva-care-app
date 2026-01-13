@@ -14,7 +14,7 @@ export default function Footer() {
 
   return (
     <footer className="w-full">
-      <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
+      <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-28% via-eleva-highlight-red via-70% to-eleva-highlight-purple">
         <div className="lg:rounded-5xl relative rounded-2xl">
           {/* Frosted glass effect overlay */}
           <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80" />
@@ -49,7 +49,7 @@ export default function Footer() {
 
                 {/* Navigation Links */}
                 <div className="pb-16">
-                  <div className="group/row relative isolate pt-[calc(theme(spacing.2)+1px)] last:pb-[calc(theme(spacing.2)+1px)]">
+                  <div className="group/row relative isolate pt-[calc(--spacing(2)+1px)] last:pb-[calc(--spacing(2)+1px)]">
                     <div className="grid grid-cols-2 gap-y-10 pb-6 lg:grid-cols-6 lg:gap-8">
                       {/* Logo Column */}
                       <div className="col-span-2 flex">
@@ -68,7 +68,7 @@ export default function Footer() {
                               <Link
                                 key={key}
                                 href="/trust/security"
-                                className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
+                                className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-xs"
                                 aria-label={
                                   key === 'gdpr'
                                     ? t('compliance.gdpr')
@@ -315,7 +315,7 @@ export default function Footer() {
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-blue-600"
+                          className="h-4 w-4 shrink-0 text-blue-600"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -330,7 +330,7 @@ export default function Footer() {
 
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-blue-600"
+                          className="h-4 w-4 shrink-0 text-blue-600"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -341,7 +341,7 @@ export default function Footer() {
 
                       <div className="flex items-center gap-2 text-xs text-gray-600">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-green-600"
+                          className="h-4 w-4 shrink-0 text-green-600"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >

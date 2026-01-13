@@ -241,7 +241,7 @@ function SortableEventCard({
           </Tooltip>
         </TooltipProvider>
 
-        <div className="min-w-0 flex-grow">
+        <div className="min-w-0 grow">
           <div className="mb-1 flex items-start justify-between gap-4">
             <div>
               <Link
@@ -283,7 +283,7 @@ function SortableEventCard({
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-2">
                   {!event.isActive && (
-                    <span className="flex-shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                    <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                       Inactive
                     </span>
                   )}

@@ -32,7 +32,7 @@ export default function HeroSection({
         <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
           {title}
           <br />
-          <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <span className="bg-linear-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             {subtitle}
           </span>
         </h1>

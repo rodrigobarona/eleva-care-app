@@ -174,7 +174,7 @@ export function BookingLayout({
       <div
         className={cn(
           'grid h-full grid-cols-1 gap-0 overflow-hidden rounded-lg border md:grid-flow-col md:border-none',
-          showCalendar ? 'md:grid-cols-[300px,1fr,300px]' : 'md:grid-cols-[300px,1fr]',
+          showCalendar ? 'md:grid-cols-[300px_1fr_300px]' : 'md:grid-cols-[300px_1fr]',
         )}
       >
         {/* Left column - Expert Profile */}
@@ -345,7 +345,7 @@ export function BookingLayout({
                       className={cn(
                         'rounded-full px-4 text-sm font-normal',
                         !use24Hour
-                          ? 'bg-background text-foreground shadow-sm'
+                          ? 'bg-background text-foreground shadow-xs'
                           : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                       )}
                       onClick={() => setUse24Hour(false)}
@@ -359,7 +359,7 @@ export function BookingLayout({
                       className={cn(
                         'rounded-full px-4 text-sm font-normal',
                         use24Hour
-                          ? 'bg-background text-foreground shadow-sm'
+                          ? 'bg-background text-foreground shadow-xs'
                           : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                       )}
                       onClick={() => setUse24Hour(true)}
@@ -462,7 +462,7 @@ export function BookingLayout({
                     className={cn(
                       'rounded-full px-4 text-sm font-normal',
                       !use24Hour
-                        ? 'bg-background text-foreground shadow-sm'
+                        ? 'bg-background text-foreground shadow-xs'
                         : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                     )}
                     onClick={() => setUse24Hour(false)}
@@ -476,7 +476,7 @@ export function BookingLayout({
                     className={cn(
                       'rounded-full px-4 text-sm font-normal',
                       use24Hour
-                        ? 'bg-background text-foreground shadow-sm'
+                        ? 'bg-background text-foreground shadow-xs'
                         : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                     )}
                     onClick={() => setUse24Hour(true)}

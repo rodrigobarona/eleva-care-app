@@ -23,7 +23,7 @@ interface LogoutFormProps {
    * Button variant
    * @default 'ghost'
    */
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  variant?: 'default' | 'destructive' | 'destructiveGhost' | 'outline' | 'secondary' | 'ghost' | 'link';
   /**
    * Button size
    * @default 'default'

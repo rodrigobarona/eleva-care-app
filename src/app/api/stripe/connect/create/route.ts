@@ -17,8 +17,7 @@ const emailSchema = z.string().email({
 const createConnectAccountSchema = z
   .object({
     country: z.enum(STRIPE_CONNECT_SUPPORTED_COUNTRIES, {
-      required_error: 'Country is required',
-      invalid_type_error: 'Country must be a valid ISO 3166-1 alpha-2 code',
+      error: 'Country must be a valid ISO 3166-1 alpha-2 code',
     }),
   })
   .strict();
@@ -77,7 +76,7 @@ export async function POST(request: Request) {
             return NextResponse.json(
               {
                 error: 'Invalid request body',
-                details: error.errors.map((e) => ({
+                details: error.issues.map((e) => ({
                   field: e.path.join('.'),
                   message: e.message,
                 })),
@@ -135,10 +134,13 @@ export async function POST(request: Request) {
         if (!result.success) {
           // Determine appropriate error status based on the error type
           if (result.error?.includes('identity verification')) {
-            Sentry.logger.warn('Connect account creation blocked - identity verification required', {
-              userId: user.id,
-              error: result.error,
-            });
+            Sentry.logger.warn(
+              'Connect account creation blocked - identity verification required',
+              {
+                userId: user.id,
+                error: result.error,
+              },
+            );
             return NextResponse.json(
               {
                 error: result.error,

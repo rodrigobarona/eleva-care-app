@@ -249,7 +249,7 @@ export function EnhancedNotificationBell({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SidebarMenuButton className={`focus:outline-none ${className}`}>
+        <SidebarMenuButton className={`focus:outline-hidden ${className}`}>
           <Inbox
             applicationIdentifier={applicationIdentifier}
             subscriberId={subscriberId}

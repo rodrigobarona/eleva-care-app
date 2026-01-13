@@ -5,7 +5,7 @@
  * to enable the new lookup-key based pricing system.
  *
  * Usage:
- *   pnpm tsx scripts/utilities/add-lookup-keys-to-prices.ts
+ *   bun scripts/utilities/add-lookup-keys-to-prices.ts
  */
 
 import Stripe from 'stripe';

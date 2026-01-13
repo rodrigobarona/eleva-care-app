@@ -1,5 +1,4 @@
-import { vi } from 'vitest';
-// @ts-nocheck
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 /**
  * Blocked Date Refund Logic Tests
  *
@@ -10,23 +9,21 @@ import { vi } from 'vitest';
  */
 import type Stripe from 'stripe';
 
-// Use vi.hoisted to define mocks that work with vi.mock hoisting
-const mocks = vi.hoisted(() => ({
-  dbQuery: {
-    EventTable: { findFirst: vi.fn() },
-    BlockedDatesTable: { findFirst: vi.fn() },
-    MeetingTable: { findMany: vi.fn() },
-    schedulingSettings: { findFirst: vi.fn() },
-    UserTable: { findFirst: vi.fn() },
-  },
-  dbUpdate: vi.fn(),
-  stripeRefundsCreate: vi.fn(),
-}));
+// Define mock functions at module level (before vi.mock calls)
+const mockDbQuery = {
+  EventTable: { findFirst: vi.fn() },
+  BlockedDatesTable: { findFirst: vi.fn() },
+  MeetingTable: { findMany: vi.fn() },
+  schedulingSettings: { findFirst: vi.fn() },
+  UserTable: { findFirst: vi.fn() },
+};
+const mockDbUpdate = vi.fn();
+const mockStripeRefundsCreate = vi.fn();
 
 // Mock dependencies (for use in tests)
 const mockDb = {
-  query: mocks.dbQuery,
-  update: mocks.dbUpdate.mockReturnValue({
+  query: mockDbQuery,
+  update: mockDbUpdate.mockReturnValue({
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue([{ id: 'meeting_123' }]),
     }),
@@ -35,15 +32,21 @@ const mockDb = {
 
 const mockStripe = {
   refunds: {
-    create: mocks.stripeRefundsCreate,
+    create: mockStripeRefundsCreate,
   },
 };
 
-// Mock modules
+// Mock modules using factory functions
 vi.mock('@/drizzle/db', () => ({
   db: {
-    query: mocks.dbQuery,
-    update: mocks.dbUpdate.mockReturnValue({
+    query: {
+      EventTable: { findFirst: vi.fn() },
+      BlockedDatesTable: { findFirst: vi.fn() },
+      MeetingTable: { findMany: vi.fn() },
+      schedulingSettings: { findFirst: vi.fn() },
+      UserTable: { findFirst: vi.fn() },
+    },
+    update: vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ id: 'meeting_123' }]),
       }),
@@ -53,19 +56,19 @@ vi.mock('@/drizzle/db', () => ({
 
 vi.mock('stripe', () => {
   const StripeMock = vi.fn().mockImplementation(() => ({
-    refunds: { create: mocks.stripeRefundsCreate },
+    refunds: { create: vi.fn() },
   }));
   return { default: StripeMock };
 });
 
 vi.mock('date-fns-tz', () => ({
-  format: vi.fn((date, formatStr) => {
+  format: vi.fn((date: Date, formatStr: string) => {
     if (formatStr === 'yyyy-MM-dd') {
       return '2025-02-15'; // Mock date string
     }
     return date.toISOString();
   }),
-  toZonedTime: vi.fn((date) => date),
+  toZonedTime: vi.fn((date: Date) => date),
 }));
 
 // Import after mocks

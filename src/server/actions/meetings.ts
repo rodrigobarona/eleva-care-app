@@ -97,10 +97,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
   try {
     // Step 1.5: Auto-create WorkOS user for guest (transparently during booking)
-    let guestWorkosUserId: string;
-    let guestOrgId: string;
-
-        const guestUserResult = await Sentry.startSpan(
+    const guestUserResult = await Sentry.startSpan(
           {
             name: 'meeting.create.guest_user',
             op: 'db.query',
@@ -161,8 +158,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       };
     }
 
-        guestWorkosUserId = guestUserResult.userId;
-        guestOrgId = guestUserResult.organizationId;
+    const guestWorkosUserId = guestUserResult.userId;
+    const guestOrgId = guestUserResult.organizationId;
 
     // Step 2: Check for duplicate booking from the same user first
         const existingUserMeeting = await Sentry.startSpan(

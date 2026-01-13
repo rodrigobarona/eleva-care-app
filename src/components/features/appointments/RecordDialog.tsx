@@ -140,7 +140,7 @@ export function RecordDialog({
         )}
       >
         {/* Compact Header */}
-        <DialogHeader className="flex-none border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <DialogHeader className="flex-none border-b bg-linear-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <div className="flex items-center justify-between px-4 py-3 pr-12">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
