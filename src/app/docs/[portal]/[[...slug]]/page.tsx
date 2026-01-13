@@ -45,8 +45,6 @@ export default async function PortalDocsPage({ params }: PageProps) {
 
   const source = getPortalSource(portal);
   const locale = await getLocale();
-
-  const fullSlug = slug ? [locale, ...slug] : [locale];
   const pagePath = slug ? `/docs/${portal}/${slug.join('/')}` : `/docs/${portal}`;
 
   // Sentry tracking
@@ -61,14 +59,15 @@ export default async function PortalDocsPage({ params }: PageProps) {
     data: { portal, slug: slug?.join('/') || 'index', locale },
   });
 
-  const page = source.getPage(fullSlug, locale);
+  // Pass slug and locale separately - Fumadocs handles locale internally
+  const page = source.getPage(slug, locale);
 
   if (!page) {
     Sentry.addBreadcrumb({
       category: 'docs.error',
       message: `Documentation page not found: ${pagePath}`,
       level: 'warning',
-      data: { fullSlug, locale },
+      data: { slug, locale },
     });
     notFound();
   }
@@ -121,8 +120,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const source = getPortalSource(portal);
   const locale = await getLocale();
 
-  const fullSlug = slug ? [locale, ...slug] : [locale];
-  const page = source.getPage(fullSlug, locale);
+  // Pass slug and locale separately - Fumadocs handles locale internally
+  const page = source.getPage(slug, locale);
 
   if (!page) {
     return {};

@@ -1,16 +1,11 @@
 @import 'tailwindcss';
-@import 'fumadocs-ui/css/shadcn.css';
+@import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
-@source '../../components/**/*.{ts,tsx}';
-@source '../../content/docs/**/*.{md,mdx}';
-@source '../../../node_modules/fumadocs-ui/dist/**/*.js';
-
 /**
- * Eleva Care Documentation Styles
- *
- * Using Fumadocs UI default neutral theme.
- * Fumadocs handles scroll positioning via its grid layout system.
+ * Only fumadocs-ui needs explicit @source since node_modules is gitignored.
+ * Tailwind CSS v4 auto-detects your project source files.
  *
  * @see https://fumadocs.vercel.app/docs/ui/theme
  */
+@source '../../../node_modules/fumadocs-ui/dist/**/*.js';

@@ -16,6 +16,7 @@ export const i18n = defineI18n({
   defaultLanguage: 'en',
   languages: ['en', 'es', 'pt', 'pt-BR'],
   hideLocale: 'default-locale',
+  parser: 'dir', // Content is organized in locale directories (en/, es/, etc.)
 });
 
 /**
