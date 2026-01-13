@@ -17,7 +17,7 @@ interface SearchResult {
   type: 'page' | 'heading';
   content: string;
   url: string;
-  source?: 'patient' | 'expert' | 'clinic' | 'developer';
+  source?: 'patient' | 'expert' | 'organization' | 'developer';
 }
 
 /**
@@ -72,7 +72,7 @@ export function SearchDialog() {
     const badges: Record<string, { label: string; className: string }> = {
       patient: { label: 'Patient', className: 'bg-blue-100 text-blue-800' },
       expert: { label: 'Expert', className: 'bg-green-100 text-green-800' },
-      clinic: { label: 'Clinic', className: 'bg-purple-100 text-purple-800' },
+      organization: { label: 'Organization', className: 'bg-purple-100 text-purple-800' },
       developer: { label: 'Developer', className: 'bg-orange-100 text-orange-800' },
     };
     return source ? badges[source] : null;
@@ -126,7 +126,7 @@ export function SearchDialog() {
               <div className="py-12 text-center text-sm text-muted-foreground">
                 <Search className="mx-auto mb-3 h-8 w-8 opacity-50" />
                 <p>Type to search across all documentation</p>
-                <p className="mt-1 text-xs">Patient • Expert • Clinic • Developer</p>
+                <p className="mt-1 text-xs">Patient • Expert • Organization • Developer</p>
               </div>
             ) : results.length === 0 && !isLoading ? (
               <div className="py-12 text-center text-sm text-muted-foreground">

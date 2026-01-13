@@ -23,11 +23,11 @@ const portals = [
     icon: '🩺',
   },
   {
-    id: 'clinic',
-    name: 'Clinic Portal',
+    id: 'organization',
+    name: 'Organization Portal',
     description: 'Team management and B2B features',
-    href: '/docs/clinic',
-    icon: '🏥',
+    href: '/docs/organization',
+    icon: '🏢',
     comingSoon: true,
   },
   {
@@ -44,7 +44,7 @@ const portals = [
  * PersonaSwitcher Component
  *
  * Allows users to switch between different documentation portals
- * (Patient, Expert, Clinic, Developer).
+ * (Patient, Expert, Organization, Developer).
  *
  * @example
  * ```tsx

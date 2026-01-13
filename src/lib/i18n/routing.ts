@@ -32,7 +32,7 @@ export const routing = {
     '/trust/dpa': '/trust/dpa',
     '/docs/patient': '/docs/patient',
     '/docs/expert': '/docs/expert',
-    '/docs/clinic': '/docs/clinic',
+    '/docs/organization': '/docs/organization',
     '/docs/developer': '/docs/developer',
     '/help': '/help',
     '/contact': '/contact',

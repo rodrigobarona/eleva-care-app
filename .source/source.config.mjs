@@ -18,8 +18,8 @@ var { docs: patientDocs, meta: patientMeta } = defineDocs({
 var { docs: expertDocs, meta: expertMeta } = defineDocs({
   dir: "src/content/docs/expert"
 });
-var { docs: clinicDocs, meta: clinicMeta } = defineDocs({
-  dir: "src/content/docs/clinic"
+var { docs: organizationDocs, meta: organizationMeta } = defineDocs({
+  dir: "src/content/docs/organization"
 });
 var { docs: developerDocs, meta: developerMeta } = defineDocs({
   dir: "src/content/docs/developer"
@@ -43,8 +43,6 @@ var trust = defineCollections({
   schema: frontmatterSchema
 });
 export {
-  clinicDocs,
-  clinicMeta,
   source_config_default as default,
   developerDocs,
   developerMeta,
@@ -52,6 +50,8 @@ export {
   expertMeta,
   legal,
   marketing,
+  organizationDocs,
+  organizationMeta,
   patientDocs,
   patientMeta,
   trust

@@ -1,6 +1,6 @@
 {
-  "title": "Clinic Portal",
-  "description": "Resources for clinics and healthcare organizations using Eleva Care platform.",
+  "title": "Organization Portal",
+  "description": "Resources for organizations using Eleva Care platform to deliver healthcare services.",
   "pages": [
     "index",
     "---Getting Started---",
@@ -16,5 +16,3 @@
     "analytics/dashboard"
   ]
 }
-
-
