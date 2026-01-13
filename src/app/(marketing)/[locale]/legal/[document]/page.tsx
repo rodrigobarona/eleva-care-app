@@ -1,6 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
 import { locales } from '@/lib/i18n/routing';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
+import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
@@ -92,7 +93,7 @@ export default async function LegalDocumentPage({ params }: PageProps) {
   }
 
   // Native Next.js 16 MDX import - Turbopack optimized
-  let LegalContent: React.ComponentType<any>;
+  let LegalContent: React.ComponentType<{ components?: typeof mdxComponents }>;
   try {
     const mdxModule = await import(`@/content/${document}/${locale}.mdx`);
     LegalContent = mdxModule.default;
@@ -101,11 +102,5 @@ export default async function LegalDocumentPage({ params }: PageProps) {
     return notFound();
   }
 
-  return (
-    <div className="card mx-auto max-w-4xl">
-      <div className="p-6 sm:p-10">
-        <LegalContent />
-      </div>
-    </div>
-  );
+  return <LegalContent components={mdxComponents} />;
 }

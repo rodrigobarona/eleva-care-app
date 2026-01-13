@@ -83,3 +83,4 @@ export function getTranslations(locale: string) {
   return translations[locale as FumadocsLocale] ?? translations.en;
 }
 
+
