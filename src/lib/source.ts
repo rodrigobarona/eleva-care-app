@@ -8,9 +8,6 @@ import {
   workspaceMeta,
   developerDocs,
   developerMeta,
-  marketing,
-  legal,
-  trust,
 } from 'fumadocs-mdx:collections/server';
 import { toFumadocsSource } from 'fumadocs-mdx/runtime/server';
 import { i18n } from './fumadocs-i18n';
@@ -82,40 +79,17 @@ export const developerSource = loader({
 });
 
 // =============================================================================
-// MARKETING, LEGAL & TRUST - USING NATIVE MDX IMPORTS
+// NOTE: MARKETING, LEGAL & TRUST USE NATIVE MDX IMPORTS
 // =============================================================================
 // These content types use native Next.js MDX imports instead of Fumadocs:
 // - Marketing: Heavy custom component usage (TeamSection, BeliefsSection, etc.)
 // - Legal: Simple MDX with standard prose styling
 // - Trust: Simple MDX with standard prose styling
 //
-// The native approach works well because:
-// 1. Turbopack-optimized dynamic imports
-// 2. Direct component injection via MDX
-// 3. No additional build step required
-//
 // See: src/app/(marketing)/[locale]/about/page.tsx for the pattern
 // See: src/app/(marketing)/[locale]/legal/[document]/page.tsx for legal
 // See: src/app/(marketing)/[locale]/trust/[document]/page.tsx for trust
-//
-// Placeholder loaders (return empty) - kept for future migration if needed
-export const marketingSource = loader({
-  baseUrl: '/',
-  source: toFumadocsSource(marketing, []),
-  i18n,
-});
-
-export const legalSource = loader({
-  baseUrl: '/legal',
-  source: toFumadocsSource(legal, []),
-  i18n,
-});
-
-export const trustSource = loader({
-  baseUrl: '/trust',
-  source: toFumadocsSource(trust, []),
-  i18n,
-});
+// =============================================================================
 
 // =============================================================================
 // PERSONA MAP (for dynamic routing)

@@ -79,9 +79,12 @@ export function SearchDialog() {
   };
 
   // Handle different return types from Fumadocs search
-  const results: SearchResult[] = query.data && query.data !== 'empty' 
-    ? (Array.isArray(query.data) ? query.data : []) as unknown as SearchResult[]
-    : [];
+  // Fumadocs returns 'empty' | SortedResult[] - we need to handle both
+  const results: SearchResult[] = (() => {
+    if (!query.data || query.data === 'empty') return [];
+    if (!Array.isArray(query.data)) return [];
+    return query.data as SearchResult[];
+  })();
   const isLoading = query.isLoading;
 
   return (

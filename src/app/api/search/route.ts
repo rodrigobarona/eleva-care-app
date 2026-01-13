@@ -1,10 +1,5 @@
-import { createSearchAPI, type AdvancedIndex } from 'fumadocs-core/search/server';
-import {
-  patientSource,
-  expertSource,
-  workspaceSource,
-  developerSource,
-} from '@/lib/source';
+import { developerSource, expertSource, patientSource, workspaceSource } from '@/lib/source';
+import { type AdvancedIndex, createSearchAPI } from 'fumadocs-core/search/server';
 
 /**
  * Unified Documentation Search API (Optimized)
