@@ -31,6 +31,10 @@ yarn-error.log*
 @.scratchpad*
 *.tsbuildinfo
 
+# backup files
+.backup/
+*.bak
+
 # local env files
 .env
 .env*.local
