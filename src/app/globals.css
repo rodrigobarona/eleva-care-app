@@ -38,6 +38,7 @@
 
   --color-eleva-accent: rgb(var(--eleva-accent));
 
+  --color-eleva-neutral-50: rgb(var(--eleva-neutral-50));
   --color-eleva-neutral-100: rgb(var(--eleva-neutral-100));
   --color-eleva-neutral-200: rgb(var(--eleva-neutral-200));
   --color-eleva-neutral-900: rgb(var(--eleva-neutral-900));
@@ -92,6 +93,8 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --radius-4xl: 2rem;
+  --radius-5xl: 2.5rem;
 
   @keyframes caret-blink {
     0%,
@@ -173,6 +176,7 @@
     --eleva-accent: 224 251 252; /* #E0FBFC - Pale Lavender */
 
     /* Neutral Colors */
+    --eleva-neutral-50: 252 253 253; /* #FCFDFD - Lightest White */
     --eleva-neutral-100: 247 249 249; /* #F7F9F9 - Soft White */
     --eleva-neutral-200: 209 209 209; /* #D1D1D1 - Light Grey */
     --eleva-neutral-900: 51 51 51; /* #333333 - Charcoal*/

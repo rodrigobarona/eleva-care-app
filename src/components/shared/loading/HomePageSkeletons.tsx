@@ -101,7 +101,7 @@ export function ServicesSkeleton() {
  */
 export function ApproachSkeleton() {
   return (
-    <section className="lg:rounded-5xl mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-28% via-eleva-highlight-red via-70% to-eleva-highlight-purple py-10 lg:mt-32 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pb-32 lg:pt-20">
+    <section className="lg:rounded-5xl mx-2 mt-24 rounded-2xl bg-linear-145 from-eleva-highlight-yellow from-28% via-eleva-highlight-red via-70% to-eleva-highlight-purple py-10 lg:mt-32 lg:bg-linear-115 lg:pb-32 lg:pt-20">
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="grid grid-flow-row-dense grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Image placeholder - matches the actual component's image container */}

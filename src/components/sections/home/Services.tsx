@@ -51,10 +51,10 @@ const ServiceSection: React.FC = () => {
     >
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="mb-12">
-          <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70 data-dark:text-eleva-neutral-900/60">
+          <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
             {t('title')}
           </h2>
-          <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-dark:text-eleva-neutral-100 sm:text-6xl">
+          <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary sm:text-6xl">
             {t('subtitle')}
           </h3>
         </div>

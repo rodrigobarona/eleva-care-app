@@ -1,6 +1,6 @@
 {
   "title": "Integrations",
+  "icon": "Plug",
+  "defaultOpen": true,
   "pages": ["stripe", "calendar"]
 }
-
-

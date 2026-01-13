@@ -30,9 +30,9 @@ export default function HeroSection({
       {/* Background gradient - Eleva brand colors */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]" />
-        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[rgb(var(--eleva-primary))] opacity-20 blur-[100px]" />
-        <div className="absolute bottom-0 right-0 -z-10 h-[400px] w-[400px] rounded-full bg-[rgb(var(--eleva-highlight-purple))] opacity-15 blur-[100px]" />
-        <div className="absolute left-20 top-1/2 -z-10 h-[300px] w-[300px] rounded-full bg-[rgb(var(--eleva-highlight-yellow))] opacity-10 blur-[120px]" />
+        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-eleva-primary/20 blur-[100px]" />
+        <div className="absolute bottom-0 right-0 -z-10 h-[400px] w-[400px] rounded-full bg-eleva-highlight-purple/15 blur-[100px]" />
+        <div className="absolute left-20 top-1/2 -z-10 h-[300px] w-[300px] rounded-full bg-eleva-highlight-yellow/10 blur-[120px]" />
       </div>
 
       <div className="container mx-auto px-4">
