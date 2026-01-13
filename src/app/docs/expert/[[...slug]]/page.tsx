@@ -1,11 +1,11 @@
+import * as Sentry from '@sentry/nextjs';
 import { expertSource } from '@/lib/source';
 import { mdxComponents } from '@/mdx-components';
 import type { TOCItemType } from 'fumadocs-core/toc';
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
-import * as Sentry from '@sentry/nextjs';
+import { notFound } from 'next/navigation';
 
 /**
  * Expert Resources Documentation Page
@@ -17,7 +17,7 @@ import * as Sentry from '@sentry/nextjs';
  * - Sets 'docs.persona' tag to 'expert' for filtering
  * - Adds breadcrumb for page navigation
  * - Creates span for MDX content rendering
- * 
+ *
  * Note: This page is outside the [locale] segment, so we get the locale
  * from next-intl's server context instead of URL params.
  */
@@ -39,17 +39,17 @@ interface PageData {
 export default async function ExpertDocsPage({ params }: PageProps) {
   const { slug } = await params;
   const locale = await getLocale();
-  
+
   // The Fumadocs source includes locale in the slug path due to content structure
   // Prepend locale to slug for correct page lookup
   const fullSlug = slug ? [locale, ...slug] : [locale];
   const pagePath = slug ? `/docs/expert/${slug.join('/')}` : '/docs/expert';
-  
+
   // Set Sentry context for this specific documentation page
   Sentry.setTag('docs.persona', 'expert');
   Sentry.setTag('docs.page', pagePath);
   Sentry.setTag('docs.locale', locale);
-  
+
   // Add breadcrumb for page navigation tracking
   Sentry.addBreadcrumb({
     category: 'docs.navigation',
@@ -61,7 +61,7 @@ export default async function ExpertDocsPage({ params }: PageProps) {
       locale,
     },
   });
-  
+
   const page = expertSource.getPage(fullSlug, locale);
 
   if (!page) {
@@ -78,7 +78,7 @@ export default async function ExpertDocsPage({ params }: PageProps) {
   // Cast to the correct type since fumadocs-mdx provides body and toc
   const data = page.data as unknown as PageData;
   const MDXContent = data.body;
-  
+
   // Set page title context for better error reports
   Sentry.setContext('documentation_page', {
     title: data.title,
@@ -108,10 +108,7 @@ export default async function ExpertDocsPage({ params }: PageProps) {
             <ul className="space-y-2 text-sm">
               {data.toc.map((item) => (
                 <li key={item.url}>
-                  <a
-                    href={item.url}
-                    className="docs-toc-link block py-1"
-                  >
+                  <a href={item.url} className="docs-toc-link block py-1">
                     {item.title}
                   </a>
                 </li>
@@ -137,12 +134,10 @@ export async function generateStaticParams() {
 /**
  * Generate metadata for each page
  */
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const locale = await getLocale();
-  
+
   // Prepend locale to slug for correct page lookup
   const fullSlug = slug ? [locale, ...slug] : [locale];
   const page = expertSource.getPage(fullSlug, locale);
