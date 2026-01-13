@@ -1,11 +1,10 @@
 # Bun configuration
 # https://bun.sh/docs/runtime/bunfig
 
-[test]
-# Exclude Playwright E2E tests (run via `playwright test` instead)
-# Exclude deprecated tests
-preload = ["./tests/setup.ts"]
+# Note: Tests are run via Vitest (`bun run test`), not Bun's native test runner
+# See vitest.config.mts for test configuration
 
-[test.coverage]
-enabled = false
+[install]
+# Use exact versions for reproducible builds
+exact = true
 
