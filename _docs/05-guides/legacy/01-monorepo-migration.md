@@ -180,7 +180,7 @@ Example component:
 import * as React from "react";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "primary" | "destructive" | "outline";
+  variant?: "default" | "primary" | "destructive" | "outline-solid";
   size?: "sm" | "md" | "lg";
 }
 

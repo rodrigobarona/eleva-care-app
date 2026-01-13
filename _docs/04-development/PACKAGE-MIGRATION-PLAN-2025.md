@@ -572,9 +572,9 @@ This affects **every component** in the application and requires:
    - JavaScript plugins → CSS `@plugin` directives
 
 3. **Class Renames:**
-   - `shadow-sm` behavior changed → use `shadow-xs`
-   - `ring` default width: `3px` → `1px` (use `ring-3`)
-   - `outline-none` → `outline-hidden`
+   - `shadow-xs` behavior changed → use `shadow-2xs`
+   - `ring-3` default width: `3px` → `1px` (use `ring-3`)
+   - `outline-hidden` → `outline-hidden`
 
 4. **Utility Changes:**
    - `space-x-*`/`space-y-*` selector changed
@@ -656,15 +656,15 @@ bun add -D tw-animate-css
 
 ```bash
 # Find patterns to update
-grep -r "shadow-sm" --include="*.tsx" src/
+grep -r "shadow-xs" --include="*.tsx" src/
 grep -r "ring[^-]" --include="*.tsx" src/
-grep -r "outline-none" --include="*.tsx" src/
+grep -r "outline-hidden" --include="*.tsx" src/
 grep -r "w-4 h-4" --include="*.tsx" src/  # Can use size-4
 
 # Common replacements:
 # w-4 h-4 → size-4
 # ring → ring-3 (if expecting 3px)
-# outline-none → outline-hidden
+# outline-hidden → outline-hidden
 ```
 
 ---

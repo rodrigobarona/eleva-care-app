@@ -21,7 +21,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/drizzle/*": ["./drizzle/*"],
-      "content-collections": ["./.content-collections/generated"]
+      "content-collections": ["./.content-collections/generated"],
+      "fumadocs-mdx:collections/*": ["./.source/*"]
     },
     "target": "ES2017",
     "strictNullChecks": true,

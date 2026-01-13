@@ -1,13 +1,18 @@
 import { loader } from 'fumadocs-core/source';
 import {
   patientDocs,
+  patientMeta,
   expertDocs,
+  expertMeta,
   clinicDocs,
+  clinicMeta,
   developerDocs,
+  developerMeta,
   marketing,
   legal,
   trust,
 } from 'fumadocs-mdx:collections/server';
+import { toFumadocsSource } from 'fumadocs-mdx/runtime/server';
 import { i18n } from './fumadocs-i18n';
 
 /**
@@ -35,7 +40,7 @@ import { i18n } from './fumadocs-i18n';
  */
 export const patientSource = loader({
   baseUrl: '/docs/patient',
-  source: patientDocs.toFumadocsSource(),
+  source: toFumadocsSource(patientDocs, patientMeta),
   i18n,
 });
 
@@ -47,7 +52,7 @@ export const patientSource = loader({
  */
 export const expertSource = loader({
   baseUrl: '/docs/expert',
-  source: expertDocs.toFumadocsSource(),
+  source: toFumadocsSource(expertDocs, expertMeta),
   i18n,
 });
 
@@ -59,7 +64,7 @@ export const expertSource = loader({
  */
 export const clinicSource = loader({
   baseUrl: '/docs/clinic',
-  source: clinicDocs.toFumadocsSource(),
+  source: toFumadocsSource(clinicDocs, clinicMeta),
   i18n,
 });
 
@@ -71,52 +76,43 @@ export const clinicSource = loader({
  */
 export const developerSource = loader({
   baseUrl: '/docs/developer',
-  source: developerDocs.toFumadocsSource(),
+  source: toFumadocsSource(developerDocs, developerMeta),
   i18n,
 });
 
 // =============================================================================
-// MARKETING PAGES (Fumadocs Core - Headless)
+// MARKETING, LEGAL & TRUST - USING NATIVE MDX IMPORTS
 // =============================================================================
-
-/**
- * Marketing Pages Source
- *
- * About, become-expert, for-organizations, etc.
- * Uses Eleva Care custom components via mdx-components.tsx
- * Routes: /about, /become-expert, etc.
- */
+// These content types use native Next.js MDX imports instead of Fumadocs:
+// - Marketing: Heavy custom component usage (TeamSection, BeliefsSection, etc.)
+// - Legal: Simple MDX with standard prose styling
+// - Trust: Simple MDX with standard prose styling
+//
+// The native approach works well because:
+// 1. Turbopack-optimized dynamic imports
+// 2. Direct component injection via MDX
+// 3. No additional build step required
+//
+// See: src/app/(marketing)/[locale]/about/page.tsx for the pattern
+// See: src/app/(marketing)/[locale]/legal/[document]/page.tsx for legal
+// See: src/app/(marketing)/[locale]/trust/[document]/page.tsx for trust
+//
+// Placeholder loaders (return empty) - kept for future migration if needed
 export const marketingSource = loader({
   baseUrl: '/',
-  source: marketing.toFumadocsSource(),
+  source: toFumadocsSource(marketing, []),
   i18n,
 });
 
-// =============================================================================
-// LEGAL & TRUST (Fumadocs Core - Headless)
-// =============================================================================
-
-/**
- * Legal Documents Source
- *
- * Privacy, terms, cookie policy, etc.
- * Routes: /legal/*
- */
 export const legalSource = loader({
   baseUrl: '/legal',
-  source: legal.toFumadocsSource(),
+  source: toFumadocsSource(legal, []),
   i18n,
 });
 
-/**
- * Trust Center Source
- *
- * DPA, security documentation
- * Routes: /trust/*
- */
 export const trustSource = loader({
   baseUrl: '/trust',
-  source: trust.toFumadocsSource(),
+  source: toFumadocsSource(trust, []),
   i18n,
 });
 

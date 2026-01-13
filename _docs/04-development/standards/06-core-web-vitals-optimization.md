@@ -169,7 +169,7 @@ import MuxVideo from '@mux/mux-player-react/lazy';
   // Note: @mux/mux-player-react/lazy handles lazy loading automatically
   disableTracking
   disableCookies
-  className="absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
+  className="absolute inset-0 z-1 h-full w-full rounded-2xl object-cover"
   style={{
     '--controls': 'none',
     '--media-object-fit': 'cover',
@@ -210,7 +210,7 @@ export function HeroSkeleton() {
  */
 export function ApproachSkeleton() {
   return (
-    <section className="relative -mt-20 w-full bg-gradient-to-b 
+    <section className="relative -mt-20 w-full bg-linear-to-b 
       from-eleva-neutral-900 to-eleva-neutral-800 px-6 py-12 md:py-24 
       lg:-mt-32 lg:px-8 lg:py-32">
       {/* Skeleton content */}
@@ -308,7 +308,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 ```typescript
 // 1. Add explicit dimensions to profile image container
-<div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
+<div className="relative aspect-18/21 w-full overflow-hidden rounded-lg">
   <Image
     src={profileImage}
     alt={displayName}
@@ -329,8 +329,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 export function ProfileColumnSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Match aspect-[18/21] from actual component */}
-      <Skeleton className="aspect-[18/21] w-full rounded-lg" />
+      {/* Match aspect-18/21 from actual component */}
+      <Skeleton className="aspect-18/21 w-full rounded-lg" />
       <div className="space-y-12 min-h-[200px]">
         <Skeleton className="h-8 w-3/4" />
         <Skeleton className="h-4 w-1/2" />

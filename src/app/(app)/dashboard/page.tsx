@@ -91,7 +91,7 @@ export default async function HomePage() {
       </div>
 
       {/* Hero Banner */}
-      <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-8 text-white">
+      <div className="relative mb-6 overflow-hidden rounded-xl bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 p-8 text-white">
         <div className="relative z-10 max-w-2xl">
           <h2 className="mb-4 text-3xl font-bold">Eleva - Elevate Your Healthcare Experience</h2>
           <p className="mb-6 text-lg opacity-90">
@@ -122,7 +122,7 @@ export default async function HomePage() {
       {isExpert && (
         <>
           {!isSetupCompleted && (
-            <div className="mb-6 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+            <div className="mb-6 rounded-xl border bg-card p-6 text-card-foreground shadow-xs">
               <h2 className="mb-4 text-2xl font-bold tracking-tight">Complete Your Expert Setup</h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
@@ -171,7 +171,7 @@ export default async function HomePage() {
           )}
 
           {isSetupCompleted && !isProfilePublished && (
-            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-6 shadow-sm">
+            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-6 shadow-xs">
               <div className="flex items-start gap-4">
                 <div className="rounded-full bg-blue-100 p-2 text-blue-700">
                   <CheckCircle2 className="h-6 w-6" />

@@ -18,7 +18,7 @@ export default function FinalCTASection({
   contact,
 }: FinalCTASectionProps) {
   return (
-    <section className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 py-20">
+    <section className="bg-linear-to-r from-primary/10 via-purple-500/10 to-primary/10 py-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl text-center">
           <Zap className="mx-auto mb-6 h-16 w-16 text-primary" />

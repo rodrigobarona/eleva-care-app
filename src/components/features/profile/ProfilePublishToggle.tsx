@@ -185,7 +185,7 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
                   {/* Legal Agreement Section */}
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
                     <div className="mb-3 flex items-start">
-                      <FileText className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                      <FileText className="mr-2 mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                       <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
                         {t('publishDialog.agreementRequired')}
                       </p>

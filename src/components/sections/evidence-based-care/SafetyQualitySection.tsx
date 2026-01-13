@@ -22,7 +22,7 @@ const iconMap = {
 
 export default function SafetyQualitySection({ title, subtitle, features }: SafetyQualitySectionProps) {
   return (
-    <section className="bg-gradient-to-b from-white to-eleva-neutral-50/50 py-16 md:py-24">
+    <section className="bg-linear-to-b from-white to-eleva-neutral-50/50 py-16 md:py-24">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-6xl">
           {/* Header - Radiant style */}
@@ -45,7 +45,7 @@ export default function SafetyQualitySection({ title, subtitle, features }: Safe
                   className="group border border-eleva-neutral-200 bg-white transition-all hover:border-eleva-secondary/30 hover:shadow-md"
                 >
                   <CardHeader className="pb-4">
-                    <div className="mb-4 inline-flex rounded-xl bg-gradient-to-br from-eleva-secondary/10 to-eleva-secondary-light/50 p-3 transition-transform group-hover:scale-110">
+                    <div className="mb-4 inline-flex rounded-xl bg-linear-to-br from-eleva-secondary/10 to-eleva-secondary-light/50 p-3 transition-transform group-hover:scale-110">
                       <Icon className="h-6 w-6 text-eleva-secondary" />
                     </div>
                     <CardTitle className="text-xl font-semibold tracking-tight text-eleva-neutral-900">

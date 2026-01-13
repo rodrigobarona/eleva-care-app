@@ -49,7 +49,7 @@ export function SetupCompletePublishCard({
   }, [isPublished, onPublishStatusChange]);
 
   return (
-    <div className="mb-10 rounded-xl border-2 border-green-100 bg-green-50 p-8 text-center shadow-sm">
+    <div className="mb-10 rounded-xl border-2 border-green-100 bg-green-50 p-8 text-center shadow-xs">
       <CheckCircle2 className="mx-auto mb-4 h-16 w-16 text-green-500" />
       <h2 className="mb-2 text-2xl font-bold text-green-800">Setup Complete!</h2>
       <p className="mb-6 text-green-700">

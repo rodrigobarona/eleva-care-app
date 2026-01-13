@@ -119,7 +119,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     autofocus: autoFocus ? 'end' : false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
+        class: 'prose prose-sm max-w-none focus:outline-hidden min-h-[200px] h-full px-3 py-2',
       },
     },
     immediatelyRender: false,

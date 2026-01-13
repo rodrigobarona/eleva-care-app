@@ -254,7 +254,7 @@ async function handler(req: NextRequest) {
                 error: 'Invalid parameters for profile image',
                 message:
                   'Required parameters: name, username. Optional: headline, image, specialties',
-                details: error.errors,
+                details: error.issues,
               }),
               {
                 status: 400,
@@ -364,7 +364,7 @@ async function handler(req: NextRequest) {
               JSON.stringify({
                 error: 'Invalid parameters for generic image',
                 message: 'Required parameters: title, description. Optional: variant',
-                details: error.errors,
+                details: error.issues,
               }),
               {
                 status: 400,
@@ -495,7 +495,7 @@ async function handler(req: NextRequest) {
                 error: 'Invalid parameters for event image',
                 message:
                   'Required parameters: title, expertName. Optional: expertImage, duration, price',
-                details: error.errors,
+                details: error.issues,
               }),
               {
                 status: 400,

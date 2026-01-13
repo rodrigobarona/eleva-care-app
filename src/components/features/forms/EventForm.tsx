@@ -377,7 +377,7 @@ export function EventForm({
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
-                    <FormLabel className="!mt-0">Active</FormLabel>
+                    <FormLabel className="mt-0!">Active</FormLabel>
                   </div>
                   <FormDescription>
                     Inactive events will not be visible for users to book

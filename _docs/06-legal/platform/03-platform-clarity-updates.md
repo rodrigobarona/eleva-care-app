@@ -354,7 +354,7 @@ For **Patients** sign-up:
 ```jsx
 <div className="mb-4 rounded-md bg-blue-50 p-4">
   <div className="flex">
-    <div className="flex-shrink-0">
+    <div className="shrink-0">
       <InformationCircleIcon className="h-5 w-5 text-blue-400" />
     </div>
     <div className="ml-3">
@@ -376,7 +376,7 @@ For **Practitioners** sign-up:
 ```jsx
 <div className="mb-4 rounded-md bg-yellow-50 p-4">
   <div className="flex">
-    <div className="flex-shrink-0">
+    <div className="shrink-0">
       <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
     </div>
     <div className="ml-3">

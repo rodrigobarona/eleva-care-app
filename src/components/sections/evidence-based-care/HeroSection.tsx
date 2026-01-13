@@ -29,7 +29,7 @@ export default function HeroSection({
     <section className="relative overflow-hidden py-24 md:py-32 lg:py-40">
       {/* Background gradient - Eleva brand colors */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]" />
         <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[500px] w-[500px] rounded-full bg-[rgb(var(--eleva-primary))] opacity-20 blur-[100px]" />
         <div className="absolute bottom-0 right-0 -z-10 h-[400px] w-[400px] rounded-full bg-[rgb(var(--eleva-highlight-purple))] opacity-15 blur-[100px]" />
         <div className="absolute left-20 top-1/2 -z-10 h-[300px] w-[300px] rounded-full bg-[rgb(var(--eleva-highlight-yellow))] opacity-10 blur-[120px]" />
@@ -38,7 +38,7 @@ export default function HeroSection({
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge - Eleva colors */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-eleva-primary/20 bg-gradient-to-r from-eleva-primary/5 to-eleva-accent/50 px-4 py-2 text-sm font-medium text-eleva-primary backdrop-blur-sm">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-eleva-primary/20 bg-linear-to-r from-eleva-primary/5 to-eleva-accent/50 px-4 py-2 text-sm font-medium text-eleva-primary backdrop-blur-xs">
             <Microscope className="h-4 w-4" />
             <span>{badge}</span>
           </div>
@@ -47,7 +47,7 @@ export default function HeroSection({
           <h1 className="mb-8 text-balance font-serif text-5xl font-light leading-tight tracking-tight text-eleva-neutral-900 md:text-6xl lg:text-7xl">
             {title}
             <br />
-            <span className="bg-gradient-to-r from-eleva-primary via-eleva-secondary to-eleva-primary-light bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-eleva-primary via-eleva-secondary to-eleva-primary-light bg-clip-text text-transparent">
               {subtitle}
             </span>
           </h1>

@@ -59,7 +59,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   // This return is never reached due to redirect, but required for TypeScript
   // It also serves as the UI shown briefly before redirect
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-background to-muted">
       <div className="w-full max-w-md space-y-8 text-center">
         {/* Logo/Brand */}
         <div className="flex justify-center">

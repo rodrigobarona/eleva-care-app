@@ -218,7 +218,7 @@ async function ProfileInfo({
 
     return (
       <div className="space-y-6">
-        <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
+        <div className="relative aspect-18/21 w-full overflow-hidden rounded-lg">
           <Image
             src={profileImage}
             alt={displayName}

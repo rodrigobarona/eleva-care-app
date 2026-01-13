@@ -8,7 +8,9 @@
  * Future implementation: Sanity/PayloadCMS adapters
  */
 
-import type { TableOfContents } from 'fumadocs-core/server';
+import type { TOCItemType } from 'fumadocs-core/toc';
+
+type TableOfContents = TOCItemType[];
 
 /**
  * Page metadata and content structure

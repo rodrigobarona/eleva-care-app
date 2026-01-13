@@ -52,7 +52,7 @@ export default function KeyNumbersSection({ title, subtitle, stats }: KeyNumbers
               >
                 <CardContent className="p-8">
                   {/* Icon - Eleva colors */}
-                  <div className="mb-6 inline-flex rounded-xl bg-gradient-to-br from-eleva-primary/10 to-eleva-accent/50 p-3 transition-transform group-hover:scale-110">
+                  <div className="mb-6 inline-flex rounded-xl bg-linear-to-br from-eleva-primary/10 to-eleva-accent/50 p-3 transition-transform group-hover:scale-110">
                     <Icon className="h-6 w-6 text-eleva-primary" />
                   </div>
 

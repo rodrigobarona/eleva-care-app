@@ -1,10 +1,17 @@
 // source.config.ts
 import {
-  defineDocs,
   defineCollections,
+  defineConfig,
+  defineDocs,
   frontmatterSchema
 } from "fumadocs-mdx/config";
-import { z } from "zod";
+var source_config_default = defineConfig({
+  mdxOptions: {
+    // Add remark-gfm for GitHub Flavored Markdown support
+    remarkPlugins: [],
+    rehypePlugins: []
+  }
+});
 var { docs: patientDocs, meta: patientMeta } = defineDocs({
   dir: "src/content/docs/patient"
 });
@@ -17,37 +24,28 @@ var { docs: clinicDocs, meta: clinicMeta } = defineDocs({
 var { docs: developerDocs, meta: developerMeta } = defineDocs({
   dir: "src/content/docs/developer"
 });
-var marketingSchema = frontmatterSchema.extend({
-  og: z.object({
-    title: z.string(),
-    description: z.string(),
-    siteName: z.string().optional()
-  }).optional()
-});
 var marketing = defineCollections({
   type: "doc",
-  dir: "src/content/marketing",
-  schema: marketingSchema
-});
-var legalSchema = frontmatterSchema.extend({
-  effectiveDate: z.string().optional()
+  dir: "src/content/_placeholder/marketing",
+  // Non-existent, returns empty
+  schema: frontmatterSchema
 });
 var legal = defineCollections({
   type: "doc",
-  dir: "src/content/legal",
-  schema: legalSchema
-});
-var trustSchema = frontmatterSchema.extend({
-  lastUpdated: z.string().optional()
+  dir: "src/content/_placeholder/legal",
+  // Non-existent, returns empty
+  schema: frontmatterSchema
 });
 var trust = defineCollections({
   type: "doc",
-  dir: "src/content/trust",
-  schema: trustSchema
+  dir: "src/content/_placeholder/trust",
+  // Non-existent, returns empty
+  schema: frontmatterSchema
 });
 export {
   clinicDocs,
   clinicMeta,
+  source_config_default as default,
   developerDocs,
   developerMeta,
   expertDocs,

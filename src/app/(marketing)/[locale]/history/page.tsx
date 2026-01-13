@@ -93,7 +93,7 @@ export default async function HistoryPage({ params }: PageProps) {
     <main className="overflow-hidden">
       {/* Background gradient inspiration from the provided HTML */}
       <div className="relative mx-auto max-w-7xl">
-        <div className="w-xl absolute -right-60 -top-44 h-60 rotate-[-10deg] transform-gpu rounded-full bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 opacity-60 blur-3xl md:right-0"></div>
+        <div className="w-xl absolute -right-60 -top-44 h-60 rotate-[-10deg] transform-gpu rounded-full bg-linear-to-br from-pink-100 via-purple-50 to-indigo-100 opacity-60 blur-3xl md:right-0"></div>
       </div>
 
       <div className="px-6 lg:px-8">

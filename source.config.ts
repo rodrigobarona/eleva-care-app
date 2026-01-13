@@ -1,5 +1,22 @@
-import { defineCollections, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
+import {
+  defineCollections,
+  defineConfig,
+  defineDocs,
+  frontmatterSchema,
+} from 'fumadocs-mdx/config';
 import { z } from 'zod';
+
+/**
+ * Global MDX Configuration
+ * Configure remark/rehype plugins and other MDX options
+ */
+export default defineConfig({
+  mdxOptions: {
+    // Add remark-gfm for GitHub Flavored Markdown support
+    remarkPlugins: [],
+    rehypePlugins: [],
+  },
+});
 
 /**
  * Fumadocs Content Collections Configuration
@@ -48,73 +65,34 @@ export const { docs: developerDocs, meta: developerMeta } = defineDocs({
 });
 
 // =============================================================================
-// MARKETING COLLECTIONS (Fumadocs Core - Headless)
+// MARKETING COLLECTIONS - DISABLED
 // =============================================================================
+// Marketing pages use native Next.js MDX imports with custom components
+// (About, become-expert, for-organizations, etc.)
+// This approach is preferred because:
+// 1. Heavy use of custom React components (TeamSection, BeliefsSection, etc.)
+// 2. Complex layouts that don't fit the documentation pattern
+// 3. Native MDX imports work well with Turbopack
+//
+// To enable Fumadocs for marketing in the future, create src/content/marketing/
+// with proper frontmatter and update the pages to use marketingSource.
 
-/**
- * Marketing Pages Schema
- * Extended frontmatter for SEO and OG metadata
- */
-const marketingSchema = frontmatterSchema.extend({
-  og: z
-    .object({
-      title: z.string(),
-      description: z.string(),
-      siteName: z.string().optional(),
-    })
-    .optional(),
-});
-
-/**
- * Marketing Pages Collection
- * About, become-expert, for-organizations, evidence-based-care, history
- */
+// Placeholder exports to satisfy source.ts imports
+// These will return empty arrays since the directories don't exist
 export const marketing = defineCollections({
   type: 'doc',
-  dir: 'src/content/marketing',
-  schema: marketingSchema,
+  dir: 'src/content/_placeholder/marketing', // Non-existent, returns empty
+  schema: frontmatterSchema,
 });
 
-// =============================================================================
-// LEGAL COLLECTIONS (Fumadocs Core - Headless)
-// =============================================================================
-
-/**
- * Legal Documents Schema
- * Extended frontmatter with effective date
- */
-const legalSchema = frontmatterSchema.extend({
-  effectiveDate: z.string().optional(),
-});
-
-/**
- * Legal Documents Collection
- * Privacy, terms, cookie, payment-policies, expert-agreement
- */
 export const legal = defineCollections({
   type: 'doc',
-  dir: 'src/content/legal',
-  schema: legalSchema,
+  dir: 'src/content/_placeholder/legal', // Non-existent, returns empty
+  schema: frontmatterSchema,
 });
 
-// =============================================================================
-// TRUST CENTER COLLECTIONS (Fumadocs Core - Headless)
-// =============================================================================
-
-/**
- * Trust Documents Schema
- * Extended frontmatter with last updated date
- */
-const trustSchema = frontmatterSchema.extend({
-  lastUpdated: z.string().optional(),
-});
-
-/**
- * Trust Center Collection
- * DPA, security documentation
- */
 export const trust = defineCollections({
   type: 'doc',
-  dir: 'src/content/trust',
-  schema: trustSchema,
+  dir: 'src/content/_placeholder/trust', // Non-existent, returns empty
+  schema: frontmatterSchema,
 });

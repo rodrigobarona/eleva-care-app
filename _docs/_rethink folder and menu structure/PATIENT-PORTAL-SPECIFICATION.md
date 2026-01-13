@@ -773,7 +773,7 @@ export function ReviewForm({
           {HIGHLIGHTS.map((highlight) => (
             <Badge
               key={highlight}
-              variant={highlights.includes(highlight) ? 'default' : 'outline'}
+              variant={highlights.includes(highlight) ? 'default' : 'outline-solid'}
               className="cursor-pointer"
               onClick={() => toggleHighlight(highlight)}
             >

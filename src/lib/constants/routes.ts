@@ -74,6 +74,7 @@ export const PUBLIC_CONTENT_ROUTES = [
   'community',
   'become-expert',
   'for-organizations',
+  'docs', // Documentation routes (Fumadocs)
 ] as const;
 
 /**

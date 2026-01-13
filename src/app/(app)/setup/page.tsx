@@ -214,7 +214,7 @@ export default function ExpertSetupPage() {
         <div className="space-y-6">
           {steps.map((step) => (
             <div key={step.id} className="flex items-start gap-6">
-              <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xl">
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xl">
                 {step.position}
                 {step.completed && (
                   <div className="absolute -right-1 -top-1 rounded-full bg-white p-0.5">

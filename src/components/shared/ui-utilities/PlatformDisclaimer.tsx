@@ -45,7 +45,7 @@ export function PlatformDisclaimer({ children }: { children: React.ReactNode }) 
 
         <div className="space-y-5">
           {/* Platform Nature - Primary Card */}
-          <div className="rounded-xl border border-eleva-primary/20 bg-gradient-to-br from-eleva-primary/5 to-eleva-primary/10 p-5 shadow-sm">
+          <div className="rounded-xl border border-eleva-primary/20 bg-linear-to-br from-eleva-primary/5 to-eleva-primary/10 p-5 shadow-xs">
             <h3 className="mb-3 font-serif text-lg font-medium text-eleva-primary">
               {t('platform.title')}
             </h3>
@@ -55,7 +55,7 @@ export function PlatformDisclaimer({ children }: { children: React.ReactNode }) 
 
             <div className="grid gap-5 md:grid-cols-2">
               {/* What We Provide */}
-              <div className="rounded-lg bg-white/60 p-4 shadow-sm">
+              <div className="rounded-lg bg-white/60 p-4 shadow-xs">
                 <h4 className="mb-3 font-sans text-sm font-semibold text-eleva-primary">
                   {t('platform.weAre')}
                 </h4>
@@ -91,7 +91,7 @@ export function PlatformDisclaimer({ children }: { children: React.ReactNode }) 
               </div>
 
               {/* What We Don't Provide */}
-              <div className="rounded-lg bg-white/60 p-4 shadow-sm">
+              <div className="rounded-lg bg-white/60 p-4 shadow-xs">
                 <h4 className="text-eleva-neutral-700 mb-3 font-sans text-sm font-semibold">
                   {t('platform.weAreNot')}
                 </h4>
@@ -142,11 +142,11 @@ export function PlatformDisclaimer({ children }: { children: React.ReactNode }) 
                   {t('emergency.description')}
                 </p>
                 <div className="flex flex-wrap gap-3 font-mono text-sm font-medium text-eleva-primary">
-                  <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-xs">
                     <Phone className="h-4 w-4" aria-hidden="true" />
                     <span>{t('emergency.eu')}: 112</span>
                   </div>
-                  <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-xs">
                     <Phone className="h-4 w-4" aria-hidden="true" />
                     <span>{t('emergency.usa')}: 911</span>
                   </div>
@@ -160,7 +160,7 @@ export function PlatformDisclaimer({ children }: { children: React.ReactNode }) 
             {t('platform.footer')}{' '}
             <Link
               href="/legal/terms"
-              className="font-medium text-eleva-primary underline decoration-eleva-primary/30 underline-offset-2 transition-colors hover:text-eleva-primary/80 hover:decoration-eleva-primary focus:outline-none focus:ring-2 focus:ring-eleva-primary focus:ring-offset-2"
+              className="font-medium text-eleva-primary underline decoration-eleva-primary/30 underline-offset-2 transition-colors hover:text-eleva-primary/80 hover:decoration-eleva-primary focus:outline-hidden focus:ring-2 focus:ring-eleva-primary focus:ring-offset-2"
               onClick={() => setOpen(false)}
             >
               {t('platform.termsLink')}

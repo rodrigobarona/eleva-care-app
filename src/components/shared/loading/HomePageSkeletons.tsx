@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function HeroSkeleton() {
   return (
     <section className="lg:rounded-5xl relative m-2 min-h-[600px] overflow-hidden rounded-2xl bg-eleva-neutral-200 lg:min-h-[720px]">
-      <div className="absolute inset-0 bg-gradient-to-t from-eleva-neutral-900/60 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-t from-eleva-neutral-900/60 to-transparent" />
       <div className="relative px-4 lg:px-6">
         <div className="mx-auto flex max-w-2xl flex-col justify-end pt-44 lg:max-w-7xl lg:justify-between lg:pt-72">
           {/* Title skeleton */}
@@ -66,8 +66,8 @@ export function ServicesSkeleton() {
               key={`service-${i}`}
               className="overflow-hidden rounded-xl border border-eleva-neutral-200 bg-white"
             >
-              {/* Image skeleton - matches aspect-[2/3] max-h-72 from Services.tsx */}
-              <Skeleton className="aspect-[2/3] max-h-72 w-full rounded-none" />
+              {/* Image skeleton - matches aspect-2/3 max-h-72 from Services.tsx */}
+              <Skeleton className="aspect-2/3 max-h-72 w-full rounded-none" />
 
               {/* Content skeleton */}
               <div className="p-6">
@@ -101,14 +101,14 @@ export function ServicesSkeleton() {
  */
 export function ApproachSkeleton() {
   return (
-    <section className="lg:rounded-5xl mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple py-10 lg:mt-32 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pb-32 lg:pt-20">
+    <section className="lg:rounded-5xl mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-28% via-eleva-highlight-red via-70% to-eleva-highlight-purple py-10 lg:mt-32 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pb-32 lg:pt-20">
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="grid grid-flow-row-dense grid-cols-1 gap-8 lg:grid-cols-12">
           {/* Image placeholder - matches the actual component's image container */}
           <div className="col-span-12 -mt-24 lg:col-span-5 lg:-mt-52">
-            <div className="lg:rounded-4xl -m-4 aspect-[3/4] rounded-xl bg-eleva-neutral-100/15 shadow-[inset_0_0_2px_1px_#ffffff4d] ring-1 ring-eleva-neutral-900/5 max-lg:mx-auto max-lg:max-w-xs lg:-m-10">
+            <div className="lg:rounded-4xl -m-4 aspect-3/4 rounded-xl bg-eleva-neutral-100/15 shadow-[inset_0_0_2px_1px_#ffffff4d] ring-1 ring-eleva-neutral-900/5 max-lg:mx-auto max-lg:max-w-xs lg:-m-10">
               <div className="lg:rounded-4xl rounded-xl p-2 shadow-md shadow-eleva-neutral-900/5">
-                <Skeleton className="aspect-[3/4] w-full rounded-xl bg-eleva-neutral-100/30 lg:rounded-3xl" />
+                <Skeleton className="aspect-3/4 w-full rounded-xl bg-eleva-neutral-100/30 lg:rounded-3xl" />
               </div>
             </div>
           </div>
@@ -142,7 +142,7 @@ function ExpertCardSkeleton() {
     <div className="min-w-[85%] pl-6 sm:min-w-[45%] md:min-w-[50%] lg:min-w-[22%]">
       <div className="overflow-visible">
         {/* Image skeleton */}
-        <Skeleton className="aspect-[28/38] w-full rounded-xl" />
+        <Skeleton className="aspect-28/38 w-full rounded-xl" />
 
         {/* Content skeleton */}
         <div className="space-y-2 pt-4">

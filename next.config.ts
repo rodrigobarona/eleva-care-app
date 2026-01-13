@@ -1,6 +1,6 @@
-import { createMDX } from 'fumadocs-mdx/next';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withBotId } from 'botid/next/config';
+import { createMDX } from 'fumadocs-mdx/next';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 import { withNextVideo } from 'next-video/process';
@@ -25,12 +25,8 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
  * @see https://fumadocs.vercel.app/docs/mdx
  */
 const withMDX = createMDX({
-  // Configure MDX options
-  mdxOptions: {
-    // Plugins for Turbopack compatibility (specified as strings)
-    remarkPlugins: ['remark-gfm'],
-    rehypePlugins: [],
-  },
+  // MDX options are now configured in source.config.ts
+  // configPath: 'source.config.ts' // default path
 });
 
 /**

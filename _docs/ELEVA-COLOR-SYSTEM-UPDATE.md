@@ -56,7 +56,7 @@ All sections now use the **official Eleva Care brand colors** from `globals.css`
 border-primary/20 bg-primary/5
 
 // After: Eleva brand
-border-eleva-primary/20 bg-gradient-to-r from-eleva-primary/5 to-eleva-accent/50
+border-eleva-primary/20 bg-linear-to-r from-eleva-primary/5 to-eleva-accent/50
 ```
 
 #### Title Gradient:
@@ -110,7 +110,7 @@ hover:text-eleva-primary
 #### Key Finding Cards:
 ```tsx
 // Background gradient
-bg-gradient-to-br from-eleva-accent/40 via-eleva-primary-light/10 to-eleva-accent/40
+bg-linear-to-br from-eleva-accent/40 via-eleva-primary-light/10 to-eleva-accent/40
 
 // Border
 border-eleva-primary/20
@@ -139,7 +139,7 @@ bg-eleva-neutral-900 border-eleva-primary/20
 #### Accordion Container:
 ```tsx
 // Gradient background
-bg-gradient-to-br from-eleva-accent/30 via-white to-eleva-primary-light/10
+bg-linear-to-br from-eleva-accent/30 via-white to-eleva-primary-light/10
 
 // Border
 border-eleva-neutral-200
@@ -157,7 +157,7 @@ text-eleva-primary
 #### Reference Cards:
 ```tsx
 // Number badge gradient
-bg-gradient-to-br from-eleva-primary to-eleva-primary-light
+bg-linear-to-br from-eleva-primary to-eleva-primary-light
 
 // Hover border
 hover:border-eleva-primary/30

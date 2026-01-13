@@ -226,7 +226,7 @@ interface RoleBasedActionButtonProps {
   role: UserRole | UserRole[];
   onClick: () => void;
   children: React.ReactNode;
-  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  variant?: 'default' | 'destructive' | 'outline-solid' | 'secondary' | 'ghost' | 'link';
 }
 
 export function RoleBasedActionButton({

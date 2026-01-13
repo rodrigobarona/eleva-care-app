@@ -40,7 +40,7 @@ export default function ReferencesSection({ references }: ReferencesSectionProps
                     id={`ref-${idx + 1}`}
                     className="scroll-mt-24 flex gap-3 text-eleva-neutral-900/70"
                   >
-                    <span className="flex-shrink-0 font-medium text-eleva-neutral-900/50">
+                    <span className="shrink-0 font-medium text-eleva-neutral-900/50">
                       [{idx + 1}]
                     </span>
                     <div className="flex-1">

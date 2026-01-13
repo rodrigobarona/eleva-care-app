@@ -61,7 +61,7 @@ Complete redesign of the `/evidence-based-care` page inspired by the **Radiant t
 
 **After:**
 ```tsx
-<AccordionItem className="rounded-xl border border-eleva-neutral-200 bg-white px-6 shadow-sm hover:shadow-md">
+<AccordionItem className="rounded-xl border border-eleva-neutral-200 bg-white px-6 shadow-xs hover:shadow-md">
   <AccordionTrigger className="py-6 text-xl font-semibold tracking-tight hover:text-eleva-primary">
   <AccordionContent className="pb-6 pt-2 text-base leading-relaxed text-eleva-neutral-900/80">
 ```
@@ -105,7 +105,7 @@ Complete redesign of the `/evidence-based-care` page inspired by the **Radiant t
 ### 6. **Safety & Quality Cards**
 
 #### Changes:
-- Added **subtle gradient background** (`bg-gradient-to-b from-white to-eleva-neutral-50/50`)
+- Added **subtle gradient background** (`bg-linear-to-b from-white to-eleva-neutral-50/50`)
 - **Icon animations** on hover (scale-110)
 - **Better card spacing** and padding
 - Consistent with other sections

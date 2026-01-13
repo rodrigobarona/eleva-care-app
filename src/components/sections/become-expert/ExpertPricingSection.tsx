@@ -193,7 +193,7 @@ function PlanCard({
 
       <CardHeader className="pb-6">
         <CardTitle className="text-xl">{plan.name}</CardTitle>
-        <CardDescription className="min-h-[2.5rem] text-sm">{plan.description}</CardDescription>
+        <CardDescription className="min-h-10 text-sm">{plan.description}</CardDescription>
 
         {/* Pricing */}
         <div className="mt-4 space-y-3">
