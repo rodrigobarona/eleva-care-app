@@ -1,0 +1,11 @@
+# Bun configuration
+# https://bun.sh/docs/runtime/bunfig
+
+[test]
+# Exclude Playwright E2E tests (run via `playwright test` instead)
+# Exclude deprecated tests
+preload = ["./tests/setup.ts"]
+
+[test.coverage]
+enabled = false
+
