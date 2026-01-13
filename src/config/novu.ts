@@ -1,6 +1,8 @@
 // @ts-nocheck
 // TODO: Fix Zod v4 compatibility with @novu/framework
 // The Novu framework's type inference is incompatible with Zod v4's schema types
+// Tested with @novu/framework@2.9.0 - still uses Zod v3 internally
+// Track issue: https://github.com/novuhq/novu/issues (create if needed)
 // This file needs to be updated when @novu/framework adds Zod v4 support
 import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import { elevaEmailService } from '@/lib/integrations/novu/email-service';
