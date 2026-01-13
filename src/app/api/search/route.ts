@@ -39,8 +39,6 @@ const searchHandlers = allSources.map((source) =>
       pt: { language: 'portuguese' },
       'pt-BR': { language: 'portuguese' },
     },
-    // Enable tag-based filtering
-    tag: true,
   })
 );
 
