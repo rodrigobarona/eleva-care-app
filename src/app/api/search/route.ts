@@ -76,7 +76,7 @@ export async function GET(request: Request) {
           const data = await response.json();
           // Add source tag to each result
           const sourceTag = ['patient', 'expert', 'clinic', 'developer'][index];
-          return (data.results || []).map((result: unknown) => ({
+          return (data.results || []).map((result: Record<string, unknown>) => ({
             ...result,
             source: sourceTag,
           }));
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
     // Flatten and sort results by relevance (assuming score is provided)
     const flatResults = results
       .flat()
-      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .sort((a, b) => ((b.score as number) || 0) - ((a.score as number) || 0))
       .slice(0, 20); // Limit to 20 results
 
     return Response.json({
