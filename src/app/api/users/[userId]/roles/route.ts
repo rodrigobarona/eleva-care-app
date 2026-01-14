@@ -1,5 +1,5 @@
-import type { UserRoles } from '@/lib/auth/roles';
 import { getUserRole, hasRole, updateUserRole } from '@/lib/auth/roles.server';
+import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -16,10 +16,9 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    const isAdmin = await hasRole('admin');
-    const isSuperAdmin = await hasRole('superadmin');
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
 
-    if (!isAdmin && !isSuperAdmin && user.id !== params.userId) {
+    if (!isSuperAdmin && user.id !== params.userId) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'Insufficient permissions' },
         { status: 403 },
@@ -41,16 +40,13 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
   try {
     const params = await props.params;
     const body = await request.json();
-    const { roles } = body as { roles: UserRoles };
+    const { role } = body as { role: WorkOSRole };
 
-    await updateUserRole(params.userId, roles);
-
-    // Format roles as readable string for success message
-    const rolesStr = Array.isArray(roles) ? roles.join(', ') : roles;
+    await updateUserRole(params.userId, role);
 
     return NextResponse.json({
       success: true,
-      message: `Role(s) updated successfully to: ${rolesStr}`,
+      message: `Role updated successfully to: ${role}`,
     });
   } catch (error) {
     console.error('Error updating user role:', error);

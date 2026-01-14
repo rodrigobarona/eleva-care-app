@@ -1,4 +1,5 @@
 import type { ApiResponse } from '@/types/api';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
@@ -13,7 +14,7 @@ export async function adminAuthMiddleware(): Promise<NextResponse | null> {
   try {
     // Check if user is authenticated
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
     if (!user) {
       return NextResponse.json(
         {
@@ -24,11 +25,10 @@ export async function adminAuthMiddleware(): Promise<NextResponse | null> {
       );
     }
 
-    // Check if user has admin role
-    const isAdmin = await hasRole('admin');
-    const isSuperAdmin = await hasRole('superadmin');
+    // Check if user has admin role (only superadmin is admin in WorkOS RBAC)
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
 
-    if (!isAdmin && !isSuperAdmin) {
+    if (!isSuperAdmin) {
       console.warn(`Non-admin user ${userId} attempted to access admin route`);
       return NextResponse.json(
         {

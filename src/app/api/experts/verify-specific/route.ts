@@ -1,5 +1,6 @@
 import { hasRole } from '@/lib/auth/roles.server';
 import { verifyAndUpdateSpecificExpert } from '@/server/actions/experts';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -15,8 +16,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify if the user is an admin
-    const isAdmin = (await hasRole('admin')) || (await hasRole('superadmin'));
+    // Verify if the user is an admin (superadmin in WorkOS RBAC)
+    const isAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Only admins can verify other experts' }, { status: 403 });

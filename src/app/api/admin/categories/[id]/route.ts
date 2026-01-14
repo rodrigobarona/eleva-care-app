@@ -1,14 +1,15 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Helper function to check if user is admin
+// Helper function to check if user is admin (superadmin in WorkOS RBAC)
 async function isAdmin(_userId: string) {
-  return (await hasRole('admin')) || (await hasRole('superadmin'));
+  return await hasRole(WORKOS_ROLES.SUPERADMIN);
 }
 
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {

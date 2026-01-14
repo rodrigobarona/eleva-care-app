@@ -2,14 +2,17 @@
 
 import { DataTable } from '@/components/shared/data-table/DataTable';
 import { useAuthorization } from '@/components/shared/providers/AuthorizationProvider';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ROLES, updateUserRole, type UserRole, type UserRoles } from '@/lib/auth/roles';
-import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ROLES, updateUserRole } from '@/lib/auth/roles';
+import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ChevronsUpDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -17,17 +20,17 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: UserRoles;
+  role: WorkOSRole;
 }
 
 export function UserRoleManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { roles: currentUserRole } = useAuthorization();
-  const isSuperAdmin = currentUserRole.includes('superadmin');
+  const { roles: currentUserRoles } = useAuthorization();
+  const isSuperAdmin = currentUserRoles.includes(WORKOS_ROLES.SUPERADMIN);
 
-  const handleRoleUpdate = async (userId: string, newRoles: UserRoles) => {
-    const promise = updateUserRole(userId, newRoles).then(async () => {
+  const handleRoleUpdate = async (userId: string, newRole: WorkOSRole) => {
+    const promise = updateUserRole(userId, newRole).then(async () => {
       // Refresh the users list after successful update
       const response = await fetch('/api/admin/users');
       const data = await response.json();
@@ -35,116 +38,57 @@ export function UserRoleManager() {
         throw new Error(data.error || 'Failed to fetch updated user list');
       }
       setUsers(data.data.users);
-      return newRoles;
+      return newRole;
     });
 
-    const rolesDisplay = Array.isArray(newRoles) ? newRoles.join(', ') : newRoles;
-
     toast.promise(promise, {
-      loading: 'Updating roles...',
-      success: () => `Roles successfully updated to ${rolesDisplay}`,
-      error: (err: unknown) => (err instanceof Error ? err.message : 'Failed to update roles'),
+      loading: 'Updating role...',
+      success: () => `Role successfully updated to ${newRole}`,
+      error: (err: unknown) => (err instanceof Error ? err.message : 'Failed to update role'),
     });
 
     return promise;
   };
 
-  const MultiRoleSelector = ({ user }: { user: User }) => {
-    const [open, setOpen] = useState(false);
-    const [selectedRoles, setSelectedRoles] = useState<UserRole[]>(
-      Array.isArray(user.role) ? user.role : [user.role],
-    );
+  const RoleSelector = ({ user }: { user: User }) => {
+    const [selectedRole, setSelectedRole] = useState<WorkOSRole>(user.role);
+    const [isPending, setIsPending] = useState(false);
 
-    const handleSelectRole = (role: UserRole) => {
-      setSelectedRoles((current) => {
-        const isSelected = current.includes(role);
-
-        // If deselecting the last role, force "user" as a minimum
-        if (isSelected && current.length === 1) {
-          return ['user'];
-        }
-
-        // Toggle the role selection
-        return isSelected ? current.filter((r) => r !== role) : [...current, role];
-      });
-    };
-
-    const handleApplyChanges = () => {
-      setIsLoading(true);
-      handleRoleUpdate(user.id, selectedRoles)
-        .catch((error) => {
-          console.error('Failed to update roles:', error);
-          // Reset to original values if the update fails
-          setSelectedRoles(Array.isArray(user.role) ? user.role : [user.role]);
-        })
-        .finally(() => {
-          setIsLoading(false);
-          setOpen(false);
-        });
+    const handleRoleChange = async (newRole: WorkOSRole) => {
+      setSelectedRole(newRole);
+      setIsPending(true);
+      try {
+        await handleRoleUpdate(user.id, newRole);
+      } catch {
+        // Reset to original value on error
+        setSelectedRole(user.role);
+      } finally {
+        setIsPending(false);
+      }
     };
 
     return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            aria-expanded={open}
-            className="w-[200px] justify-between"
-            disabled={isLoading}
-          >
-            <div className="flex max-w-[160px] flex-wrap gap-1 overflow-hidden">
-              {selectedRoles.length > 0 ? (
-                selectedRoles.map((role) => (
-                  <Badge key={String(role)} className="mb-1 mr-1">
-                    {role}
-                  </Badge>
-                ))
-              ) : (
-                <span>Select roles...</span>
-              )}
-            </div>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
-          <div className="border-b px-3 py-2">
-            <h4 className="font-medium">Select Roles</h4>
-          </div>
-          <div className="max-h-[300px] overflow-auto">
-            {ROLES.map((role) => (
-              <label
-                key={role}
-                className={cn(
-                  'flex cursor-pointer items-center px-3 py-2 hover:bg-muted',
-                  role === 'superadmin' && !isSuperAdmin && 'cursor-not-allowed opacity-50',
-                )}
-                htmlFor={`role-${role}`}
-              >
-                <Checkbox
-                  checked={selectedRoles.includes(role)}
-                  disabled={role === 'superadmin' && !isSuperAdmin}
-                  className="mr-2"
-                  id={`role-${role}`}
-                  onCheckedChange={() => {
-                    if (role !== 'superadmin' || isSuperAdmin) {
-                      handleSelectRole(role);
-                    }
-                  }}
-                />
-                <span className="flex-1">
-                  {role}
-                  {role === 'superadmin' && !isSuperAdmin && ' (Requires superadmin)'}
-                </span>
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end border-t p-2">
-            <Button size="sm" onClick={handleApplyChanges} disabled={isLoading}>
-              Apply
-            </Button>
-          </div>
-        </PopoverContent>
-      </Popover>
+      <Select
+        value={selectedRole}
+        onValueChange={(value) => handleRoleChange(value as WorkOSRole)}
+        disabled={isPending || isLoading}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Select role" />
+        </SelectTrigger>
+        <SelectContent>
+          {ROLES.map((role) => (
+            <SelectItem
+              key={role}
+              value={role}
+              disabled={role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin}
+            >
+              {role}
+              {role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin && ' (Requires superadmin)'}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   };
 
@@ -159,8 +103,8 @@ export function UserRoleManager() {
     },
     {
       id: 'role',
-      header: 'Roles',
-      cell: ({ row }) => <MultiRoleSelector user={row.original} />,
+      header: 'Role',
+      cell: ({ row }) => <RoleSelector user={row.original} />,
     },
   ];
 

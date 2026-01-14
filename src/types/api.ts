@@ -1,4 +1,4 @@
-import type { UserRoles } from '@/lib/auth/roles';
+import type { WorkOSRole } from '@/types/workos-rbac';
 
 export interface ApiResponse<T> {
   success?: boolean;
@@ -11,10 +11,10 @@ export interface ApiUser {
   id: string;
   email: string;
   name: string;
-  role: UserRoles;
+  role: WorkOSRole;
 }
 
 export interface UpdateRoleRequest {
   userId: string;
-  roles: UserRoles;
+  role: WorkOSRole;
 }

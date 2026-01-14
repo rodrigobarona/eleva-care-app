@@ -7,19 +7,29 @@
  * For route patterns used in proxy middleware:
  * @see src/lib/constants/roles.ts
  */
-
 import { ADMIN_ROUTES, EXPERT_ROUTES, SPECIAL_AUTH_ROUTES } from '@/lib/constants/roles';
 import {
   ADMIN_ROLES,
   EXPERT_ROLES,
-  WORKOS_ROLES,
   WORKOS_ROLE_HIERARCHY,
+  WORKOS_ROLES,
   type WorkOSRole,
 } from '@/types/workos-rbac';
 
 // Re-export types and constants
 export type { WorkOSRole };
+
+/**
+ * @deprecated Use WorkOSRole instead
+ */
+export type UserRole = WorkOSRole;
+
 export { WORKOS_ROLES, ADMIN_ROLES, EXPERT_ROLES };
+
+/**
+ * All available roles for UI selection
+ */
+export const ROLES = Object.values(WORKOS_ROLES);
 
 // Re-export route patterns
 export { ADMIN_ROUTES, EXPERT_ROUTES, SPECIAL_AUTH_ROUTES };

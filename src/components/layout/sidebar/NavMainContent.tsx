@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import {
   Calendar,
   CheckSquare,
@@ -217,7 +218,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
         </SidebarGroup>
 
         {/* Admin section */}
-        <RequireRole roles={['admin', 'superadmin']}>
+        <RequireRole roles={WORKOS_ROLES.SUPERADMIN}>
           <SidebarGroup>
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarMenu>

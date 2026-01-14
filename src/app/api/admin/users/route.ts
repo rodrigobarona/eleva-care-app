@@ -1,8 +1,8 @@
 import { db } from '@/drizzle/db';
 import { RolesTable, UsersTable } from '@/drizzle/schema';
-import type { UserRoles } from '@/lib/auth/roles';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';
+import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, ilike, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -23,10 +23,9 @@ export async function GET(req: Request) {
       );
     }
 
-    // Verify admin role
-    const isAdmin = await hasRole('admin');
-    const isSuperAdmin = await hasRole('superadmin');
-    if (!isAdmin && !isSuperAdmin) {
+    // Verify admin role (only superadmin in WorkOS RBAC)
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    if (!isSuperAdmin) {
       return NextResponse.json(
         {
           success: false,
@@ -77,12 +76,10 @@ export async function GET(req: Request) {
       .from(RolesTable)
       .where(sql`${RolesTable.workosUserId} = ANY(${userIds})`);
 
-    // Map roles to users
-    const roleMap = new Map<string, UserRoles[]>();
+    // Map roles to users (single role per user)
+    const roleMap = new Map<string, WorkOSRole>();
     for (const role of roles) {
-      const existing = roleMap.get(role.workosUserId) || [];
-      existing.push(role.role as UserRoles);
-      roleMap.set(role.workosUserId, existing);
+      roleMap.set(role.workosUserId, role.role as WorkOSRole);
     }
 
     const formattedUsers: ApiUser[] = users.map((user) => ({
@@ -90,7 +87,7 @@ export async function GET(req: Request) {
       email: user.email,
       // Use username or email for display (WorkOS API could be called here for full name if needed)
       name: user.username || user.email,
-      role: roleMap.get(user.workosUserId)?.[0] || 'user',
+      role: roleMap.get(user.workosUserId) || WORKOS_ROLES.PATIENT,
     }));
 
     return NextResponse.json({
@@ -114,15 +111,12 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId: targetUserId, roles } = (await req.json()) as UpdateRoleRequest;
-    await updateUserRole(targetUserId, roles);
-
-    // Format roles as readable string for success message
-    const rolesStr = Array.isArray(roles) ? roles.join(', ') : roles;
+    const { userId: targetUserId, role } = (await req.json()) as UpdateRoleRequest;
+    await updateUserRole(targetUserId, role);
 
     return NextResponse.json({
       success: true,
-      message: `Roles updated successfully to: ${rolesStr}`,
+      message: `Role updated successfully to: ${role}`,
     } as ApiResponse<null>);
   } catch (error) {
     console.error('Error updating user role:', error);

@@ -7,15 +7,15 @@
  * Fetches user roles from the database via API.
  * Uses WorkOS's built-in useAuth hook.
  */
-import type { UserRole } from '@/lib/auth/roles';
+import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthorizationContextType {
-  roles: UserRole[];
-  hasRole: (roleToCheck: UserRole | UserRole[]) => boolean;
+  roles: WorkOSRole[];
+  hasRole: (roleToCheck: WorkOSRole | WorkOSRole[]) => boolean;
   isLoading: boolean;
 }
 
@@ -27,7 +27,7 @@ const AuthorizationContext = createContext<AuthorizationContextType>({
 
 export function AuthorizationProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [roles, setRoles] = useState<WorkOSRole[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
   // Fetch user roles from API when user is loaded
@@ -47,15 +47,15 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
 
         if (!response.ok) {
           console.error('Failed to fetch user roles');
-          setRoles(['user']); // Default to 'user' role
+          setRoles([WORKOS_ROLES.PATIENT]); // Default to patient role
           return;
         }
 
         const data = await response.json();
-        setRoles(data.roles || ['user']);
+        setRoles(data.roles || [WORKOS_ROLES.PATIENT]);
       } catch (error) {
         console.error('Error fetching user roles:', error);
-        setRoles(['user']); // Default to 'user' role on error
+        setRoles([WORKOS_ROLES.PATIENT]); // Default to patient role on error
       } finally {
         setIsLoadingRoles(false);
       }
@@ -67,10 +67,10 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
   // Derive loading state
   const isLoading = authLoading || isLoadingRoles;
 
-  const hasRole = (roleToCheck: UserRole | UserRole[]): boolean => {
+  const hasRole = (roleToCheck: WorkOSRole | WorkOSRole[]): boolean => {
     if (roles.length === 0) return false;
     const rolesToCheck = Array.isArray(roleToCheck) ? roleToCheck : [roleToCheck];
-    return roles.some((role) => rolesToCheck.includes(role as UserRole));
+    return roles.some((role) => rolesToCheck.includes(role));
   };
 
   return (
@@ -93,28 +93,28 @@ export function useAuthorization() {
 // Client-side role helper hooks
 export function useIsAdmin(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole(['admin', 'superadmin']);
+  return hasRole(WORKOS_ROLES.SUPERADMIN);
 }
 
 export function useIsExpert(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole(['expert_community', 'expert_top']);
+  return hasRole([WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_TOP]);
 }
 
 export function useIsTopExpert(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole('expert_top');
+  return hasRole(WORKOS_ROLES.EXPERT_TOP);
 }
 
 export function useIsCommunityExpert(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole('expert_community');
+  return hasRole(WORKOS_ROLES.EXPERT_COMMUNITY);
 }
 
 // Authorization component for role-based UI rendering
 interface RequireRoleProps {
   children: ReactNode;
-  roles: UserRole | UserRole[];
+  roles: WorkOSRole | WorkOSRole[];
   fallback?: ReactNode;
   redirectTo?: string;
 }
