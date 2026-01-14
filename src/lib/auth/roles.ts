@@ -38,12 +38,35 @@ export { ADMIN_ROUTES, EXPERT_ROUTES, SPECIAL_AUTH_ROUTES };
 export const ROLE_PRIORITY = WORKOS_ROLE_HIERARCHY;
 
 /**
- * Client-side function to get user role
+ * Result type for getUserRole with proper error handling
  */
-export async function getUserRole(userId: string): Promise<WorkOSRole> {
-  const response = await fetch(`/api/users/${userId}/roles`);
-  const data = await response.json();
-  return data.role;
+export type GetUserRoleResult =
+  | { success: true; role: WorkOSRole }
+  | { success: false; error: string };
+
+/**
+ * Client-side function to get user role with proper error handling
+ */
+export async function getUserRole(userId: string): Promise<GetUserRoleResult> {
+  try {
+    const response = await fetch(`/api/users/${userId}/roles`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || `Failed to fetch role: ${response.status} ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, role: data.role };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error fetching role',
+    };
+  }
 }
 
 /**

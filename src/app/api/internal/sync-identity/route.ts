@@ -17,24 +17,31 @@ function maskEmail(email: string): string {
 
 /**
  * Internal endpoint to sync identity verification to Stripe Connect.
- * Requires INTERNAL_ADMIN_KEY for authentication.
+ * Requires INTERNAL_ADMIN_KEY for authentication via Authorization header.
+ *
+ * Required headers:
+ * - Authorization: Bearer <INTERNAL_ADMIN_KEY>
  *
  * Required query parameters:
  * - workosUserId: The WorkOS user ID of the user
- * - adminKey: A secret key to prevent unauthorized access (must match INTERNAL_ADMIN_KEY env var)
  */
 export async function POST(request: Request) {
   try {
-    // Get the clerk user ID and admin key from the query parameter
-    const url = new URL(request.url);
-    const workosUserId = url.searchParams.get('workosUserId');
-    const adminKey = url.searchParams.get('adminKey');
+    // Get admin key from Authorization header (more secure than query params)
+    const authHeader = request.headers.get('authorization');
+    const adminKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
     // Validate admin key to prevent unauthorized access
-    if (!adminKey || adminKey !== process.env.INTERNAL_ADMIN_KEY) {
+    // Ensure env var is defined and non-empty before comparing
+    const expectedKey = process.env.INTERNAL_ADMIN_KEY;
+    if (!expectedKey || !adminKey || adminKey !== expectedKey) {
       console.warn('Unauthorized access attempt to /api/internal/sync-identity');
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
+
+    // Get workosUserId from query parameter
+    const url = new URL(request.url);
+    const workosUserId = url.searchParams.get('workosUserId');
 
     if (!workosUserId) {
       return NextResponse.json({ error: 'Missing workosUserId parameter' }, { status: 400 });

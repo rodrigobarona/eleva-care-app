@@ -3,6 +3,14 @@ import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { z } from 'zod';
+
+/**
+ * Zod schema for validating role updates
+ */
+const roleSchema = z.object({
+  role: z.nativeEnum(WORKOS_ROLES),
+});
 
 /**
  * GET /api/users/[userId]/roles
@@ -75,16 +83,22 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    // Parse request body after auth checks pass
+    // Parse and validate request body after auth checks pass
     const body = await request.json();
-    const { role } = body as { role: WorkOSRole };
+    const parseResult = roleSchema.safeParse(body);
 
-    if (!role || !Object.values(WORKOS_ROLES).includes(role)) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Bad Request', message: 'Invalid or missing role' },
+        {
+          error: 'Bad Request',
+          message: 'Invalid or missing role',
+          details: parseResult.error.flatten(),
+        },
         { status: 400 },
       );
     }
+
+    const { role } = parseResult.data;
 
     // Import and use updateUserRole (which has its own internal checks)
     const { updateUserRole } = await import('@/lib/auth/roles.server');

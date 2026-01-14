@@ -2,7 +2,6 @@
 
 import { DataTable } from '@/components/shared/data-table/DataTable';
 import { useAuthorization } from '@/components/shared/providers/AuthorizationProvider';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -13,7 +12,7 @@ import {
 import { ROLES, updateUserRole } from '@/lib/auth/roles';
 import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import type { ColumnDef } from '@tanstack/react-table';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 interface User {
@@ -23,13 +22,72 @@ interface User {
   role: WorkOSRole;
 }
 
+interface RoleSelectorProps {
+  user: User;
+  isSuperAdmin: boolean;
+  isLoading: boolean;
+  onRoleUpdate: (userId: string, newRole: WorkOSRole) => Promise<void>;
+}
+
+/**
+ * Extracted RoleSelector component to prevent recreation on each parent render.
+ * Uses useEffect to sync selectedRole when user.role changes externally.
+ */
+function RoleSelector({ user, isSuperAdmin, isLoading, onRoleUpdate }: RoleSelectorProps) {
+  const [selectedRole, setSelectedRole] = useState<WorkOSRole>(user.role);
+  const [isPending, setIsPending] = useState(false);
+
+  // Sync selectedRole when user.role changes (e.g., after another update)
+  useEffect(() => {
+    setSelectedRole(user.role);
+  }, [user.role]);
+
+  const handleRoleChange = async (newRole: WorkOSRole) => {
+    setSelectedRole(newRole);
+    setIsPending(true);
+    try {
+      await onRoleUpdate(user.id, newRole);
+    } catch {
+      // Reset to original value on error
+      setSelectedRole(user.role);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <Select
+      value={selectedRole}
+      onValueChange={(value) => handleRoleChange(value as WorkOSRole)}
+      disabled={isPending || isLoading}
+    >
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Select role" />
+      </SelectTrigger>
+      <SelectContent>
+        {ROLES.map((role) => (
+          <SelectItem
+            key={role}
+            value={role}
+            disabled={role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin}
+          >
+            {role}
+            {role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin && ' (Requires superadmin)'}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export function UserRoleManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { roles: currentUserRoles } = useAuthorization();
   const isSuperAdmin = currentUserRoles.includes(WORKOS_ROLES.SUPERADMIN);
 
-  const handleRoleUpdate = async (userId: string, newRole: WorkOSRole) => {
+  // Stable callback reference using useCallback
+  const handleRoleUpdate = useCallback(async (userId: string, newRole: WorkOSRole) => {
     const promise = updateUserRole(userId, newRole).then(async () => {
       // Refresh the users list after successful update
       const response = await fetch('/api/admin/users');
@@ -48,49 +106,7 @@ export function UserRoleManager() {
     });
 
     return promise;
-  };
-
-  const RoleSelector = ({ user }: { user: User }) => {
-    const [selectedRole, setSelectedRole] = useState<WorkOSRole>(user.role);
-    const [isPending, setIsPending] = useState(false);
-
-    const handleRoleChange = async (newRole: WorkOSRole) => {
-      setSelectedRole(newRole);
-      setIsPending(true);
-      try {
-        await handleRoleUpdate(user.id, newRole);
-      } catch {
-        // Reset to original value on error
-        setSelectedRole(user.role);
-      } finally {
-        setIsPending(false);
-      }
-    };
-
-    return (
-      <Select
-        value={selectedRole}
-        onValueChange={(value) => handleRoleChange(value as WorkOSRole)}
-        disabled={isPending || isLoading}
-      >
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select role" />
-        </SelectTrigger>
-        <SelectContent>
-          {ROLES.map((role) => (
-            <SelectItem
-              key={role}
-              value={role}
-              disabled={role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin}
-            >
-              {role}
-              {role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin && ' (Requires superadmin)'}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  };
+  }, []);
 
   const columns: ColumnDef<User>[] = [
     {
@@ -104,7 +120,14 @@ export function UserRoleManager() {
     {
       id: 'role',
       header: 'Role',
-      cell: ({ row }) => <RoleSelector user={row.original} />,
+      cell: ({ row }) => (
+        <RoleSelector
+          user={row.original}
+          isSuperAdmin={isSuperAdmin}
+          isLoading={isLoading}
+          onRoleUpdate={handleRoleUpdate}
+        />
+      ),
     },
   ];
 

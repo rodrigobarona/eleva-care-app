@@ -116,18 +116,52 @@ export async function isCommunityExpert(): Promise<boolean> {
 }
 
 /**
- * Get the current user's role(s)
+ * Role priority for determining the highest-priority role.
+ * Higher index = higher priority.
  */
-export async function getUserRole(): Promise<WorkOSRole | WorkOSRole[]> {
+const ROLE_PRIORITY: WorkOSRole[] = [
+  WORKOS_ROLES.PATIENT,
+  WORKOS_ROLES.EXPERT_COMMUNITY,
+  WORKOS_ROLES.EXPERT_TOP,
+  WORKOS_ROLES.PARTNER,
+  WORKOS_ROLES.SUPERADMIN,
+];
+
+/**
+ * Get the highest-priority role from an array of roles.
+ */
+function getHighestPriorityRole(roles: WorkOSRole[]): WorkOSRole {
+  if (roles.length === 0) return WORKOS_ROLES.PATIENT;
+  if (roles.length === 1) return roles[0];
+
+  // Find the role with the highest priority index
+  let highestRole = roles[0];
+  let highestPriority = ROLE_PRIORITY.indexOf(highestRole);
+
+  for (const role of roles) {
+    const priority = ROLE_PRIORITY.indexOf(role);
+    if (priority > highestPriority) {
+      highestPriority = priority;
+      highestRole = role;
+    }
+  }
+
+  return highestRole;
+}
+
+/**
+ * Get the current user's role (single highest-priority role).
+ * Always returns a single WorkOSRole for consistency with client-side.
+ */
+export async function getUserRole(): Promise<WorkOSRole> {
   const { user } = await withAuth();
   if (!user) return WORKOS_ROLES.PATIENT;
 
   const userRoles = await getUserRolesFromDB(user.id);
 
   if (userRoles.length === 0) return WORKOS_ROLES.PATIENT;
-  if (userRoles.length === 1) return userRoles[0];
 
-  return userRoles;
+  return getHighestPriorityRole(userRoles);
 }
 
 /**
@@ -151,12 +185,16 @@ export async function updateUserRole(workosUserId: string, role: WorkOSRole): Pr
     throw new Error('Only superadmins can assign the superadmin role');
   }
 
-  // Delete existing roles for this user
-  await db.delete(RolesTable).where(eq(RolesTable.workosUserId, workosUserId));
+  // Use a transaction to ensure atomic delete+insert
+  // This prevents leaving the user without roles if insert fails
+  await db.transaction(async (tx) => {
+    // Delete existing roles for this user
+    await tx.delete(RolesTable).where(eq(RolesTable.workosUserId, workosUserId));
 
-  // Insert new role
-  await db.insert(RolesTable).values({
-    workosUserId,
-    role,
+    // Insert new role
+    await tx.insert(RolesTable).values({
+      workosUserId,
+      role,
+    });
   });
 }

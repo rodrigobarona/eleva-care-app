@@ -146,6 +146,14 @@ export async function PATCH(request: NextRequest) {
     const { user } = await withAuth();
     const userId = user?.id;
 
+    // Verify authenticated user exists before proceeding
+    if (!user || !userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
     // Get transfer ID and update data from request body
     const body = await request.json();
     const { transferId, requiresApproval, adminNotes } = body;

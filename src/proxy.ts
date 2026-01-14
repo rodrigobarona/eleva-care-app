@@ -267,10 +267,14 @@ export default async function proxy(request: NextRequest) {
         request.headers.has('upstash-signature') ||
         request.headers.has('Upstash-Signature') ||
         request.headers.has('x-upstash-signature');
+      // Only consider API key valid if env var is defined and non-empty
       const hasApiKey =
+        !!process.env.CRON_API_KEY &&
         request.headers.has('x-api-key') &&
         request.headers.get('x-api-key') === process.env.CRON_API_KEY;
+      // Only consider cron secret valid if env var is defined and non-empty
       const hasCronSecret =
+        !!process.env.CRON_SECRET &&
         request.headers.has('x-cron-secret') &&
         request.headers.get('x-cron-secret') === process.env.CRON_SECRET;
 
