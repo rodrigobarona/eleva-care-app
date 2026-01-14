@@ -11,8 +11,7 @@ import { ADMIN_ROLES, EXPERT_ROLES, WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/t
 import { authkit } from '@workos-inc/authkit-nextjs';
 import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
 import createMiddleware from 'next-intl/middleware';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Next.js Middleware with WorkOS AuthKit + JWT-based RBAC
@@ -207,8 +206,13 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  // Skip for static files and internal APIs
-  if (isStaticFile(path) || shouldSkipAuthForApi(path)) {
+  // Skip for actual static files (images, fonts, CSS, JS) - these don't render React components
+  if (isStaticFile(path)) {
+    return NextResponse.next();
+  }
+
+  // Skip for internal APIs that don't need auth context
+  if (shouldSkipAuthForApi(path)) {
     return NextResponse.next();
   }
 
@@ -333,9 +337,23 @@ export default async function proxy(request: NextRequest) {
       console.log(`🔒 Auth/App route (no locale): ${path}`);
     }
 
-    const response = NextResponse.next();
+    // Create request headers with AuthKit headers for downstream page handlers
+    // This is critical: withAuth() reads these headers to verify middleware ran
+    const requestHeaders = new Headers(request.headers);
+    for (const [key, value] of authkitHeaders) {
+      // Skip Set-Cookie for request headers - those go on response only
+      if (key.toLowerCase() !== 'set-cookie') {
+        requestHeaders.set(key, value);
+      }
+    }
 
-    // Preserve AuthKit headers
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+
+    // Also set response headers (for Set-Cookie and other response-specific headers)
     for (const [key, value] of authkitHeaders) {
       if (key.toLowerCase() === 'set-cookie') {
         response.headers.append(key, value);
@@ -405,7 +423,36 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 5: RUN I18N MIDDLEWARE (for marketing routes only)
   // ==========================================
-  const i18nResponse = handleI18nRouting(request);
+  // Create a modified request with AuthKit headers so downstream components can read them
+  const requestHeadersForI18n = new Headers(request.headers);
+  for (const [key, value] of authkitHeaders) {
+    if (key.toLowerCase() !== 'set-cookie') {
+      requestHeadersForI18n.set(key, value);
+    }
+  }
+
+  // Create new request with AuthKit headers for the i18n middleware
+  const modifiedRequest = new NextRequest(request.url, {
+    method: request.method,
+    headers: requestHeadersForI18n,
+    body: request.body,
+    cache: request.cache,
+    credentials: request.credentials,
+    integrity: request.integrity,
+    keepalive: request.keepalive,
+    mode: request.mode,
+    redirect: request.redirect,
+    referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy,
+    signal: request.signal,
+  });
+
+  // Copy cookies from original request
+  for (const [name, cookie] of request.cookies) {
+    modifiedRequest.cookies.set(name, cookie.value);
+  }
+
+  const i18nResponse = handleI18nRouting(modifiedRequest);
 
   const rewrittenPath = i18nResponse.headers.get('x-middleware-rewrite');
   const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
@@ -417,6 +464,7 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 6: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
+  // Set response headers (for Set-Cookie and other response-specific headers)
   for (const [key, value] of authkitHeaders) {
     if (key.toLowerCase() === 'set-cookie') {
       i18nResponse.headers.append(key, value);
@@ -491,12 +539,19 @@ export default async function proxy(request: NextRequest) {
 
 /**
  * Configure which paths the proxy middleware runs on
+ *
+ * This matcher includes routes that look like files but are actually Next.js routes:
+ * - /llms-full.txt (LLM documentation)
+ * - /docs/*.mdx (Fumadocs MDX routes)
  */
 export const config = {
   matcher: [
-    // Match all routes except Next.js internals and static files
-    '/((?!_next|_vercel|.*\\..*).*)',
+    // Match all routes except Next.js internals and actual static files
+    // Note: We exclude common static file extensions but allow .txt and .mdx which are routes
+    '/((?!_next|_vercel|.*\\.(?:png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2|ttf|eot|css|js|map)$).*)',
     // Explicitly match root
     '/',
+    // Explicitly match LLM routes (have extensions but are routes, not static files)
+    '/llms-full.txt',
   ],
 };

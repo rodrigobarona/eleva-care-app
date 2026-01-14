@@ -132,14 +132,21 @@ export function getSeoRedirect(path: string): string | null {
 
 /**
  * Static file patterns to skip in proxy
+ *
+ * IMPORTANT: We exclude paths under /docs/ and /llms from the generic extension check
+ * because those are dynamic routes that should be handled by Next.js, not bypassed.
+ *
+ * Paths like /llms-full.txt and /docs/*.mdx are actual routes, not static files.
  */
 export const STATIC_FILE_PATTERNS = [
-  /\.(.*)$/, // Files with extensions
   /^\/favicon\.ico$/,
   /^\/robots\.txt$/,
   /^\/sitemap\.xml$/,
+  /^\/site\.webmanifest$/,
   /^\/_next\//,
   /^\/\.well-known\//,
+  // Match static assets: images, fonts, CSS, JS, etc. (but NOT .txt or .mdx which are routes)
+  /\.(png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2|ttf|eot|css|js|map)$/i,
 ] as const;
 
 /**
@@ -155,7 +162,10 @@ export const SKIP_AUTH_API_PATTERNS = [
   '/api/health/',
   '/api/create-payment-intent',
   '/api/og/',
+  '/api/search', // Documentation search API
   '/monitoring', // Sentry tunnel route - must skip auth and i18n
+  '/llms-full.txt', // LLM full documentation route (Fumadocs)
+  '/llms.mdx/', // LLM MDX routes (Fumadocs content negotiation)
 ] as const;
 
 // ============================================
