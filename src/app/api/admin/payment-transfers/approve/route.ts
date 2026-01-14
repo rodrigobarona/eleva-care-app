@@ -1,6 +1,5 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_PENDING,
@@ -157,12 +156,10 @@ async function recordAdminApprovalAttempts(adminId: string) {
  * POST endpoint to manually approve a pending expert transfer
  * Enhanced with Redis-based rate limiting for financial operations
  * This can only be used by administrators and requires a valid transferId
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function POST(request: NextRequest) {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     // Get userId for audit logging and rate limiting
     const { user } = await withAuth();

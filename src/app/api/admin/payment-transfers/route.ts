@@ -1,6 +1,5 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import {
   PAYMENT_TRANSFER_STATUSES,
   type PaymentTransferStatus,
@@ -25,12 +24,10 @@ type FilterParams = {
 /**
  * GET endpoint to list and filter payment transfers
  * This can only be used by administrators
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET(request: NextRequest) {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -140,16 +137,14 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH endpoint to update a payment transfer
  * This can only be used by administrators
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function PATCH(request: NextRequest) {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     // Get userId for audit logging
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     // Get transfer ID and update data from request body
     const body = await request.json();

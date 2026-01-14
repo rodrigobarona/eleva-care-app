@@ -1,16 +1,13 @@
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import { isQStashAvailable, validateQStashConfig } from '@/lib/integrations/qstash/config';
 import { NextResponse } from 'next/server';
 
 /**
  * QStash health check endpoint
  * Verifies that QStash is properly configured and available
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET() {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     const config = validateQStashConfig();
 

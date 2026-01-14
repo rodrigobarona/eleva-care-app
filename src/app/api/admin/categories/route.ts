@@ -1,15 +1,15 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import type { ApiResponse } from '@/types/api';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
 
+/**
+ * GET - List all categories
+ *
+ * Note: Admin authorization is handled by the proxy middleware
+ */
 export async function GET() {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     const categories = await db.select().from(CategoriesTable);
     return NextResponse.json({
@@ -28,6 +28,11 @@ export async function GET() {
   }
 }
 
+/**
+ * POST - Create a new category
+ *
+ * Note: Admin authorization is handled by the proxy middleware
+ */
 export async function POST(request: Request) {
   // 🛡️ BotID Protection: Check for bot traffic before admin operations
   const botVerification = (await checkBotId({
@@ -50,10 +55,6 @@ export async function POST(request: Request) {
       { status: 403 },
     );
   }
-
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
 
   try {
     const formData = await request.formData();

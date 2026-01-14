@@ -199,3 +199,26 @@ Debug output shows:
 - `src/lib/auth/roles.ts` - Client-side role management
 - `src/lib/auth/roles.server.ts` - Server-side role management
 
+## Why No Route-Level Admin Middleware?
+
+**Q: Why don't admin API routes have their own middleware?**
+
+The proxy already handles admin authorization:
+
+```typescript
+// In proxy.ts
+if (matchPatternsArray(path, ADMIN_ROUTES)) {
+  const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES);
+  if (!isAdmin) {
+    return NextResponse.redirect(new URL('/unauthorized', request.url));
+  }
+}
+```
+
+This means:
+1. Non-admin users are **blocked before reaching the route handler**
+2. Route handlers can assume the user is already authorized
+3. No redundant checks needed in each API route
+
+This follows Next.js 16's single-proxy architecture where all authorization happens in one place.
+

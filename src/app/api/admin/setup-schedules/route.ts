@@ -1,4 +1,3 @@
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import { listSchedules } from '@/lib/integrations/qstash/client';
 import { setupQStashSchedules } from '@/lib/integrations/qstash/schedules';
 import type { ApiResponse } from '@/types/api';
@@ -10,12 +9,10 @@ export const maxDuration = 60;
 
 /**
  * GET: List all current QStash schedules
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET() {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     const schedules = await listSchedules();
     return NextResponse.json({
@@ -37,12 +34,10 @@ export async function GET() {
 
 /**
  * POST: Setup or reset QStash schedules
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function POST() {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     const results = await setupQStashSchedules();
 
