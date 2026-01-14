@@ -50,6 +50,11 @@ export default defineConfig({
  */
 export const patient = defineDocs({
   dir: 'src/content/docs/patient',
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true, // Enable for AI/LLM access
+    },
+  },
 });
 
 /**
@@ -58,6 +63,11 @@ export const patient = defineDocs({
  */
 export const expert = defineDocs({
   dir: 'src/content/docs/expert',
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true, // Enable for AI/LLM access
+    },
+  },
 });
 
 /**
@@ -68,6 +78,11 @@ export const expert = defineDocs({
  */
 export const workspace = defineDocs({
   dir: 'src/content/docs/workspace',
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true, // Enable for AI/LLM access
+    },
+  },
 });
 
 /**
@@ -76,6 +91,11 @@ export const workspace = defineDocs({
  */
 export const developer = defineDocs({
   dir: 'src/content/docs/developer',
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true, // Enable for AI/LLM access
+    },
+  },
 });
 
 // =============================================================================

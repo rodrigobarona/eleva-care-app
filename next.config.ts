@@ -51,6 +51,32 @@ const config: NextConfig = {
   // Enable React Compiler for automatic memoization
   reactCompiler: true,
 
+  /**
+   * AI/LLM Documentation Access
+   *
+   * Rewrite rules to allow AI agents to access documentation as markdown.
+   * When a URL ends with .mdx, it's rewritten to the llms.mdx route handler.
+   *
+   * Examples:
+   * - /docs/patient/booking.mdx → /llms.mdx/docs/patient/booking
+   * - /docs/expert/profile.mdx → /llms.mdx/docs/expert/profile
+   *
+   * This enables AI agents to:
+   * - Read documentation pages as plain markdown
+   * - Index content for AI-powered search
+   * - Provide better answers using our documentation
+   *
+   * @see https://fumadocs.vercel.app/docs/integrations/llms
+   */
+  async rewrites() {
+    return [
+      {
+        source: '/docs/:portal/:path*.mdx',
+        destination: '/llms.mdx/docs/:portal/:path*',
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       {

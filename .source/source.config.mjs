@@ -12,16 +12,40 @@ var source_config_default = defineConfig({
   }
 });
 var patient = defineDocs({
-  dir: "src/content/docs/patient"
+  dir: "src/content/docs/patient",
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true
+      // Enable for AI/LLM access
+    }
+  }
 });
 var expert = defineDocs({
-  dir: "src/content/docs/expert"
+  dir: "src/content/docs/expert",
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true
+      // Enable for AI/LLM access
+    }
+  }
 });
 var workspace = defineDocs({
-  dir: "src/content/docs/workspace"
+  dir: "src/content/docs/workspace",
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true
+      // Enable for AI/LLM access
+    }
+  }
 });
 var developer = defineDocs({
-  dir: "src/content/docs/developer"
+  dir: "src/content/docs/developer",
+  docs: {
+    postprocess: {
+      includeProcessedMarkdown: true
+      // Enable for AI/LLM access
+    }
+  }
 });
 export {
   source_config_default as default,

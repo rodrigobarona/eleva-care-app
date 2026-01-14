@@ -9,6 +9,7 @@ import { locales, routing } from '@/lib/i18n';
 import type { WorkOSPermission, WorkOSRole } from '@/types/workos-rbac';
 import { ADMIN_ROLES, EXPERT_ROLES, WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
 import { authkit } from '@workos-inc/authkit-nextjs';
+import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -21,6 +22,7 @@ import type { NextRequest } from 'next/server';
  * - JWT-based role and permission checking (zero database queries)
  * - Internationalization (i18n via next-intl)
  * - Expert setup flow management
+ * - AI/LLM content negotiation (Accept header)
  *
  * This middleware uses JWT claims for RBAC instead of database queries,
  * resulting in faster authorization checks.
@@ -36,6 +38,14 @@ const DEBUG = process.env.DEBUG_MIDDLEWARE === 'true';
  * Create internationalization middleware using the routing configuration
  */
 const handleI18nRouting = createMiddleware(routing);
+
+/**
+ * AI/LLM Content Negotiation
+ *
+ * Rewrite documentation paths to .mdx format when AI agents request markdown.
+ * Uses the Accept header to detect AI agents preferring markdown content.
+ */
+const { rewrite: rewriteLLM } = rewritePath('/docs{/*path}', '/llms.mdx/docs{/*path}');
 
 /**
  * Protected routes with required permissions
@@ -186,6 +196,16 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 1: HANDLE SPECIAL ROUTES (no auth/i18n needed)
   // ==========================================
+
+  // Handle AI/LLM content negotiation FIRST (before auth checks)
+  // If an AI agent requests markdown (via Accept header), rewrite to .mdx route
+  if (isMarkdownPreferred(request) && path.startsWith('/docs/')) {
+    const result = rewriteLLM(path);
+    if (result) {
+      if (DEBUG) console.log(`🤖 AI content negotiation: ${path} → ${result}`);
+      return NextResponse.rewrite(new URL(result, request.url));
+    }
+  }
 
   // Skip for static files and internal APIs
   if (isStaticFile(path) || shouldSkipAuthForApi(path)) {
