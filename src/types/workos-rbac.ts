@@ -64,7 +64,7 @@ export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
 export const PARTNER_ROLES = [WORKOS_ROLES.PARTNER_MEMBER, WORKOS_ROLES.PARTNER_ADMIN] as const;
 
 // ============================================================================
-// PERMISSIONS (89 total)
+// PERMISSIONS (121 total)
 // ============================================================================
 
 /**

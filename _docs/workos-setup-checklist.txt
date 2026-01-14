@@ -14,7 +14,7 @@ Total Roles: 6
    Go to: https://dashboard.workos.com → RBAC
 
 ─────────────────────────────────────────────────────────────────────
-STEP 1: CREATE PERMISSIONS (89 total)
+STEP 1: CREATE PERMISSIONS (121 total)
 ─────────────────────────────────────────────────────────────────────
 
 Go to RBAC → Permissions → Create Permission
@@ -70,8 +70,8 @@ Name: View own patients
 Description: View list of patients you've worked with
 ---
 Slug: patients:view_all
-Name: View all partner patients
-Description: View all patients in the partner (partner admin)
+Name: View all workspace patients
+Description: View all patients in the workspace (workspace admin)
 ---
 Slug: patients:view_history
 Name: View patient history
@@ -302,12 +302,12 @@ Name: Manage payment methods
 Description: Add or remove payment methods
 ---
 Slug: billing:manage_clinic_sub
-Name: Manage partner subscription
-Description: Manage partner subscription (partner admin)
+Name: Manage workspace subscription
+Description: Manage workspace subscription (workspace admin)
 ---
 Slug: billing:view_clinic_billing
-Name: View partner billing
-Description: View partner billing history (partner admin)
+Name: View workspace billing
+Description: View workspace billing history (workspace admin)
 ---
 Slug: settings:view_own
 Name: View own settings
@@ -346,32 +346,32 @@ Name: View patient dashboard
 Description: Access patient dashboard
 ---
 Slug: partner:view_dashboard
-Name: View partner dashboard
-Description: View partner overview (read-only for members)
+Name: View workspace dashboard
+Description: View workspace overview (read-only for members)
 ---
 Slug: partner:manage_settings
-Name: Manage partner settings
-Description: Manage partner configuration (admin)
+Name: Manage workspace settings
+Description: Manage workspace configuration (admin)
 ---
 Slug: partner:manage_branding
-Name: Manage partner branding
-Description: Manage partner logo, colors (admin)
+Name: Manage workspace branding
+Description: Manage workspace logo, colors (admin)
 ---
 Slug: partner:view_analytics
-Name: View partner analytics
-Description: View partner-wide analytics (admin)
+Name: View workspace analytics
+Description: View workspace-wide analytics (admin)
 ---
 Slug: partner:view_patients
-Name: View partner patients
-Description: View shared partner patients
+Name: View workspace patients
+Description: View shared workspace patients
 ---
 Slug: partner:export_data
-Name: Export partner data
-Description: Export partner data (admin)
+Name: Export workspace data
+Description: Export workspace data (admin)
 ---
 Slug: team:view_members
 Name: View team members
-Description: View partner team members
+Description: View workspace team members
 ---
 Slug: team:invite_members
 Name: Invite team members
@@ -390,12 +390,12 @@ Name: View team performance
 Description: View team member performance (admin)
 ---
 Slug: schedule:manage_clinic
-Name: Manage partner schedule
+Name: Manage workspace schedule
 Description: Manage multi-practitioner schedule (admin)
 ---
 Slug: schedule:manage_rooms
 Name: Manage rooms
-Description: Manage partner rooms/locations (admin)
+Description: Manage workspace rooms/locations (admin)
 ---
 Slug: schedule:view_capacity
 Name: View capacity planning
@@ -403,7 +403,7 @@ Description: View capacity planning (admin)
 ---
 Slug: revenue:view_overview
 Name: View revenue overview
-Description: View partner revenue overview (admin)
+Description: View workspace revenue overview (admin)
 ---
 Slug: revenue:view_splits
 Name: View commission splits
@@ -664,8 +664,8 @@ Permissions to assign (60):
 
 === PARTNER MEMBER ===
 Slug: partner_member
-Name: Partner Member
-Description: Expert who is a member of a partner (read-only partner access)
+Name: Workspace Member
+Description: Expert who is a member of a workspace (read-only workspace access)
 
 Permissions to assign (55):
   ✓ appointments:view_own
@@ -726,8 +726,8 @@ Permissions to assign (55):
 
 === PARTNER ADMIN ===
 Slug: partner_admin
-Name: Partner Admin
-Description: Administrator of a partner organization with full management access
+Name: Workspace Admin
+Description: Administrator of a workspace with full management access
 
 Permissions to assign (76):
   ✓ appointments:view_own
