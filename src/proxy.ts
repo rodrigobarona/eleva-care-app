@@ -257,7 +257,38 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 3: CHECK IF AUTH/APP ROUTE (no i18n needed)
+  // STEP 3: HANDLE LOCALE-PREFIXED DOCS ROUTES
+  // ==========================================
+  // Handle /pt/docs/expert, /es/docs/patient, etc.
+  // Rewrite to /docs/* and set locale cookie for Fumadocs
+  const localeDocsMatch = path.match(/^\/(en|es|pt|pt-BR)\/docs(\/.*)?$/);
+  if (localeDocsMatch) {
+    const locale = localeDocsMatch[1];
+    const docsPath = `/docs${localeDocsMatch[2] || ''}`;
+    if (DEBUG) console.log(`📚 Locale docs route: ${path} → ${docsPath} (locale: ${locale})`);
+
+    const response = NextResponse.rewrite(new URL(docsPath, request.url));
+    response.headers.set('x-fumadocs-locale', locale);
+    response.cookies.set('FUMADOCS_LOCALE', locale, {
+      path: '/docs',
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      sameSite: 'lax',
+    });
+
+    // Preserve AuthKit headers
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append(key, value);
+      } else {
+        response.headers.set(key, value);
+      }
+    }
+
+    return response;
+  }
+
+  // ==========================================
+  // STEP 4: CHECK IF AUTH/APP ROUTE (no i18n needed)
   // ==========================================
   const pathSegments = path.split('/').filter(Boolean);
   const firstSegment = pathSegments[0];
@@ -352,7 +383,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 4: RUN I18N MIDDLEWARE (for marketing routes only)
+  // STEP 5: RUN I18N MIDDLEWARE (for marketing routes only)
   // ==========================================
   const i18nResponse = handleI18nRouting(request);
 
@@ -364,7 +395,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 5: PRESERVE AUTH HEADERS ON I18N RESPONSE
+  // STEP 6: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
   for (const [key, value] of authkitHeaders) {
     if (key.toLowerCase() === 'set-cookie') {
@@ -375,7 +406,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 6: APPLY AUTHORIZATION CHECKS (for marketing routes)
+  // STEP 7: APPLY AUTHORIZATION CHECKS (for marketing routes)
   // ==========================================
   const pathWithoutLocale = locales.some((locale) => finalPath.startsWith(`/${locale}/`))
     ? finalPath.substring(finalPath.indexOf('/', 1))

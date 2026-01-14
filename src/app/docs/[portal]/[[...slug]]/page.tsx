@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { getFumadocsLocale } from '@/lib/fumadocs-i18n';
 import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
 import { docsMdxComponents } from '@/app/docs/mdx-components';
 import type { TOCItemType } from 'fumadocs-core/toc';
@@ -10,7 +11,6 @@ import {
 } from 'fumadocs-ui/layouts/docs/page';
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
-import { getLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
 /**
@@ -19,6 +19,10 @@ import { notFound } from 'next/navigation';
  * Renders MDX content for any documentation portal.
  * Portal is determined by the [portal] route segment.
  *
+ * Locale detection uses shared getFumadocsLocale() utility which follows
+ * Fumadocs i18n pattern and works alongside next-intl.
+ *
+ * @see https://fumadocs.vercel.app/docs/headless/internationalization
  * @see https://fumadocs.vercel.app/docs/ui/layouts/page
  */
 
@@ -51,7 +55,7 @@ export default async function PortalDocsPage({ params }: PageProps) {
   }
 
   const source = getPortalSource(portal);
-  const locale = await getLocale();
+  const locale = await getFumadocsLocale();
   const pagePath = slug ? `/docs/${portal}/${slug.join('/')}` : `/docs/${portal}`;
 
   // Sentry tracking
@@ -126,7 +130,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const source = getPortalSource(portal);
-  const locale = await getLocale();
+  const locale = await getFumadocsLocale();
 
   // Pass slug and locale separately - Fumadocs handles locale internally
   const page = source.getPage(slug, locale);

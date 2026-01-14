@@ -2,31 +2,31 @@
 import { defineConfig, defineDocs } from "fumadocs-mdx/config";
 var source_config_default = defineConfig({
   mdxOptions: {
-    // Add remark-gfm for GitHub Flavored Markdown support
-    remarkPlugins: [],
-    rehypePlugins: []
+    // Custom plugins can be added here (defaults are preserved)
+    // remarkPlugins: [myPlugin],
+    // rehypePlugins: [myPlugin],
+    // Customize built-in plugin options:
+    // remarkImageOptions: { placeholder: 'blur' },
+    // remarkHeadingOptions: { generateToc: true },
+    // rehypeCodeOptions: { themes: { light: 'github-light', dark: 'github-dark' } },
   }
 });
-var { docs: patientDocs, meta: patientMeta } = defineDocs({
+var patient = defineDocs({
   dir: "src/content/docs/patient"
 });
-var { docs: expertDocs, meta: expertMeta } = defineDocs({
+var expert = defineDocs({
   dir: "src/content/docs/expert"
 });
-var { docs: workspaceDocs, meta: workspaceMeta } = defineDocs({
+var workspace = defineDocs({
   dir: "src/content/docs/workspace"
 });
-var { docs: developerDocs, meta: developerMeta } = defineDocs({
+var developer = defineDocs({
   dir: "src/content/docs/developer"
 });
 export {
   source_config_default as default,
-  developerDocs,
-  developerMeta,
-  expertDocs,
-  expertMeta,
-  patientDocs,
-  patientMeta,
-  workspaceDocs,
-  workspaceMeta
+  developer,
+  expert,
+  patient,
+  workspace
 };

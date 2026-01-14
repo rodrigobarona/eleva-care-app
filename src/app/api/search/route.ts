@@ -29,27 +29,36 @@ const sources = [
 ] as const;
 
 /**
+ * Supported locales for search
+ */
+const locales = ['en', 'es', 'pt', 'pt-BR'] as const;
+
+/**
  * Build unified search indexes from all documentation sources
  *
  * Each page is tagged with its source portal for filtering.
  * Creates a single Orama index instead of 4 separate ones.
+ * Includes all locales for i18n support.
  */
 function buildUnifiedIndexes(): AdvancedIndex[] {
   const indexes: AdvancedIndex[] = [];
 
   for (const { source, tag } of sources) {
-    // Get all pages from each source
-    const pages = source.getPages();
+    // Get pages for all locales
+    for (const locale of locales) {
+      const pages = source.getPages(locale);
 
-    for (const page of pages) {
-      indexes.push({
-        id: `${tag}:${page.url}`,
-        title: page.data.title,
-        description: page.data.description,
-        url: page.url,
-        structuredData: page.data.structuredData,
-        tag, // Tag for filtering by portal
-      });
+      for (const page of pages) {
+        indexes.push({
+          id: `${tag}:${locale}:${page.url}`,
+          title: page.data.title,
+          description: page.data.description,
+          url: page.url,
+          structuredData: page.data.structuredData,
+          tag, // Tag for filtering by portal
+          locale, // Locale for i18n filtering
+        });
+      }
     }
   }
 
@@ -64,10 +73,13 @@ function buildUnifiedIndexes(): AdvancedIndex[] {
  * - Native tag filtering (via tag property on each index)
  * - Better memory efficiency
  * - Faster search queries
+ * - i18n support with locale filtering
  *
  * Tag filtering is automatically enabled when indexes have the `tag` property.
  * Use ?tag=patient to filter by portal.
+ * Use ?locale=pt to filter by language.
  */
 export const { GET } = createSearchAPI('advanced', {
   indexes: buildUnifiedIndexes(),
+  language: 'english', // Default language for search algorithm
 });

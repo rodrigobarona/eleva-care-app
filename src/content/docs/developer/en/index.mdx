@@ -75,7 +75,7 @@ Welcome to Eleva Care's developer documentation. This guide covers everything yo
   <Tab value="Sandbox">
     ```
     https://api-sandbox.eleva.care/v1
-    ```
+```
 
     Use sandbox for testing. Data resets weekly.
 
@@ -103,32 +103,32 @@ curl -X GET "https://api.eleva.care/v1/experts" \
 
 <Tabs items={['Success', 'Error']}>
   <Tab value="Success">
-    ```json
-    {
-      "success": true,
-      "data": {
-        // Response data
-      },
-      "meta": {
-        "pagination": {
-          "page": 1,
-          "limit": 20,
-          "total": 157
-        }
-      }
+```json
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 157
     }
-    ```
+  }
+}
+```
 
   </Tab>
   <Tab value="Error">
-    ```json
-    {
-      "success": false,
-      "error": "Descriptive error message",
-      "code": "ERROR_CODE",
-      "details": {}
-    }
-    ```
+```json
+{
+  "success": false,
+  "error": "Descriptive error message",
+  "code": "ERROR_CODE",
+  "details": {}
+}
+```
 
   </Tab>
 </Tabs>
@@ -137,35 +137,35 @@ curl -X GET "https://api.eleva.care/v1/experts" \
 
 <Accordions>
   <Accordion title="Expert Management">
-    - List and search experts
-    - Retrieve expert profiles
-    - Check expert availability
-    - View expert services
+- List and search experts
+- Retrieve expert profiles
+- Check expert availability
+- View expert services
 
   </Accordion>
   <Accordion title="Booking System">
-    - Create bookings
-    - Retrieve booking details
-    - Cancel or reschedule bookings
-    - Handle payment flows
+- Create bookings
+- Retrieve booking details
+- Cancel or reschedule bookings
+- Handle payment flows
 
   </Accordion>
   <Accordion title="Webhook Events">
-    Receive real-time notifications for:
+Receive real-time notifications for:
 
-    - Booking created/confirmed/cancelled
-    - Payment succeeded/failed
-    - Expert availability changes
-    - Patient updates
+- Booking created/confirmed/cancelled
+- Payment succeeded/failed
+- Expert availability changes
+- Patient updates
 
   </Accordion>
   <Accordion title="Embed Components">
-    Embed Eleva Care functionality in your application:
+Embed Eleva Care functionality in your application:
 
-    - Booking widget
-    - Expert profiles
-    - Availability calendar
-    - Video consultation launcher
+- Booking widget
+- Expert profiles
+- Availability calendar
+- Video consultation launcher
 
   </Accordion>
 </Accordions>
@@ -176,59 +176,59 @@ curl -X GET "https://api.eleva.care/v1/experts" \
   <Tab value="Embed Booking">
     **Embed Booking Widget**
 
-    ```html
-    <script src="https://cdn.eleva.care/embed.js"></script>
-    <div
-      id="eleva-booking"
-      data-org-id="YOUR_ORG_ID"
-      data-expert-id="EXPERT_ID"
-      data-theme="light"
-    ></div>
-    ```
+```html
+<script src="https://cdn.eleva.care/embed.js"></script>
+<div
+  id="eleva-booking"
+  data-org-id="YOUR_ORG_ID"
+  data-expert-id="EXPERT_ID"
+  data-theme="light"
+></div>
+```
 
   </Tab>
   <Tab value="CRM Sync">
     **Sync Bookings to Your CRM**
 
-    ```typescript
-    // Webhook handler for booking events
-    app.post('/webhooks/eleva', (req, res) => {
-      const event = req.body;
-
-      if (event.type === 'booking.confirmed') {
-        const { booking, patient, expert } = event.data;
-
-        // Sync to your CRM
-        await crm.createAppointment({
-          patientEmail: patient.email,
-          expertName: expert.name,
-          scheduledAt: booking.startTime,
-          service: booking.serviceName,
-        });
-      }
-
-      res.status(200).json({ received: true });
+```typescript
+// Webhook handler for booking events
+app.post('/webhooks/eleva', (req, res) => {
+  const event = req.body;
+  
+  if (event.type === 'booking.confirmed') {
+    const { booking, patient, expert } = event.data;
+    
+    // Sync to your CRM
+    await crm.createAppointment({
+      patientEmail: patient.email,
+      expertName: expert.name,
+      scheduledAt: booking.startTime,
+      service: booking.serviceName,
     });
-    ```
+  }
+  
+  res.status(200).json({ received: true });
+});
+```
 
   </Tab>
   <Tab value="Custom Calendar">
     **Build Custom Availability Calendar**
 
-    ```typescript
-    // Fetch expert availability
-    const availability = await fetch(
-      'https://api.eleva.care/v1/experts/EXPERT_ID/availability',
-      {
-        headers: {
+```typescript
+// Fetch expert availability
+const availability = await fetch(
+  'https://api.eleva.care/v1/experts/EXPERT_ID/availability',
+  {
+    headers: {
           Authorization: `Bearer ${API_KEY}`,
         },
-      },
-    );
+    },
+);
 
-    const slots = await availability.json();
-    // Render custom calendar with available slots
-    ```
+const slots = await availability.json();
+// Render custom calendar with available slots
+```
 
   </Tab>
 </Tabs>
@@ -247,21 +247,21 @@ curl -X GET "https://api.eleva.care/v1/experts" \
 
 <Tabs items={['npm', 'Python', 'PHP']}>
   <Tab value="npm">
-    ```bash
-    npm install @eleva-care/sdk
+```bash
+npm install @eleva-care/sdk
     ```
 
   </Tab>
   <Tab value="Python">
     ```bash
-    pip install eleva-care
+pip install eleva-care
     ```
 
   </Tab>
   <Tab value="PHP">
     ```bash
-    composer require eleva-care/php-sdk
-    ```
+composer require eleva-care/php-sdk
+```
 
   </Tab>
 </Tabs>
@@ -312,16 +312,16 @@ Test your integration safely in our sandbox:
 
 <Accordions>
   <Accordion title="Getting Help">
-    - **API Reference**: Detailed endpoint documentation
-    - **Postman Collection**: Import our API collection
-    - **Status Page**: [status.eleva.care](https://status.eleva.care)
-    - **Developer Support**: developers@eleva.care
+- **API Reference**: Detailed endpoint documentation
+- **Postman Collection**: Import our API collection
+- **Status Page**: [status.eleva.care](https://status.eleva.care)
+- **Developer Support**: developers@eleva.care
 
   </Accordion>
   <Accordion title="Community">
-    - **GitHub**: Report issues and request features
-    - **Discord**: Join our developer community
-    - **Changelog**: Stay updated on API changes
+- **GitHub**: Report issues and request features
+- **Discord**: Join our developer community
+- **Changelog**: Stay updated on API changes
 
   </Accordion>
 </Accordions>

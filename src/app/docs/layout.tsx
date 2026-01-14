@@ -1,7 +1,7 @@
-import { RootProvider } from 'fumadocs-ui/provider/next';
-import type { ReactNode } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import type { ReactNode } from 'react';
 
+import { DocsProvider } from './components/docs-provider';
 // Import Fumadocs styles
 import './docs.css';
 
@@ -9,10 +9,10 @@ import './docs.css';
  * Documentation Root Layout
  *
  * This layout wraps all documentation pages with:
- * - Fumadocs RootProvider for UI components
+ * - Fumadocs DocsProvider for UI components and custom search
  * - Sentry context for documentation-specific tracking
  * - Theme support (light/dark mode)
- * - Search functionality
+ * - Search functionality with portal tag filtering
  *
  * Sentry Integration:
  * - Sets 'section' tag to 'documentation' for filtering in Sentry
@@ -41,5 +41,5 @@ export default function DocsLayout({ children }: { children: ReactNode }) {
     level: 'info',
   });
 
-  return <RootProvider>{children}</RootProvider>;
+  return <DocsProvider>{children}</DocsProvider>;
 }

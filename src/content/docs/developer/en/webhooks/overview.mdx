@@ -80,7 +80,7 @@ app.post('/webhooks/eleva', express.raw({ type: 'application/json' }), (req, res
   }
 
   const event = JSON.parse(payload);
-
+  
   // Process event
   switch (event.type) {
     case 'booking.confirmed':
@@ -103,7 +103,7 @@ import crypto from 'crypto';
 function verifySignature(payload: string, signature: string, secret: string): boolean {
   const timestamp = signature.split(',')[0].split('=')[1];
   const receivedSignature = signature.split(',')[1].split('=')[1];
-
+  
   const signedPayload = `${timestamp}.${payload}`;
   const expectedSignature = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
 
@@ -148,67 +148,67 @@ X-Eleva-Signature: t=1673784600,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e5
 
 <Accordions>
   <Accordion title="Respond Quickly">
-    Return a 200 response as quickly as possible. Process events asynchronously:
+Return a 200 response as quickly as possible. Process events asynchronously:
 
-    ```typescript
-    app.post('/webhooks/eleva', async (req, res) => {
-      // Immediately acknowledge receipt
-      res.status(200).json({ received: true });
-
-      // Process asynchronously
-      processEventAsync(req.body).catch(console.error);
-    });
-    ```
+```typescript
+app.post('/webhooks/eleva', async (req, res) => {
+  // Immediately acknowledge receipt
+  res.status(200).json({ received: true });
+  
+  // Process asynchronously
+  processEventAsync(req.body).catch(console.error);
+});
+```
 
   </Accordion>
   <Accordion title="Handle Duplicates">
-    Webhooks may be sent multiple times. Use the event ID for idempotency:
+Webhooks may be sent multiple times. Use the event ID for idempotency:
 
-    ```typescript
-    async function processEvent(event: WebhookEvent) {
-      // Check if already processed
-      const processed = await db.processedEvents.findOne({ eventId: event.id });
-      if (processed) {
-        return; // Skip duplicate
-      }
-
-      // Process event
-      await handleEvent(event);
-
-      // Mark as processed
-      await db.processedEvents.create({ eventId: event.id });
-    }
-    ```
+```typescript
+async function processEvent(event: WebhookEvent) {
+  // Check if already processed
+  const processed = await db.processedEvents.findOne({ eventId: event.id });
+  if (processed) {
+    return; // Skip duplicate
+  }
+  
+  // Process event
+  await handleEvent(event);
+  
+  // Mark as processed
+  await db.processedEvents.create({ eventId: event.id });
+}
+```
 
   </Accordion>
   <Accordion title="Verify Timestamps">
-    Reject old webhooks to prevent replay attacks:
+Reject old webhooks to prevent replay attacks:
 
-    ```typescript
-    const MAX_AGE_SECONDS = 300; // 5 minutes
+```typescript
+const MAX_AGE_SECONDS = 300; // 5 minutes
 
-    function isTimestampValid(timestamp: number): boolean {
-      const now = Math.floor(Date.now() / 1000);
-      return Math.abs(now - timestamp) < MAX_AGE_SECONDS;
-    }
-    ```
+function isTimestampValid(timestamp: number): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  return Math.abs(now - timestamp) < MAX_AGE_SECONDS;
+}
+```
 
   </Accordion>
   <Accordion title="Use HTTPS">
-    Always use HTTPS endpoints for security.
+Always use HTTPS endpoints for security.
 
   </Accordion>
   <Accordion title="Log Everything">
-    ```typescript
-    function logWebhook(event: WebhookEvent, status: 'success' | 'error') {
-      console.log({
-        eventId: event.id,
-        eventType: event.type,
-        status,
-        timestamp: new Date().toISOString(),
-      });
-    }
-    ```
+```typescript
+function logWebhook(event: WebhookEvent, status: 'success' | 'error') {
+  console.log({
+    eventId: event.id,
+    eventType: event.type,
+    status,
+    timestamp: new Date().toISOString(),
+  });
+}
+```
 
   </Accordion>
 </Accordions>
@@ -232,35 +232,35 @@ After 6 failed attempts, the webhook is marked as failed.
 
 <Tabs items={['Dashboard', 'API', 'Local Development']}>
   <Tab value="Dashboard">
-    View webhook delivery logs:
+View webhook delivery logs:
 
-    **Partner Dashboard** → **Settings** → **Webhooks** → **Logs**
+**Partner Dashboard** → **Settings** → **Webhooks** → **Logs**
 
   </Tab>
   <Tab value="API">
-    Send test events to your endpoint:
+Send test events to your endpoint:
 
-    ```bash
-    curl -X POST "https://api.eleva.care/v1/webhooks/test" \
-      -H "Authorization: Bearer YOUR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "webhookId": "wh_abc123",
-        "eventType": "booking.confirmed"
-      }'
-    ```
+```bash
+curl -X POST "https://api.eleva.care/v1/webhooks/test" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhookId": "wh_abc123",
+    "eventType": "booking.confirmed"
+  }'
+```
 
   </Tab>
   <Tab value="Local Development">
-    Use tunneling tools for local testing:
+Use tunneling tools for local testing:
 
-    ```bash
-    # Using ngrok
-    ngrok http 3000
+```bash
+# Using ngrok
+ngrok http 3000
 
-    # Register the ngrok URL as your webhook endpoint
-    # https://abc123.ngrok.io/webhooks/eleva
-    ```
+# Register the ngrok URL as your webhook endpoint
+# https://abc123.ngrok.io/webhooks/eleva
+```
 
   </Tab>
 </Tabs>

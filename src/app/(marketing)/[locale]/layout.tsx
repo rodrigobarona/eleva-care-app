@@ -107,3 +107,19 @@ export default async function MarketingLayout({ children, params }: Props) {
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
+
+/**
+ * CRITICAL: Disable dynamic params to prevent route conflicts
+ *
+ * Without this, `/docs/patient` would match as `[locale]=docs, [username]=patient`
+ * instead of falling through to `app/docs/[portal]`.
+ *
+ * With `dynamicParams = false`:
+ * - Only values from generateStaticParams are valid for [locale]
+ * - `/en/about` ✓ matches (en is in locales)
+ * - `/docs/patient` ✗ doesn't match (docs is not in locales)
+ *   → Falls through to `app/docs/[portal]` ✓
+ *
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamicparams
+ */
+export const dynamicParams = false;

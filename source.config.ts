@@ -1,14 +1,32 @@
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 
 /**
- * Global MDX Configuration
- * Configure remark/rehype plugins and other MDX options
+ * Fumadocs MDX Global Configuration
+ *
+ * The default preset automatically includes these plugins:
+ *
+ * Remark Plugins (included by default):
+ * - remarkImage: Adds width/height to images for Next.js optimization
+ * - remarkHeading: Applies IDs to headings, extracts Table of Contents
+ * - remarkStructure: Generates search indexes
+ * - remarkGfm: GitHub Flavored Markdown (tables, strikethrough, autolinks)
+ *
+ * Rehype Plugins (included by default):
+ * - rehypeCode: Syntax highlighting with Shiki
+ * - rehypeToc: Exports TOC as JSX-compatible data
+ *
+ * @see https://fumadocs.vercel.app/docs/mdx/mdx
  */
 export default defineConfig({
   mdxOptions: {
-    // Add remark-gfm for GitHub Flavored Markdown support
-    remarkPlugins: [],
-    rehypePlugins: [],
+    // Custom plugins can be added here (defaults are preserved)
+    // remarkPlugins: [myPlugin],
+    // rehypePlugins: [myPlugin],
+
+    // Customize built-in plugin options:
+    // remarkImageOptions: { placeholder: 'blur' },
+    // remarkHeadingOptions: { generateToc: true },
+    // rehypeCodeOptions: { themes: { light: 'github-light', dark: 'github-dark' } },
   },
 });
 
@@ -30,7 +48,7 @@ export default defineConfig({
  * Patient Help Center
  * Documentation for end users who book appointments
  */
-export const { docs: patientDocs, meta: patientMeta } = defineDocs({
+export const patient = defineDocs({
   dir: 'src/content/docs/patient',
 });
 
@@ -38,7 +56,7 @@ export const { docs: patientDocs, meta: patientMeta } = defineDocs({
  * Expert Resources
  * Documentation for healthcare professionals (Community and Top Experts)
  */
-export const { docs: expertDocs, meta: expertMeta } = defineDocs({
+export const expert = defineDocs({
   dir: 'src/content/docs/expert',
 });
 
@@ -48,7 +66,7 @@ export const { docs: expertDocs, meta: expertMeta } = defineDocs({
  * Internal terminology: "Workspace" (e.g., "Dr. Patricia's workspace")
  * Marketing terminology: "For Organizations" (external sales/SEO)
  */
-export const { docs: workspaceDocs, meta: workspaceMeta } = defineDocs({
+export const workspace = defineDocs({
   dir: 'src/content/docs/workspace',
 });
 
@@ -56,7 +74,7 @@ export const { docs: workspaceDocs, meta: workspaceMeta } = defineDocs({
  * Developer API Documentation
  * Documentation for API integration partners
  */
-export const { docs: developerDocs, meta: developerMeta } = defineDocs({
+export const developer = defineDocs({
   dir: 'src/content/docs/developer',
 });
 

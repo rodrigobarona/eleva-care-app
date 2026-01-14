@@ -1,51 +1,43 @@
 import { loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
-import {
-  patientDocs,
-  patientMeta,
-  expertDocs,
-  expertMeta,
-  workspaceDocs,
-  workspaceMeta,
-  developerDocs,
-  developerMeta,
-} from 'fumadocs-mdx:collections/server';
-import { toFumadocsSource } from 'fumadocs-mdx/runtime/server';
+import { patient, expert, workspace, developer } from 'fumadocs-mdx:collections/server';
 import { i18n } from './fumadocs-i18n';
 
 /**
  * Fumadocs Source Loaders
  *
  * Each portal has its own source loader for proper URL handling.
+ * Uses the recommended .toFumadocsSource() method on defineDocs collections.
  * Uses lucideIconsPlugin to render Lucide icons in sidebar.
  *
  * @see https://fumadocs.vercel.app/docs/headless/source-api
+ * @see https://fumadocs.vercel.app/docs/mdx
  */
 
 export const patientSource = loader({
   baseUrl: '/docs/patient',
-  source: toFumadocsSource(patientDocs, patientMeta),
+  source: patient.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
 
 export const expertSource = loader({
   baseUrl: '/docs/expert',
-  source: toFumadocsSource(expertDocs, expertMeta),
+  source: expert.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
 
 export const workspaceSource = loader({
   baseUrl: '/docs/workspace',
-  source: toFumadocsSource(workspaceDocs, workspaceMeta),
+  source: workspace.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
 
 export const developerSource = loader({
   baseUrl: '/docs/developer',
-  source: toFumadocsSource(developerDocs, developerMeta),
+  source: developer.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
