@@ -74,6 +74,46 @@ const PERMISSION_PROTECTED_ROUTES: Record<string, WorkOSPermission[]> = {
 };
 
 /**
+ * Apply AuthKit headers to a response
+ *
+ * This helper consolidates the header forwarding pattern used throughout the proxy.
+ * - Set-Cookie headers are appended (supports multiple cookies)
+ * - Other headers are set (overwrite if exists)
+ *
+ * @param response - The NextResponse to add headers to
+ * @param authkitHeaders - Headers from authkit() call
+ */
+function applyAuthkitHeaders(response: NextResponse, authkitHeaders: Headers): void {
+  for (const [key, value] of authkitHeaders) {
+    if (key.toLowerCase() === 'set-cookie') {
+      response.headers.append(key, value);
+    } else {
+      response.headers.set(key, value);
+    }
+  }
+}
+
+/**
+ * Create request headers with AuthKit headers merged in
+ *
+ * Used when we need to forward AuthKit headers to downstream handlers.
+ * Excludes Set-Cookie headers which should only be on the response.
+ *
+ * @param originalHeaders - The original request headers
+ * @param authkitHeaders - Headers from authkit() call
+ * @returns New Headers object with merged headers
+ */
+function createRequestHeadersWithAuth(originalHeaders: Headers, authkitHeaders: Headers): Headers {
+  const headers = new Headers(originalHeaders);
+  for (const [key, value] of authkitHeaders) {
+    if (key.toLowerCase() !== 'set-cookie') {
+      headers.set(key, value);
+    }
+  }
+  return headers;
+}
+
+/**
  * Path matching utilities
  */
 function isPathMatch(path: string, pattern: string): boolean {
@@ -216,32 +256,36 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle cron jobs with QStash authentication
+  // Handle cron jobs - delegate to route handlers for proper signature validation
+  // The middleware only performs basic checks; full QStash signature verification
+  // happens in the route handlers via isVerifiedQStashRequest()
   if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
     if (path.startsWith('/api/cron/')) {
-      const isQStashRequest =
-        request.headers.get('x-qstash-request') === 'true' ||
+      // Check for presence of authentication headers (actual verification happens in route handlers)
+      // These are defense-in-depth checks - spoofed headers will fail route-level validation
+      const hasSignatureHeader =
         request.headers.has('upstash-signature') ||
         request.headers.has('Upstash-Signature') ||
-        request.headers.has('x-upstash-signature') ||
-        request.headers.has('x-signature') ||
-        request.headers.has('x-internal-qstash-verification') ||
-        request.url.includes('signature=');
+        request.headers.has('x-upstash-signature');
+      // Only consider API key valid if env var is defined and non-empty
+      const hasApiKey =
+        !!process.env.CRON_API_KEY &&
+        request.headers.has('x-api-key') &&
+        request.headers.get('x-api-key') === process.env.CRON_API_KEY;
+      // Only consider cron secret valid if env var is defined and non-empty
+      const hasCronSecret =
+        !!process.env.CRON_SECRET &&
+        request.headers.has('x-cron-secret') &&
+        request.headers.get('x-cron-secret') === process.env.CRON_SECRET;
 
-      const apiKey = request.headers.get('x-api-key');
-      const userAgent = request.headers.get('user-agent') || '';
-      const isUpstashUserAgent =
-        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-
-      if (
-        isQStashRequest ||
-        isUpstashUserAgent ||
-        apiKey === process.env.CRON_API_KEY ||
-        (process.env.NODE_ENV === 'production' && process.env.ENABLE_CRON_FALLBACK === 'true')
-      ) {
+      // Only allow if there's a potential authentication method present
+      // The route handler will verify signatures properly
+      if (hasSignatureHeader || hasApiKey || hasCronSecret) {
+        if (DEBUG) console.log(`⏰ Cron request (auth will be verified in handler): ${path}`);
         return NextResponse.next();
       }
-      console.warn('❌ Unauthorized cron request:', path);
+
+      console.warn('❌ Unauthorized cron request - no valid auth headers:', path);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.next();
@@ -299,14 +343,8 @@ export default async function proxy(request: NextRequest) {
       sameSite: 'lax',
     });
 
-    // Preserve AuthKit headers
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
-      }
-    }
+    // Preserve AuthKit headers using helper
+    applyAuthkitHeaders(response, authkitHeaders);
 
     return response;
   }
@@ -339,13 +377,7 @@ export default async function proxy(request: NextRequest) {
 
     // Create request headers with AuthKit headers for downstream page handlers
     // This is critical: withAuth() reads these headers to verify middleware ran
-    const requestHeaders = new Headers(request.headers);
-    for (const [key, value] of authkitHeaders) {
-      // Skip Set-Cookie for request headers - those go on response only
-      if (key.toLowerCase() !== 'set-cookie') {
-        requestHeaders.set(key, value);
-      }
-    }
+    const requestHeaders = createRequestHeadersWithAuth(request.headers, authkitHeaders);
 
     const response = NextResponse.next({
       request: {
@@ -354,13 +386,7 @@ export default async function proxy(request: NextRequest) {
     });
 
     // Also set response headers (for Set-Cookie and other response-specific headers)
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
-      }
-    }
+    applyAuthkitHeaders(response, authkitHeaders);
 
     // Check if route requires authentication
     const isProtectedRoute =
@@ -371,15 +397,7 @@ export default async function proxy(request: NextRequest) {
     if (isProtectedRoute && !session.user) {
       if (DEBUG) console.log(`🔒 Redirecting to sign-in: ${path}`);
       const redirectResponse = NextResponse.redirect(authorizationUrl!);
-
-      for (const [key, value] of authkitHeaders) {
-        if (key.toLowerCase() === 'set-cookie') {
-          redirectResponse.headers.append(key, value);
-        } else {
-          redirectResponse.headers.set(key, value);
-        }
-      }
-
+      applyAuthkitHeaders(redirectResponse, authkitHeaders);
       return redirectResponse;
     }
 
@@ -423,36 +441,10 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 5: RUN I18N MIDDLEWARE (for marketing routes only)
   // ==========================================
-  // Create a modified request with AuthKit headers so downstream components can read them
-  const requestHeadersForI18n = new Headers(request.headers);
-  for (const [key, value] of authkitHeaders) {
-    if (key.toLowerCase() !== 'set-cookie') {
-      requestHeadersForI18n.set(key, value);
-    }
-  }
-
-  // Create new request with AuthKit headers for the i18n middleware
-  const modifiedRequest = new NextRequest(request.url, {
-    method: request.method,
-    headers: requestHeadersForI18n,
-    body: request.body,
-    cache: request.cache,
-    credentials: request.credentials,
-    integrity: request.integrity,
-    keepalive: request.keepalive,
-    mode: request.mode,
-    redirect: request.redirect,
-    referrer: request.referrer,
-    referrerPolicy: request.referrerPolicy,
-    signal: request.signal,
-  });
-
-  // Copy cookies from original request
-  for (const [name, cookie] of request.cookies) {
-    modifiedRequest.cookies.set(name, cookie.value);
-  }
-
-  const i18nResponse = handleI18nRouting(modifiedRequest);
+  // Pass original request to i18n middleware to preserve all Next.js properties
+  // (nextUrl, geo, ip, etc.) Marketing pages don't use withAuth() so we don't
+  // need to forward auth headers on the request - only on the response for cookies.
+  const i18nResponse = handleI18nRouting(request);
 
   const rewrittenPath = i18nResponse.headers.get('x-middleware-rewrite');
   const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
@@ -464,14 +456,7 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 6: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
-  // Set response headers (for Set-Cookie and other response-specific headers)
-  for (const [key, value] of authkitHeaders) {
-    if (key.toLowerCase() === 'set-cookie') {
-      i18nResponse.headers.append(key, value);
-    } else {
-      i18nResponse.headers.set(key, value);
-    }
-  }
+  applyAuthkitHeaders(i18nResponse, authkitHeaders);
 
   // ==========================================
   // STEP 7: APPLY AUTHORIZATION CHECKS (for marketing routes)
@@ -488,15 +473,7 @@ export default async function proxy(request: NextRequest) {
   if (isProtectedRoute && !session.user) {
     if (DEBUG) console.log(`🔒 Redirecting to sign-in: ${path}`);
     const redirectResponse = NextResponse.redirect(authorizationUrl!);
-
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        redirectResponse.headers.append(key, value);
-      } else {
-        redirectResponse.headers.set(key, value);
-      }
-    }
-
+    applyAuthkitHeaders(redirectResponse, authkitHeaders);
     return redirectResponse;
   }
 
@@ -540,18 +517,37 @@ export default async function proxy(request: NextRequest) {
 /**
  * Configure which paths the proxy middleware runs on
  *
- * This matcher includes routes that look like files but are actually Next.js routes:
- * - /llms-full.txt (LLM documentation)
- * - /docs/*.mdx (Fumadocs MDX routes)
+ * **Matcher Strategy:**
+ * The proxy runs on ALL routes EXCEPT:
+ * - Next.js internals (_next, _vercel)
+ * - Static assets (images, fonts, CSS, JS bundles)
+ *
+ * **Allowed File Extensions (routes, not static files):**
+ * - `.txt` (LLM documentation: /llms-full.txt)
+ * - `.mdx` (Fumadocs MDX routes: /docs/*.mdx)
+ * - No extension (regular routes)
+ *
+ * **Static File Handling:**
+ * Static files are excluded in the matcher regex AND in isStaticFile() helper.
+ * This dual protection ensures static assets bypass middleware entirely.
+ *
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/middleware#matcher
  */
 export const config = {
   matcher: [
-    // Match all routes except Next.js internals and actual static files
-    // Note: We exclude common static file extensions but allow .txt and .mdx which are routes
+    /*
+     * Match all paths EXCEPT:
+     * - _next (Next.js internals, static files, image optimization)
+     * - _vercel (Vercel internals)
+     * - Static files: .png, .jpg, .jpeg, .gif, .webp, .avif, .svg, .ico,
+     *                 .woff, .woff2, .ttf, .eot, .css, .js, .map
+     *
+     * NOTE: .txt and .mdx are intentionally NOT excluded - they are routes
+     */
     '/((?!_next|_vercel|.*\\.(?:png|jpg|jpeg|gif|webp|avif|svg|ico|woff|woff2|ttf|eot|css|js|map)$).*)',
-    // Explicitly match root
+    // Root path (ensure home page goes through proxy)
     '/',
-    // Explicitly match LLM routes (have extensions but are routes, not static files)
+    // LLM full documentation (explicit for clarity - would match regex anyway)
     '/llms-full.txt',
   ],
 };

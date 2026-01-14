@@ -1,9 +1,22 @@
-import type { UserRoles } from '@/lib/auth/roles';
-import { getUserRole, hasRole, updateUserRole } from '@/lib/auth/roles.server';
+import { getUserRolesFromDB, hasRole, updateUserRole } from '@/lib/auth/roles.server';
+import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 
+/**
+ * Zod schema for validating role updates
+ */
+const roleSchema = z.object({
+  role: z.nativeEnum(WORKOS_ROLES),
+});
+
+/**
+ * GET /api/users/[userId]/roles
+ *
+ * Get a user's role. Users can only fetch their own role unless they are a superadmin.
+ */
 export async function GET(_request: NextRequest, props: { params: Promise<{ userId: string }> }) {
   try {
     const params = await props.params;
@@ -16,17 +29,20 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    const isAdmin = await hasRole('admin');
-    const isSuperAdmin = await hasRole('superadmin');
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
 
-    if (!isAdmin && !isSuperAdmin && user.id !== params.userId) {
+    // Users can only fetch their own role unless they are superadmin
+    if (!isSuperAdmin && user.id !== params.userId) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'Insufficient permissions' },
         { status: 403 },
       );
     }
 
-    const role = await getUserRole();
+    // Fetch the requested user's role
+    const roles = await getUserRolesFromDB(params.userId);
+    const role = roles.length > 0 ? roles[0] : WORKOS_ROLES.PATIENT;
+
     return NextResponse.json({ role });
   } catch (error) {
     console.error('Error fetching user role:', error);
@@ -37,20 +53,58 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
   }
 }
 
+/**
+ * POST /api/users/[userId]/roles
+ *
+ * Update a user's role. Only superadmins can update roles.
+ */
 export async function POST(request: NextRequest, props: { params: Promise<{ userId: string }> }) {
   try {
     const params = await props.params;
+
+    // Authentication check - must be done before processing request body
+    const { user } = await withAuth();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'User not authenticated' },
+        { status: 401 },
+      );
+    }
+
+    // Authorization check - only superadmins can update roles
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Only superadmins can update user roles' },
+        { status: 403 },
+      );
+    }
+
+    // Parse and validate request body after auth checks pass
     const body = await request.json();
-    const { roles } = body as { roles: UserRoles };
+    const parseResult = roleSchema.safeParse(body);
 
-    await updateUserRole(params.userId, roles);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Bad Request',
+          message: 'Invalid or missing role',
+          details: parseResult.error.flatten(),
+        },
+        { status: 400 },
+      );
+    }
 
-    // Format roles as readable string for success message
-    const rolesStr = Array.isArray(roles) ? roles.join(', ') : roles;
+    const { role } = parseResult.data;
+
+    // Use updateUserRole (which has its own internal checks)
+    await updateUserRole(params.userId, role);
 
     return NextResponse.json({
       success: true,
-      message: `Role(s) updated successfully to: ${rolesStr}`,
+      message: `Role updated successfully to: ${role}`,
     });
   } catch (error) {
     console.error('Error updating user role:', error);

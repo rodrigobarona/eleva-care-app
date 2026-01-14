@@ -1,6 +1,5 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import {
   PAYMENT_TRANSFER_STATUSES,
   type PaymentTransferStatus,
@@ -8,6 +7,14 @@ import {
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** Zod schema for transfer update request */
+const patchTransferSchema = z.object({
+  transferId: z.number({ error: 'Transfer ID is required' }),
+  requiresApproval: z.boolean().optional(),
+  adminNotes: z.string().optional(),
+});
 
 // Define valid filter parameters
 type FilterParams = {
@@ -25,13 +32,17 @@ type FilterParams = {
 /**
  * GET endpoint to list and filter payment transfers
  * This can only be used by administrators
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET(request: NextRequest) {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
+    // Defense-in-depth: verify authentication even though proxy handles authorization
+    const { user } = await withAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const filters: FilterParams = {
@@ -140,27 +151,38 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH endpoint to update a payment transfer
  * This can only be used by administrators
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function PATCH(request: NextRequest) {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     // Get userId for audit logging
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
+
+    // Verify authenticated user exists before proceeding
+    if (!user || !userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Authentication required' },
+        { status: 401 },
+      );
+    }
 
     // Get transfer ID and update data from request body
     const body = await request.json();
-    const { transferId, requiresApproval, adminNotes } = body;
+    const parseResult = patchTransferSchema.safeParse(body);
 
-    if (!transferId || typeof transferId !== 'number') {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request. Transfer ID is required.' },
+        {
+          error: 'Invalid request',
+          details: parseResult.error.flatten().fieldErrors,
+        },
         { status: 400 },
       );
     }
+
+    const { transferId, requiresApproval, adminNotes } = parseResult.data;
 
     // Check if the transfer exists
     const transfer = await db.query.PaymentTransfersTable.findFirst({

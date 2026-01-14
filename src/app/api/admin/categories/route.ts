@@ -1,14 +1,33 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
+import { isAdmin } from '@/lib/auth/roles.server';
 import type { ApiResponse } from '@/types/api';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
+/** Zod schema for category creation/update */
+const categorySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().nullable().optional(),
+  image: z.string().nullable().optional(),
+  parentId: z.string().nullable().optional(),
+});
+
+/**
+ * GET - List all categories
+ *
+ * Note: Admin authorization is handled by the proxy middleware
+ */
 export async function GET() {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
+  // Defense-in-depth: verify auth even though proxy should enforce this
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' } as ApiResponse<null>, {
+      status: 401,
+    });
+  }
 
   try {
     const categories = await db.select().from(CategoriesTable);
@@ -28,7 +47,54 @@ export async function GET() {
   }
 }
 
+/**
+ * POST - Create a new category
+ *
+ * Note: Admin authorization is handled by the proxy middleware
+ */
 export async function POST(request: Request) {
+  // Defense-in-depth: verify admin even though proxy should enforce this
+  let user: Awaited<ReturnType<typeof withAuth>>['user'];
+  try {
+    const authResult = await withAuth();
+    user = authResult.user;
+  } catch (error) {
+    console.error('Auth error in category creation:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Authentication failed',
+      } as ApiResponse<null>,
+      { status: 500 },
+    );
+  }
+
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' } as ApiResponse<null>, {
+      status: 401,
+    });
+  }
+
+  let isUserAdmin: boolean;
+  try {
+    isUserAdmin = await isAdmin();
+  } catch (error) {
+    console.error('Role check error in category creation:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Role verification failed',
+      } as ApiResponse<null>,
+      { status: 500 },
+    );
+  }
+
+  if (!isUserAdmin) {
+    return NextResponse.json({ success: false, error: 'Forbidden' } as ApiResponse<null>, {
+      status: 403,
+    });
+  }
+
   // 🛡️ BotID Protection: Check for bot traffic before admin operations
   const botVerification = (await checkBotId({
     advancedOptions: {
@@ -51,20 +117,26 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-    const image = formData.get('image') as string;
-    const parentId = formData.get('parentId') as string;
+    const parsed = categorySchema.safeParse({
+      name: formData.get('name'),
+      description: formData.get('description'),
+      image: formData.get('image'),
+      parentId: formData.get('parentId'),
+    });
 
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message || 'Validation failed',
+        } as ApiResponse<null>,
+        { status: 400 },
+      );
     }
+
+    const { name, description, image, parentId } = parsed.data;
 
     const newCategory = (await db
       .insert(CategoriesTable)
@@ -76,11 +148,17 @@ export async function POST(request: Request) {
       })
       .returning()) as Array<typeof CategoriesTable.$inferSelect>;
 
-    return NextResponse.json(newCategory[0]);
+    return NextResponse.json({
+      success: true,
+      data: newCategory[0],
+    } as ApiResponse<(typeof newCategory)[0]>);
   } catch (error) {
     console.error('Error creating category:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal Server Error' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal Server Error',
+      } as ApiResponse<null>,
       { status: 500 },
     );
   }

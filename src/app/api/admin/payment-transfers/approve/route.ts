@@ -1,14 +1,21 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
-import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
+import { hasRole } from '@/lib/auth/roles.server';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
 import { RateLimitCache } from '@/lib/redis/manager';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** Zod schema for transfer approval request */
+const approveTransferSchema = z.object({
+  transferId: z.number({ error: 'Transfer ID is required' }),
+});
 
 // Admin financial operations rate limiting (very strict)
 const ADMIN_APPROVAL_RATE_LIMITS = {
@@ -157,18 +164,29 @@ async function recordAdminApprovalAttempts(adminId: string) {
  * POST endpoint to manually approve a pending expert transfer
  * Enhanced with Redis-based rate limiting for financial operations
  * This can only be used by administrators and requires a valid transferId
+ *
+ * Note: Admin authorization is handled by the proxy middleware
  */
 export async function POST(request: NextRequest) {
-  // Check admin authentication
-  const authResponse = await adminAuthMiddleware();
-  if (authResponse) return authResponse;
-
   try {
     // Get userId for audit logging and rate limiting
     const { user } = await withAuth();
     const userId = user?.id;
     if (!user || !userId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Defense-in-depth: verify admin role for financial operations
+    let isSuperAdmin: boolean;
+    try {
+      isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    } catch (error) {
+      console.error('Role check error in transfer approval:', error);
+      return NextResponse.json({ error: 'Role verification failed' }, { status: 500 });
+    }
+
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // **RATE LIMITING: Apply admin approval limits**
@@ -204,14 +222,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { transferId } = await request.json();
-
-    if (!transferId || typeof transferId !== 'number') {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (error) {
       return NextResponse.json(
-        { error: 'Invalid request. Transfer ID is required and must be a number.' },
+        {
+          error: 'Malformed JSON in request body',
+          details: error instanceof SyntaxError ? error.message : 'Invalid JSON',
+        },
         { status: 400 },
       );
     }
+
+    const parseResult = approveTransferSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid request',
+          details: parseResult.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const { transferId } = parseResult.data;
 
     // Check if the transfer exists and is in the correct status
     const transfer = await db.query.PaymentTransfersTable.findFirst({
@@ -280,8 +316,13 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Error approving transfer:', error);
+    // Sanitize error details in production to avoid leaking sensitive info
+    const isDev = process.env.NODE_ENV === 'development';
     return NextResponse.json(
-      { error: 'Failed to approve transfer', details: (error as Error).message },
+      {
+        error: 'Failed to approve transfer',
+        ...(isDev && { details: (error as Error).message }),
+      },
       { status: 500 },
     );
   }

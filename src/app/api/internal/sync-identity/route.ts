@@ -1,12 +1,55 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
+import { timingSafeEqual } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ * Returns false if strings have different lengths or content
+ */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+/**
+ * Mask email for GDPR/CCPA compliant logging
+ * e.g., "user@example.com" → "us***@example.com"
+ */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const maskedLocal = local.length > 2 ? `${local.slice(0, 2)}***` : '***';
+  return `${maskedLocal}@${domain}`;
+}
+
+/**
+ * Internal endpoint to sync identity verification to Stripe Connect.
+ * Requires INTERNAL_ADMIN_KEY for authentication via Authorization header.
+ *
+ * Required headers:
+ * - Authorization: Bearer <INTERNAL_ADMIN_KEY>
+ *
+ * Required query parameters:
+ * - workosUserId: The WorkOS user ID of the user
+ */
 export async function POST(request: Request) {
   try {
-    // Get the clerk user ID from the query parameter
+    // Get admin key from Authorization header (more secure than query params)
+    const authHeader = request.headers.get('authorization');
+    const adminKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+    // Validate admin key to prevent unauthorized access using timing-safe comparison
+    // Ensures env var is defined and non-empty before comparing
+    const expectedKey = process.env.INTERNAL_ADMIN_KEY;
+    if (!expectedKey || !adminKey || !safeCompare(adminKey, expectedKey)) {
+      console.warn('Unauthorized access attempt to /api/internal/sync-identity');
+      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
+    }
+
+    // Get workosUserId from query parameter
     const url = new URL(request.url);
     const workosUserId = url.searchParams.get('workosUserId');
 
@@ -23,10 +66,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Log with masked email for GDPR/CCPA compliance
     console.log('Syncing identity verification for user:', {
       workosUserId,
       userId: user.id,
-      email: user.email,
+      email: maskEmail(user.email),
       hasIdentityVerification: !!user.stripeIdentityVerificationId,
       isVerified: !!user.stripeIdentityVerified,
     });
@@ -34,6 +78,7 @@ export async function POST(request: Request) {
     // Call the sync function
     const result = await syncIdentityVerificationToConnect(workosUserId);
 
+    // Note: Email included in response for admin use (this is an internal endpoint)
     return NextResponse.json({
       success: result.success,
       message: result.message,

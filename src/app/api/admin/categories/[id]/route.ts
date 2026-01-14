@@ -1,38 +1,48 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
-import { hasRole } from '@/lib/auth/roles.server';
+import { isAdmin } from '@/lib/auth/roles.server';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { z } from 'zod';
 
-// Helper function to check if user is admin
-async function isAdmin(_userId: string) {
-  return (await hasRole('admin')) || (await hasRole('superadmin'));
-}
+/** Zod schema for category update */
+const categoryUpdateSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().nullable().optional(),
+  image: z.string().nullable().optional(),
+});
 
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const params = await props.params;
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(userId))) {
+    if (!(await isAdmin())) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-    const image = formData.get('image') as string;
+    const parsed = categoryUpdateSchema.safeParse({
+      name: formData.get('name'),
+      description: formData.get('description'),
+      image: formData.get('image'),
+    });
 
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || 'Validation failed' },
+        { status: 400 },
+      );
     }
+
+    const { name, description, image } = parsed.data;
 
     const updatedCategory = (await db
       .update(CategoriesTable)
@@ -63,13 +73,13 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
   try {
     const params = await props.params;
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(userId))) {
+    if (!(await isAdmin())) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

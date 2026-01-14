@@ -1,11 +1,21 @@
 import { db } from '@/drizzle/db';
 import { RolesTable, UsersTable } from '@/drizzle/schema';
-import type { UserRoles } from '@/lib/auth/roles';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
-import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';
+import type { ApiResponse, ApiUser } from '@/types/api';
+import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, ilike, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** All valid WorkOS role values for Zod enum */
+const VALID_ROLES = Object.values(WORKOS_ROLES) as [string, ...string[]];
+
+/** Zod schema for role update request */
+const updateRoleSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  role: z.enum(VALID_ROLES, { error: 'Invalid role specified' }),
+});
 
 const ITEMS_PER_PAGE = 10;
 
@@ -23,10 +33,9 @@ export async function GET(req: Request) {
       );
     }
 
-    // Verify admin role
-    const isAdmin = await hasRole('admin');
-    const isSuperAdmin = await hasRole('superadmin');
-    if (!isAdmin && !isSuperAdmin) {
+    // Verify admin role (only superadmin in WorkOS RBAC)
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    if (!isSuperAdmin) {
       return NextResponse.json(
         {
           success: false,
@@ -77,12 +86,23 @@ export async function GET(req: Request) {
       .from(RolesTable)
       .where(sql`${RolesTable.workosUserId} = ANY(${userIds})`);
 
-    // Map roles to users
-    const roleMap = new Map<string, UserRoles[]>();
+    // Map roles to users (take first/highest-priority role if multiple exist)
+    const roleMap = new Map<string, WorkOSRole>();
+    const multiRoleUsers: string[] = [];
     for (const role of roles) {
-      const existing = roleMap.get(role.workosUserId) || [];
-      existing.push(role.role as UserRoles);
-      roleMap.set(role.workosUserId, existing);
+      if (roleMap.has(role.workosUserId)) {
+        // User has multiple roles - log warning and keep the first one
+        multiRoleUsers.push(role.workosUserId);
+      } else {
+        roleMap.set(role.workosUserId, role.role as WorkOSRole);
+      }
+    }
+
+    // Log warning if any users have multiple roles (data inconsistency)
+    if (multiRoleUsers.length > 0) {
+      console.warn(
+        `Users with multiple roles detected (using first role): ${multiRoleUsers.join(', ')}`,
+      );
     }
 
     const formattedUsers: ApiUser[] = users.map((user) => ({
@@ -90,7 +110,7 @@ export async function GET(req: Request) {
       email: user.email,
       // Use username or email for display (WorkOS API could be called here for full name if needed)
       name: user.username || user.email,
-      role: roleMap.get(user.workosUserId)?.[0] || 'user',
+      role: roleMap.get(user.workosUserId) || WORKOS_ROLES.PATIENT,
     }));
 
     return NextResponse.json({
@@ -114,15 +134,60 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId: targetUserId, roles } = (await req.json()) as UpdateRoleRequest;
-    await updateUserRole(targetUserId, roles);
+    const { user } = await withAuth();
 
-    // Format roles as readable string for success message
-    const rolesStr = Array.isArray(roles) ? roles.join(', ') : roles;
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        } as ApiResponse<null>,
+        { status: 401 },
+      );
+    }
+
+    // Verify admin role (only superadmin can modify roles)
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Forbidden',
+        } as ApiResponse<null>,
+        { status: 403 },
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return NextResponse.json({ success: false, error: 'Malformed JSON' } as ApiResponse<null>, {
+          status: 400,
+        });
+      }
+      throw error;
+    }
+
+    const parsed = updateRoleSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: parsed.error.issues[0]?.message || 'Validation failed',
+        } as ApiResponse<null>,
+        { status: 400 },
+      );
+    }
+
+    const { userId: targetUserId, role } = parsed.data;
+    await updateUserRole(targetUserId, role as WorkOSRole);
 
     return NextResponse.json({
       success: true,
-      message: `Roles updated successfully to: ${rolesStr}`,
+      message: `Role updated successfully to: ${role}`,
     } as ApiResponse<null>);
   } catch (error) {
     console.error('Error updating user role:', error);

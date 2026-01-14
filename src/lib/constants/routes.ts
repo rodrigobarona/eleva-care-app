@@ -115,11 +115,20 @@ export const SEO_REDIRECTS = {
 
 /**
  * Check if path needs SEO redirect
+ * Uses startsWith to avoid matching unintended substrings
+ *
  * @returns New path if redirect needed, null otherwise
+ *
+ * @example
+ * ```typescript
+ * getSeoRedirect('/legal/security') // returns '/trust/security'
+ * getSeoRedirect('/blog/legal/security-tips') // returns null (no false positive)
+ * ```
  */
 export function getSeoRedirect(path: string): string | null {
   for (const [oldPath, newPath] of Object.entries(SEO_REDIRECTS)) {
-    if (path.includes(oldPath)) {
+    // Use startsWith to only match exact path beginnings, not substrings
+    if (path.startsWith(oldPath)) {
       return path.replace(oldPath, newPath);
     }
   }
@@ -150,19 +159,33 @@ export const STATIC_FILE_PATTERNS = [
 ] as const;
 
 /**
- * API route patterns to skip authentication
- * Note: Novu bridge moved to /api/webhooks/novu (covered by /api/webhooks/ pattern)
+ * API route patterns to skip proxy-level authentication
+ *
+ * IMPORTANT: These routes bypass AuthKit middleware but must have their own security:
+ *
+ * - `/api/webhooks/` - Verified via webhook signatures (Stripe, WorkOS, etc.)
+ * - `/api/cron/` - Verified via QStash signatures in route handlers
+ * - `/api/qstash/` - Verified via QStash signatures in route handlers
+ * - `/api/internal/` - Protected by INTERNAL_ADMIN_KEY in route handlers
+ * - `/api/healthcheck` - Public health check (no sensitive data)
+ * - `/api/health/` - Public service health (no sensitive data)
+ * - `/api/create-payment-intent` - Protected by BotID + rate limiting + input validation
+ * - `/api/og/` - Public OG image generation (required for social media crawlers)
+ * - `/api/search` - Public documentation search
+ * - `/monitoring` - Sentry tunnel route (internal monitoring)
+ * - `/llms-full.txt` - Public LLM documentation
+ * - `/llms.mdx/` - Public LLM MDX content negotiation
  */
 export const SKIP_AUTH_API_PATTERNS = [
-  '/api/webhooks/',
-  '/api/cron/',
-  '/api/qstash/',
-  '/api/internal/',
-  '/api/healthcheck',
-  '/api/health/',
-  '/api/create-payment-intent',
-  '/api/og/',
-  '/api/search', // Documentation search API
+  '/api/webhooks/', // Signature-verified webhooks
+  '/api/cron/', // QStash signature verification in handlers
+  '/api/qstash/', // QStash signature verification in handlers
+  '/api/internal/', // INTERNAL_ADMIN_KEY verification in handlers
+  '/api/healthcheck', // Public health endpoint
+  '/api/health/', // Public service health endpoints
+  '/api/create-payment-intent', // BotID + rate limiting protection
+  '/api/og/', // Public for social media crawlers
+  '/api/search', // Public documentation search API
   '/monitoring', // Sentry tunnel route - must skip auth and i18n
   '/llms-full.txt', // LLM full documentation route (Fumadocs)
   '/llms.mdx/', // LLM MDX routes (Fumadocs content negotiation)

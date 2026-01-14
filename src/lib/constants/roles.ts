@@ -1,80 +1,36 @@
 /**
- * Role Definitions
+ * Route Patterns for Proxy Middleware RBAC
  *
- * This file centralizes all role names and groupings used throughout the application.
- * Use these constants instead of hardcoded strings to ensure consistency.
+ * This file defines route patterns for role-based access control in the proxy middleware.
+ * Uses glob patterns like `/admin(.*)` for path matching.
+ *
+ * **For role and permission definitions, use:**
+ * - `@/types/workos-rbac.ts` - WorkOS RBAC roles and permissions
+ *
+ * @see src/types/workos-rbac.ts - WorkOS role and permission definitions
+ * @see src/proxy.ts - Middleware that uses these route patterns
+ * @see src/lib/constants/routes.ts - Segment-based route helpers
  */
 
-// Individual Role Names
-export const ROLE_USER = 'user' as const;
-export const ROLE_TOP_EXPERT = 'expert_top' as const;
-export const ROLE_COMMUNITY_EXPERT = 'expert_community' as const;
-export const ROLE_LECTURER = 'expert_lecturer' as const;
-export const ROLE_ADMIN = 'admin' as const;
-export const ROLE_SUPERADMIN = 'superadmin' as const;
-
-// Complete list of roles
-export const ALL_ROLES = [
-  ROLE_USER,
-  ROLE_TOP_EXPERT,
-  ROLE_COMMUNITY_EXPERT,
-  ROLE_LECTURER,
-  ROLE_ADMIN,
-  ROLE_SUPERADMIN,
-] as const;
-
-// Role groupings for common use cases
-export const ADMIN_ROLES = [ROLE_ADMIN, ROLE_SUPERADMIN] as const;
-export const EXPERT_ROLES = [
-  ROLE_TOP_EXPERT,
-  ROLE_COMMUNITY_EXPERT,
-  ROLE_ADMIN,
-  ROLE_SUPERADMIN,
-] as const;
-
-// Route definitions for role-based access control
-export const PUBLIC_ROUTES = [
-  // Public pages
-  '/',
-  '/login(.*)',
-  '/register(.*)',
-  '/unauthorized(.*)',
-  '/about',
-  '/history',
-  '/profile/:username', // Public expert profiles (e.g., /profile/barona)
-  '/profile/:username/(.*)', // Public routes under usernames (e.g., /profile/barona/event-name)
-  '/legal/(.*)', // Legal pages (privacy policy, terms, etc.)
-  '/explore',
-  '/experts/:path*',
-  '/blog/:path*',
-  '/contact',
-  '/favicon.ico',
-  '/robots.txt',
-  '/sitemap.xml',
-
-  // Public API endpoints
-  '/api/webhooks/stripe(.*)', // Stripe webhooks (payments, subscriptions)
-  '/api/webhooks/stripe-identity(.*)', // Stripe Identity verification webhooks
-  '/api/webhooks/stripe-connect(.*)', // Stripe Connect webhooks (connect accounts)
-  '/api/webhooks/clerk(.*)', // Clerk webhooks (user events, auth events)
-  '/api/keep-alive', // Health check endpoint
-  '/api/og/image(.*)', // OG image generation (must be public for social media)
-
-  // TEMPORARY FIX: Make cron endpoints public until UpStash authentication is working properly
-  '/api/cron/check-upcoming-payouts',
-  '/api/cron/process-expert-transfers',
-  '/api/cron/process-tasks',
-] as const;
-
+/**
+ * Admin routes - require admin role (WORKOS_ROLES.SUPERADMIN)
+ *
+ * Access is verified in proxy.ts using JWT role claims.
+ */
 export const ADMIN_ROUTES = [
   // Admin pages
   '/admin(.*)',
 
   // Admin API endpoints
   '/api/admin(.*)',
-  '/api/categories(.*)', // To manage categories experts
+  '/api/categories(.*)', // Category management (admin only)
 ] as const;
 
+/**
+ * Expert routes - require expert role (EXPERT_COMMUNITY or EXPERT_TOP)
+ *
+ * Access is verified in proxy.ts using JWT role claims.
+ */
 export const EXPERT_ROUTES = [
   // Expert pages
   '/booking(.*)',
@@ -85,18 +41,18 @@ export const EXPERT_ROUTES = [
   // Expert API endpoints
   '/api/expert(.*)',
   '/api/appointments(.*)',
-  '/api/customers(.*)', // Unified customer API endpoints
-  '/api/records(.*)',
-  '/api/meetings(.*)',
-  '/api/customers(.*)',
-  '/api/stripe(.*)', // Expert stripe connect operations
+  '/api/customers(.*)', // Customer management
+  '/api/records(.*)', // Medical records
+  '/api/meetings(.*)', // Meeting management
+  '/api/stripe(.*)', // Stripe Connect operations
 ] as const;
 
+/**
+ * Special auth routes - use custom authentication (not AuthKit)
+ *
+ * These routes bypass AuthKit middleware but have their own security:
+ * - Cron jobs: QStash signature verification in route handlers
+ */
 export const SPECIAL_AUTH_ROUTES = [
-  '/api/cron(.*)', // Cron jobs (requires API key)
-
-  // Explicit cron job paths - added for direct access by UpStash
-  '/api/cron/check-upcoming-payouts',
-  '/api/cron/process-expert-transfers',
-  '/api/cron/process-tasks',
+  '/api/cron(.*)', // Cron jobs (verified via QStash signatures)
 ] as const;

@@ -1,74 +1,104 @@
+/**
+ * Client-side Role Management
+ *
+ * For role and permission definitions, use WorkOS RBAC:
+ * @see src/types/workos-rbac.ts
+ *
+ * For route patterns used in proxy middleware:
+ * @see src/lib/constants/roles.ts
+ */
+import { ADMIN_ROUTES, EXPERT_ROUTES, SPECIAL_AUTH_ROUTES } from '@/lib/constants/roles';
 import {
   ADMIN_ROLES,
-  ADMIN_ROUTES,
-  ALL_ROLES,
   EXPERT_ROLES,
-  EXPERT_ROUTES,
-  PUBLIC_ROUTES,
-  ROLE_ADMIN,
-  ROLE_COMMUNITY_EXPERT,
-  ROLE_LECTURER,
-  ROLE_SUPERADMIN,
-  ROLE_TOP_EXPERT,
-  ROLE_USER,
-  SPECIAL_AUTH_ROUTES,
-} from '@/lib/constants/roles';
+  WORKOS_ROLE_HIERARCHY,
+  WORKOS_ROLES,
+  type WorkOSRole,
+} from '@/types/workos-rbac';
 
-// Common types and constants
-export type UserRole =
-  | typeof ROLE_USER
-  | typeof ROLE_TOP_EXPERT
-  | typeof ROLE_COMMUNITY_EXPERT
-  | typeof ROLE_LECTURER
-  | typeof ROLE_ADMIN
-  | typeof ROLE_SUPERADMIN;
+// Re-export types and constants
+export type { WorkOSRole };
 
-export type UserRoles = UserRole | UserRole[];
+/**
+ * @deprecated Use WorkOSRole instead
+ */
+export type UserRole = WorkOSRole;
 
-export const ROLES = ALL_ROLES;
+export { WORKOS_ROLES, ADMIN_ROLES, EXPERT_ROLES };
 
-// Re-export constants for backward compatibility
-export {
-  ROLE_USER,
-  ROLE_TOP_EXPERT,
-  ROLE_COMMUNITY_EXPERT,
-  ROLE_LECTURER,
-  ROLE_ADMIN,
-  ROLE_SUPERADMIN,
-  ADMIN_ROLES,
-  EXPERT_ROLES,
-  PUBLIC_ROUTES,
-  ADMIN_ROUTES,
-  EXPERT_ROUTES,
-  SPECIAL_AUTH_ROUTES,
-};
+/**
+ * All available roles for UI selection
+ */
+export const ROLES = Object.values(WORKOS_ROLES);
 
-// Role priority for UI purposes
-export const ROLE_PRIORITY: Record<UserRole, number> = {
-  [ROLE_SUPERADMIN]: 6,
-  [ROLE_ADMIN]: 5,
-  [ROLE_TOP_EXPERT]: 4,
-  [ROLE_COMMUNITY_EXPERT]: 3,
-  [ROLE_LECTURER]: 2,
-  [ROLE_USER]: 1,
-};
+// Re-export route patterns
+export { ADMIN_ROUTES, EXPERT_ROUTES, SPECIAL_AUTH_ROUTES };
 
-// Client-side role management
-export async function getUserRole(userId: string): Promise<UserRoles> {
-  const response = await fetch(`/api/users/${userId}/roles`);
-  const data = await response.json();
-  return data.role;
+// Role priority for UI purposes (matches WORKOS_ROLE_HIERARCHY)
+export const ROLE_PRIORITY = WORKOS_ROLE_HIERARCHY;
+
+/**
+ * Result type for getUserRole with proper error handling
+ */
+export type GetUserRoleResult =
+  | { success: true; role: WorkOSRole }
+  | { success: false; error: string };
+
+/**
+ * Result type for updateUserRole with proper error handling
+ */
+export type UpdateUserRoleResult = { success: true } | { success: false; error: string };
+
+/**
+ * Client-side function to get user role with proper error handling
+ */
+export async function getUserRole(userId: string): Promise<GetUserRoleResult> {
+  try {
+    const response = await fetch(`/api/users/${userId}/roles`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error:
+          errorData.message || `Failed to fetch role: ${response.status} ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+    return { success: true, role: data.role };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error fetching role',
+    };
+  }
 }
 
-export async function updateUserRole(userId: string, roles: UserRoles): Promise<void> {
-  const response = await fetch(`/api/users/${userId}/roles`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ roles }),
-  });
+/**
+ * Client-side function to update user role with structured error handling
+ */
+export async function updateUserRole(
+  userId: string,
+  role: WorkOSRole,
+): Promise<UpdateUserRoleResult> {
+  try {
+    const response = await fetch(`/api/users/${userId}/roles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to update role');
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      return { success: false, error: error.message || 'Failed to update role' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error updating role',
+    };
   }
 }

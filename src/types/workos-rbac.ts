@@ -64,7 +64,7 @@ export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
 export const PARTNER_ROLES = [WORKOS_ROLES.PARTNER_MEMBER, WORKOS_ROLES.PARTNER_ADMIN] as const;
 
 // ============================================================================
-// PERMISSIONS (89 total)
+// PERMISSIONS (121 total)
 // ============================================================================
 
 /**
@@ -340,12 +340,20 @@ export function hasHigherOrEqualRole(roleA: string, roleB: string): boolean {
 // ROLE DISPLAY NAMES
 // ============================================================================
 
+/**
+ * User-facing display names for roles
+ *
+ * Note: Technical roles use "partner_*" prefix (WorkOS RBAC),
+ * but users see "Workspace" terminology (product branding).
+ *
+ * @see _docs/02-core-systems/NAMING-CONVENTIONS-GLOSSARY.md
+ */
 export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.PATIENT]: 'Patient',
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 'Community Expert',
   [WORKOS_ROLES.EXPERT_TOP]: 'Top Expert',
-  [WORKOS_ROLES.PARTNER_MEMBER]: 'Partner Member',
-  [WORKOS_ROLES.PARTNER_ADMIN]: 'Partner Admin',
+  [WORKOS_ROLES.PARTNER_MEMBER]: 'Workspace Member',
+  [WORKOS_ROLES.PARTNER_ADMIN]: 'Workspace Admin',
   [WORKOS_ROLES.SUPERADMIN]: 'Platform Admin',
 };
 
@@ -353,8 +361,8 @@ export const WORKOS_ROLE_DESCRIPTIONS: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.PATIENT]: 'Book appointments and access patient features',
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 'Standard expert with core features',
   [WORKOS_ROLES.EXPERT_TOP]: 'Premium expert with analytics and branding',
-  [WORKOS_ROLES.PARTNER_MEMBER]: 'Team member of a partner organization',
-  [WORKOS_ROLES.PARTNER_ADMIN]: 'Administrator of a partner organization',
+  [WORKOS_ROLES.PARTNER_MEMBER]: 'Team member of a workspace',
+  [WORKOS_ROLES.PARTNER_ADMIN]: 'Administrator of a workspace',
   [WORKOS_ROLES.SUPERADMIN]: 'Full platform access',
 };
 
