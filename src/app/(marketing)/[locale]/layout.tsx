@@ -90,10 +90,11 @@ export default async function MarketingLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   // Combined: i18n provider + marketing layout (header/footer)
+  // ID="eleva-care-marketing" is used by globals.css for scroll-margin-top offset
   return (
     <IntlProvider locale={locale} messages={messages}>
       <SmoothScrollProvider>
-        <div className="relative overflow-hidden">
+        <div id="eleva-care-marketing" className="relative overflow-hidden">
           <Header />
           {children}
           <Footer />

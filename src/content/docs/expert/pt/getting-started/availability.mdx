@@ -1,0 +1,201 @@
+---
+title: Gerir Disponibilidade
+description: Configure as suas horas de trabalho, sincronização de calendário e definições de consultas.
+---
+
+# Gerir Disponibilidade
+
+A sua disponibilidade determina quando os pacientes podem marcar consultas. Configure o seu horário para equilibrar o acesso dos pacientes com as suas necessidades de vida-trabalho.
+
+## Definições de Disponibilidade
+
+### Horário Semanal
+
+Defina a sua disponibilidade semanal recorrente:
+
+1. Vá a **Painel do Especialista** > **Disponibilidade**
+2. Clique em cada dia para adicionar intervalos de tempo
+3. Defina horas de início e fim
+4. Guarde o seu horário
+
+**Exemplo de Horário:**
+
+| Dia | Disponibilidade |
+|-----|-----------------|
+| Segunda | 9:00 - 13:00, 14:00 - 18:00 |
+| Terça | 9:00 - 13:00 |
+| Quarta | 14:00 - 20:00 |
+| Quinta | 9:00 - 13:00, 14:00 - 18:00 |
+| Sexta | 9:00 - 12:00 |
+| Sábado | Indisponível |
+| Domingo | Indisponível |
+
+### Fuso Horário
+
+O seu fuso horário é crucial para pacientes internacionais:
+
+1. Vá a **Definições** > **Fuso Horário**
+2. Selecione o seu fuso horário
+3. Toda a disponibilidade é exibida neste fuso horário
+4. Os pacientes veem os horários no seu fuso horário local
+
+<Callout type="info">
+  Os pacientes veem sempre os horários das consultas no seu fuso horário local, mas o seu painel mostra o seu fuso horário.
+</Callout>
+
+## Integração de Calendário
+
+### Sincronização com Google Calendar
+
+Conecte o seu Google Calendar para sincronização bidirecional:
+
+1. Vá a **Integrações** > **Google Calendar**
+2. Clique em **Conectar**
+3. Autorize o acesso da Eleva Care
+4. Selecione calendários para sincronizar
+
+**Benefícios:**
+- Bloqueio automático de eventos existentes
+- Consultas aparecem no seu Google Calendar
+- Previne marcações duplas
+- Atualizações em tempo real
+
+### Como Funciona a Sincronização
+
+| Direção | O Que Sincroniza |
+|---------|------------------|
+| Google → Eleva | Eventos bloqueiam a sua disponibilidade |
+| Eleva → Google | Novas marcações aparecem no seu calendário |
+
+<Callout type="warning">
+  **Nota de Privacidade**: Apenas lemos horários de eventos e estado livre/ocupado. Não acedemos a detalhes de eventos ou participantes do seu calendário pessoal.
+</Callout>
+
+## Definições de Consultas
+
+### Aviso Mínimo
+
+Defina com quanta antecedência os pacientes devem marcar:
+
+| Definição | Caso de Uso |
+|-----------|-------------|
+| 1 hora | Máxima flexibilidade, marcações de última hora |
+| 24 horas | Standard - tempo para preparar |
+| 48 horas | Mais tempo de preparação |
+| 1 semana | Consultas complexas |
+
+### Tempo de Buffer
+
+Adicione tempo de buffer entre consultas:
+
+- **Antes**: Tempo para preparar
+- **Depois**: Tempo para notas e pausas
+
+**Exemplo**: 15 minutos de buffer antes e depois garante que nunca está apressado.
+
+### Marcação com Antecedência Máxima
+
+Com que antecedência podem os pacientes marcar?
+
+- 1 semana: Disponibilidade limitada
+- 2 semanas: Standard
+- 1 mês: Disponibilidade alargada
+- 3 meses: Máxima flexibilidade
+
+## Exceções de Data
+
+### Bloquear Datas Específicas
+
+Para férias ou dias de folga:
+
+1. Vá a **Disponibilidade** > **Exceções de Data**
+2. Clique em **Adicionar Exceção**
+3. Selecione a(s) data(s)
+4. Marque como **Indisponível**
+5. Guarde
+
+### Adicionar Disponibilidade Extra
+
+Para ocasiões especiais:
+
+1. Adicione uma exceção de data
+2. Defina horários personalizados para esse dia
+3. Substitui o seu horário semanal
+
+## Gerir Marcações Existentes
+
+### Quando Precisa de Cancelar
+
+Se precisar de cancelar uma consulta existente:
+
+1. Vá a **Consultas**
+2. Selecione a consulta
+3. Clique em **Cancelar**
+4. Forneça um motivo
+5. O paciente é automaticamente reembolsado
+
+<Callout type="warning">
+  Cancelar consultas afeta a sua pontuação de fiabilidade e pode impactar a elegibilidade para Top Expert.
+</Callout>
+
+### Reagendar
+
+Para reagendar uma consulta:
+
+1. Contacte o paciente através da plataforma
+2. Acordem um novo horário
+3. Cancele a consulta original
+4. O paciente marca o novo horário
+
+## Melhores Práticas
+
+### Consistência
+
+- Defina horários regulares em que os pacientes possam confiar
+- Atualize a disponibilidade com pelo menos 2 semanas de antecedência
+- Comunique alterações prontamente
+
+### Agendamento Realista
+
+- Não se sobrecarregue
+- Inclua tempo para pausas e notas
+- Considere diferentes tipos de consultas
+
+### Consciência de Fuso Horário
+
+- Considere a sua base de pacientes-alvo
+- Ofereça horários à noite para pacientes que trabalham
+- Lembre-se das diferenças horárias para pacientes internacionais
+
+## Resolução de Problemas
+
+### Consultas Não Aparecem
+
+- Verifique o estado da sincronização do calendário
+- Verifique as definições de fuso horário
+- Garanta que o serviço está ativo
+- Verifique os requisitos de aviso mínimo
+
+### Marcações Duplas
+
+- Ative a sincronização com o Google Calendar
+- Adicione tempo de buffer entre consultas
+- Reveja as definições de disponibilidade
+
+### Problemas de Sincronização
+
+1. Desconecte o Google Calendar
+2. Reconecte com autorização nova
+3. Verifique as definições de intervalo de sincronização
+
+## Próximos Passos
+
+<Cards>
+  <Card title="Compreender Ganhos" href="/docs/expert/earnings/payouts">
+    Saiba sobre processamento de pagamentos
+  </Card>
+  <Card title="Tornar-se Top Expert" href="/docs/expert/top-expert/requirements">
+    Veja o que é preciso para ganhar estatuto Top Expert
+  </Card>
+</Cards>
+
