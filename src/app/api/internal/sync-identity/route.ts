@@ -4,11 +4,26 @@ import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
+/**
+ * Internal endpoint to sync identity verification to Stripe Connect.
+ * Requires INTERNAL_ADMIN_KEY for authentication.
+ *
+ * Required query parameters:
+ * - workosUserId: The WorkOS user ID of the user
+ * - adminKey: A secret key to prevent unauthorized access (must match INTERNAL_ADMIN_KEY env var)
+ */
 export async function POST(request: Request) {
   try {
-    // Get the clerk user ID from the query parameter
+    // Get the clerk user ID and admin key from the query parameter
     const url = new URL(request.url);
     const workosUserId = url.searchParams.get('workosUserId');
+    const adminKey = url.searchParams.get('adminKey');
+
+    // Validate admin key to prevent unauthorized access
+    if (!adminKey || adminKey !== process.env.INTERNAL_ADMIN_KEY) {
+      console.warn('Unauthorized access attempt to /api/internal/sync-identity');
+      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
+    }
 
     if (!workosUserId) {
       return NextResponse.json({ error: 'Missing workosUserId parameter' }, { status: 400 });
