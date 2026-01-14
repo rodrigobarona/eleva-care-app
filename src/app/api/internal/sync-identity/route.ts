@@ -5,6 +5,17 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 /**
+ * Mask email for GDPR/CCPA compliant logging
+ * e.g., "user@example.com" → "us***@example.com"
+ */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const maskedLocal = local.length > 2 ? `${local.slice(0, 2)}***` : '***';
+  return `${maskedLocal}@${domain}`;
+}
+
+/**
  * Internal endpoint to sync identity verification to Stripe Connect.
  * Requires INTERNAL_ADMIN_KEY for authentication.
  *
@@ -38,10 +49,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Log with masked email for GDPR/CCPA compliance
     console.log('Syncing identity verification for user:', {
       workosUserId,
       userId: user.id,
-      email: user.email,
+      email: maskEmail(user.email),
       hasIdentityVerification: !!user.stripeIdentityVerificationId,
       isVerified: !!user.stripeIdentityVerified,
     });
@@ -49,6 +61,7 @@ export async function POST(request: Request) {
     // Call the sync function
     const result = await syncIdentityVerificationToConnect(workosUserId);
 
+    // Note: Email included in response for admin use (this is an internal endpoint)
     return NextResponse.json({
       success: result.success,
       message: result.message,
