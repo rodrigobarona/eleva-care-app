@@ -1,11 +1,21 @@
 import { db } from '@/drizzle/db';
 import { RolesTable, UsersTable } from '@/drizzle/schema';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
-import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';
+import type { ApiResponse, ApiUser } from '@/types/api';
 import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, ilike, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** All valid WorkOS role values for Zod enum */
+const VALID_ROLES = Object.values(WORKOS_ROLES) as [string, ...string[]];
+
+/** Zod schema for role update request */
+const updateRoleSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  role: z.enum(VALID_ROLES, { errorMap: () => ({ message: 'Invalid role specified' }) }),
+});
 
 const ITEMS_PER_PAGE = 10;
 
@@ -135,8 +145,21 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { userId: targetUserId, role } = (await req.json()) as UpdateRoleRequest;
-    await updateUserRole(targetUserId, role);
+    const body = await req.json();
+    const parsed = updateRoleSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: parsed.error.errors[0]?.message || 'Validation failed',
+        } as ApiResponse<null>,
+        { status: 400 },
+      );
+    }
+
+    const { userId: targetUserId, role } = parsed.data;
+    await updateUserRole(targetUserId, role as WorkOSRole);
 
     return NextResponse.json({
       success: true,

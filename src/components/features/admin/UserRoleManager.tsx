@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ROLES, updateUserRole } from '@/lib/auth/roles';
-import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
+import { WORKOS_ROLE_DISPLAY_NAMES, WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -71,7 +71,7 @@ function RoleSelector({ user, isSuperAdmin, isLoading, onRoleUpdate }: RoleSelec
             value={role}
             disabled={role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin}
           >
-            {role}
+            {WORKOS_ROLE_DISPLAY_NAMES[role] || role}
             {role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin && ' (Requires superadmin)'}
           </SelectItem>
         ))}

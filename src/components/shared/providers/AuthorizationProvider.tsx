@@ -1,12 +1,5 @@
 'use client';
 
-/**
- * Authorization Provider - WorkOS Version
- *
- * Provides role-based access control for client components.
- * Fetches user roles from the database via API.
- * Uses WorkOS's built-in useAuth hook.
- */
 import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { redirect } from 'next/navigation';
@@ -25,6 +18,26 @@ const AuthorizationContext = createContext<AuthorizationContextType>({
   isLoading: true,
 });
 
+/**
+ * Authorization Provider - WorkOS Version
+ *
+ * Provides role-based access control for client components.
+ * Fetches user roles from the database via API and exposes them via context.
+ * Uses WorkOS's built-in useAuth hook for authentication state.
+ *
+ * @example
+ * // Wrap your app or layout with the provider
+ * <AuthorizationProvider>
+ *   <App />
+ * </AuthorizationProvider>
+ *
+ * // Then use the hooks in child components
+ * function AdminPanel() {
+ *   const isAdmin = useIsAdmin();
+ *   if (!isAdmin) return null;
+ *   return <AdminDashboard />;
+ * }
+ */
 export function AuthorizationProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [roles, setRoles] = useState<WorkOSRole[]>([]);
@@ -86,26 +99,72 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
   );
 }
 
+/**
+ * Hook to access the authorization context
+ *
+ * @returns Authorization context with roles, hasRole function, and loading state
+ * @example
+ * const { roles, hasRole, isLoading } = useAuthorization();
+ * if (hasRole(WORKOS_ROLES.SUPERADMIN)) {
+ *   // Show admin content
+ * }
+ */
 export function useAuthorization() {
   return useContext(AuthorizationContext);
 }
 
-// Client-side role helper hooks
+/**
+ * Hook to check if the current user is a superadmin
+ *
+ * @returns boolean indicating if user has superadmin role
+ * @example
+ * const isAdmin = useIsAdmin();
+ * if (isAdmin) {
+ *   return <AdminDashboard />;
+ * }
+ */
 export function useIsAdmin(): boolean {
   const { hasRole } = useAuthorization();
   return hasRole(WORKOS_ROLES.SUPERADMIN);
 }
 
+/**
+ * Hook to check if the current user is any type of expert
+ *
+ * @returns boolean indicating if user has expert_community or expert_top role
+ * @example
+ * const isExpert = useIsExpert();
+ * if (isExpert) {
+ *   return <ExpertDashboard />;
+ * }
+ */
 export function useIsExpert(): boolean {
   const { hasRole } = useAuthorization();
   return hasRole([WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_TOP]);
 }
 
+/**
+ * Hook to check if the current user is a top expert
+ *
+ * @returns boolean indicating if user has expert_top role
+ * @example
+ * const isTopExpert = useIsTopExpert();
+ * if (isTopExpert) {
+ *   return <PremiumAnalytics />;
+ * }
+ */
 export function useIsTopExpert(): boolean {
   const { hasRole } = useAuthorization();
   return hasRole(WORKOS_ROLES.EXPERT_TOP);
 }
 
+/**
+ * Hook to check if the current user is a community expert
+ *
+ * @returns boolean indicating if user has expert_community role
+ * @example
+ * const isCommunityExpert = useIsCommunityExpert();
+ */
 export function useIsCommunityExpert(): boolean {
   const { hasRole } = useAuthorization();
   return hasRole(WORKOS_ROLES.EXPERT_COMMUNITY);

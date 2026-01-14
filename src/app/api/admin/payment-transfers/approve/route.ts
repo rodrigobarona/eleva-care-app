@@ -8,6 +8,12 @@ import { RateLimitCache } from '@/lib/redis/manager';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** Zod schema for transfer approval request */
+const approveTransferSchema = z.object({
+  transferId: z.number({ required_error: 'Transfer ID is required' }),
+});
 
 // Admin financial operations rate limiting (very strict)
 const ADMIN_APPROVAL_RATE_LIMITS = {
@@ -201,14 +207,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { transferId } = await request.json();
+    const body = await request.json();
+    const parseResult = approveTransferSchema.safeParse(body);
 
-    if (!transferId || typeof transferId !== 'number') {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request. Transfer ID is required and must be a number.' },
+        {
+          error: 'Invalid request',
+          details: parseResult.error.flatten().fieldErrors,
+        },
         { status: 400 },
       );
     }
+
+    const { transferId } = parseResult.data;
 
     // Check if the transfer exists and is in the correct status
     const transfer = await db.query.PaymentTransfersTable.findFirst({
@@ -277,8 +289,13 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Error approving transfer:', error);
+    // Sanitize error details in production to avoid leaking sensitive info
+    const isDev = process.env.NODE_ENV === 'development';
     return NextResponse.json(
-      { error: 'Failed to approve transfer', details: (error as Error).message },
+      {
+        error: 'Failed to approve transfer',
+        ...(isDev && { details: (error as Error).message }),
+      },
       { status: 500 },
     );
   }

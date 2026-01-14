@@ -6,23 +6,22 @@
  * For role and permission definitions, use WorkOS RBAC:
  * @see src/types/workos-rbac.ts
  */
-
 import { db } from '@/drizzle/db';
 import { RolesTable } from '@/drizzle/schema';
-import {
-  ADMIN_ROLES,
-  EXPERT_ROLES,
-  WORKOS_ROLES,
-  type WorkOSRole,
-} from '@/types/workos-rbac';
+import { ADMIN_ROLES, EXPERT_ROLES, WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
+
+/** Set of valid WorkOS roles for runtime validation */
+const VALID_ROLES = new Set<string>(Object.values(WORKOS_ROLES));
 
 /**
  * Get user roles from database by WorkOS user ID
  *
  * Use this when you need to fetch a specific user's roles (not the current user).
  * For current user's roles, use getUserRole() instead.
+ *
+ * Includes runtime validation to filter out invalid roles from database.
  */
 export async function getUserRolesFromDB(workosUserId: string): Promise<WorkOSRole[]> {
   const userRoles = await db
@@ -30,7 +29,8 @@ export async function getUserRolesFromDB(workosUserId: string): Promise<WorkOSRo
     .from(RolesTable)
     .where(eq(RolesTable.workosUserId, workosUserId));
 
-  return userRoles.map((r) => r.role as WorkOSRole);
+  // Runtime validation: filter out any invalid roles from database
+  return userRoles.map((r) => r.role).filter((role): role is WorkOSRole => VALID_ROLES.has(role));
 }
 
 /**
@@ -121,9 +121,10 @@ export async function isCommunityExpert(): Promise<boolean> {
  */
 const ROLE_PRIORITY: WorkOSRole[] = [
   WORKOS_ROLES.PATIENT,
+  WORKOS_ROLES.PARTNER_MEMBER,
   WORKOS_ROLES.EXPERT_COMMUNITY,
   WORKOS_ROLES.EXPERT_TOP,
-  WORKOS_ROLES.PARTNER,
+  WORKOS_ROLES.PARTNER_ADMIN,
   WORKOS_ROLES.SUPERADMIN,
 ];
 
@@ -178,11 +179,6 @@ export async function updateUserRole(workosUserId: string, role: WorkOSRole): Pr
 
   if (!isSuperAdmin) {
     throw new Error('Insufficient permissions - only superadmins can update roles');
-  }
-
-  // Only superadmins can assign the superadmin role
-  if (role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin) {
-    throw new Error('Only superadmins can assign the superadmin role');
   }
 
   // Use a transaction to ensure atomic delete+insert

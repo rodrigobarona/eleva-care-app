@@ -1,8 +1,18 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
+import { timingSafeEqual } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ * Returns false if strings have different lengths or content
+ */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 /**
  * Mask email for GDPR/CCPA compliant logging
@@ -31,10 +41,10 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization');
     const adminKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-    // Validate admin key to prevent unauthorized access
-    // Ensure env var is defined and non-empty before comparing
+    // Validate admin key to prevent unauthorized access using timing-safe comparison
+    // Ensures env var is defined and non-empty before comparing
     const expectedKey = process.env.INTERNAL_ADMIN_KEY;
-    if (!expectedKey || !adminKey || adminKey !== expectedKey) {
+    if (!expectedKey || !adminKey || !safeCompare(adminKey, expectedKey)) {
       console.warn('Unauthorized access attempt to /api/internal/sync-identity');
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }

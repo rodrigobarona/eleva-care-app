@@ -1,8 +1,20 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
+import { hasRole } from '@/lib/auth/roles.server';
 import type { ApiResponse } from '@/types/api';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** Zod schema for category creation/update */
+const categorySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  description: z.string().nullable().optional(),
+  image: z.string().nullable().optional(),
+  parentId: z.string().nullable().optional(),
+});
 
 /**
  * GET - List all categories
@@ -34,6 +46,22 @@ export async function GET() {
  * Note: Admin authorization is handled by the proxy middleware
  */
 export async function POST(request: Request) {
+  // Defense-in-depth: verify admin even though proxy should enforce this
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' } as ApiResponse<null>,
+      { status: 401 },
+    );
+  }
+  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isSuperAdmin) {
+    return NextResponse.json(
+      { success: false, error: 'Forbidden' } as ApiResponse<null>,
+      { status: 403 },
+    );
+  }
+
   // 🛡️ BotID Protection: Check for bot traffic before admin operations
   const botVerification = (await checkBotId({
     advancedOptions: {
@@ -58,20 +86,24 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
-    const image = formData.get('image') as string;
-    const parentId = formData.get('parentId') as string;
+    const parsed = categorySchema.safeParse({
+      name: formData.get('name'),
+      description: formData.get('description'),
+      image: formData.get('image'),
+      parentId: formData.get('parentId'),
+    });
 
-    if (!name) {
+    if (!parsed.success) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Name is required',
+          error: parsed.error.errors[0]?.message || 'Validation failed',
         } as ApiResponse<null>,
         { status: 400 },
       );
     }
+
+    const { name, description, image, parentId } = parsed.data;
 
     const newCategory = (await db
       .insert(CategoriesTable)

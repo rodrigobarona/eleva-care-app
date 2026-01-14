@@ -7,8 +7,8 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Helper function to check if user is admin (superadmin in WorkOS RBAC)
-async function isAdmin(_userId: string) {
+/** Helper function to check if current user is admin (superadmin in WorkOS RBAC) */
+async function isAdmin() {
   return await hasRole(WORKOS_ROLES.SUPERADMIN);
 }
 
@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(userId))) {
+    if (!(await isAdmin())) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(userId))) {
+    if (!(await isAdmin())) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
