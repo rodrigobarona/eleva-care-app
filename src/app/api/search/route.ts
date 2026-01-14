@@ -82,5 +82,4 @@ function buildUnifiedIndexes() {
 export const { GET } = createSearchAPI('advanced', {
   indexes: buildUnifiedIndexes(),
   language: 'english', // Default language for search algorithm
-  tag: true, // Enable tag filtering
 });
