@@ -1,3 +1,11 @@
+/**
+ * Admin Payments Page
+ *
+ * Admin-only page for managing and monitoring expert payment transfers.
+ * Supports filtering, sorting, and paginated display of payment records.
+ *
+ * Authorization: Requires superadmin role (enforced by admin layout + proxy)
+ */
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { Suspense } from 'react';
 
@@ -5,6 +13,12 @@ import { PaymentTransfersClient } from './payment-transfers-client';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
+/**
+ * Payment transfers management page for administrators
+ *
+ * @param searchParams - URL search parameters for filtering and pagination
+ * @returns Payment transfers table with filters and pagination
+ */
 export default async function PaymentTransfersPage({
   searchParams,
 }: {
@@ -49,7 +63,12 @@ export default async function PaymentTransfersPage({
   );
 }
 
-// Server component to fetch and display payment transfers
+/**
+ * Server component to fetch and display payment transfers
+ *
+ * @param queryParams - Query string for filtering and pagination
+ * @returns Payment transfers list or error message
+ */
 async function PaymentTransfersList({ queryParams }: { queryParams: string }) {
   // Admin auth is handled by layout, just fetch the data
   // Fetch payment transfers data
@@ -76,7 +95,11 @@ async function PaymentTransfersList({ queryParams }: { queryParams: string }) {
   return <PaymentTransfersClient data={data} />;
 }
 
-// Loading state component
+/**
+ * Loading skeleton for payment transfers list
+ *
+ * Displayed via Suspense while data is being fetched.
+ */
 function PaymentTransfersLoading() {
   return (
     <div className="space-y-4">

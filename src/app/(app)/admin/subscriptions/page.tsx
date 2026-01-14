@@ -1,3 +1,11 @@
+/**
+ * Admin Subscriptions Page
+ *
+ * Admin-only page for managing Stripe subscription products and pricing.
+ * Displays products in a grid with expandable price management.
+ *
+ * Authorization: Requires superadmin role (enforced by admin layout + proxy)
+ */
 import { listStripeProducts } from '@/server/actions/stripe-pricing';
 import { Metadata } from 'next';
 
@@ -8,6 +16,11 @@ export const metadata: Metadata = {
   description: 'Manage Stripe products and pricing for expert and partner subscriptions',
 };
 
+/**
+ * Subscription management page for administrators
+ *
+ * @returns Products grid with price management interface
+ */
 export default async function SubscriptionsPage() {
   // Fetch products server-side
   const productsResult = await listStripeProducts();

@@ -1,5 +1,15 @@
 'use client';
 
+/**
+ * Payment Transfers Client Component
+ *
+ * Client-side component for displaying and filtering payment transfers.
+ * Features:
+ * - Filterable table with status, date range, and expert filters
+ * - Sortable columns (amount, date, status)
+ * - Pagination with configurable page size
+ * - Direct links to transfer details
+ */
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

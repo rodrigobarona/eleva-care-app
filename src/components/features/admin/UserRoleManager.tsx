@@ -1,5 +1,17 @@
 'use client';
 
+/**
+ * User Role Manager Component
+ *
+ * Admin component for managing user roles via a data table.
+ * Features:
+ * - Displays users with email, name, and current role
+ * - Inline role selection with dropdown
+ * - Optimistic updates with toast notifications
+ * - Superadmin-only role assignment restrictions
+ *
+ * @requires superadmin role to access
+ */
 import { DataTable } from '@/components/shared/data-table/DataTable';
 import { useAuthorization } from '@/components/shared/providers/AuthorizationProvider';
 import {
