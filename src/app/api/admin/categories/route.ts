@@ -64,7 +64,13 @@ export async function POST(request: Request) {
     const parentId = formData.get('parentId') as string;
 
     if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Name is required',
+        } as ApiResponse<null>,
+        { status: 400 },
+      );
     }
 
     const newCategory = (await db
@@ -77,11 +83,17 @@ export async function POST(request: Request) {
       })
       .returning()) as Array<typeof CategoriesTable.$inferSelect>;
 
-    return NextResponse.json(newCategory[0]);
+    return NextResponse.json({
+      success: true,
+      data: newCategory[0],
+    } as ApiResponse<typeof newCategory[0]>);
   } catch (error) {
     console.error('Error creating category:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal Server Error' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal Server Error',
+      } as ApiResponse<null>,
       { status: 500 },
     );
   }
