@@ -11,53 +11,75 @@ Secure your API requests with proper authentication. Eleva Care supports two aut
 
 ### Obtaining Your API Key
 
-1. Log in to your Partner Dashboard
-2. Navigate to **Settings** → **API Access**
-3. Click **Generate API Key**
-4. Copy and securely store your key
+<Steps>
+  <Step>
+    ### Access Dashboard
+
+    Log in to your Partner Dashboard.
+
+  </Step>
+  <Step>
+    ### Navigate to API Settings
+
+    Go to **Settings** → **API Access**.
+
+  </Step>
+  <Step>
+    ### Generate Key
+
+    Click **Generate API Key** and copy it securely.
+
+  </Step>
+</Steps>
 
 <Callout type="warning">
-  **Security**: Your API key grants full access to your organization's data. Never expose it in client-side code or public repositories.
+  **Security**: Your API key grants full access to your organization's data. Never expose it in
+  client-side code or public repositories.
 </Callout>
 
 ### Using API Keys
 
 Include your API key in the `Authorization` header:
 
-```bash
-curl -X GET "https://api.eleva.care/v1/experts" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json"
-```
+<Tabs items={['cURL', 'TypeScript', 'Python']}>
+  <Tab value="cURL">
+    ```bash
+    curl -X GET "https://api.eleva.care/v1/experts" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json"
+    ```
 
-### TypeScript Example
+  </Tab>
+  <Tab value="TypeScript">
+    ```typescript
+    const response = await fetch('https://api.eleva.care/v1/experts', {
+      headers: {
+        Authorization: `Bearer ${process.env.ELEVA_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-```typescript
-const response = await fetch('https://api.eleva.care/v1/experts', {
-  headers: {
-    'Authorization': `Bearer ${process.env.ELEVA_API_KEY}`,
-    'Content-Type': 'application/json',
-  },
-});
+    const data = await response.json();
+    ```
 
-const data = await response.json();
-```
+  </Tab>
+  <Tab value="Python">
+    ```python
+    import requests
 
-### Python Example
+    headers = {
+        'Authorization': f'Bearer {API_KEY}',
+        'Content-Type': 'application/json',
+    }
 
-```python
-import requests
+    response = requests.get(
+        'https://api.eleva.care/v1/experts',
+        headers=headers
+    )
+    ```
 
-headers = {
-    'Authorization': f'Bearer {API_KEY}',
-    'Content-Type': 'application/json',
-}
-
-response = requests.get(
-    'https://api.eleva.care/v1/experts',
-    headers=headers
-)
-```
+  </Tab>
+</Tabs>
 
 ## API Key Scopes
 
@@ -89,18 +111,46 @@ For applications that act on behalf of users, use OAuth 2.0.
 
 ### Authorization Flow
 
-```
-1. User clicks "Connect with Eleva Care"
-2. User is redirected to Eleva Care authorization page
-3. User grants permission
-4. User is redirected back with authorization code
-5. Your app exchanges code for access token
-6. Use access token for API requests
-```
+<Steps>
+  <Step>
+    ### User Initiates
+
+    User clicks "Connect with Eleva Care" in your app.
+
+  </Step>
+  <Step>
+    ### Authorization Page
+
+    User is redirected to Eleva Care authorization page.
+
+  </Step>
+  <Step>
+    ### User Grants Permission
+
+    User reviews and grants requested permissions.
+
+  </Step>
+  <Step>
+    ### Callback
+
+    User is redirected back with authorization code.
+
+  </Step>
+  <Step>
+    ### Token Exchange
+
+    Your app exchanges code for access token.
+
+  </Step>
+  <Step>
+    ### API Access
+
+    Use access token for API requests.
+
+  </Step>
+</Steps>
 
 ### Configuration
-
-Register your application:
 
 ```typescript
 // OAuth configuration
@@ -114,41 +164,59 @@ const oauthConfig = {
 
 ### Authorization Request
 
-Redirect users to authorize your app:
+<Tabs items={['Build URL', 'Token Exchange', 'Refresh Token']}>
+  <Tab value="Build URL">
+    ```typescript
+    const authUrl = new URL('https://auth.eleva.care/oauth/authorize');
+    authUrl.searchParams.set('client_id', CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'read:profile write:bookings');
+    authUrl.searchParams.set('state', generateRandomState());
 
-```typescript
-const authUrl = new URL('https://auth.eleva.care/oauth/authorize');
-authUrl.searchParams.set('client_id', CLIENT_ID);
-authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
-authUrl.searchParams.set('response_type', 'code');
-authUrl.searchParams.set('scope', 'read:profile write:bookings');
-authUrl.searchParams.set('state', generateRandomState());
+    // Redirect user
+    window.location.href = authUrl.toString();
+    ```
 
-// Redirect user
-window.location.href = authUrl.toString();
-```
+  </Tab>
+  <Tab value="Token Exchange">
+    ```typescript
+    const tokenResponse = await fetch('https://auth.eleva.care/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: authorizationCode,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+      }),
+    });
 
-### Token Exchange
+    const { access_token, refresh_token, expires_in } = await tokenResponse.json();
+    ```
 
-Exchange the authorization code for tokens:
+  </Tab>
+  <Tab value="Refresh Token">
+    ```typescript
+    const refreshResponse = await fetch('https://auth.eleva.care/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refresh_token,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+      }),
+    });
+    ```
 
-```typescript
-const tokenResponse = await fetch('https://auth.eleva.care/oauth/token', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',
-  },
-  body: new URLSearchParams({
-    grant_type: 'authorization_code',
-    code: authorizationCode,
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-    redirect_uri: REDIRECT_URI,
-  }),
-});
-
-const { access_token, refresh_token, expires_in } = await tokenResponse.json();
-```
+  </Tab>
+</Tabs>
 
 ### Token Response
 
@@ -162,132 +230,103 @@ const { access_token, refresh_token, expires_in } = await tokenResponse.json();
 }
 ```
 
-### Using Access Tokens
-
-```typescript
-const response = await fetch('https://api.eleva.care/v1/me', {
-  headers: {
-    'Authorization': `Bearer ${access_token}`,
-  },
-});
-```
-
-### Refreshing Tokens
-
-```typescript
-const refreshResponse = await fetch('https://auth.eleva.care/oauth/token', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',
-  },
-  body: new URLSearchParams({
-    grant_type: 'refresh_token',
-    refresh_token: refresh_token,
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-  }),
-});
-```
-
 ## Best Practices
 
-### Key Rotation
+<Accordions>
+  <Accordion title="Key Rotation">
+    Rotate your API keys regularly:
 
-Rotate your API keys regularly:
+    1. Generate a new key in the dashboard
+    2. Update your application with the new key
+    3. Verify the new key works
+    4. Revoke the old key
 
-1. Generate a new key in the dashboard
-2. Update your application with the new key
-3. Verify the new key works
-4. Revoke the old key
+  </Accordion>
+  <Accordion title="Environment Variables">
+    Never hardcode API keys:
 
-### Environment Variables
+    ```typescript
+    // ✅ Good
+    const apiKey = process.env.ELEVA_API_KEY;
 
-Never hardcode API keys:
+    // ❌ Bad
+    const apiKey = 'sk_live_xxxxxxxxxxxxx';
+    ```
 
-```typescript
-// ✅ Good
-const apiKey = process.env.ELEVA_API_KEY;
+  </Accordion>
+  <Accordion title="Key Storage">
+    | Environment | Recommendation |
+    |-------------|----------------|
+    | Development | Local `.env` file (gitignored) |
+    | Staging | Environment variables |
+    | Production | Secrets manager (AWS, Vault, etc.) |
 
-// ❌ Bad
-const apiKey = 'sk_live_xxxxxxxxxxxxx';
-```
+  </Accordion>
+  <Accordion title="Error Handling">
+    ```typescript
+    try {
+      const response = await fetch('https://api.eleva.care/v1/experts', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
 
-### Key Storage
+      if (response.status === 401) {
+        // Invalid or expired token
+        await refreshToken();
+        return retry();
+      }
 
-| Environment | Recommendation |
-|-------------|----------------|
-| Development | Local `.env` file (gitignored) |
-| Staging | Environment variables |
-| Production | Secrets manager (AWS, Vault, etc.) |
+      if (response.status === 403) {
+        // Insufficient permissions
+        throw new Error('Insufficient API permissions');
+      }
 
-### Error Handling
+      return response.json();
+    } catch (error) {
+      console.error('API authentication error:', error);
+    }
+    ```
 
-Handle authentication errors gracefully:
-
-```typescript
-try {
-  const response = await fetch('https://api.eleva.care/v1/experts', {
-    headers: { 'Authorization': `Bearer ${apiKey}` },
-  });
-
-  if (response.status === 401) {
-    // Invalid or expired token
-    await refreshToken();
-    return retry();
-  }
-
-  if (response.status === 403) {
-    // Insufficient permissions
-    throw new Error('Insufficient API permissions');
-  }
-
-  return response.json();
-} catch (error) {
-  console.error('API authentication error:', error);
-}
-```
+  </Accordion>
+</Accordions>
 
 ## Security Considerations
 
-### IP Allowlisting
+<Tabs items={['IP Allowlisting', 'Webhook Verification', 'Audit Logging']}>
+  <Tab value="IP Allowlisting">
+    Restrict API access to specific IPs:
 
-Restrict API access to specific IPs:
+    1. Go to **Settings** → **API Access** → **Security**
+    2. Add your server IP addresses
+    3. Enable IP allowlisting
 
-1. Go to **Settings** → **API Access** → **Security**
-2. Add your server IP addresses
-3. Enable IP allowlisting
+  </Tab>
+  <Tab value="Webhook Verification">
+    Always verify webhook signatures:
 
-### Webhook Signature Verification
+    ```typescript
+    import crypto from 'crypto';
 
-Always verify webhook signatures:
+    function verifyWebhookSignature(
+      payload: string,
+      signature: string,
+      secret: string,
+    ): boolean {
+      const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
 
-```typescript
-import crypto from 'crypto';
+      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(`sha256=${expected}`));
+    }
+    ```
 
-function verifyWebhookSignature(
-  payload: string,
-  signature: string,
-  secret: string
-): boolean {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex');
-  
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(`sha256=${expected}`)
-  );
-}
-```
+  </Tab>
+  <Tab value="Audit Logging">
+    All API requests are logged. View your logs at:
 
-### Audit Logging
+    **Partner Dashboard** → **Settings** → **API Logs**
 
-All API requests are logged. View your logs at:
+  </Tab>
+</Tabs>
 
-**Partner Dashboard** → **Settings** → **API Logs**
-
-## Next Steps
+---
 
 <Cards>
   <Card title="API Endpoints" href="/docs/developer/api/endpoints">
@@ -297,5 +336,3 @@ All API requests are logged. View your logs at:
     Learn about error responses
   </Card>
 </Cards>
-
-

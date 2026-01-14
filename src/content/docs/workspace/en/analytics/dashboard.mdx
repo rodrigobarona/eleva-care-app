@@ -24,42 +24,45 @@ Access your analytics at **Partner Dashboard** → **Analytics**.
 
 ## Revenue Analytics
 
-### Revenue Overview
+<Tabs items={['Overview', 'Trends', 'By Expert', 'By Service']}>
+  <Tab value="Overview">
+    Track your workspace's financial performance:
 
-Track your workspace's financial performance:
+    - **Gross Bookings**: Total value of all bookings
+    - **Workspace Revenue**: Your marketing fee earnings
+    - **Expert Payouts**: Amount paid to your team
+    - **Platform Fees**: Eleva's platform charges
 
-- **Gross Bookings**: Total value of all bookings
-- **Workspace Revenue**: Your marketing fee earnings
-- **Expert Payouts**: Amount paid to your team
-- **Platform Fees**: Eleva's platform charges
+  </Tab>
+  <Tab value="Trends">
+    View revenue over time:
 
-### Revenue Trends
+    - Daily, weekly, monthly, yearly views
+    - Compare periods (this month vs. last month)
+    - Identify seasonal patterns
+    - Track growth rates
 
-View revenue over time:
+  </Tab>
+  <Tab value="By Expert">
+    See which experts generate the most revenue:
 
-- Daily, weekly, monthly, yearly views
-- Compare periods (this month vs. last month)
-- Identify seasonal patterns
-- Track growth rates
+    | Expert | Bookings | Revenue | Avg. Booking | Rating |
+    |--------|----------|---------|--------------|--------|
+    | Dr. Maria | 45 | €4,500 | €100 | 4.9 |
+    | Dr. João | 38 | €3,800 | €100 | 4.8 |
+    | Ana PT | 52 | €3,900 | €75 | 4.9 |
 
-### Revenue by Expert
+  </Tab>
+  <Tab value="By Service">
+    Understand which services perform best:
 
-See which experts generate the most revenue:
+    - Most popular services
+    - Highest revenue services
+    - Growth trends by category
+    - Pricing optimization insights
 
-| Expert | Bookings | Revenue | Avg. Booking | Rating |
-|--------|----------|---------|--------------|--------|
-| Dr. Maria | 45 | €4,500 | €100 | 4.9 |
-| Dr. João | 38 | €3,800 | €100 | 4.8 |
-| Ana PT | 52 | €3,900 | €75 | 4.9 |
-
-### Revenue by Service
-
-Understand which services perform best:
-
-- Most popular services
-- Highest revenue services
-- Growth trends by category
-- Pricing optimization insights
+  </Tab>
+</Tabs>
 
 ## Booking Analytics
 
@@ -67,10 +70,12 @@ Understand which services perform best:
 
 Track appointment activity:
 
-- **Total Bookings**: All scheduled appointments
-- **Completed**: Successfully completed sessions
-- **Cancelled**: Cancelled appointments (with reasons)
-- **No-Shows**: Patients who didn't attend
+| Metric | Description |
+|--------|-------------|
+| **Total Bookings** | All scheduled appointments |
+| **Completed** | Successfully completed sessions |
+| **Cancelled** | Cancelled appointments (with reasons) |
+| **No-Shows** | Patients who didn't attend |
 
 ### Booking Funnel
 
@@ -78,7 +83,7 @@ Understand your conversion:
 
 ```
 Profile Views → Booking Started → Booking Completed → Attended
-1,000 → 200 (20%) → 150 (75%) → 140 (93%)
+    1,000    →     200 (20%)    →     150 (75%)     → 140 (93%)
 ```
 
 ### Booking Sources
@@ -91,14 +96,13 @@ See where patients come from:
 - External referral
 
 <Callout type="info">
-  **Pro Tip**: High search traffic indicates strong SEO. Low direct traffic might mean you need more external marketing.
+  **Pro Tip**: High search traffic indicates strong SEO. Low direct traffic might mean you need
+  more external marketing.
 </Callout>
 
 ## Expert Performance
 
 ### Performance Metrics
-
-Monitor your team's effectiveness:
 
 | Metric | Description | Target |
 |--------|-------------|--------|
@@ -106,157 +110,143 @@ Monitor your team's effectiveness:
 | **Completion Rate** | Completed / Total | 95%+ |
 | **On-Time Rate** | Started on time | 90%+ |
 | **Rating** | Patient satisfaction | 4.5+ |
-| **Response Time** | Time to respond to inquiries | Under 24h |
-
-### Expert Comparison
-
-Compare experts across metrics:
-
-- Revenue generated
-- Patient satisfaction
-- Utilization rate
-- Cancellation rate
+| **Response Time** | Time to respond | Under 24h |
 
 ### Expert Insights
 
-Identify opportunities:
+<Accordions>
+  <Accordion title="Expert Comparison">
+    Compare experts across metrics:
 
-- **High performers**: Learn what works
-- **Improvement areas**: Support struggling experts
-- **Availability gaps**: Optimize scheduling
-- **Pricing analysis**: Identify optimal rates
+    - Revenue generated
+    - Patient satisfaction
+    - Utilization rate
+    - Cancellation rate
+
+  </Accordion>
+  <Accordion title="Identify Opportunities">
+    - **High performers**: Learn what works
+    - **Improvement areas**: Support struggling experts
+    - **Availability gaps**: Optimize scheduling
+    - **Pricing analysis**: Identify optimal rates
+
+  </Accordion>
+</Accordions>
 
 ## Patient Analytics (Professional+)
 
-### Patient Demographics
+<Tabs items={['Demographics', 'Satisfaction', 'Retention']}>
+  <Tab value="Demographics">
+    Understand your patient base:
 
-Understand your patient base:
+    - Location distribution
+    - Language preferences
+    - Service preferences
+    - Return rate
 
-- Location distribution
-- Language preferences
-- Service preferences
-- Return rate
+  </Tab>
+  <Tab value="Satisfaction">
+    Track satisfaction metrics:
 
-### Patient Satisfaction
+    - **NPS Score**: Net Promoter Score
+    - **Average Rating**: Overall satisfaction
+    - **Review Volume**: Feedback received
+    - **Sentiment Analysis**: Positive vs. negative
 
-Track satisfaction metrics:
+  </Tab>
+  <Tab value="Retention">
+    Monitor patient loyalty:
 
-- **NPS Score**: Net Promoter Score
-- **Average Rating**: Overall satisfaction
-- **Review Volume**: Feedback received
-- **Sentiment Analysis**: Positive vs. negative feedback
+    - First-time vs. returning patients
+    - Patient lifetime value
+    - Churn rate
+    - Retention by service type
 
-### Patient Retention
-
-Monitor patient loyalty:
-
-- First-time vs. returning patients
-- Patient lifetime value
-- Churn rate
-- Retention by service type
+  </Tab>
+</Tabs>
 
 ## Advanced Analytics (Enterprise)
 
-### Custom Reports
+<Accordions>
+  <Accordion title="Custom Reports">
+    Build custom reports with:
 
-Build custom reports with:
+    - Custom date ranges
+    - Multiple metrics
+    - Advanced filters
+    - Scheduled delivery
 
-- Custom date ranges
-- Multiple metrics
-- Advanced filters
-- Scheduled delivery
+  </Accordion>
+  <Accordion title="Data Export">
+    Export data for external analysis:
 
-### Data Export
+    - CSV download
+    - API access
+    - Integration with BI tools
+    - Automated exports
 
-Export data for external analysis:
+  </Accordion>
+  <Accordion title="Benchmarking">
+    Compare your performance:
 
-- CSV download
-- API access
-- Integration with BI tools
-- Automated exports
+    - Industry benchmarks
+    - Similar workspace comparison
+    - Best practices insights
 
-### Benchmarking
-
-Compare your performance:
-
-- Industry benchmarks
-- Similar workspace comparison
-- Best practices insights
+  </Accordion>
+</Accordions>
 
 ## Using Analytics Effectively
 
-### Weekly Review
+<Tabs items={['Weekly', 'Monthly', 'Quarterly']}>
+  <Tab value="Weekly">
+    **Weekly Review** - Check every week:
 
-Every week, check:
+    1. **Revenue**: Are you on track for monthly goals?
+    2. **Bookings**: Any unusual cancellation patterns?
+    3. **Ratings**: Any negative feedback to address?
+    4. **Availability**: Any scheduling gaps?
 
-1. **Revenue**: Are you on track for monthly goals?
-2. **Bookings**: Any unusual cancellation patterns?
-3. **Ratings**: Any negative feedback to address?
-4. **Availability**: Any scheduling gaps?
+  </Tab>
+  <Tab value="Monthly">
+    **Monthly Deep Dive** - Analyze once a month:
 
-### Monthly Deep Dive
+    1. **Growth Trends**: Are you growing? Where?
+    2. **Expert Performance**: Who needs support? Recognition?
+    3. **Service Mix**: Which services should you expand?
+    4. **Patient Feedback**: What themes emerge?
 
-Once a month, analyze:
+  </Tab>
+  <Tab value="Quarterly">
+    **Quarterly Planning** - Plan based on:
 
-1. **Growth Trends**: Are you growing? Where?
-2. **Expert Performance**: Who needs support? Recognition?
-3. **Service Mix**: Which services should you expand?
-4. **Patient Feedback**: What themes emerge?
+    1. **Revenue Goals**: Set realistic targets
+    2. **Team Expansion**: When to add experts?
+    3. **Marketing Strategy**: What's working?
+    4. **Service Innovation**: New services to offer?
 
-### Quarterly Planning
-
-Each quarter, plan based on:
-
-1. **Revenue Goals**: Set realistic targets
-2. **Team Expansion**: When to add experts?
-3. **Marketing Strategy**: What's working?
-4. **Service Innovation**: New services to offer?
+  </Tab>
+</Tabs>
 
 ## Reports & Exports
 
-### Standard Reports
+### Available Reports
 
-Available to all plans:
-
-- Monthly revenue summary
-- Booking activity report
-- Expert performance summary
-
-### Advanced Reports (Professional+)
-
-- Patient demographics
-- Service analysis
-- Trend analysis
-- Custom date ranges
-
-### Tax Reports
-
-For accounting purposes:
-
-- Revenue by period
-- Fee breakdowns
-- Transaction history
-- Payout summaries
+| Report Type | Starter | Professional | Enterprise |
+|-------------|---------|--------------|------------|
+| Monthly revenue summary | ✅ | ✅ | ✅ |
+| Booking activity | ✅ | ✅ | ✅ |
+| Expert performance | ✅ | ✅ | ✅ |
+| Patient demographics | — | ✅ | ✅ |
+| Trend analysis | — | ✅ | ✅ |
+| Custom reports | — | — | ✅ |
 
 <Callout type="tip">
-  **Tax Tip**: Download quarterly reports for your accountant. All fees and revenue are itemized for easy reconciliation.
+  **Tax Tip**: Download quarterly reports for your accountant. All fees and revenue are itemized
+  for easy reconciliation.
 </Callout>
 
-## Getting Help
-
-### Understanding Metrics
-
-Not sure what a metric means? Hover over any metric for a tooltip explanation.
-
-### Data Questions
-
-If you have questions about your data:
-
-- **Email**: analytics@eleva.care
-- **Documentation**: Check our data dictionary
-- **Support**: Professional and Enterprise plans include analytics support
-
-## Next Steps
+---
 
 <Cards>
   <Card title="Optimize Performance" href="/docs/workspace/team/experts">

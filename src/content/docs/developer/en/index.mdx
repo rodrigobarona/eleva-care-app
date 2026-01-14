@@ -8,30 +8,36 @@ description: Technical documentation for integrating with the Eleva Care platfor
 Welcome to Eleva Care's developer documentation. This guide covers everything you need to integrate with our platform, build custom solutions, and extend our functionality.
 
 <Callout type="info">
-  **API Access**: API access is available on Enterprise plans. Contact sales@eleva.care to discuss your integration needs.
+  **API Access**: API access is available on Enterprise plans. Contact sales@eleva.care to discuss
+  your integration needs.
 </Callout>
 
 ## Quick Start
 
-Get started with the Eleva Care API in three steps:
+<Steps>
+  <Step>
+    ### Get API Credentials
 
-<Cards>
-  <Card title="1. Get API Credentials" href="/docs/developer/api/authentication">
-    Obtain your API key from the Partner Dashboard
-  </Card>
-  <Card title="2. Make Your First Request" href="/docs/developer/api/endpoints">
-    Explore available endpoints and make test calls
-  </Card>
-  <Card title="3. Set Up Webhooks" href="/docs/developer/webhooks/overview">
-    Receive real-time notifications for events
-  </Card>
-</Cards>
+    Obtain your API key from the [Partner Dashboard](/docs/developer/api/authentication).
+
+  </Step>
+  <Step>
+    ### Make Your First Request
+
+    Explore available [endpoints](/docs/developer/api/endpoints) and make test calls.
+
+  </Step>
+  <Step>
+    ### Set Up Webhooks
+
+    Receive [real-time notifications](/docs/developer/webhooks/overview) for events.
+
+  </Step>
+</Steps>
 
 ## Platform Overview
 
 ### Architecture
-
-Eleva Care is built on modern, scalable technology:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -45,23 +51,36 @@ Eleva Care is built on modern, scalable technology:
 
 ### Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Database**: PostgreSQL (Neon)
-- **ORM**: Drizzle ORM
-- **Auth**: WorkOS AuthKit
-- **Payments**: Stripe
-- **Notifications**: Novu
-- **Video**: Daily.co
+| Technology | Purpose |
+|------------|---------|
+| Next.js 16 | App Router framework |
+| TypeScript | Type-safe development |
+| PostgreSQL | Database (Neon) |
+| Drizzle ORM | Database queries |
+| WorkOS | Authentication |
+| Stripe | Payments |
+| Daily.co | Video calls |
 
 ## API Overview
 
-### Base URL
+### Base URLs
 
-```
-Production: https://api.eleva.care/v1
-Sandbox:    https://api-sandbox.eleva.care/v1
-```
+<Tabs items={['Production', 'Sandbox']}>
+  <Tab value="Production">
+    ```
+    https://api.eleva.care/v1
+    ```
+
+  </Tab>
+  <Tab value="Sandbox">
+    ```
+    https://api-sandbox.eleva.care/v1
+    ```
+
+    Use sandbox for testing. Data resets weekly.
+
+  </Tab>
+</Tabs>
 
 ### Authentication
 
@@ -76,151 +95,176 @@ curl -X GET "https://api.eleva.care/v1/experts" \
 ### Rate Limits
 
 | Plan | Requests/Minute | Requests/Day |
-|------|----------------|--------------|
+|------|-----------------|--------------|
 | Enterprise | 100 | 10,000 |
 | Custom | Negotiable | Negotiable |
 
 ### Response Format
 
-All responses follow a consistent format:
-
-```json
-{
-  "success": true,
-  "data": {
-    // Response data
-  },
-  "meta": {
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "total": 157
+<Tabs items={['Success', 'Error']}>
+  <Tab value="Success">
+    ```json
+    {
+      "success": true,
+      "data": {
+        // Response data
+      },
+      "meta": {
+        "pagination": {
+          "page": 1,
+          "limit": 20,
+          "total": 157
+        }
+      }
     }
-  }
-}
-```
+    ```
 
-Error responses:
+  </Tab>
+  <Tab value="Error">
+    ```json
+    {
+      "success": false,
+      "error": "Descriptive error message",
+      "code": "ERROR_CODE",
+      "details": {}
+    }
+    ```
 
-```json
-{
-  "success": false,
-  "error": "Descriptive error message",
-  "code": "ERROR_CODE",
-  "details": {}
-}
-```
+  </Tab>
+</Tabs>
 
 ## Key Features
 
-### Expert Management
+<Accordions>
+  <Accordion title="Expert Management">
+    - List and search experts
+    - Retrieve expert profiles
+    - Check expert availability
+    - View expert services
 
-- List and search experts
-- Retrieve expert profiles
-- Check expert availability
-- View expert services
+  </Accordion>
+  <Accordion title="Booking System">
+    - Create bookings
+    - Retrieve booking details
+    - Cancel or reschedule bookings
+    - Handle payment flows
 
-### Booking System
+  </Accordion>
+  <Accordion title="Webhook Events">
+    Receive real-time notifications for:
 
-- Create bookings
-- Retrieve booking details
-- Cancel or reschedule bookings
-- Handle payment flows
+    - Booking created/confirmed/cancelled
+    - Payment succeeded/failed
+    - Expert availability changes
+    - Patient updates
 
-### Webhook Events
+  </Accordion>
+  <Accordion title="Embed Components">
+    Embed Eleva Care functionality in your application:
 
-Receive real-time notifications for:
+    - Booking widget
+    - Expert profiles
+    - Availability calendar
+    - Video consultation launcher
 
-- Booking created/confirmed/cancelled
-- Payment succeeded/failed
-- Expert availability changes
-- Patient updates
-
-### Embed Components
-
-Embed Eleva Care functionality in your application:
-
-- Booking widget
-- Expert profiles
-- Availability calendar
-- Video consultation launcher
+  </Accordion>
+</Accordions>
 
 ## Common Use Cases
 
-### 1. Embed Booking in Your Website
+<Tabs items={['Embed Booking', 'CRM Sync', 'Custom Calendar']}>
+  <Tab value="Embed Booking">
+    **Embed Booking Widget**
 
-```html
-<script src="https://cdn.eleva.care/embed.js"></script>
-<div
-  id="eleva-booking"
-  data-org-id="YOUR_ORG_ID"
-  data-expert-id="EXPERT_ID"
-  data-theme="light"
-></div>
-```
+    ```html
+    <script src="https://cdn.eleva.care/embed.js"></script>
+    <div
+      id="eleva-booking"
+      data-org-id="YOUR_ORG_ID"
+      data-expert-id="EXPERT_ID"
+      data-theme="light"
+    ></div>
+    ```
 
-### 2. Sync Bookings to Your CRM
+  </Tab>
+  <Tab value="CRM Sync">
+    **Sync Bookings to Your CRM**
 
-```typescript
-// Webhook handler for booking events
-app.post('/webhooks/eleva', (req, res) => {
-  const event = req.body;
-  
-  if (event.type === 'booking.confirmed') {
-    const { booking, patient, expert } = event.data;
-    
-    // Sync to your CRM
-    await crm.createAppointment({
-      patientEmail: patient.email,
-      expertName: expert.name,
-      scheduledAt: booking.startTime,
-      service: booking.serviceName,
+    ```typescript
+    // Webhook handler for booking events
+    app.post('/webhooks/eleva', (req, res) => {
+      const event = req.body;
+
+      if (event.type === 'booking.confirmed') {
+        const { booking, patient, expert } = event.data;
+
+        // Sync to your CRM
+        await crm.createAppointment({
+          patientEmail: patient.email,
+          expertName: expert.name,
+          scheduledAt: booking.startTime,
+          service: booking.serviceName,
+        });
+      }
+
+      res.status(200).json({ received: true });
     });
-  }
-  
-  res.status(200).json({ received: true });
-});
-```
+    ```
 
-### 3. Build Custom Availability Calendar
+  </Tab>
+  <Tab value="Custom Calendar">
+    **Build Custom Availability Calendar**
 
-```typescript
-// Fetch expert availability
-const availability = await fetch(
-  'https://api.eleva.care/v1/experts/EXPERT_ID/availability',
-  {
-    headers: {
-      'Authorization': `Bearer ${API_KEY}`,
-    },
-  }
-);
+    ```typescript
+    // Fetch expert availability
+    const availability = await fetch(
+      'https://api.eleva.care/v1/experts/EXPERT_ID/availability',
+      {
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
+        },
+      },
+    );
 
-const slots = await availability.json();
-// Render custom calendar with available slots
-```
+    const slots = await availability.json();
+    // Render custom calendar with available slots
+    ```
+
+  </Tab>
+</Tabs>
 
 ## SDKs & Libraries
 
 ### Official SDKs
 
-We provide official SDKs for popular languages:
-
-- **TypeScript/JavaScript**: `@eleva-care/sdk`
-- **Python**: `eleva-care-python`
-- **PHP**: `eleva-care/php-sdk`
+| Language | Package |
+|----------|---------|
+| TypeScript/JavaScript | `@eleva-care/sdk` |
+| Python | `eleva-care-python` |
+| PHP | `eleva-care/php-sdk` |
 
 ### Installation
 
-```bash
-# TypeScript/JavaScript
-npm install @eleva-care/sdk
+<Tabs items={['npm', 'Python', 'PHP']}>
+  <Tab value="npm">
+    ```bash
+    npm install @eleva-care/sdk
+    ```
 
-# Python
-pip install eleva-care
+  </Tab>
+  <Tab value="Python">
+    ```bash
+    pip install eleva-care
+    ```
 
-# PHP
-composer require eleva-care/php-sdk
-```
+  </Tab>
+  <Tab value="PHP">
+    ```bash
+    composer require eleva-care/php-sdk
+    ```
+
+  </Tab>
+</Tabs>
 
 ### Quick Example
 
@@ -253,10 +297,12 @@ const booking = await client.bookings.create({
 
 Test your integration safely in our sandbox:
 
-- **URL**: `https://api-sandbox.eleva.care/v1`
-- **Test Cards**: Use Stripe test cards
-- **Test Webhooks**: Configure sandbox webhook URL
-- **Data**: Isolated from production
+| Feature | Details |
+|---------|---------|
+| URL | `https://api-sandbox.eleva.care/v1` |
+| Test Cards | Use Stripe test cards |
+| Webhooks | Configure sandbox webhook URL |
+| Data | Isolated from production |
 
 <Callout type="warning">
   **Sandbox Data**: Sandbox data is reset weekly. Don't rely on it for persistent storage.
@@ -264,20 +310,23 @@ Test your integration safely in our sandbox:
 
 ## Support & Resources
 
-### Getting Help
+<Accordions>
+  <Accordion title="Getting Help">
+    - **API Reference**: Detailed endpoint documentation
+    - **Postman Collection**: Import our API collection
+    - **Status Page**: [status.eleva.care](https://status.eleva.care)
+    - **Developer Support**: developers@eleva.care
 
-- **API Reference**: Detailed endpoint documentation
-- **Postman Collection**: Import our API collection
-- **Status Page**: [status.eleva.care](https://status.eleva.care)
-- **Developer Support**: developers@eleva.care
+  </Accordion>
+  <Accordion title="Community">
+    - **GitHub**: Report issues and request features
+    - **Discord**: Join our developer community
+    - **Changelog**: Stay updated on API changes
 
-### Community
+  </Accordion>
+</Accordions>
 
-- **GitHub**: Report issues and request features
-- **Discord**: Join our developer community
-- **Changelog**: Stay updated on API changes
-
-## Next Steps
+---
 
 <Cards>
   <Card title="Authentication" href="/docs/developer/api/authentication">
@@ -293,5 +342,3 @@ Test your integration safely in our sandbox:
     Learn about third-party integrations
   </Card>
 </Cards>
-
-
