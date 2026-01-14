@@ -1,35 +1,34 @@
+/**
+ * Server-side Role Management
+ *
+ * These functions should only be used in Server Components or API routes.
+ *
+ * For role and permission definitions, use WorkOS RBAC:
+ * @see src/types/workos-rbac.ts
+ */
+
 import { db } from '@/drizzle/db';
 import { RolesTable } from '@/drizzle/schema';
 import {
   ADMIN_ROLES,
-  ROLE_ADMIN,
-  ROLE_COMMUNITY_EXPERT,
-  ROLE_SUPERADMIN,
-  ROLE_TOP_EXPERT,
-  ROLE_USER,
-} from '@/lib/constants/roles';
+  EXPERT_ROLES,
+  WORKOS_ROLES,
+  type WorkOSRole,
+} from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
-
-import type { UserRole, UserRoles } from './roles';
-
-/**
- * Server-side role management functions
- * These functions should only be used in Server Components or API routes
- */
 
 /**
  * Helper function to get user roles from database
  */
-async function getUserRolesFromDB(workosUserId: string): Promise<UserRole[]> {
+async function getUserRolesFromDB(workosUserId: string): Promise<WorkOSRole[]> {
   const userRoles = await db
     .select({ role: RolesTable.role })
     .from(RolesTable)
     .where(eq(RolesTable.workosUserId, workosUserId));
 
-  return userRoles.map((r) => r.role as UserRole);
+  return userRoles.map((r) => r.role as WorkOSRole);
 }
-
 
 /**
  * Middleware helper function to check if a user has any of the specified roles
@@ -61,7 +60,7 @@ export function checkRoles(
 /**
  * Check if the current user has any of the specified roles
  */
-export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
+export async function hasAnyRole(roles: WorkOSRole[]): Promise<boolean> {
   const { user } = await withAuth();
   if (!user) return false;
 
@@ -76,7 +75,7 @@ export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
 /**
  * Check if the current user has the specified role
  */
-export async function hasRole(role: UserRole): Promise<boolean> {
+export async function hasRole(role: WorkOSRole): Promise<boolean> {
   const { user } = await withAuth();
   if (!user) return false;
 
@@ -86,80 +85,75 @@ export async function hasRole(role: UserRole): Promise<boolean> {
 }
 
 /**
- * Convenience function to check if user is an admin or superadmin
+ * Convenience function to check if user is an admin (superadmin)
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasAnyRole([...ADMIN_ROLES] as UserRole[]);
+  return hasAnyRole([...ADMIN_ROLES] as WorkOSRole[]);
 }
 
 /**
  * Convenience function to check if user is any type of expert
  */
 export async function isExpert(): Promise<boolean> {
-  return hasAnyRole([ROLE_TOP_EXPERT, ROLE_COMMUNITY_EXPERT]);
+  return hasAnyRole([...EXPERT_ROLES] as WorkOSRole[]);
 }
 
 /**
  * Convenience function to check if user is a top expert
  */
 export async function isTopExpert(): Promise<boolean> {
-  return hasRole(ROLE_TOP_EXPERT);
+  return hasRole(WORKOS_ROLES.EXPERT_TOP);
 }
 
 /**
  * Convenience function to check if user is a community expert
  */
 export async function isCommunityExpert(): Promise<boolean> {
-  return hasRole(ROLE_COMMUNITY_EXPERT);
+  return hasRole(WORKOS_ROLES.EXPERT_COMMUNITY);
 }
 
 /**
  * Get the current user's role(s)
  */
-export async function getUserRole(): Promise<UserRoles> {
+export async function getUserRole(): Promise<WorkOSRole | WorkOSRole[]> {
   const { user } = await withAuth();
-  if (!user) return ROLE_USER;
+  if (!user) return WORKOS_ROLES.PATIENT;
 
   const userRoles = await getUserRolesFromDB(user.id);
 
-  if (userRoles.length === 0) return ROLE_USER;
+  if (userRoles.length === 0) return WORKOS_ROLES.PATIENT;
   if (userRoles.length === 1) return userRoles[0];
 
   return userRoles;
 }
 
 /**
- * Update a user's role(s) (requires admin/superadmin)
+ * Update a user's role (requires admin/superadmin)
  */
-export async function updateUserRole(workosUserId: string, roles: UserRoles): Promise<void> {
+export async function updateUserRole(workosUserId: string, role: WorkOSRole): Promise<void> {
   const { user: currentUser } = await withAuth();
   if (!currentUser) throw new Error('Unauthorized');
 
   // Check if current user has permission to update roles
   const currentUserRoles = await getUserRolesFromDB(currentUser.id);
 
-  const isAdmin = currentUserRoles.includes(ROLE_ADMIN);
-  const isSuperAdmin = currentUserRoles.includes(ROLE_SUPERADMIN);
+  const isSuperAdmin = currentUserRoles.includes(WORKOS_ROLES.SUPERADMIN);
 
-  if (!isAdmin && !isSuperAdmin) {
-    throw new Error('Insufficient permissions');
+  if (!isSuperAdmin) {
+    throw new Error('Insufficient permissions - only superadmins can update roles');
   }
 
   // Only superadmins can assign the superadmin role
-  const rolesToAssign = Array.isArray(roles) ? roles : [roles];
-
-  if (rolesToAssign.includes(ROLE_SUPERADMIN) && !isSuperAdmin) {
+  if (role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin) {
     throw new Error('Only superadmins can assign the superadmin role');
   }
 
   // Delete existing roles for this user
   await db.delete(RolesTable).where(eq(RolesTable.workosUserId, workosUserId));
 
-  // Insert new roles
-  const roleInserts = rolesToAssign.map((role) => ({
+  // Insert new role
+  await db.insert(RolesTable).values({
     workosUserId,
     role,
-  }));
-
-  await db.insert(RolesTable).values(roleInserts);
+  });
 }

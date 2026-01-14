@@ -268,7 +268,8 @@ export default async function proxy(request: NextRequest) {
         request.headers.has('Upstash-Signature') ||
         request.headers.has('x-upstash-signature');
       const hasApiKey =
-        request.headers.has('x-api-key') && request.headers.get('x-api-key') === process.env.CRON_API_KEY;
+        request.headers.has('x-api-key') &&
+        request.headers.get('x-api-key') === process.env.CRON_API_KEY;
       const hasCronSecret =
         request.headers.has('x-cron-secret') &&
         request.headers.get('x-cron-secret') === process.env.CRON_SECRET;
