@@ -1,11 +1,11 @@
 import { developerSource, expertSource, patientSource, workspaceSource } from '@/lib/source';
-import { type AdvancedIndex, createSearchAPI } from 'fumadocs-core/search/server';
+import { createSearchAPI } from 'fumadocs-core/search/server';
 
 /**
  * Unified Documentation Search API (Optimized)
  *
  * Single Orama index with tag-based filtering for better performance.
- * Uses Fumadocs' createSearchAPI to build a unified search index.
+ * Uses Fumadocs' createSearchAPI to build a unified search index with custom properties.
  *
  * Query Parameters:
  * - query: Search string
@@ -40,8 +40,8 @@ const locales = ['en', 'es', 'pt', 'pt-BR'] as const;
  * Creates a single Orama index instead of 4 separate ones.
  * Includes all locales for i18n support.
  */
-function buildUnifiedIndexes(): AdvancedIndex[] {
-  const indexes: AdvancedIndex[] = [];
+function buildUnifiedIndexes() {
+  const indexes = [];
 
   for (const { source, tag } of sources) {
     // Get pages for all locales
@@ -66,7 +66,7 @@ function buildUnifiedIndexes(): AdvancedIndex[] {
 }
 
 /**
- * Create unified search API with tag filtering support
+ * Create unified search API with tag and locale filtering support
  *
  * Benefits over previous implementation:
  * - Single Orama index (vs 4 separate indexes)
@@ -82,4 +82,5 @@ function buildUnifiedIndexes(): AdvancedIndex[] {
 export const { GET } = createSearchAPI('advanced', {
   indexes: buildUnifiedIndexes(),
   language: 'english', // Default language for search algorithm
+  tag: true, // Enable tag filtering
 });
