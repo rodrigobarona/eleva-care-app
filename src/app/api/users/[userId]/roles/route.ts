@@ -1,4 +1,4 @@
-import { getUserRolesFromDB, hasRole } from '@/lib/auth/roles.server';
+import { getUserRolesFromDB, hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
@@ -39,9 +39,8 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    // Fetch the REQUESTED user's role (not the current user's role)
-    const targetUserId = isSuperAdmin ? params.userId : user.id;
-    const roles = await getUserRolesFromDB(targetUserId);
+    // Fetch the requested user's role
+    const roles = await getUserRolesFromDB(params.userId);
     const role = roles.length > 0 ? roles[0] : WORKOS_ROLES.PATIENT;
 
     return NextResponse.json({ role });
@@ -100,8 +99,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
 
     const { role } = parseResult.data;
 
-    // Import and use updateUserRole (which has its own internal checks)
-    const { updateUserRole } = await import('@/lib/auth/roles.server');
+    // Use updateUserRole (which has its own internal checks)
     await updateUserRole(params.userId, role);
 
     return NextResponse.json({

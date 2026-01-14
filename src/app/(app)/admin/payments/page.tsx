@@ -7,6 +7,7 @@
  * Authorization: Requires superadmin role (enforced by admin layout + proxy)
  */
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import { headers } from 'next/headers';
 import { Suspense } from 'react';
 
 import { PaymentTransfersClient } from './payment-transfers-client';
@@ -71,11 +72,15 @@ export default async function PaymentTransfersPage({
  */
 async function PaymentTransfersList({ queryParams }: { queryParams: string }) {
   // Admin auth is handled by layout, just fetch the data
-  // Fetch payment transfers data
+  // Fetch payment transfers data with forwarded cookies for authentication
+  const headersList = await headers();
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_APP_URL}/api/admin/payment-transfers?${queryParams}`,
     {
       cache: 'no-store',
+      headers: {
+        cookie: headersList.get('cookie') || '',
+      },
     },
   );
 

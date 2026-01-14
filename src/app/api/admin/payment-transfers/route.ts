@@ -7,6 +7,14 @@ import {
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+/** Zod schema for transfer update request */
+const patchTransferSchema = z.object({
+  transferId: z.number({ error: 'Transfer ID is required' }),
+  requiresApproval: z.boolean().optional(),
+  adminNotes: z.string().optional(),
+});
 
 // Define valid filter parameters
 type FilterParams = {
@@ -29,6 +37,12 @@ type FilterParams = {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Defense-in-depth: verify authentication even though proxy handles authorization
+    const { user } = await withAuth();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const filters: FilterParams = {
@@ -156,14 +170,19 @@ export async function PATCH(request: NextRequest) {
 
     // Get transfer ID and update data from request body
     const body = await request.json();
-    const { transferId, requiresApproval, adminNotes } = body;
+    const parseResult = patchTransferSchema.safeParse(body);
 
-    if (!transferId || typeof transferId !== 'number') {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request. Transfer ID is required.' },
+        {
+          error: 'Invalid request',
+          details: parseResult.error.flatten().fieldErrors,
+        },
         { status: 400 },
       );
     }
+
+    const { transferId, requiresApproval, adminNotes } = parseResult.data;
 
     // Check if the transfer exists
     const transfer = await db.query.PaymentTransfersTable.findFirst({

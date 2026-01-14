@@ -45,6 +45,11 @@ export type GetUserRoleResult =
   | { success: false; error: string };
 
 /**
+ * Result type for updateUserRole with proper error handling
+ */
+export type UpdateUserRoleResult = { success: true } | { success: false; error: string };
+
+/**
  * Client-side function to get user role with proper error handling
  */
 export async function getUserRole(userId: string): Promise<GetUserRoleResult> {
@@ -55,7 +60,8 @@ export async function getUserRole(userId: string): Promise<GetUserRoleResult> {
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error: errorData.message || `Failed to fetch role: ${response.status} ${response.statusText}`,
+        error:
+          errorData.message || `Failed to fetch role: ${response.status} ${response.statusText}`,
       };
     }
 
@@ -70,17 +76,29 @@ export async function getUserRole(userId: string): Promise<GetUserRoleResult> {
 }
 
 /**
- * Client-side function to update user role
+ * Client-side function to update user role with structured error handling
  */
-export async function updateUserRole(userId: string, role: WorkOSRole): Promise<void> {
-  const response = await fetch(`/api/users/${userId}/roles`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role }),
-  });
+export async function updateUserRole(
+  userId: string,
+  role: WorkOSRole,
+): Promise<UpdateUserRoleResult> {
+  try {
+    const response = await fetch(`/api/users/${userId}/roles`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to update role');
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      return { success: false, error: error.message || 'Failed to update role' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error updating role',
+    };
   }
 }

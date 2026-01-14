@@ -63,7 +63,7 @@ export function checkRoles(
 /**
  * Check if the current user has any of the specified roles
  */
-export async function hasAnyRole(roles: WorkOSRole[]): Promise<boolean> {
+export async function hasAnyRole(roles: readonly WorkOSRole[]): Promise<boolean> {
   const { user } = await withAuth();
   if (!user) return false;
 
@@ -88,17 +88,17 @@ export async function hasRole(role: WorkOSRole): Promise<boolean> {
 }
 
 /**
- * Convenience function to check if user is an admin (superadmin)
+ * Convenience function to check if user is an admin (superadmin or admin)
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasAnyRole([...ADMIN_ROLES] as WorkOSRole[]);
+  return hasAnyRole(ADMIN_ROLES);
 }
 
 /**
  * Convenience function to check if user is any type of expert
  */
 export async function isExpert(): Promise<boolean> {
-  return hasAnyRole([...EXPERT_ROLES] as WorkOSRole[]);
+  return hasAnyRole(EXPERT_ROLES);
 }
 
 /**
@@ -118,6 +118,10 @@ export async function isCommunityExpert(): Promise<boolean> {
 /**
  * Role priority for determining the highest-priority role.
  * Higher index = higher priority.
+ *
+ * Note: If a role isn't in this array, indexOf returns -1,
+ * making it lower priority than PATIENT. This is safe because
+ * getUserRolesFromDB filters invalid roles via VALID_ROLES.
  */
 const ROLE_PRIORITY: WorkOSRole[] = [
   WORKOS_ROLES.PATIENT,

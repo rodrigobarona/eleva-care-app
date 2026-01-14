@@ -1,8 +1,7 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
-import { hasRole } from '@/lib/auth/roles.server';
+import { isAdmin } from '@/lib/auth/roles.server';
 import type { ApiResponse } from '@/types/api';
-import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
@@ -22,6 +21,14 @@ const categorySchema = z.object({
  * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET() {
+  // Defense-in-depth: verify auth even though proxy should enforce this
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' } as ApiResponse<null>, {
+      status: 401,
+    });
+  }
+
   try {
     const categories = await db.select().from(CategoriesTable);
     return NextResponse.json({
@@ -68,9 +75,9 @@ export async function POST(request: Request) {
     });
   }
 
-  let isSuperAdmin: boolean;
+  let isUserAdmin: boolean;
   try {
-    isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    isUserAdmin = await isAdmin();
   } catch (error) {
     console.error('Role check error in category creation:', error);
     return NextResponse.json(
@@ -82,7 +89,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!isSuperAdmin) {
+  if (!isUserAdmin) {
     return NextResponse.json({ success: false, error: 'Forbidden' } as ApiResponse<null>, {
       status: 403,
     });

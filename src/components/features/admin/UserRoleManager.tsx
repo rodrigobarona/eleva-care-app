@@ -38,7 +38,7 @@ interface RoleSelectorProps {
   user: User;
   isSuperAdmin: boolean;
   isLoading: boolean;
-  onRoleUpdate: (userId: string, newRole: WorkOSRole) => Promise<void>;
+  onRoleUpdate: (userId: string, newRole: WorkOSRole) => Promise<WorkOSRole>;
 }
 
 /**
@@ -100,16 +100,29 @@ export function UserRoleManager() {
 
   // Stable callback reference using useCallback
   const handleRoleUpdate = useCallback(async (userId: string, newRole: WorkOSRole) => {
-    const promise = updateUserRole(userId, newRole).then(async () => {
+    const promise = (async () => {
+      const result = await updateUserRole(userId, newRole);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
       // Refresh the users list after successful update
-      const response = await fetch('/api/admin/users');
+      let response: Response;
+      try {
+        response = await fetch('/api/admin/users');
+      } catch (networkError) {
+        throw new Error(
+          networkError instanceof Error ? networkError.message : 'Network error fetching users',
+        );
+      }
+
       const data = await response.json();
       if (!data.success) {
         throw new Error(data.error || 'Failed to fetch updated user list');
       }
       setUsers(data.data.users);
       return newRole;
-    });
+    })();
 
     toast.promise(promise, {
       loading: 'Updating role...',

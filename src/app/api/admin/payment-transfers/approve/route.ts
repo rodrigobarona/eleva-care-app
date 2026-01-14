@@ -1,10 +1,12 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
+import { hasRole } from '@/lib/auth/roles.server';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
 import { RateLimitCache } from '@/lib/redis/manager';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
@@ -172,6 +174,19 @@ export async function POST(request: NextRequest) {
     const userId = user?.id;
     if (!user || !userId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Defense-in-depth: verify admin role for financial operations
+    let isSuperAdmin: boolean;
+    try {
+      isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    } catch (error) {
+      console.error('Role check error in transfer approval:', error);
+      return NextResponse.json({ error: 'Role verification failed' }, { status: 500 });
+    }
+
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // **RATE LIMITING: Apply admin approval limits**

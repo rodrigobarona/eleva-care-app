@@ -86,10 +86,23 @@ export async function GET(req: Request) {
       .from(RolesTable)
       .where(sql`${RolesTable.workosUserId} = ANY(${userIds})`);
 
-    // Map roles to users (single role per user)
+    // Map roles to users (take first/highest-priority role if multiple exist)
     const roleMap = new Map<string, WorkOSRole>();
+    const multiRoleUsers: string[] = [];
     for (const role of roles) {
-      roleMap.set(role.workosUserId, role.role as WorkOSRole);
+      if (roleMap.has(role.workosUserId)) {
+        // User has multiple roles - log warning and keep the first one
+        multiRoleUsers.push(role.workosUserId);
+      } else {
+        roleMap.set(role.workosUserId, role.role as WorkOSRole);
+      }
+    }
+
+    // Log warning if any users have multiple roles (data inconsistency)
+    if (multiRoleUsers.length > 0) {
+      console.warn(
+        `Users with multiple roles detected (using first role): ${multiRoleUsers.join(', ')}`,
+      );
     }
 
     const formattedUsers: ApiUser[] = users.map((user) => ({
