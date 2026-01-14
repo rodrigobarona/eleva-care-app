@@ -19,9 +19,12 @@ import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 
 /**
- * Helper function to get user roles from database
+ * Get user roles from database by WorkOS user ID
+ *
+ * Use this when you need to fetch a specific user's roles (not the current user).
+ * For current user's roles, use getUserRole() instead.
  */
-async function getUserRolesFromDB(workosUserId: string): Promise<WorkOSRole[]> {
+export async function getUserRolesFromDB(workosUserId: string): Promise<WorkOSRole[]> {
   const userRoles = await db
     .select({ role: RolesTable.role })
     .from(RolesTable)

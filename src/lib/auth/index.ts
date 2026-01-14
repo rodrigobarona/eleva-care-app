@@ -16,6 +16,7 @@ export {
   hasAnyRole,
   checkRoles,
   getUserRole,
+  getUserRolesFromDB,
   isAdmin,
   isExpert,
   isTopExpert,
