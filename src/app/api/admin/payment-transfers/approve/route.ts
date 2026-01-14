@@ -207,7 +207,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: 'Malformed JSON in request body',
+          details: error instanceof SyntaxError ? error.message : 'Invalid JSON',
+        },
+        { status: 400 },
+      );
+    }
+
     const parseResult = approveTransferSchema.safeParse(body);
 
     if (!parseResult.success) {

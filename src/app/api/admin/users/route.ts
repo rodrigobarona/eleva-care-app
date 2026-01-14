@@ -145,7 +145,18 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const body = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return NextResponse.json({ success: false, error: 'Malformed JSON' } as ApiResponse<null>, {
+          status: 400,
+        });
+      }
+      throw error;
+    }
+
     const parsed = updateRoleSchema.safeParse(body);
 
     if (!parsed.success) {

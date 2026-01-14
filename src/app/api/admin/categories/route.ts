@@ -47,19 +47,45 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   // Defense-in-depth: verify admin even though proxy should enforce this
-  const { user } = await withAuth();
-  if (!user) {
+  let user: Awaited<ReturnType<typeof withAuth>>['user'];
+  try {
+    const authResult = await withAuth();
+    user = authResult.user;
+  } catch (error) {
+    console.error('Auth error in category creation:', error);
     return NextResponse.json(
-      { success: false, error: 'Unauthorized' } as ApiResponse<null>,
-      { status: 401 },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Authentication error',
+      } as ApiResponse<null>,
+      { status: 500 },
     );
   }
-  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-  if (!isSuperAdmin) {
+
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' } as ApiResponse<null>, {
+      status: 401,
+    });
+  }
+
+  let isSuperAdmin: boolean;
+  try {
+    isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  } catch (error) {
+    console.error('Role check error in category creation:', error);
     return NextResponse.json(
-      { success: false, error: 'Forbidden' } as ApiResponse<null>,
-      { status: 403 },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Role verification error',
+      } as ApiResponse<null>,
+      { status: 500 },
     );
+  }
+
+  if (!isSuperAdmin) {
+    return NextResponse.json({ success: false, error: 'Forbidden' } as ApiResponse<null>, {
+      status: 403,
+    });
   }
 
   // 🛡️ BotID Protection: Check for bot traffic before admin operations
@@ -118,7 +144,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       data: newCategory[0],
-    } as ApiResponse<typeof newCategory[0]>);
+    } as ApiResponse<(typeof newCategory)[0]>);
   } catch (error) {
     console.error('Error creating category:', error);
     return NextResponse.json(
