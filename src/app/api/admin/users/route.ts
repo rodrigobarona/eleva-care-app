@@ -14,7 +14,7 @@ const VALID_ROLES = Object.values(WORKOS_ROLES) as [string, ...string[]];
 /** Zod schema for role update request */
 const updateRoleSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
-  role: z.enum(VALID_ROLES, { errorMap: () => ({ message: 'Invalid role specified' }) }),
+  role: z.enum(VALID_ROLES, { error: 'Invalid role specified' }),
 });
 
 const ITEMS_PER_PAGE = 10;
@@ -163,7 +163,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: parsed.error.errors[0]?.message || 'Validation failed',
+          error: parsed.error.issues[0]?.message || 'Validation failed',
         } as ApiResponse<null>,
         { status: 400 },
       );

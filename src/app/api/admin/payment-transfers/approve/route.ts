@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 /** Zod schema for transfer approval request */
 const approveTransferSchema = z.object({
-  transferId: z.number({ required_error: 'Transfer ID is required' }),
+  transferId: z.number({ error: 'Transfer ID is required' }),
 });
 
 // Admin financial operations rate limiting (very strict)

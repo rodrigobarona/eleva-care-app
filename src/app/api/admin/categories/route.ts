@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Authentication error',
+        error: 'Authentication failed',
       } as ApiResponse<null>,
       { status: 500 },
     );
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Role verification error',
+        error: 'Role verification failed',
       } as ApiResponse<null>,
       { status: 500 },
     );
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: parsed.error.errors[0]?.message || 'Validation failed',
+          error: parsed.error.issues[0]?.message || 'Validation failed',
         } as ApiResponse<null>,
         { status: 400 },
       );
