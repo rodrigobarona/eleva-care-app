@@ -111,6 +111,30 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const { user } = await withAuth();
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        } as ApiResponse<null>,
+        { status: 401 },
+      );
+    }
+
+    // Verify admin role (only superadmin can modify roles)
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Forbidden',
+        } as ApiResponse<null>,
+        { status: 403 },
+      );
+    }
+
     const { userId: targetUserId, role } = (await req.json()) as UpdateRoleRequest;
     await updateUserRole(targetUserId, role);
 
