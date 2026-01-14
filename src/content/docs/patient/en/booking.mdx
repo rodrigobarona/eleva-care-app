@@ -11,98 +11,148 @@ Booking an appointment on Eleva Care is simple and takes just a few minutes. Fol
 
 ### Browse by Specialty
 
-Our experts specialize in different areas of women's health:
+<Tabs items={['Pregnancy', 'Postpartum', 'Pelvic Health', 'Menopause', 'Sexual Health']}>
+  <Tab value="Pregnancy">
+    **Pregnancy & Birth Preparation**
 
-- **Pregnancy & Birth Preparation** - Physiotherapists, OB-GYNs, midwives
-- **Postpartum Recovery** - Pelvic floor specialists, mental health professionals
-- **Pelvic Health** - Specialists in incontinence, prolapse, pelvic pain
-- **Menopause & Hormonal Health** - Endocrinologists, nutritionists
-- **Sexual Health** - Therapists, counselors, medical specialists
+    Physiotherapists, OB-GYNs, and midwives who specialize in prenatal care and birth preparation.
+  </Tab>
+  <Tab value="Postpartum">
+    **Postpartum Recovery**
 
-### Using Filters
+    Pelvic floor specialists and mental health professionals supporting your recovery journey.
+  </Tab>
+  <Tab value="Pelvic Health">
+    **Pelvic Health**
 
-Narrow down your search with filters:
+    Specialists in incontinence, prolapse, and pelvic pain management.
+  </Tab>
+  <Tab value="Menopause">
+    **Menopause & Hormonal Health**
 
-- **Location** - Find experts in your region or who offer remote consultations
-- **Language** - Filter by language spoken
-- **Availability** - Show only experts with open appointments
-- **Rating** - Sort by patient reviews
+    Endocrinologists and nutritionists guiding you through hormonal transitions.
+  </Tab>
+  <Tab value="Sexual Health">
+    **Sexual Health**
 
-## Scheduling Your Appointment
+    Therapists, counselors, and medical specialists providing compassionate care.
+  </Tab>
+</Tabs>
 
-### Step 1: Select a Time Slot
+### Refine Your Search
 
-1. Click on the expert's profile
-2. View their available time slots
-3. Select a date and time that works for you
+Use filters to find your ideal expert:
 
-### Step 2: Confirm Your Details
+| Filter | Description |
+|--------|-------------|
+| Location | Find experts in your region or offering remote consultations |
+| Language | Filter by languages spoken |
+| Availability | Show only experts with open appointments |
+| Rating | Sort by patient reviews |
 
-1. Review the appointment type (video call or in-person)
-2. Confirm the duration and price
-3. Add any notes for the expert (optional)
+## Booking Process
 
-### Step 3: Complete Payment
+<Steps>
+  <Step>
+    ### Select a Time Slot
 
-1. Choose your payment method
-2. Enter payment details
-3. Confirm your booking
+    Click on the expert's profile, view their available time slots, and select a date and time that works for you.
+  </Step>
+  <Step>
+    ### Confirm Your Details
+
+    Review the appointment type (video call or in-person), confirm the duration and price, and add any notes for the expert.
+  </Step>
+  <Step>
+    ### Complete Payment
+
+    Choose your payment method, enter payment details, and confirm your booking.
+  </Step>
+</Steps>
 
 <Callout type="success">
-  You'll receive a confirmation email with all the details of your appointment.
+  You'll receive a confirmation email with all the details of your appointment, including the video call link if applicable.
 </Callout>
 
-## Managing Your Appointments
+## Managing Appointments
 
-### View Upcoming Appointments
+<Accordions>
+  <Accordion title="View Upcoming Appointments">
+    Access your appointments from your patient dashboard:
 
-Access your appointments from your patient dashboard:
+    1. Go to **My Appointments**
+    2. View upcoming and past appointments
+    3. Access video call links when it's time
+  </Accordion>
+  <Accordion title="Rescheduling">
+    Need to change your appointment time?
 
-1. Go to **My Appointments**
-2. View upcoming and past appointments
-3. Access video call links when it's time
+    1. Go to your appointment details
+    2. Click **Reschedule**
+    3. Select a new time slot
+    4. Confirm the change
 
-### Rescheduling
+    <Callout type="warning">
+      Please reschedule at least 24 hours before your appointment to avoid cancellation fees.
+    </Callout>
+  </Accordion>
+  <Accordion title="Canceling an Appointment">
+    If you need to cancel:
 
-Need to change your appointment time?
+    1. Go to your appointment details
+    2. Click **Cancel Appointment**
+    3. Confirm the cancellation
 
-1. Go to your appointment details
-2. Click **Reschedule**
-3. Select a new time slot
-4. Confirm the change
-
-<Callout type="warning">
-  **Cancellation Policy**: Please reschedule at least 24 hours before your appointment to avoid cancellation fees.
-</Callout>
-
-### Canceling an Appointment
-
-If you need to cancel:
-
-1. Go to your appointment details
-2. Click **Cancel Appointment**
-3. Confirm the cancellation
-
-Refund policies vary by expert. Check the expert's cancellation policy before booking.
+    Refund policies vary by expert. Check the expert's cancellation policy before booking.
+  </Accordion>
+</Accordions>
 
 ## Joining Your Consultation
 
-### Video Consultations
+<Tabs items={['Video Call', 'In-Person']}>
+  <Tab value="Video Call">
+    **Video Consultations**
 
-For video appointments:
+    <Steps>
+      <Step>
+        ### Preparation
 
-1. You'll receive a reminder email 24 hours before
-2. Click the **Join Call** button 5 minutes before your appointment
-3. Ensure your camera and microphone are working
-4. Have a stable internet connection
+        You'll receive a reminder email 24 hours before your appointment with a link to join.
+      </Step>
+      <Step>
+        ### Join the Call
 
-### In-Person Appointments
+        Click the **Join Call** button 5 minutes before your appointment time.
+      </Step>
+      <Step>
+        ### Technical Setup
 
-For in-person visits:
+        Ensure your camera and microphone are working and you have a stable internet connection.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab value="In-Person">
+    **In-Person Appointments**
 
-1. Check the location details in your confirmation email
-2. Arrive 10 minutes early
-3. Bring any relevant medical records
+    <Steps>
+      <Step>
+        ### Check Location
+
+        Review the location details in your confirmation email.
+      </Step>
+      <Step>
+        ### Arrive Early
+
+        Plan to arrive 10 minutes before your appointment time.
+      </Step>
+      <Step>
+        ### Bring Documents
+
+        Bring any relevant medical records or test results.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
 
 ## After Your Appointment
 
@@ -110,23 +160,21 @@ For in-person visits:
 
 Help other patients by sharing your experience:
 
-1. Go to **My Appointments** > **Past**
+1. Go to **My Appointments** → **Past**
 2. Click **Leave Review**
 3. Rate your experience and add comments
 
 ### Book a Follow-Up
 
-Many patients benefit from ongoing care:
+Many patients benefit from ongoing care. Visit the expert's profile to book another appointment and reference your previous consultation in the notes.
 
-1. Visit the expert's profile
-2. Book another appointment
-3. Reference your previous consultation in the notes
+---
 
-## Need Help?
-
-If you have questions about booking:
-
-- **Email**: support@eleva.care
-- **Help Center**: [FAQ](/docs/patient/faq)
-
-
+<Cards>
+  <Card title="Payment Options" href="/docs/patient/payments">
+    Learn about accepted payment methods and pricing
+  </Card>
+  <Card title="FAQ" href="/docs/patient/faq">
+    Answers to common questions
+  </Card>
+</Cards>

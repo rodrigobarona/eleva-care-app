@@ -9,16 +9,28 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
 
 ## How Payments Work
 
-### Payment Flow
+<Steps>
+  <Step>
+    ### Patient Books
 
-1. **Patient Books** - Payment is collected at booking
-2. **Funds Held** - Payment held in escrow during consultation
-3. **Appointment Completes** - Funds released 24 hours after
-4. **Payout Processed** - Funds transferred to your bank account
+    Payment is collected at the time of booking.
+  </Step>
+  <Step>
+    ### Funds Held
 
-```
-Patient Pays → Escrow Hold → Consultation → 24hr Hold → Your Bank
-```
+    Payment is held in escrow during the consultation period.
+  </Step>
+  <Step>
+    ### Appointment Completes
+
+    Funds are released 24 hours after the consultation ends.
+  </Step>
+  <Step>
+    ### Payout Processed
+
+    Funds are transferred to your bank account on your payout schedule.
+  </Step>
+</Steps>
 
 <Callout type="info">
   The 24-hour hold after consultation allows for any disputes or issues to be resolved.
@@ -28,49 +40,67 @@ Patient Pays → Escrow Hold → Consultation → 24hr Hold → Your Bank
 
 ### Fee Structure
 
-Your platform fee depends on your tier and subscription plan:
-
 | Tier | Plan | Commission | Monthly Fee |
 |------|------|------------|-------------|
 | Community | Commission-Only | 20% | €0 |
-| Community | Subscription | 12% | €49/month or €490/year |
+| Community | Subscription | 12% | €49/month |
 | Top Expert | Commission-Only | 15% | €0 |
-| Top Expert | Subscription | 8% | €177/month or €1,774/year |
+| Top Expert | Subscription | 8% | €177/month |
 
-### Choosing Your Plan
+<Tabs items={['Commission-Only', 'Subscription']}>
+  <Tab value="Commission-Only">
+    **Best For:**
 
-**Commission-Only** is better if:
-- You're just starting out
-- You have fewer than 10 bookings/month
-- You prefer no fixed costs
+    - Just starting out
+    - Fewer than 10 bookings/month
+    - Prefer no fixed costs
+    - Testing the platform
+  </Tab>
+  <Tab value="Subscription">
+    **Best For:**
 
-**Subscription** is better if:
-- You have consistent bookings
-- You want to maximize earnings per appointment
-- You want predictable costs
+    - Consistent bookings
+    - Want to maximize earnings per appointment
+    - Prefer predictable costs
+    - More than 6 bookings/month (break-even point)
+  </Tab>
+</Tabs>
 
-### Example Calculations
+### Example Calculation
 
-**€100 Consultation - Community Expert:**
+**€100 Consultation — Community Expert:**
 
 | Plan | Commission | You Receive |
 |------|------------|-------------|
 | Commission-Only (20%) | €20 | €80 |
 | Subscription (12%) | €12 | €88 |
 
-**Break-even Point**: With the €49/month subscription, you save €8 per booking. You break even at ~6 bookings/month.
+**Break-even**: With €49/month subscription, you save €8 per booking. Break-even at ~6 bookings/month.
 
 ## Setting Up Payouts
 
-### Stripe Connect Onboarding
+<Steps>
+  <Step>
+    ### Start Setup
 
-To receive payouts, complete Stripe Connect setup:
+    Go to **Expert Dashboard** → **Earnings** → **Set Up Payouts**.
+  </Step>
+  <Step>
+    ### Complete Verification
 
-1. Go to **Expert Dashboard** > **Earnings**
-2. Click **Set Up Payouts**
-3. Complete Stripe's identity verification
-4. Add your bank account
-5. Verification typically takes 1-2 business days
+    Complete Stripe's identity verification process.
+  </Step>
+  <Step>
+    ### Add Bank Account
+
+    Provide your bank account details for receiving payments.
+  </Step>
+  <Step>
+    ### Await Approval
+
+    Verification typically takes 1-2 business days.
+  </Step>
+</Steps>
 
 ### Required Information
 
@@ -85,40 +115,43 @@ To receive payouts, complete Stripe Connect setup:
 
 ## Payout Schedule
 
-### Community Experts
+<Tabs items={['Community', 'Top Expert']}>
+  <Tab value="Community">
+    **Community Expert Payouts**
 
-- **Frequency**: Weekly (every Monday)
-- **Minimum**: €10 accumulated earnings
-- **Processing**: 2-3 business days to arrive
+    | Detail | Value |
+    |--------|-------|
+    | Frequency | Weekly (every Monday) |
+    | Minimum | €10 accumulated earnings |
+    | Processing | 2-3 business days to arrive |
+  </Tab>
+  <Tab value="Top Expert">
+    **Top Expert Payouts**
 
-### Top Experts
-
-- **Frequency**: Daily (available)
-- **Minimum**: €10 accumulated earnings
-- **Processing**: 1-2 business days to arrive
-
-### Payout Timing
-
-| Day Earned | Community Payout | Top Expert Payout |
-|------------|------------------|-------------------|
-| Monday | Next Monday | Tuesday |
-| Tuesday | Next Monday | Wednesday |
-| ... | ... | ... |
+    | Detail | Value |
+    |--------|-------|
+    | Frequency | Daily (available) |
+    | Minimum | €10 accumulated earnings |
+    | Processing | 1-2 business days to arrive |
+  </Tab>
+</Tabs>
 
 ## Understanding Your Earnings
 
-### Earnings Dashboard
+### Dashboard Overview
 
-Your dashboard shows:
+Your earnings dashboard shows:
 
-- **Pending**: Appointments not yet completed
-- **Available**: Ready for payout
-- **In Transit**: Being transferred to your bank
-- **Paid Out**: Successfully deposited
+| Status | Description |
+|--------|-------------|
+| Pending | Appointments not yet completed |
+| Available | Ready for payout |
+| In Transit | Being transferred to your bank |
+| Paid Out | Successfully deposited |
 
 ### Transaction Details
 
-Each transaction shows:
+Each transaction displays:
 
 - Patient name
 - Service provided
@@ -128,31 +161,28 @@ Each transaction shows:
 
 ## Taxes & Reporting
 
-### Tax Responsibility
+<Accordions>
+  <Accordion title="Tax Responsibility">
+    As an independent professional, you're responsible for:
 
-As an independent professional, you're responsible for:
+    - Declaring your earnings
+    - Paying applicable taxes
+    - Maintaining records
 
-- Declaring your earnings
-- Paying applicable taxes
-- Maintaining records
+    Eleva Care does not withhold taxes. Consult a tax professional for your situation.
+  </Accordion>
+  <Accordion title="Documentation Provided">
+    Eleva Care provides:
 
-### Documentation
-
-Eleva Care provides:
-
-- Monthly earnings statements
-- Annual summary for tax filing
-- Transaction history export
-
-### Tax Withholding
-
-Eleva Care does not withhold taxes. Consult a tax professional for your specific situation.
+    - Monthly earnings statements
+    - Annual summary for tax filing
+    - Transaction history export
+  </Accordion>
+</Accordions>
 
 ## Refunds & Cancellations
 
 ### Patient Cancellations
-
-When patients cancel:
 
 | Cancellation Window | Patient Refund | Your Earnings |
 |---------------------|----------------|---------------|
@@ -166,7 +196,7 @@ If you cancel an appointment:
 
 - Patient receives full refund
 - You receive no earnings
-- May affect your rating
+- May affect your rating and Top Expert eligibility
 
 <Callout type="warning">
   Frequent cancellations impact your reliability score and may affect Top Expert eligibility.
@@ -174,58 +204,61 @@ If you cancel an appointment:
 
 ## Maximizing Earnings
 
-### Optimize Pricing
+<Accordions>
+  <Accordion title="Optimize Pricing">
+    - Research competitor rates
+    - Consider your experience and credentials
+    - Adjust based on demand
+  </Accordion>
+  <Accordion title="Reduce Cancellations">
+    - Send appointment reminders
+    - Respond promptly to inquiries
+    - Maintain accurate availability
+  </Accordion>
+  <Accordion title="Upgrade to Subscription">
+    If you have consistent bookings, the subscription plan significantly increases your per-appointment earnings.
+  </Accordion>
+  <Accordion title="Work Toward Top Expert">
+    Top Experts enjoy:
 
-- Research competitor rates
-- Consider your experience and credentials
-- Adjust based on demand
-
-### Reduce Cancellations
-
-- Send appointment reminders
-- Respond promptly to inquiries
-- Maintain accurate availability
-
-### Upgrade to Subscription
-
-If you have consistent bookings, the subscription plan significantly increases your per-appointment earnings.
-
-### Work Toward Top Expert
-
-Top Experts enjoy:
-
-- Lower platform fees (8-15%)
-- Daily payouts
-- Featured placement (more bookings)
+    - Lower platform fees (8-15%)
+    - Daily payouts
+    - Featured placement (more bookings)
+  </Accordion>
+</Accordions>
 
 ## Troubleshooting
 
-### Payout Not Received
+<Accordions>
+  <Accordion title="Payout Not Received">
+    1. Check Stripe Connect status
+    2. Verify bank account details
+    3. Ensure minimum threshold met
+    4. Contact support if still missing
+  </Accordion>
+  <Accordion title="Incorrect Amount">
+    Review transaction breakdown:
 
-1. Check Stripe Connect status
-2. Verify bank account details
-3. Ensure minimum threshold met
-4. Contact support if still missing
+    - Verify gross amount
+    - Check platform fee rate
+    - Confirm any refunds applied
+  </Accordion>
+  <Accordion title="Stripe Issues">
+    For Stripe-specific problems:
 
-### Incorrect Amount
+    - Log into Stripe Express dashboard
+    - Check for verification requirements
+    - Update banking information if needed
+  </Accordion>
+</Accordions>
 
-Review transaction breakdown:
-- Verify gross amount
-- Check platform fee rate
-- Confirm any refunds
+---
 
-### Stripe Issues
-
-For Stripe-specific problems:
-- Log into Stripe Express dashboard
-- Check for verification requirements
-- Update banking information if needed
-
-## Need Help?
-
-For earnings-related questions:
-
-- **Email**: billing@eleva.care
-- **Support**: expert-support@eleva.care
-
-
+<Cards>
+  <Card title="Pricing Strategy" href="/docs/expert/earnings/pricing">
+    Optimize your consultation pricing
+  </Card>
+  <Card title="Top Expert Benefits" href="/docs/expert/top-expert/benefits">
+    See what you unlock with Top Expert status
+  </Card>
+</Cards>

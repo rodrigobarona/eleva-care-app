@@ -5,119 +5,119 @@ description: Defina as suas ofertas de consulta com descrições claras e preço
 
 # Criar Serviços
 
-Serviços (também chamados "eventos" no sistema) são as consultas que oferece aos pacientes. Cada serviço tem a sua própria descrição, duração e preço.
+Serviços são as consultas que oferece aos pacientes. Cada serviço tem a sua própria descrição, duração e preço.
 
 ## Componentes do Serviço
 
-### Campos Obrigatórios
+<Tabs items={['Obrigatório', 'Opcional']}>
+  <Tab value="Obrigatório">
+    **Campos Obrigatórios**
 
-| Campo | Descrição |
-|-------|-----------|
-| **Título** | Nome claro e descritivo (ex: "Consulta Inicial de Saúde Pélvica") |
-| **Descrição** | O que os pacientes podem esperar deste serviço |
-| **Duração** | Duração da consulta (30, 45, 60 ou 90 minutos) |
-| **Preço** | A sua taxa para este serviço |
-| **Categoria** | Categoria principal do serviço |
+    | Campo | Descrição |
+    |-------|-----------|
+    | Título | Nome claro e descritivo (ex: "Consulta Inicial de Saúde Pélvica") |
+    | Descrição | O que os pacientes podem esperar deste serviço |
+    | Duração | Duração da consulta (30, 45, 60 ou 90 minutos) |
+    | Preço | A sua tarifa para este serviço |
+    | Categoria | Categoria principal do serviço |
+  </Tab>
+  <Tab value="Opcional">
+    **Campos Opcionais**
 
-### Campos Opcionais
-
-- Instruções de preparação para pacientes
-- Informação de seguimento
-- Materiais ou formulários necessários
-- Disponibilidade de vídeo vs. presencial
+    - Instruções de preparação para pacientes
+    - Informação de seguimento
+    - Materiais ou formulários necessários
+    - Disponibilidade vídeo vs. presencial
+  </Tab>
+</Tabs>
 
 ## Tipos de Serviços
 
-### Consultas Iniciais
+<Accordions>
+  <Accordion title="Consultas Iniciais">
+    Primeiras marcações para novos pacientes:
 
-Primeiras consultas para novos pacientes:
+    - Duração mais longa (tipicamente 60-90 minutos)
+    - Avaliação completa
+    - Planeamento de tratamento
+    - Preço mais elevado
 
-- Duração mais longa (tipicamente 60-90 minutos)
-- Avaliação abrangente
-- Planeamento de tratamento
-- Preço mais alto
+    **Exemplo:**
+    > **Avaliação Inicial de Pavimento Pélvico**
+    > 60 minutos | €120
+    >
+    > Avaliação completa incluindo histórico de saúde, avaliação de sintomas e recomendações personalizadas de tratamento.
+  </Accordion>
+  <Accordion title="Sessões de Seguimento">
+    Marcações contínuas para pacientes estabelecidos:
 
-**Exemplo:**
-> **Avaliação Inicial do Pavimento Pélvico**
-> 60 minutos | €120
->
-> Avaliação abrangente incluindo histórico de saúde, avaliação de sintomas e recomendações de tratamento personalizadas.
+    - Duração mais curta (30-45 minutos)
+    - Revisão de progresso
+    - Continuação do tratamento
+    - Preço mais baixo
 
-### Sessões de Seguimento
+    **Exemplo:**
+    > **Sessão de Seguimento Pavimento Pélvico**
+    > 45 minutos | €80
+    >
+    > Continue o seu plano de tratamento com exercícios, avaliação de progresso e ajustes conforme necessário.
+  </Accordion>
+  <Accordion title="Serviços Especializados">
+    Serviços direcionados para necessidades específicas:
 
-Consultas contínuas para pacientes estabelecidos:
-
-- Duração mais curta (30-45 minutos)
-- Revisão de progresso
-- Continuação do tratamento
-- Preço mais baixo
-
-**Exemplo:**
-> **Sessão de Seguimento do Pavimento Pélvico**
-> 45 minutos | €80
->
-> Continue o seu plano de tratamento com exercícios, avaliação de progresso e ajustes conforme necessário.
-
-### Serviços Especializados
-
-Serviços direcionados para necessidades específicas:
-
-**Exemplos:**
-- Sessão de preparação para a gravidez
-- Avaliação de recuperação pós-parto
-- Consulta de sintomas da menopausa
-- Preparação pré-cirúrgica
+    - Sessão de preparação para gravidez
+    - Avaliação de recuperação pós-parto
+    - Consulta de sintomas de menopausa
+    - Preparação pré-cirúrgica
+  </Accordion>
+</Accordions>
 
 ## Criar o Seu Primeiro Serviço
 
-### Passo 1: Navegue até Serviços
+<Steps>
+  <Step>
+    ### Navegar para Serviços
 
-1. Vá a **Painel do Especialista**
-2. Clique em **Serviços** no menu
-3. Clique em **Criar Serviço**
+    Vá a **Dashboard de Especialista** → **Serviços** → **Criar Serviço**.
+  </Step>
+  <Step>
+    ### Informação Básica
 
-### Passo 2: Informação Básica
+    Introduza um título claro e descritivo, selecione a categoria principal, escolha a duração e defina o preço.
+  </Step>
+  <Step>
+    ### Escrever Descrição
 
-1. Introduza um título claro e descritivo
-2. Selecione a categoria principal
-3. Escolha a duração do serviço
-4. Defina o seu preço
+    Responda: O que acontece durante esta consulta? Para quem é? Que resultados podem os pacientes esperar? O que devem preparar?
+  </Step>
+  <Step>
+    ### Configurar Opções
 
-### Passo 3: Escrever Descrição
+    Ative consulta por vídeo, opções presenciais, tempo de buffer e requisitos de aviso prévio.
+  </Step>
+  <Step>
+    ### Publicar
 
-A sua descrição deve responder:
+    Clique em **Guardar e Publicar** para tornar o seu serviço disponível para marcação.
+  </Step>
+</Steps>
 
-- O que acontece durante esta consulta?
-- Para quem é este serviço?
-- Que resultados podem os pacientes esperar?
-- O que devem os pacientes preparar antecipadamente?
-
-<Callout type="tip">
-  **Dica Pro**: Use pontos para tornar a sua descrição fácil de ler. Os pacientes frequentemente leem rapidamente antes de marcar.
+<Callout type="info">
+  Use pontos na sua descrição para a tornar fácil de ler. Os pacientes frequentemente passam os olhos antes de marcar.
 </Callout>
 
-### Passo 4: Configurar Opções
-
-- **Videoconsulta**: Ative para consultas remotas
-- **Presencial**: Ative se vê pacientes num local físico
-- **Tempo de Buffer**: Adicione tempo antes/depois para notas
-- **Aviso Prévio**: Tempo mínimo de antecedência para marcação
-
-### Passo 5: Publicar
-
-Clique em **Guardar & Publicar** para tornar o seu serviço disponível para marcação.
-
-## Definir Preços dos Seus Serviços
+## Definir Preços dos Serviços
 
 ### Fatores a Considerar
 
-- O seu nível de expertise e credenciais
-- Taxas do mercado local
-- Duração da sessão
-- Complexidade da consulta
-- As suas taxas de plataforma (8-20% dependendo do plano)
+| Fator | Descrição |
+|-------|-----------|
+| Expertise | As suas credenciais e nível de experiência |
+| Mercado | Tarifas locais e preços da concorrência |
+| Duração | Duração e complexidade da sessão |
+| Taxas da Plataforma | 8-20% dependendo do seu plano |
 
-### Diretrizes de Preços
+### Orientações de Preços
 
 | Tipo de Serviço | Intervalo Típico |
 |-----------------|------------------|
@@ -126,95 +126,99 @@ Clique em **Guardar & Publicar** para tornar o seu serviço disponível para mar
 | Sessão Especializada (60 min) | €100 - €180 |
 | Check-In Rápido (30 min) | €40 - €70 |
 
-<Callout type="info">
-  Estas são apenas diretrizes. Os seus preços devem refletir a sua expertise, credenciais e mercado-alvo.
-</Callout>
-
-### Taxas de Plataforma
-
-Lembre-se de incluir as taxas de plataforma ao definir preços:
+### Taxas da Plataforma
 
 | Plano | Comissão |
 |-------|----------|
-| Apenas Comissão (Comunidade) | 20% |
-| Subscrição (Comunidade) | 12% |
-| Apenas Comissão (Top Expert) | 15% |
+| Só Comissão (Community) | 20% |
+| Subscrição (Community) | 12% |
+| Só Comissão (Top Expert) | 15% |
 | Subscrição (Top Expert) | 8% |
 
-**Exemplo**: Se cobra €100 e está no plano de subscrição de 12%, recebe €88.
+**Exemplo**: Se cobra €100 e está no plano de subscrição 12%, recebe €88.
 
 ## Limites de Serviços
 
-### Especialistas da Comunidade
+<Tabs items={['Community', 'Top Expert']}>
+  <Tab value="Community">
+    **Community Experts**
 
-- Até 5 serviços ativos
-- Opções de personalização básicas
+    - Até 5 serviços ativos
+    - Opções básicas de personalização
+  </Tab>
+  <Tab value="Top Expert">
+    **Top Experts**
 
-### Top Experts
-
-- Serviços ilimitados
-- Personalização avançada
-- Ofertas de pacotes (brevemente)
+    - Serviços ilimitados
+    - Personalização avançada
+    - Ofertas de pacotes (em breve)
+  </Tab>
+</Tabs>
 
 ## Gerir Serviços
 
-### Editar Serviços
+<Accordions>
+  <Accordion title="Editar Serviços">
+    1. Vá a **Serviços**
+    2. Clique no serviço
+    3. Clique em **Editar**
+    4. Faça alterações e **Guarde**
 
-1. Vá a **Serviços**
-2. Clique no serviço
-3. Clique em **Editar**
-4. Faça alterações
-5. Clique em **Guardar**
+    <Callout type="warning">
+      Alterações a serviços existentes não afetam marcações já feitas.
+    </Callout>
+  </Accordion>
+  <Accordion title="Desativar Serviços">
+    Para ocultar temporariamente um serviço:
 
-<Callout type="warning">
-  Alterações a serviços existentes não afetam consultas já marcadas.
-</Callout>
+    1. Vá ao serviço
+    2. Desative **Ativo**
+    3. O serviço não aparecerá para novas marcações
+  </Accordion>
+  <Accordion title="Eliminar Serviços">
+    Para remover permanentemente um serviço:
 
-### Desativar Serviços
+    1. Assegure que não há marcações pendentes
+    2. Clique em **Eliminar Serviço**
+    3. Confirme a eliminação
+  </Accordion>
+</Accordions>
 
-Para ocultar temporariamente um serviço:
+## Boas Práticas
 
-1. Vá ao serviço
-2. Desative **Ativo**
-3. O serviço não aparecerá para novas marcações
+<Tabs items={['Nomenclatura', 'Descrições', 'Preços']}>
+  <Tab value="Nomenclatura">
+    **Nomenclatura Clara**
 
-### Eliminar Serviços
+    **Bom:**
+    - "Consulta Inicial de Pavimento Pélvico"
+    - "Avaliação de Recuperação Pós-Parto"
+    - "Gestão de Sintomas de Menopausa"
 
-Para remover permanentemente um serviço:
+    **Evitar:**
+    - "Consulta 1"
+    - "Sessão"
+    - "Reunião"
+  </Tab>
+  <Tab value="Descrições">
+    **Descrições Detalhadas**
 
-1. Garanta que não há consultas pendentes
-2. Clique em **Eliminar Serviço**
-3. Confirme a eliminação
+    Inclua:
+    - O que vai cobrir
+    - Quem deve marcar isto
+    - O que esperar
+    - Preparação necessária
+  </Tab>
+  <Tab value="Preços">
+    **Preços Competitivos**
 
-## Melhores Práticas
+    - Pesquise especialistas semelhantes
+    - Considere o seu nível de experiência
+    - Comece moderado, ajuste baseado na procura
+  </Tab>
+</Tabs>
 
-### Nomes Claros
-
-**Bom:**
-- "Consulta Inicial do Pavimento Pélvico"
-- "Avaliação de Recuperação Pós-Parto"
-- "Gestão de Sintomas da Menopausa"
-
-**Evitar:**
-- "Consulta 1"
-- "Sessão"
-- "Reunião"
-
-### Descrições Detalhadas
-
-Inclua:
-- O que irá abordar
-- Quem deve marcar isto
-- O que esperar
-- Preparação necessária
-
-### Preços Competitivos
-
-- Pesquise especialistas semelhantes
-- Considere o seu nível de experiência
-- Comece moderado, ajuste com base na procura
-
-## Próximos Passos
+---
 
 <Cards>
   <Card title="Definir Disponibilidade" href="/docs/expert/getting-started/availability">
@@ -224,4 +228,3 @@ Inclua:
     Saiba sobre taxas e processamento de pagamentos
   </Card>
 </Cards>
-

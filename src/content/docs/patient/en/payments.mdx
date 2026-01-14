@@ -9,21 +9,28 @@ Eleva Care provides a secure, transparent payment system. This guide covers ever
 
 ## Accepted Payment Methods
 
-We accept the following payment methods:
+<Tabs items={['Cards', 'Regional Methods']}>
+  <Tab value="Cards">
+    **Credit & Debit Cards**
 
-### Credit & Debit Cards
+    We accept all major cards processed securely through Stripe:
 
-- Visa
-- Mastercard
-- American Express
+    - Visa
+    - Mastercard
+    - American Express
+  </Tab>
+  <Tab value="Regional Methods">
+    **Local Payment Options**
 
-### Local Payment Methods
+    Depending on your region, additional methods may be available:
 
-Depending on your region:
-
-- **Portugal**: Multibanco (bank transfer)
-- **Spain**: Bank transfers
-- **Brazil**: PIX (coming soon)
+    | Region | Method | Status |
+    |--------|--------|--------|
+    | Portugal | Multibanco | Available |
+    | Spain | Bank Transfer | Available |
+    | Brazil | PIX | Coming Soon |
+  </Tab>
+</Tabs>
 
 <Callout type="info">
   All payments are processed securely through Stripe, a leading payment provider trusted by millions of businesses worldwide.
@@ -33,42 +40,63 @@ Depending on your region:
 
 ### Expert-Set Pricing
 
-Each expert sets their own consultation fees. Prices vary based on:
+Each expert sets their own consultation fees based on:
 
-- **Expertise level** - Community vs. Top Experts
-- **Consultation type** - Initial vs. follow-up
-- **Duration** - 30, 45, or 60-minute sessions
-- **Specialty** - Different areas of expertise
+| Factor | Description |
+|--------|-------------|
+| Expertise Level | Community vs. Top Experts |
+| Consultation Type | Initial vs. follow-up |
+| Duration | 30, 45, or 60-minute sessions |
+| Specialty | Different areas of expertise |
 
 ### What's Included
 
-Your payment covers:
+<Tabs items={['Included', 'Not Included']}>
+  <Tab value="Included">
+    Your payment covers:
 
-- ✅ The full consultation time
-- ✅ Secure video call platform
-- ✅ Session notes (if shared by expert)
-- ✅ Follow-up recommendations
+    - Full consultation time as booked
+    - Access to secure video call platform
+    - Session notes (if shared by expert)
+    - Follow-up recommendations
+  </Tab>
+  <Tab value="Not Included">
+    Your payment does not cover:
 
-### What's NOT Included
-
-- ❌ Prescription medications
-- ❌ Lab tests or diagnostic procedures
-- ❌ In-person examinations (unless specified)
+    - Prescription medications
+    - Lab tests or diagnostic procedures
+    - In-person examinations (unless specified)
+  </Tab>
+</Tabs>
 
 ## Payment Process
 
-### When You Pay
+<Steps>
+  <Step>
+    ### Select Appointment
 
-Payment is collected when you book your appointment:
+    Choose your appointment time and proceed to checkout.
+  </Step>
+  <Step>
+    ### Enter Payment Details
 
-1. Select your appointment time
-2. Enter payment details
-3. Payment is authorized
-4. Confirmation email sent
+    Provide your payment information securely.
+  </Step>
+  <Step>
+    ### Authorization
 
-### Payment Hold
+    Payment is authorized and held securely.
+  </Step>
+  <Step>
+    ### Confirmation
 
-Your payment is held securely until 24 hours after your appointment is completed. This protects both you and the expert.
+    Receive instant confirmation email with appointment details.
+  </Step>
+</Steps>
+
+<Callout>
+  Your payment is held securely until 24 hours after your appointment is completed. This protects both you and the expert.
+</Callout>
 
 ## Refunds & Cancellations
 
@@ -81,33 +109,48 @@ Your payment is held securely until 24 hours after your appointment is completed
 | Less than 24 hours | No refund |
 
 <Callout type="warning">
-  Cancellation policies may vary by expert. Check the expert's profile for their specific policy.
+  Cancellation policies may vary by expert. Always check the expert's profile for their specific policy before booking.
 </Callout>
 
 ### How to Request a Refund
 
-1. Go to **My Appointments**
-2. Find the appointment
-3. Click **Cancel** or **Request Refund**
-4. Follow the prompts
+<Steps>
+  <Step>
+    ### Access Your Appointments
+
+    Go to **My Appointments** in your patient portal.
+  </Step>
+  <Step>
+    ### Find the Appointment
+
+    Locate the appointment you wish to cancel.
+  </Step>
+  <Step>
+    ### Request Refund
+
+    Click **Cancel** or **Request Refund** and follow the prompts.
+  </Step>
+</Steps>
 
 Refunds are processed within 5-10 business days to your original payment method.
 
 ### Disputed Charges
 
-If you have an issue with a charge:
+<Accordions>
+  <Accordion title="How to resolve a disputed charge">
+    If you have an issue with a charge:
 
-1. Contact the expert first to resolve the issue
-2. If unresolved, contact support@eleva.care
-3. We'll investigate and mediate
+    1. **Contact the expert first** - Many issues can be resolved directly
+    2. **Contact support** - Email support@eleva.care if unresolved
+    3. **Investigation** - We'll investigate and mediate the dispute
+  </Accordion>
+</Accordions>
 
 ## Receipts & Invoices
 
 ### Accessing Your Receipts
 
-1. Go to **Patient Portal** > **Billing**
-2. View all past payments
-3. Download PDF receipts
+Navigate to **Patient Portal** → **Billing** to view all past payments and download PDF receipts.
 
 ### Invoice Details
 
@@ -119,41 +162,49 @@ Each receipt includes:
 - Payment amount
 - Transaction ID
 
-### For Insurance Reimbursement
-
-Some insurance plans may reimburse telehealth consultations. Your receipt includes all necessary details for submitting a claim.
+<Callout type="info">
+  **Insurance Reimbursement**: Some insurance plans may reimburse telehealth consultations. Your receipt includes all necessary details for submitting a claim.
+</Callout>
 
 ## Security
 
-### Data Protection
+<Tabs items={['Data Protection', 'Account Security']}>
+  <Tab value="Data Protection">
+    **Payment Security**
 
-- All payment data is encrypted
-- We never store your full card number
-- PCI DSS compliant
+    - All payment data is encrypted end-to-end
+    - We never store your full card number
+    - PCI DSS compliant infrastructure
+    - Tokenized card storage via Stripe
+  </Tab>
+  <Tab value="Account Security">
+    **Account Protection**
 
-### Two-Factor Authentication
+    Enable Two-Factor Authentication (2FA) in your account settings for additional security on all transactions.
+  </Tab>
+</Tabs>
 
-Enable 2FA for additional account security in your account settings.
+## Frequently Asked Questions
 
-## FAQ
+<Accordions>
+  <Accordion title="Can I save my payment method?">
+    Yes, you can save your card for faster checkout. Your card details are stored securely by Stripe, not on our servers.
+  </Accordion>
+  <Accordion title="Are there any hidden fees?">
+    No. The price shown when booking is the total amount you'll pay. No platform fees or hidden charges.
+  </Accordion>
+  <Accordion title="What currency will I be charged in?">
+    You'll be charged in the currency shown at checkout, typically based on the expert's location.
+  </Accordion>
+</Accordions>
 
-### Can I save my payment method?
+---
 
-Yes, you can save your card for faster checkout. Your card details are stored securely by Stripe.
-
-### Are there any hidden fees?
-
-No. The price shown when booking is the total amount you'll pay. No platform fees or hidden charges.
-
-### What currency will I be charged in?
-
-You'll be charged in the currency shown at checkout, typically based on the expert's location.
-
-## Need Help?
-
-For payment-related questions:
-
-- **Email**: billing@eleva.care
-- **Support**: support@eleva.care
-
-
+<Cards>
+  <Card title="How to Book" href="/docs/patient/booking">
+    Step-by-step booking guide
+  </Card>
+  <Card title="FAQ" href="/docs/patient/faq">
+    More frequently asked questions
+  </Card>
+</Cards>
