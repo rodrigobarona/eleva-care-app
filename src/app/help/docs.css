@@ -10,6 +10,46 @@
  */
 @source '../../../node_modules/fumadocs-ui/dist/**/*.js';
 
+/**
+ * Help Center Layout Overrides
+ *
+ * Adjustments to make Fumadocs work within our marketing layout:
+ * - Sidebar positioned within the container (not full viewport width)
+ * - Content area respects the max-width container
+ * - Proper spacing for fixed header
+ *
+ * Fumadocs uses CSS grid with named areas: sidebar, header, content
+ */
+
+/* Override Fumadocs layout container */
+#eleva-care-help {
+  /* Set docs height to account for header */
+  --fd-docs-height: calc(100vh - 96px);
+}
+
+@media (max-width: 1023px) {
+  #eleva-care-help {
+    --fd-docs-height: calc(100vh - 80px);
+  }
+}
+
+/* Sidebar placeholder - sticky within container */
+#eleva-care-help [data-sidebar-placeholder] {
+  top: 0;
+  height: var(--fd-docs-height);
+}
+
+/* Override sidebar positioning to work within max-width container */
+#eleva-care-help [data-collapsed] {
+  /* Keep sidebar within container bounds */
+  position: sticky;
+}
+
+/* Ensure the docs layout respects container width */
+#eleva-care-help main > div {
+  max-width: 100%;
+}
+
 @theme {
   --color-fd-background: hsl(0, 0%, 96%);
   --color-fd-foreground: hsl(0, 0%, 3.9%);

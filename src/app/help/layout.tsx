@@ -73,8 +73,9 @@ export default async function DocsLayout({ children }: { children: ReactNode }) 
       <SmoothScrollProvider>
         <div id="eleva-care-help" className="relative flex min-h-screen flex-col overflow-hidden">
           <Header />
+          {/* pt-20 (mobile) / pt-24 (lg) to account for fixed header height */}
           <DocsProvider locale={locale}>
-            <main className="flex-1">{children}</main>
+            <main className="mx-auto w-full max-w-7xl flex-1 pt-20 lg:pt-24">{children}</main>
           </DocsProvider>
           <Footer />
         </div>
