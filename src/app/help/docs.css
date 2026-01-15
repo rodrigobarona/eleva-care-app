@@ -43,16 +43,22 @@
   }
 }
 
-/* Sidebar placeholder - sticky within container */
+/* Sidebar - sticky with independent scroll */
 #eleva-care-help [data-sidebar-placeholder] {
+  position: sticky;
   top: 0;
   height: var(--fd-docs-height);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* Override sidebar positioning to work within max-width container */
+/* Sidebar collapsed state - keep sticky positioning */
 #eleva-care-help [data-collapsed] {
-  /* Keep sidebar within container bounds */
   position: sticky;
+  top: 0;
+  height: var(--fd-docs-height);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* TOC (Table of Contents) - sticky on right side */
