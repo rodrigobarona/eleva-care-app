@@ -1,4 +1,3 @@
-import { i18n } from '@/lib/fumadocs-i18n.config';
 import type { DocsLayoutProps } from 'fumadocs-ui/layouts/docs';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { BookOpen, Building2, Users } from 'lucide-react';
@@ -52,7 +51,8 @@ function getPortalUrl(basePath: string, locale: string): string {
 /**
  * Base layout options with i18n support
  *
- * Nav is disabled since we use the marketing Header component instead.
+ * Nav, theme toggle, and language toggle are disabled since we use
+ * the marketing Header and Footer components instead.
  * This keeps the help center feeling like part of the main website.
  *
  * @param locale - The current locale code (e.g., 'en', 'pt')
@@ -61,14 +61,18 @@ function getPortalUrl(basePath: string, locale: string): string {
  * @example
  * ```tsx
  * const options = baseOptions('pt');
- * // Returns layout with nav disabled (uses marketing Header instead)
+ * // Returns layout with nav/theme/i18n disabled (uses marketing layout)
  * ```
  */
 export function baseOptions(_locale: string): BaseLayoutProps {
   return {
-    i18n,
-    // Nav is disabled - we use the marketing Header component instead
-    // This ensures consistent navigation across the entire site
+    // Disable i18n toggle - handled in main Footer
+    i18n: false,
+    // Disable theme toggle - handled in main Footer
+    themeSwitch: {
+      enabled: false,
+    },
+    // Disable nav - using marketing Header instead
     nav: {
       enabled: false,
     },
@@ -125,6 +129,8 @@ export function docsOptions(locale: string): Omit<DocsLayoutProps, 'tree'> {
     sidebar: {
       tabs: getSidebarTabs(locale),
       defaultOpenLevel: 2, // Keep folders expanded by default
+      collapsible: false, // Disable floating/collapsible sidebar
+      footer: null, // Hide sidebar footer - controls are in the main footer
     },
   };
 }
