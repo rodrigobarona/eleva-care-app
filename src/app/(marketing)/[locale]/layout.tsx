@@ -26,8 +26,6 @@ interface MetadataTranslations {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
 
-  console.log('Marketing layout - generateMetadata called with locale:', locale);
-
   if (!isValidLocale(locale)) {
     console.error(`Invalid locale in generateMetadata: ${locale}`);
     notFound();
@@ -79,8 +77,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function MarketingLayout({ children, params }: Props) {
   const { locale } = await params;
 
-  console.log('Marketing layout rendering with locale:', locale);
-
   if (!isValidLocale(locale)) {
     console.error(`Invalid locale in layout: ${locale}`);
     notFound();
@@ -111,14 +107,12 @@ export function generateStaticParams() {
 /**
  * CRITICAL: Disable dynamic params to prevent route conflicts
  *
- * Without this, `/docs/patient` would match as `[locale]=docs, [username]=patient`
- * instead of falling through to `app/docs/[portal]`.
- *
  * With `dynamicParams = false`:
  * - Only values from generateStaticParams are valid for [locale]
  * - `/en/about` ✓ matches (en is in locales)
- * - `/docs/patient` ✗ doesn't match (docs is not in locales)
- *   → Falls through to `app/docs/[portal]` ✓
+ * - `/foo/about` ✗ doesn't match (foo is not in locales)
+ *
+ * This ensures all marketing and docs routes require a valid locale prefix.
  *
  * @see https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#dynamicparams
  */

@@ -9,7 +9,7 @@ import { locales, routing } from '@/lib/i18n';
 import type { WorkOSPermission, WorkOSRole } from '@/types/workos-rbac';
 import { ADMIN_ROLES, EXPERT_ROLES, WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
 import { authkit } from '@workos-inc/authkit-nextjs';
-import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
+import { isMarkdownPreferred } from 'fumadocs-core/negotiation';
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -41,10 +41,14 @@ const handleI18nRouting = createMiddleware(routing);
 /**
  * AI/LLM Content Negotiation
  *
- * Rewrite documentation paths to .mdx format when AI agents request markdown.
+ * Rewrite help center paths to .mdx format when AI agents request markdown.
  * Uses the Accept header to detect AI agents preferring markdown content.
+ *
+ * Pattern handles locale-prefixed paths: /en/help/*, /pt/help/*, etc.
+ * Generated dynamically from the canonical locales array to prevent drift.
  */
-const { rewrite: rewriteLLM } = rewritePath('/docs{/*path}', '/llms.mdx/docs{/*path}');
+const LOCALE_ALTERNATION = locales.map((l) => l.replace('-', '\\-')).join('|');
+const HELP_LOCALE_PATTERN = new RegExp(`^\\/(${LOCALE_ALTERNATION})\\/help(\\/.*)?$`);
 
 /**
  * Protected routes with required permissions
@@ -238,11 +242,23 @@ export default async function proxy(request: NextRequest) {
 
   // Handle AI/LLM content negotiation FIRST (before auth checks)
   // If an AI agent requests markdown (via Accept header), rewrite to .mdx route
-  if (isMarkdownPreferred(request) && path.startsWith('/docs/')) {
-    const result = rewriteLLM(path);
-    if (result) {
-      if (DEBUG) console.log(`🤖 AI content negotiation: ${path} → ${result}`);
-      return NextResponse.rewrite(new URL(result, request.url));
+  if (isMarkdownPreferred(request)) {
+    // Matches locale-prefixed paths: /pt/help/*, /es/help/*, etc.
+    const localeHelpMatch = path.match(HELP_LOCALE_PATTERN);
+    if (localeHelpMatch) {
+      const locale = localeHelpMatch[1];
+      const helpPath = localeHelpMatch[2] || '';
+      const mdxPath = `/llms.mdx/${locale}/help${helpPath}`;
+      if (DEBUG) console.log(`🤖 AI content negotiation: ${path} → ${mdxPath}`);
+      return NextResponse.rewrite(new URL(mdxPath, request.url));
+    }
+    // Matches non-prefixed paths: /help/* (defaults to English)
+    const defaultHelpMatch = path.match(/^\/help(\/.*)?$/);
+    if (defaultHelpMatch) {
+      const helpPath = defaultHelpMatch[1] || '';
+      const mdxPath = `/llms.mdx/en/help${helpPath}`;
+      if (DEBUG) console.log(`🤖 AI content negotiation (default EN): ${path} → ${mdxPath}`);
+      return NextResponse.rewrite(new URL(mdxPath, request.url));
     }
   }
 
@@ -325,20 +341,20 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 3: HANDLE LOCALE-PREFIXED DOCS ROUTES
+  // STEP 3: HANDLE LOCALE-PREFIXED HELP ROUTES
   // ==========================================
-  // Handle /pt/docs/expert, /es/docs/patient, etc.
-  // Rewrite to /docs/* and set locale cookie for Fumadocs
-  const localeDocsMatch = path.match(/^\/(en|es|pt|pt-BR)\/docs(\/.*)?$/);
-  if (localeDocsMatch) {
-    const locale = localeDocsMatch[1];
-    const docsPath = `/docs${localeDocsMatch[2] || ''}`;
-    if (DEBUG) console.log(`📚 Locale docs route: ${path} → ${docsPath} (locale: ${locale})`);
+  // Handle /pt/help/expert, /es/help/patient, etc.
+  // Rewrite to /help/* and set locale cookie for Fumadocs
+  const localeHelpMatch = path.match(HELP_LOCALE_PATTERN);
+  if (localeHelpMatch) {
+    const locale = localeHelpMatch[1];
+    const helpPath = `/help${localeHelpMatch[2] || ''}`;
+    if (DEBUG) console.log(`📚 Locale help route: ${path} → ${helpPath} (locale: ${locale})`);
 
-    const response = NextResponse.rewrite(new URL(docsPath, request.url));
+    const response = NextResponse.rewrite(new URL(helpPath, request.url));
     response.headers.set('x-fumadocs-locale', locale);
     response.cookies.set('FUMADOCS_LOCALE', locale, {
-      path: '/docs',
+      path: '/help',
       maxAge: 60 * 60 * 24 * 365, // 1 year
       sameSite: 'lax',
     });
@@ -367,7 +383,7 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'booking' ||
     firstSegment === 'admin' ||
     firstSegment === 'partner' ||
-    firstSegment === 'docs'; // Documentation routes don't need locale prefix
+    firstSegment === 'help';
 
   // If auth/app route, skip i18n and use JWT-based RBAC
   if (isAuthOrAppRoute) {

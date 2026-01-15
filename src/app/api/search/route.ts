@@ -1,15 +1,15 @@
-import { developerSource, expertSource, patientSource, workspaceSource } from '@/lib/source';
+import { expertSource, patientSource, workspaceSource } from '@/lib/source';
 import { createSearchAPI } from 'fumadocs-core/search/server';
 
 /**
- * Unified Documentation Search API (Optimized)
+ * Unified Help Center Search API (Optimized)
  *
  * Single Orama index with tag-based filtering for better performance.
  * Uses Fumadocs' createSearchAPI to build a unified search index with custom properties.
  *
  * Query Parameters:
  * - query: Search string
- * - tag: Optional tag filter (e.g., 'patient', 'expert', 'workspace', 'developer')
+ * - tag: Optional tag filter (e.g., 'patient', 'expert', 'workspace')
  * - locale: Optional locale filter (e.g., 'en', 'es', 'pt', 'pt-BR')
  *
  * @example
@@ -25,7 +25,6 @@ const sources = [
   { source: patientSource, tag: 'patient' },
   { source: expertSource, tag: 'expert' },
   { source: workspaceSource, tag: 'workspace' },
-  { source: developerSource, tag: 'developer' },
 ] as const;
 
 /**

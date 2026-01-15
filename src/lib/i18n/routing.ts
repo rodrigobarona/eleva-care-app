@@ -7,7 +7,9 @@ export const defaultLocale = 'en' as const;
 export const routing = {
   locales,
   defaultLocale,
-  // Use as-needed to only show locale prefix for non-default locales
+  // Use 'as-needed' to only show locale prefix for non-default locales
+  // - English: /about, /help/patient (no prefix)
+  // - Portuguese: /pt/about, /pt/help/patient
   localePrefix: 'as-needed',
   pathnames: {
     // ----------------
@@ -30,11 +32,11 @@ export const routing = {
     '/trust': '/trust',
     '/trust/security': '/trust/security',
     '/trust/dpa': '/trust/dpa',
-    '/docs/patient': '/docs/patient',
-    '/docs/expert': '/docs/expert',
-    '/docs/workspace': '/docs/workspace',
-    '/docs/developer': '/docs/developer',
+    // Help Center routes - proxy handles locale-prefixed paths (e.g., /pt/help/patient → /help/patient)
     '/help': '/help',
+    '/help/patient': '/help/patient',
+    '/help/expert': '/help/expert',
+    '/help/workspace': '/help/workspace',
     '/contact': '/contact',
     '/community': '/community',
     '/services/pregnancy': '/services/pregnancy',

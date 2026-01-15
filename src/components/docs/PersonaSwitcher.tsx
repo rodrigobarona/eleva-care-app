@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -12,39 +13,43 @@ const portals = [
     id: 'patient',
     name: 'Patient Help Center',
     description: 'Booking, payments, and account help',
-    href: '/docs/patient',
+    basePath: '/help/patient',
     icon: '👤',
   },
   {
     id: 'expert',
     name: 'Expert Resources',
     description: 'Profile setup, services, and earnings',
-    href: '/docs/expert',
+    basePath: '/help/expert',
     icon: '🩺',
   },
   {
     id: 'workspace',
     name: 'Workspace Portal',
     description: 'Team management and B2B features',
-    href: '/docs/workspace',
+    basePath: '/help/workspace',
     icon: '🏢',
-    comingSoon: true,
-  },
-  {
-    id: 'developer',
-    name: 'Developer Docs',
-    description: 'API reference and integrations',
-    href: '/docs/developer',
-    icon: '💻',
     comingSoon: true,
   },
 ] as const;
 
 /**
+ * Get portal URL with locale prefix (as-needed pattern)
+ * - English (default): /help/patient (no prefix)
+ * - Other locales: /pt/help/patient
+ */
+function getPortalUrl(basePath: string, locale: string): string {
+  return locale === 'en' ? basePath : `/${locale}${basePath}`;
+}
+
+/**
  * PersonaSwitcher Component
  *
- * Allows users to switch between different documentation portals
- * (Patient, Expert, Workspace, Developer).
+ * Allows users to switch between different help center portals
+ * (Patient, Expert, Workspace).
+ *
+ * Uses next-intl's useLocale() hook to get the current locale from context.
+ * URLs follow as-needed pattern: no prefix for English, prefix for others.
  *
  * @example
  * ```tsx
@@ -53,17 +58,19 @@ const portals = [
  */
 export function PersonaSwitcher() {
   const pathname = usePathname();
+  const locale = useLocale();
 
-  // Determine active portal from pathname
-  const activePortal = portals.find((portal) => pathname?.startsWith(portal.href));
+  // Determine active portal from pathname (accounts for locale prefix)
+  const activePortal = portals.find((portal) => pathname?.includes(portal.basePath));
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="px-2 text-xs font-medium text-muted-foreground">Documentation</p>
+      <p className="text-muted-foreground px-2 text-xs font-medium">Documentation</p>
       <nav className="flex flex-col gap-1">
         {portals.map((portal) => {
           const isActive = activePortal?.id === portal.id;
           const isComingSoon = 'comingSoon' in portal && portal.comingSoon;
+          const href = getPortalUrl(portal.basePath, locale);
 
           if (isComingSoon) {
             return (
@@ -74,7 +81,7 @@ export function PersonaSwitcher() {
                 <span className="text-lg">{portal.icon}</span>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{portal.name}</span>
-                  <span className="text-xs text-muted-foreground">Coming soon</span>
+                  <span className="text-muted-foreground text-xs">Coming soon</span>
                 </div>
               </div>
             );
@@ -83,7 +90,7 @@ export function PersonaSwitcher() {
           return (
             <Link
               key={portal.id}
-              href={portal.href}
+              href={href}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors',
                 isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50',
@@ -92,7 +99,7 @@ export function PersonaSwitcher() {
               <span className="text-lg">{portal.icon}</span>
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{portal.name}</span>
-                <span className="text-xs text-muted-foreground">{portal.description}</span>
+                <span className="text-muted-foreground text-xs">{portal.description}</span>
               </div>
             </Link>
           );
@@ -107,13 +114,16 @@ export function PersonaSwitcher() {
  */
 export function PersonaSwitcherCompact() {
   const pathname = usePathname();
-  const activePortal = portals.find((portal) => pathname?.startsWith(portal.href));
+  const locale = useLocale();
+
+  const activePortal = portals.find((portal) => pathname?.includes(portal.basePath));
 
   return (
     <div className="flex gap-2">
       {portals.map((portal) => {
         const isActive = activePortal?.id === portal.id;
         const isComingSoon = 'comingSoon' in portal && portal.comingSoon;
+        const href = getPortalUrl(portal.basePath, locale);
 
         if (isComingSoon) {
           return (
@@ -130,7 +140,7 @@ export function PersonaSwitcherCompact() {
         return (
           <Link
             key={portal.id}
-            href={portal.href}
+            href={href}
             className={cn(
               'rounded-md px-2 py-1 text-sm transition-colors',
               isActive ? 'bg-accent' : 'hover:bg-accent/50',
@@ -146,4 +156,3 @@ export function PersonaSwitcherCompact() {
 }
 
 export default PersonaSwitcher;
-

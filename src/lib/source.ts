@@ -1,7 +1,8 @@
 import { loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
-import { patient, expert, workspace, developer } from 'fumadocs-mdx:collections/server';
-import { i18n } from './fumadocs-i18n';
+import { expert, patient, workspace } from 'fumadocs-mdx:collections/server';
+
+import { i18n } from './fumadocs-i18n.config';
 
 /**
  * Fumadocs Source Loaders
@@ -10,34 +11,34 @@ import { i18n } from './fumadocs-i18n';
  * Uses the recommended .toFumadocsSource() method on defineDocs collections.
  * Uses lucideIconsPlugin to render Lucide icons in sidebar.
  *
+ * URL Structure (following next-intl as-needed pattern):
+ * - /help/patient - English patient help (default, no locale prefix)
+ * - /pt/help/patient - Portuguese patient help (rewritten via proxy.ts)
+ *
+ * The proxy middleware rewrites locale-prefixed paths to /help/* and sets
+ * a FUMADOCS_LOCALE cookie for locale detection.
+ *
  * @see https://fumadocs.vercel.app/docs/headless/source-api
  * @see https://fumadocs.vercel.app/docs/mdx
  */
 
 export const patientSource = loader({
-  baseUrl: '/docs/patient',
+  baseUrl: '/help/patient',
   source: patient.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
 
 export const expertSource = loader({
-  baseUrl: '/docs/expert',
+  baseUrl: '/help/expert',
   source: expert.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
 
 export const workspaceSource = loader({
-  baseUrl: '/docs/workspace',
+  baseUrl: '/help/workspace',
   source: workspace.toFumadocsSource(),
-  i18n,
-  plugins: [lucideIconsPlugin()],
-});
-
-export const developerSource = loader({
-  baseUrl: '/docs/developer',
-  source: developer.toFumadocsSource(),
   i18n,
   plugins: [lucideIconsPlugin()],
 });
@@ -49,7 +50,6 @@ export const portalSources = {
   patient: patientSource,
   expert: expertSource,
   workspace: workspaceSource,
-  developer: developerSource,
 } as const;
 
 export type PortalKey = keyof typeof portalSources;

@@ -1,6 +1,0 @@
-{
-  "title": "Webhooks",
-  "icon": "Webhook",
-  "defaultOpen": true,
-  "pages": ["overview", "events"]
-}
