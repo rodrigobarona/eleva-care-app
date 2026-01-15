@@ -1,11 +1,10 @@
 'use client';
 
+import HelpSearchDialog from '@/components/help/search-dialog';
 import { type FumadocsLocale, i18n, translations } from '@/lib/fumadocs-i18n.config';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import type { ReactNode } from 'react';
-
-import HelpSearchDialog from '../../app/help/components/search-dialog';
 
 interface DocsProviderProps {
   children: ReactNode;

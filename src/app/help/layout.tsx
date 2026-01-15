@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/nextjs';
-import { getFumadocsLocale } from '@/lib/fumadocs-i18n';
 import Footer from '@/components/layout/footer/Footer';
 import Header from '@/components/layout/header/Header';
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
+import { getFumadocsLocale } from '@/lib/fumadocs-i18n';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';

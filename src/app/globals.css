@@ -144,8 +144,9 @@
 }
 
 @layer utilities {
-  /* Smooth scroll offset for fixed header - marketing pages only */
-  #eleva-care-marketing [id] {
+  /* Smooth scroll offset for fixed header - marketing and help pages */
+  #eleva-care-marketing [id],
+  #eleva-care-help [id] {
     scroll-margin-top: 120px;
   }
 

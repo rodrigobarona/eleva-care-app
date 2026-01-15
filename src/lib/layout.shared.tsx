@@ -1,7 +1,7 @@
 import { i18n } from '@/lib/fumadocs-i18n.config';
 import type { DocsLayoutProps } from 'fumadocs-ui/layouts/docs';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { BookOpen, Building2, Heart, Users } from 'lucide-react';
+import { BookOpen, Building2, Users } from 'lucide-react';
 
 /**
  * Fumadocs Layout Configuration
@@ -52,7 +52,8 @@ function getPortalUrl(basePath: string, locale: string): string {
 /**
  * Base layout options with i18n support
  *
- * Includes nav configuration with locale-aware docs home link (as-needed pattern).
+ * Nav is disabled since we use the marketing Header component instead.
+ * This keeps the help center feeling like part of the main website.
  *
  * @param locale - The current locale code (e.g., 'en', 'pt')
  * @returns Base layout props for Fumadocs
@@ -60,23 +61,16 @@ function getPortalUrl(basePath: string, locale: string): string {
  * @example
  * ```tsx
  * const options = baseOptions('pt');
- * // Returns layout with nav.url = '/pt/help'
- *
- * const enOptions = baseOptions('en');
- * // Returns layout with nav.url = '/help' (no prefix for default locale)
+ * // Returns layout with nav disabled (uses marketing Header instead)
  * ```
  */
-export function baseOptions(locale: string): BaseLayoutProps {
+export function baseOptions(_locale: string): BaseLayoutProps {
   return {
     i18n,
+    // Nav is disabled - we use the marketing Header component instead
+    // This ensures consistent navigation across the entire site
     nav: {
-      title: (
-        <span className="flex items-center gap-2 font-semibold">
-          <Heart className="size-5 text-pink-500" />
-          Eleva Care Help Center
-        </span>
-      ),
-      url: locale === 'en' ? '/help' : `/${locale}/help`,
+      enabled: false,
     },
   };
 }
