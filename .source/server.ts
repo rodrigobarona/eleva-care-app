@@ -1,29 +1,29 @@
 // @ts-nocheck
-import { default as __fd_glob_60 } from "../src/content/docs/workspace/en/pricing/meta.json?collection=workspace"
-import { default as __fd_glob_59 } from "../src/content/docs/workspace/en/team/meta.json?collection=workspace"
-import { default as __fd_glob_58 } from "../src/content/docs/workspace/en/getting-started/meta.json?collection=workspace"
-import { default as __fd_glob_57 } from "../src/content/docs/workspace/en/analytics/meta.json?collection=workspace"
-import { default as __fd_glob_56 } from "../src/content/docs/workspace/en/meta.json?collection=workspace"
-import * as __fd_glob_55 from "../src/content/docs/workspace/en/getting-started/setup.mdx?collection=workspace"
-import * as __fd_glob_54 from "../src/content/docs/workspace/en/getting-started/branding.mdx?collection=workspace"
-import * as __fd_glob_53 from "../src/content/docs/workspace/en/analytics/dashboard.mdx?collection=workspace"
-import * as __fd_glob_52 from "../src/content/docs/workspace/en/team/invitations.mdx?collection=workspace"
-import * as __fd_glob_51 from "../src/content/docs/workspace/en/team/experts.mdx?collection=workspace"
-import * as __fd_glob_50 from "../src/content/docs/workspace/en/pricing/revenue.mdx?collection=workspace"
-import * as __fd_glob_49 from "../src/content/docs/workspace/en/pricing/plans.mdx?collection=workspace"
-import * as __fd_glob_48 from "../src/content/docs/workspace/en/index.mdx?collection=workspace"
-import * as __fd_glob_47 from "../src/content/docs/expert/pt/getting-started/services.mdx?collection=expert"
-import * as __fd_glob_46 from "../src/content/docs/expert/pt/getting-started/profile.mdx?collection=expert"
-import * as __fd_glob_45 from "../src/content/docs/expert/pt/getting-started/availability.mdx?collection=expert"
-import * as __fd_glob_44 from "../src/content/docs/expert/pt/top-expert/requirements.mdx?collection=expert"
-import * as __fd_glob_43 from "../src/content/docs/expert/pt/top-expert/benefits.mdx?collection=expert"
+import * as __fd_glob_60 from "../src/content/docs/workspace/en/team/invitations.mdx?collection=workspace"
+import * as __fd_glob_59 from "../src/content/docs/workspace/en/team/experts.mdx?collection=workspace"
+import * as __fd_glob_58 from "../src/content/docs/workspace/en/pricing/revenue.mdx?collection=workspace"
+import * as __fd_glob_57 from "../src/content/docs/workspace/en/pricing/plans.mdx?collection=workspace"
+import * as __fd_glob_56 from "../src/content/docs/workspace/en/getting-started/setup.mdx?collection=workspace"
+import * as __fd_glob_55 from "../src/content/docs/workspace/en/getting-started/branding.mdx?collection=workspace"
+import * as __fd_glob_54 from "../src/content/docs/workspace/en/analytics/dashboard.mdx?collection=workspace"
+import * as __fd_glob_53 from "../src/content/docs/workspace/en/index.mdx?collection=workspace"
+import { default as __fd_glob_52 } from "../src/content/docs/workspace/en/pricing/meta.json?collection=workspace"
+import { default as __fd_glob_51 } from "../src/content/docs/workspace/en/team/meta.json?collection=workspace"
+import { default as __fd_glob_50 } from "../src/content/docs/workspace/en/getting-started/meta.json?collection=workspace"
+import { default as __fd_glob_49 } from "../src/content/docs/workspace/en/analytics/meta.json?collection=workspace"
+import { default as __fd_glob_48 } from "../src/content/docs/workspace/en/meta.json?collection=workspace"
+import * as __fd_glob_47 from "../src/content/docs/expert/pt/top-expert/requirements.mdx?collection=expert"
+import * as __fd_glob_46 from "../src/content/docs/expert/pt/top-expert/benefits.mdx?collection=expert"
+import * as __fd_glob_45 from "../src/content/docs/expert/pt/getting-started/services.mdx?collection=expert"
+import * as __fd_glob_44 from "../src/content/docs/expert/pt/getting-started/profile.mdx?collection=expert"
+import * as __fd_glob_43 from "../src/content/docs/expert/pt/getting-started/availability.mdx?collection=expert"
 import * as __fd_glob_42 from "../src/content/docs/expert/pt/earnings/pricing.mdx?collection=expert"
 import * as __fd_glob_41 from "../src/content/docs/expert/pt/earnings/payouts.mdx?collection=expert"
-import * as __fd_glob_40 from "../src/content/docs/expert/en/getting-started/services.mdx?collection=expert"
-import * as __fd_glob_39 from "../src/content/docs/expert/en/getting-started/profile.mdx?collection=expert"
-import * as __fd_glob_38 from "../src/content/docs/expert/en/getting-started/availability.mdx?collection=expert"
-import * as __fd_glob_37 from "../src/content/docs/expert/en/top-expert/requirements.mdx?collection=expert"
-import * as __fd_glob_36 from "../src/content/docs/expert/en/top-expert/benefits.mdx?collection=expert"
+import * as __fd_glob_40 from "../src/content/docs/expert/en/top-expert/requirements.mdx?collection=expert"
+import * as __fd_glob_39 from "../src/content/docs/expert/en/top-expert/benefits.mdx?collection=expert"
+import * as __fd_glob_38 from "../src/content/docs/expert/en/getting-started/services.mdx?collection=expert"
+import * as __fd_glob_37 from "../src/content/docs/expert/en/getting-started/profile.mdx?collection=expert"
+import * as __fd_glob_36 from "../src/content/docs/expert/en/getting-started/availability.mdx?collection=expert"
 import * as __fd_glob_35 from "../src/content/docs/expert/en/earnings/pricing.mdx?collection=expert"
 import * as __fd_glob_34 from "../src/content/docs/expert/en/earnings/payouts.mdx?collection=expert"
 import * as __fd_glob_33 from "../src/content/docs/expert/pt/index.mdx?collection=expert"
@@ -70,8 +70,8 @@ const create = server<typeof Config, import("fumadocs-mdx/runtime/types").Intern
 
 export const developer = await create.docs("developer", "src/content/docs/developer", {"en/meta.json": __fd_glob_12, "en/api/meta.json": __fd_glob_13, "en/integrations/meta.json": __fd_glob_14, "en/webhooks/meta.json": __fd_glob_15, }, {"en/index.mdx": __fd_glob_16, "en/api/authentication.mdx": __fd_glob_17, "en/api/endpoints.mdx": __fd_glob_18, "en/api/errors.mdx": __fd_glob_19, "en/integrations/calendar.mdx": __fd_glob_20, "en/integrations/stripe.mdx": __fd_glob_21, "en/webhooks/events.mdx": __fd_glob_22, "en/webhooks/overview.mdx": __fd_glob_23, });
 
-export const expert = await create.docs("expert", "src/content/docs/expert", {"en/meta.json": __fd_glob_24, "pt/meta.json": __fd_glob_25, "en/earnings/meta.json": __fd_glob_26, "en/getting-started/meta.json": __fd_glob_27, "en/top-expert/meta.json": __fd_glob_28, "pt/earnings/meta.json": __fd_glob_29, "pt/getting-started/meta.json": __fd_glob_30, "pt/top-expert/meta.json": __fd_glob_31, }, {"en/index.mdx": __fd_glob_32, "pt/index.mdx": __fd_glob_33, "en/earnings/payouts.mdx": __fd_glob_34, "en/earnings/pricing.mdx": __fd_glob_35, "en/top-expert/benefits.mdx": __fd_glob_36, "en/top-expert/requirements.mdx": __fd_glob_37, "en/getting-started/availability.mdx": __fd_glob_38, "en/getting-started/profile.mdx": __fd_glob_39, "en/getting-started/services.mdx": __fd_glob_40, "pt/earnings/payouts.mdx": __fd_glob_41, "pt/earnings/pricing.mdx": __fd_glob_42, "pt/top-expert/benefits.mdx": __fd_glob_43, "pt/top-expert/requirements.mdx": __fd_glob_44, "pt/getting-started/availability.mdx": __fd_glob_45, "pt/getting-started/profile.mdx": __fd_glob_46, "pt/getting-started/services.mdx": __fd_glob_47, });
+export const expert = await create.docs("expert", "src/content/docs/expert", {"en/meta.json": __fd_glob_24, "pt/meta.json": __fd_glob_25, "en/earnings/meta.json": __fd_glob_26, "en/getting-started/meta.json": __fd_glob_27, "en/top-expert/meta.json": __fd_glob_28, "pt/earnings/meta.json": __fd_glob_29, "pt/getting-started/meta.json": __fd_glob_30, "pt/top-expert/meta.json": __fd_glob_31, }, {"en/index.mdx": __fd_glob_32, "pt/index.mdx": __fd_glob_33, "en/earnings/payouts.mdx": __fd_glob_34, "en/earnings/pricing.mdx": __fd_glob_35, "en/getting-started/availability.mdx": __fd_glob_36, "en/getting-started/profile.mdx": __fd_glob_37, "en/getting-started/services.mdx": __fd_glob_38, "en/top-expert/benefits.mdx": __fd_glob_39, "en/top-expert/requirements.mdx": __fd_glob_40, "pt/earnings/payouts.mdx": __fd_glob_41, "pt/earnings/pricing.mdx": __fd_glob_42, "pt/getting-started/availability.mdx": __fd_glob_43, "pt/getting-started/profile.mdx": __fd_glob_44, "pt/getting-started/services.mdx": __fd_glob_45, "pt/top-expert/benefits.mdx": __fd_glob_46, "pt/top-expert/requirements.mdx": __fd_glob_47, });
 
 export const patient = await create.docs("patient", "src/content/docs/patient", {"en/meta.json": __fd_glob_10, "pt/meta.json": __fd_glob_11, }, {"en/booking.mdx": __fd_glob_0, "en/faq.mdx": __fd_glob_1, "en/index.mdx": __fd_glob_2, "en/payments.mdx": __fd_glob_3, "en/reviews.mdx": __fd_glob_4, "pt/booking.mdx": __fd_glob_5, "pt/faq.mdx": __fd_glob_6, "pt/index.mdx": __fd_glob_7, "pt/payments.mdx": __fd_glob_8, "pt/reviews.mdx": __fd_glob_9, });
 
-export const workspace = await create.docs("workspace", "src/content/docs/workspace", {"en/meta.json": __fd_glob_56, "en/analytics/meta.json": __fd_glob_57, "en/getting-started/meta.json": __fd_glob_58, "en/team/meta.json": __fd_glob_59, "en/pricing/meta.json": __fd_glob_60, }, {"en/index.mdx": __fd_glob_48, "en/pricing/plans.mdx": __fd_glob_49, "en/pricing/revenue.mdx": __fd_glob_50, "en/team/experts.mdx": __fd_glob_51, "en/team/invitations.mdx": __fd_glob_52, "en/analytics/dashboard.mdx": __fd_glob_53, "en/getting-started/branding.mdx": __fd_glob_54, "en/getting-started/setup.mdx": __fd_glob_55, });
+export const workspace = await create.docs("workspace", "src/content/docs/workspace", {"en/meta.json": __fd_glob_48, "en/analytics/meta.json": __fd_glob_49, "en/getting-started/meta.json": __fd_glob_50, "en/team/meta.json": __fd_glob_51, "en/pricing/meta.json": __fd_glob_52, }, {"en/index.mdx": __fd_glob_53, "en/analytics/dashboard.mdx": __fd_glob_54, "en/getting-started/branding.mdx": __fd_glob_55, "en/getting-started/setup.mdx": __fd_glob_56, "en/pricing/plans.mdx": __fd_glob_57, "en/pricing/revenue.mdx": __fd_glob_58, "en/team/experts.mdx": __fd_glob_59, "en/team/invitations.mdx": __fd_glob_60, });
