@@ -14,21 +14,25 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
     ### Patient Books
 
     Payment is collected at the time of booking.
+
   </Step>
   <Step>
     ### Funds Held
 
     Payment is held in escrow during the consultation period.
+
   </Step>
   <Step>
     ### Appointment Completes
 
     Funds are released 24 hours after the consultation ends.
+
   </Step>
   <Step>
     ### Payout Processed
 
     Funds are transferred to your bank account on your payout schedule.
+
   </Step>
 </Steps>
 
@@ -40,12 +44,12 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
 
 ### Fee Structure
 
-| Tier | Plan | Commission | Monthly Fee |
-|------|------|------------|-------------|
-| Community | Commission-Only | 20% | €0 |
-| Community | Subscription | 12% | €49/month |
-| Top Expert | Commission-Only | 15% | €0 |
-| Top Expert | Subscription | 8% | €177/month |
+| Tier       | Plan            | Commission | Monthly Fee |
+| ---------- | --------------- | ---------- | ----------- |
+| Community  | Commission-Only | 20%        | €0          |
+| Community  | Subscription    | 12%        | €49/month   |
+| Top Expert | Commission-Only | 15%        | €0          |
+| Top Expert | Subscription    | 8%         | €177/month  |
 
 <Tabs items={['Commission-Only', 'Subscription']}>
   <Tab value="Commission-Only">
@@ -55,6 +59,7 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
     - Fewer than 10 bookings/month
     - Prefer no fixed costs
     - Testing the platform
+
   </Tab>
   <Tab value="Subscription">
     **Best For:**
@@ -63,6 +68,7 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
     - Want to maximize earnings per appointment
     - Prefer predictable costs
     - More than 6 bookings/month (break-even point)
+
   </Tab>
 </Tabs>
 
@@ -70,12 +76,12 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
 
 **€100 Consultation — Community Expert:**
 
-| Plan | Commission | You Receive |
-|------|------------|-------------|
-| Commission-Only (20%) | €20 | €80 |
-| Subscription (12%) | €12 | €88 |
+| Plan                  | Commission | You Receive |
+| --------------------- | ---------- | ----------- |
+| Commission-Only (20%) | €20        | €80         |
+| Subscription (12%)    | €12        | €88         |
 
-**Break-even**: With €49/month subscription, you save €8 per booking. Break-even at ~6 bookings/month.
+**Break-even**: With €49/month subscription, you save €8 per booking. Break-even at just over 6 bookings/month (6-7 bookings).
 
 ## Setting Up Payouts
 
@@ -84,21 +90,25 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
     ### Start Setup
 
     Go to **Expert Dashboard** → **Earnings** → **Set Up Payouts**.
+
   </Step>
   <Step>
     ### Complete Verification
 
     Complete Stripe's identity verification process.
+
   </Step>
   <Step>
     ### Add Bank Account
 
     Provide your bank account details for receiving payments.
+
   </Step>
   <Step>
     ### Await Approval
 
     Verification typically takes 1-2 business days.
+
   </Step>
 </Steps>
 
@@ -124,6 +134,7 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
     | Frequency | Weekly (every Monday) |
     | Minimum | €10 accumulated earnings |
     | Processing | 2-3 business days to arrive |
+
   </Tab>
   <Tab value="Top Expert">
     **Top Expert Payouts**
@@ -133,6 +144,7 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
     | Frequency | Daily (available) |
     | Minimum | €10 accumulated earnings |
     | Processing | 1-2 business days to arrive |
+
   </Tab>
 </Tabs>
 
@@ -142,18 +154,18 @@ Eleva Care uses Stripe Connect for secure, automated payouts. This guide explain
 
 Your earnings dashboard shows:
 
-| Status | Description |
-|--------|-------------|
-| Pending | Appointments not yet completed |
-| Available | Ready for payout |
+| Status     | Description                    |
+| ---------- | ------------------------------ |
+| Pending    | Appointments not yet completed |
+| Available  | Ready for payout               |
 | In Transit | Being transferred to your bank |
-| Paid Out | Successfully deposited |
+| Paid Out   | Successfully deposited         |
 
 ### Transaction Details
 
 Each transaction displays:
 
-- Patient name
+- Booking ID
 - Service provided
 - Gross amount
 - Platform fee
@@ -170,6 +182,7 @@ Each transaction displays:
     - Maintaining records
 
     Eleva Care does not withhold taxes. Consult a tax professional for your situation.
+
   </Accordion>
   <Accordion title="Documentation Provided">
     Eleva Care provides:
@@ -177,6 +190,7 @@ Each transaction displays:
     - Monthly earnings statements
     - Annual summary for tax filing
     - Transaction history export
+
   </Accordion>
 </Accordions>
 
@@ -185,10 +199,10 @@ Each transaction displays:
 ### Patient Cancellations
 
 | Cancellation Window | Patient Refund | Your Earnings |
-|---------------------|----------------|---------------|
-| 48+ hours before | 100% | €0 |
-| 24-48 hours before | 50% | 50% |
-| Less than 24 hours | 0% | 100% |
+| ------------------- | -------------- | ------------- |
+| 48+ hours before    | 100%           | €0            |
+| 24-48 hours before  | 50%            | 50%           |
+| Less than 24 hours  | 0%             | 100%          |
 
 ### Your Cancellations
 
@@ -224,6 +238,7 @@ If you cancel an appointment:
     - Lower platform fees (8-15%)
     - Daily payouts
     - Featured placement (more bookings)
+
   </Accordion>
 </Accordions>
 
@@ -242,6 +257,7 @@ If you cancel an appointment:
     - Verify gross amount
     - Check platform fee rate
     - Confirm any refunds applied
+
   </Accordion>
   <Accordion title="Stripe Issues">
     For Stripe-specific problems:
@@ -249,6 +265,7 @@ If you cancel an appointment:
     - Log into Stripe Express dashboard
     - Check for verification requirements
     - Update banking information if needed
+
   </Accordion>
 </Accordions>
 

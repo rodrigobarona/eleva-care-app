@@ -134,8 +134,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const source = getPortalSource(portal);
   const locale = await getFumadocsLocale();
 
+  // For index pages, pass empty array instead of undefined
+  const slugArray = slug ?? [];
+
   // Pass slug and locale separately - Fumadocs handles locale internally
-  const page = source.getPage(slug, locale);
+  const page = source.getPage(slugArray, locale);
 
   if (!page) {
     return {};
