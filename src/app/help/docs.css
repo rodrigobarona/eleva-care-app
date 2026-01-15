@@ -124,3 +124,19 @@
   color: var(--color-fd-primary);
   font-weight: 500;
 }
+
+/**
+ * Hide the floating sidebar panel - we have a static sidebar
+ *
+ * This panel (data-sidebar-panel) contains collapse/search buttons
+ * that appear when the sidebar is in collapsed/floating mode.
+ * Since we set collapsible: false, this panel is never needed.
+ *
+ * Using @layer base ensures this applies at the foundation level.
+ */
+@layer base {
+  /* Target the sidebar panel by data attribute */
+  div[data-sidebar-panel] {
+    display: none !important;
+  }
+}

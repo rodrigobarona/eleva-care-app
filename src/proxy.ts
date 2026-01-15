@@ -388,12 +388,37 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 4: HANDLE NON-LOCALE HELP ROOT REDIRECT
   // ==========================================
-  // Handle /help (no locale prefix) - redirect to /help/patient with default locale
-  // This ensures the redirect happens at proxy level with proper cookie setting
+  // Handle /help (no locale prefix) - redirect to appropriate locale path
+  // Check if user has an existing locale preference and respect it
   if (path === '/help' || path === '/help/') {
+    // Check for existing locale preference from cookies
+    const existingLocale =
+      request.cookies.get('FUMADOCS_LOCALE')?.value ||
+      request.cookies.get('NEXT_LOCALE')?.value ||
+      'en';
+
+    // For non-English locales, redirect to locale-prefixed path
+    if (existingLocale !== 'en') {
+      if (DEBUG)
+        console.log(
+          `📚 Help root redirect (locale: ${existingLocale}): ${path} → /${existingLocale}/help/patient`,
+        );
+      const redirectResponse = NextResponse.redirect(
+        new URL(`/${existingLocale}/help/patient`, request.url),
+        308,
+      );
+      redirectResponse.cookies.set('FUMADOCS_LOCALE', existingLocale, {
+        path: '/help',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+        sameSite: 'lax',
+      });
+      applyAuthkitHeaders(redirectResponse, authkitHeaders);
+      return redirectResponse;
+    }
+
+    // For English (default), redirect to /help/patient without locale prefix
     if (DEBUG) console.log(`📚 Help root redirect: ${path} → /help/patient`);
     const redirectResponse = NextResponse.redirect(new URL('/help/patient', request.url), 308);
-    // Set default locale cookie (en) for consistency
     redirectResponse.cookies.set('FUMADOCS_LOCALE', 'en', {
       path: '/help',
       maxAge: 60 * 60 * 24 * 365, // 1 year
