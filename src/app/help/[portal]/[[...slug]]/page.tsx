@@ -7,7 +7,7 @@ import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { docsMdxComponents } from '../../mdx-components';
+import { docsMdxComponents } from '../../../../components/help/mdx-components';
 
 /**
  * Dynamic Portal Documentation Page

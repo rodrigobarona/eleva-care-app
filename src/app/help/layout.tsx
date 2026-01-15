@@ -1,10 +1,13 @@
 import * as Sentry from '@sentry/nextjs';
 import { getFumadocsLocale } from '@/lib/fumadocs-i18n';
+import Footer from '@/components/layout/footer/Footer';
+import Header from '@/components/layout/header/Header';
+import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
-import { DocsProvider } from './components/docs-provider';
+import { DocsProvider } from '../../components/providers/help-provider';
 // Import Fumadocs styles
 import './docs.css';
 
@@ -12,8 +15,10 @@ import './docs.css';
  * Documentation Root Layout
  *
  * This layout wraps all documentation pages with:
+ * - Marketing Header and Footer for consistent navigation
  * - NextIntlClientProvider for i18n support (required since docs is outside [locale])
  * - Fumadocs DocsProvider for UI components and custom search
+ * - SmoothScrollProvider for consistent scroll behavior
  * - Sentry context for documentation-specific tracking
  * - Theme support (light/dark mode)
  * - Search functionality with portal tag filtering
@@ -65,7 +70,15 @@ export default async function DocsLayout({ children }: { children: ReactNode }) 
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      <DocsProvider locale={locale}>{children}</DocsProvider>
+      <SmoothScrollProvider>
+        <div id="eleva-care-help" className="relative flex min-h-screen flex-col overflow-hidden">
+          <Header />
+          <DocsProvider locale={locale}>
+            <main className="flex-1">{children}</main>
+          </DocsProvider>
+          <Footer />
+        </div>
+      </SmoothScrollProvider>
     </NextIntlClientProvider>
   );
 }

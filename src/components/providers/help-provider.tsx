@@ -1,10 +1,11 @@
 'use client';
 
-import { i18n, translations, type FumadocsLocale } from '@/lib/fumadocs-i18n.config';
+import { type FumadocsLocale, i18n, translations } from '@/lib/fumadocs-i18n.config';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import type { ReactNode } from 'react';
-import HelpSearchDialog from './search-dialog';
+
+import HelpSearchDialog from '../../app/help/components/search-dialog';
 
 interface DocsProviderProps {
   children: ReactNode;
@@ -41,4 +42,3 @@ export function DocsProvider({ children, locale }: DocsProviderProps) {
     </RootProvider>
   );
 }
-
