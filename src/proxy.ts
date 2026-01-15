@@ -9,7 +9,7 @@ import { locales, routing } from '@/lib/i18n';
 import type { WorkOSPermission, WorkOSRole } from '@/types/workos-rbac';
 import { ADMIN_ROLES, EXPERT_ROLES, WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
 import { authkit } from '@workos-inc/authkit-nextjs';
-import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
+import { isMarkdownPreferred } from 'fumadocs-core/negotiation';
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -43,8 +43,10 @@ const handleI18nRouting = createMiddleware(routing);
  *
  * Rewrite documentation paths to .mdx format when AI agents request markdown.
  * Uses the Accept header to detect AI agents preferring markdown content.
+ *
+ * Pattern handles locale-prefixed paths: /en/docs/*, /pt/docs/*, etc.
  */
-const { rewrite: rewriteLLM } = rewritePath('/docs{/*path}', '/llms.mdx/docs{/*path}');
+const DOCS_LOCALE_PATTERN = /^\/(en|es|pt|pt-BR)\/docs(\/.*)?$/;
 
 /**
  * Protected routes with required permissions
@@ -238,11 +240,23 @@ export default async function proxy(request: NextRequest) {
 
   // Handle AI/LLM content negotiation FIRST (before auth checks)
   // If an AI agent requests markdown (via Accept header), rewrite to .mdx route
-  if (isMarkdownPreferred(request) && path.startsWith('/docs/')) {
-    const result = rewriteLLM(path);
-    if (result) {
-      if (DEBUG) console.log(`🤖 AI content negotiation: ${path} → ${result}`);
-      return NextResponse.rewrite(new URL(result, request.url));
+  if (isMarkdownPreferred(request)) {
+    // Matches locale-prefixed paths: /pt/docs/*, /es/docs/*, etc.
+    const localeDocsMatch = path.match(DOCS_LOCALE_PATTERN);
+    if (localeDocsMatch) {
+      const locale = localeDocsMatch[1];
+      const docsPath = localeDocsMatch[2] || '';
+      const mdxPath = `/llms.mdx/${locale}/docs${docsPath}`;
+      if (DEBUG) console.log(`🤖 AI content negotiation: ${path} → ${mdxPath}`);
+      return NextResponse.rewrite(new URL(mdxPath, request.url));
+    }
+    // Matches non-prefixed paths: /docs/* (defaults to English)
+    const defaultDocsMatch = path.match(/^\/docs(\/.*)?$/);
+    if (defaultDocsMatch) {
+      const docsPath = defaultDocsMatch[1] || '';
+      const mdxPath = `/llms.mdx/en/docs${docsPath}`;
+      if (DEBUG) console.log(`🤖 AI content negotiation (default EN): ${path} → ${mdxPath}`);
+      return NextResponse.rewrite(new URL(mdxPath, request.url));
     }
   }
 
@@ -329,7 +343,7 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // Handle /pt/docs/expert, /es/docs/patient, etc.
   // Rewrite to /docs/* and set locale cookie for Fumadocs
-  const localeDocsMatch = path.match(/^\/(en|es|pt|pt-BR)\/docs(\/.*)?$/);
+  const localeDocsMatch = path.match(DOCS_LOCALE_PATTERN);
   if (localeDocsMatch) {
     const locale = localeDocsMatch[1];
     const docsPath = `/docs${localeDocsMatch[2] || ''}`;
@@ -367,7 +381,7 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'booking' ||
     firstSegment === 'admin' ||
     firstSegment === 'partner' ||
-    firstSegment === 'docs'; // Documentation routes don't need locale prefix
+    firstSegment === 'docs';
 
   // If auth/app route, skip i18n and use JWT-based RBAC
   if (isAuthOrAppRoute) {

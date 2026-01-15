@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { getFumadocsLocale } from '@/lib/fumadocs-i18n';
 import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
-import { docsMdxComponents } from '@/app/docs/mdx-components';
+import { docsMdxComponents } from '../../mdx-components';
 import type { TOCItemType } from 'fumadocs-core/toc';
 import {
   DocsBody,
@@ -21,6 +21,10 @@ import { notFound } from 'next/navigation';
  *
  * Locale detection uses shared getFumadocsLocale() utility which follows
  * Fumadocs i18n pattern and works alongside next-intl.
+ *
+ * URL Structure (following next-intl as-needed pattern):
+ * - English (default): /docs/patient (no locale prefix)
+ * - Other locales: /pt/docs/patient → rewritten to /docs/patient with locale cookie
  *
  * @see https://fumadocs.vercel.app/docs/headless/internationalization
  * @see https://fumadocs.vercel.app/docs/ui/layouts/page
@@ -70,8 +74,11 @@ export default async function PortalDocsPage({ params }: PageProps) {
     data: { portal, slug: slug?.join('/') || 'index', locale },
   });
 
+  // For index pages, pass empty array instead of undefined
+  const slugArray = slug ?? [];
+
   // Pass slug and locale separately - Fumadocs handles locale internally
-  const page = source.getPage(slug, locale);
+  const page = source.getPage(slugArray, locale);
 
   if (!page) {
     Sentry.addBreadcrumb({

@@ -1,7 +1,7 @@
 import { loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { patient, expert, workspace, developer } from 'fumadocs-mdx:collections/server';
-import { i18n } from './fumadocs-i18n';
+import { i18n } from './fumadocs-i18n.config';
 
 /**
  * Fumadocs Source Loaders
@@ -9,6 +9,13 @@ import { i18n } from './fumadocs-i18n';
  * Each portal has its own source loader for proper URL handling.
  * Uses the recommended .toFumadocsSource() method on defineDocs collections.
  * Uses lucideIconsPlugin to render Lucide icons in sidebar.
+ *
+ * URL Structure (following next-intl as-needed pattern):
+ * - /docs/patient - English patient docs (default, no locale prefix)
+ * - /pt/docs/patient - Portuguese patient docs (rewritten via proxy.ts)
+ *
+ * The proxy middleware rewrites locale-prefixed paths to /docs/* and sets
+ * a FUMADOCS_LOCALE cookie for locale detection.
  *
  * @see https://fumadocs.vercel.app/docs/headless/source-api
  * @see https://fumadocs.vercel.app/docs/mdx

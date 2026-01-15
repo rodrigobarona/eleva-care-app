@@ -1,42 +1,23 @@
-import { defineI18n } from 'fumadocs-core/i18n';
 import { cookies, headers } from 'next/headers';
 
-/**
- * Fumadocs i18n Configuration
- *
- * Configures internationalization for Fumadocs content.
- * This works alongside next-intl which handles UI translations.
- *
- * hideLocale: 'default-locale' means:
- * - English (default): /docs/expert (no prefix)
- * - Other locales: /pt/docs/expert → rewritten to /docs/expert with cookie
- *
- * This follows the Fumadocs recommended pattern for i18n:
- * @see https://fumadocs.vercel.app/docs/headless/internationalization
- *
- * Supported locales:
- * - en: English (default)
- * - es: Spanish
- * - pt: Portuguese (Portugal)
- * - pt-BR: Portuguese (Brazil)
- */
-export const i18n = defineI18n({
-  defaultLanguage: 'en',
-  languages: ['en', 'es', 'pt', 'pt-BR'],
-  hideLocale: 'default-locale',
-});
+// Re-export client-safe config
+export {
+  i18n,
+  translations,
+  getTranslations,
+  isValidFumadocsLocale,
+  type FumadocsLanguage,
+  type FumadocsLocale,
+} from './fumadocs-i18n.config';
+
+import { i18n, isValidFumadocsLocale, type FumadocsLanguage } from './fumadocs-i18n.config';
 
 /**
- * Language type from Fumadocs i18n config
+ * Fumadocs Server-side i18n Utilities
+ *
+ * This file contains server-only utilities for locale detection.
+ * For client-safe config, import directly from fumadocs-i18n.config.ts.
  */
-export type FumadocsLanguage = (typeof i18n.languages)[number];
-
-/**
- * Validate locale is supported by Fumadocs
- */
-export function isValidFumadocsLocale(locale: string): locale is FumadocsLanguage {
-  return i18n.languages.includes(locale as FumadocsLanguage);
-}
 
 /**
  * Get locale for Fumadocs from cookie or header
@@ -79,69 +60,3 @@ export async function getFumadocsLocale(): Promise<FumadocsLanguage> {
   // Default to Fumadocs default language
   return i18n.defaultLanguage as FumadocsLanguage;
 }
-
-/**
- * UI Translations for Fumadocs Components
- *
- * These translations are used by Fumadocs UI components
- * like search, table of contents, and navigation.
- */
-export const translations = {
-  en: {
-    displayName: 'English',
-    search: 'Search documentation...',
-    searchNoResults: 'No results found',
-    toc: 'On this page',
-    editPage: 'Edit this page',
-    lastUpdated: 'Last updated',
-    nextPage: 'Next',
-    previousPage: 'Previous',
-    backToTop: 'Back to top',
-  },
-  es: {
-    displayName: 'Español',
-    search: 'Buscar documentación...',
-    searchNoResults: 'No se encontraron resultados',
-    toc: 'En esta página',
-    editPage: 'Editar esta página',
-    lastUpdated: 'Última actualización',
-    nextPage: 'Siguiente',
-    previousPage: 'Anterior',
-    backToTop: 'Volver arriba',
-  },
-  pt: {
-    displayName: 'Português',
-    search: 'Pesquisar documentação...',
-    searchNoResults: 'Nenhum resultado encontrado',
-    toc: 'Nesta página',
-    editPage: 'Editar esta página',
-    lastUpdated: 'Última atualização',
-    nextPage: 'Próximo',
-    previousPage: 'Anterior',
-    backToTop: 'Voltar ao topo',
-  },
-  'pt-BR': {
-    displayName: 'Português (Brasil)',
-    search: 'Pesquisar documentação...',
-    searchNoResults: 'Nenhum resultado encontrado',
-    toc: 'Nesta página',
-    editPage: 'Editar esta página',
-    lastUpdated: 'Última atualização',
-    nextPage: 'Próximo',
-    previousPage: 'Anterior',
-    backToTop: 'Voltar ao topo',
-  },
-} as const;
-
-/**
- * Type for supported locales (from translations)
- */
-export type FumadocsLocale = keyof typeof translations;
-
-/**
- * Get translations for a specific locale
- */
-export function getTranslations(locale: string) {
-  return translations[locale as FumadocsLocale] ?? translations.en;
-}
-

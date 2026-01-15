@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 /**
  * Fumadocs MDX Components
  *
- * Custom MDX components for documentation pages (/docs/*).
+ * Custom MDX components for documentation pages (/[locale]/docs/*).
  * Extends Fumadocs defaults with all built-in components for rich documentation.
  *
  * Built-in components included:
@@ -147,3 +147,4 @@ export function getDocsMDXComponents(components?: MDXComponents): MDXComponents 
     ...components,
   };
 }
+

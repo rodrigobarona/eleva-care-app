@@ -14,8 +14,8 @@ import { notFound } from 'next/navigation';
  * - Support AI-powered tools that need raw markdown
  *
  * **Usage by AI Agents:**
- * GET /docs/patient/booking.mdx
- * GET /docs/expert/getting-started/profile.mdx
+ * GET /en/docs/patient/booking.mdx
+ * GET /pt/docs/expert/getting-started/profile.mdx
  *
  * **Returns:**
  * Markdown content with:
@@ -23,14 +23,15 @@ import { notFound } from 'next/navigation';
  * - Full page content as processed markdown
  *
  * **Routing:**
- * This route is accessed via rewrite rules in next.config.ts:
- * /docs/[portal]/[...slug].mdx → /llms.mdx/docs/[portal]/[...slug]
+ * This route is accessed via rewrite rules in proxy.ts:
+ * /[locale]/docs/[portal]/[...slug] (Accept: text/markdown) → /llms.mdx/[locale]/docs/[portal]/[...slug]
  *
  * @see https://fumadocs.vercel.app/docs/integrations/llms
  */
 
 interface RouteContext {
   params: Promise<{
+    locale: string;
     portal: string;
     slug?: string[];
   }>;
@@ -40,16 +41,16 @@ interface RouteContext {
 export const revalidate = false;
 
 export async function GET(_req: Request, { params }: RouteContext) {
-  const { portal, slug } = await params;
+  const { locale, portal, slug } = await params;
 
   // Validate portal
   if (!isValidPortal(portal)) {
     notFound();
   }
 
-  // Get page from appropriate source
+  // Get page from appropriate source with locale
   const source = getPortalSource(portal);
-  const page = source.getPage(slug);
+  const page = source.getPage(slug, locale);
 
   if (!page) {
     notFound();
@@ -63,24 +64,28 @@ export async function GET(_req: Request, { params }: RouteContext) {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'public, max-age=31536000, immutable',
       'X-Portal': portal,
+      'X-Locale': locale,
       'X-Page-URL': page.url,
     },
   });
 }
 
 /**
- * Generate static params for all documentation pages across all portals
+ * Generate static params for all documentation pages across all portals and locales
  */
 export function generateStaticParams() {
   const portals: PortalKey[] = ['patient', 'expert', 'workspace', 'developer'];
-  const allParams: { portal: string; slug?: string[] }[] = [];
+  const locales = ['en', 'es', 'pt', 'pt-BR'];
+  const allParams: { locale: string; portal: string; slug?: string[] }[] = [];
 
-  for (const portal of portals) {
-    const source = getPortalSource(portal);
-    const params = source.generateParams();
+  for (const locale of locales) {
+    for (const portal of portals) {
+      const source = getPortalSource(portal);
+      const params = source.generateParams();
 
-    for (const { slug } of params) {
-      allParams.push({ portal, slug });
+      for (const { slug } of params) {
+        allParams.push({ locale, portal, slug });
+      }
     }
   }
 

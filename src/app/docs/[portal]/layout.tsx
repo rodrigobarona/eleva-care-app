@@ -14,6 +14,10 @@ import type { ReactNode } from 'react';
  * Locale detection uses shared getFumadocsLocale() utility which follows
  * Fumadocs i18n pattern and works alongside next-intl.
  *
+ * URL Structure (following next-intl as-needed pattern):
+ * - English (default): /docs/patient (no locale prefix)
+ * - Other locales: /pt/docs/patient → rewritten to /docs/patient with locale cookie
+ *
  * @see https://fumadocs.vercel.app/docs/headless/internationalization
  * @see https://fumadocs.vercel.app/docs/ui/layouts/docs
  */
@@ -35,7 +39,7 @@ export default async function PortalDocsLayout({ children, params }: LayoutProps
   const tree = source.pageTree[locale] ?? source.pageTree.en;
 
   return (
-    <DocsLayout tree={tree} {...docsOptions()}>
+    <DocsLayout tree={tree} {...docsOptions(locale)}>
       {children}
     </DocsLayout>
   );

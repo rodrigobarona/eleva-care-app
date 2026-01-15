@@ -1,3 +1,4 @@
+import { i18n } from '@/lib/fumadocs-i18n.config';
 import type { DocsLayoutProps } from 'fumadocs-ui/layouts/docs';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { BookOpen, Building2, Code, Heart, Users } from 'lucide-react';
@@ -6,6 +7,9 @@ import { BookOpen, Building2, Code, Heart, Users } from 'lucide-react';
  * Fumadocs Layout Configuration
  *
  * Uses sidebar tabs for portal switching (no duplicate nav links).
+ * URLs follow next-intl as-needed pattern:
+ * - English (default): /docs/patient (no prefix)
+ * - Other locales: /pt/docs/patient
  *
  * @see https://fumadocs.vercel.app/docs/ui/layouts/docs
  */
@@ -17,25 +21,25 @@ export const portals = {
   patient: {
     title: 'Patient Help Center',
     description: 'Learn how to book appointments, manage payments, and get support.',
-    url: '/docs/patient',
+    basePath: '/docs/patient',
     icon: Users,
   },
   expert: {
     title: 'Expert Resources',
     description: 'Everything healthcare professionals need to provide services.',
-    url: '/docs/expert',
+    basePath: '/docs/expert',
     icon: BookOpen,
   },
   workspace: {
     title: 'Workspace Portal',
     description: 'Manage your organization, team, and analytics.',
-    url: '/docs/workspace',
+    basePath: '/docs/workspace',
     icon: Building2,
   },
   developer: {
     title: 'Developer API',
     description: 'API documentation, webhooks, and integration guides.',
-    url: '/docs/developer',
+    basePath: '/docs/developer',
     icon: Code,
   },
 } as const;
@@ -43,10 +47,21 @@ export const portals = {
 export type PortalKey = keyof typeof portals;
 
 /**
- * Base layout options (nav only, no links - tabs handle portal switching)
+ * Get portal URL with locale prefix (as-needed pattern)
+ * - English (default): /docs/patient (no prefix)
+ * - Other locales: /pt/docs/patient
  */
-export function baseOptions(): BaseLayoutProps {
+function getPortalUrl(basePath: string, locale: string): string {
+  return locale === 'en' ? basePath : `/${locale}${basePath}`;
+}
+
+/**
+ * Base layout options with i18n support
+ * Includes nav configuration with locale-aware docs home link (as-needed pattern)
+ */
+export function baseOptions(locale: string): BaseLayoutProps {
   return {
+    i18n,
     nav: {
       title: (
         <span className="flex items-center gap-2 font-semibold">
@@ -54,51 +69,53 @@ export function baseOptions(): BaseLayoutProps {
           Eleva Care Docs
         </span>
       ),
-      url: '/docs',
+      url: locale === 'en' ? '/docs' : `/${locale}/docs`,
     },
   };
 }
 
 /**
- * Sidebar tabs for portal switching
+ * Sidebar tabs for portal switching with locale support
  *
  * @see https://fumadocs.vercel.app/docs/ui/layouts/docs#sidebar-tabs-dropdown
  */
-export const sidebarTabs: NonNullable<DocsLayoutProps['sidebar']>['tabs'] = [
-  {
-    title: 'Patient Help Center',
-    description: 'For users booking appointments',
-    url: '/docs/patient',
-    icon: <Users className="size-4" />,
-  },
-  {
-    title: 'Expert Resources',
-    description: 'For healthcare professionals',
-    url: '/docs/expert',
-    icon: <BookOpen className="size-4" />,
-  },
-  {
-    title: 'Workspace Portal',
-    description: 'For organizations',
-    url: '/docs/workspace',
-    icon: <Building2 className="size-4" />,
-  },
-  {
-    title: 'Developer API',
-    description: 'For integrations',
-    url: '/docs/developer',
-    icon: <Code className="size-4" />,
-  },
-];
+function getSidebarTabs(locale: string): NonNullable<DocsLayoutProps['sidebar']>['tabs'] {
+  return [
+    {
+      title: 'Patient Help Center',
+      description: 'For users booking appointments',
+      url: getPortalUrl('/docs/patient', locale),
+      icon: <Users className="size-4" />,
+    },
+    {
+      title: 'Expert Resources',
+      description: 'For healthcare professionals',
+      url: getPortalUrl('/docs/expert', locale),
+      icon: <BookOpen className="size-4" />,
+    },
+    {
+      title: 'Workspace Portal',
+      description: 'For organizations',
+      url: getPortalUrl('/docs/workspace', locale),
+      icon: <Building2 className="size-4" />,
+    },
+    {
+      title: 'Developer API',
+      description: 'For integrations',
+      url: getPortalUrl('/docs/developer', locale),
+      icon: <Code className="size-4" />,
+    },
+  ];
+}
 
 /**
- * DocsLayout options (excludes tree - passed separately)
+ * DocsLayout options with locale support (excludes tree - passed separately)
  */
-export function docsOptions(): Omit<DocsLayoutProps, 'tree'> {
+export function docsOptions(locale: string): Omit<DocsLayoutProps, 'tree'> {
   return {
-    ...baseOptions(),
+    ...baseOptions(locale),
     sidebar: {
-      tabs: sidebarTabs,
+      tabs: getSidebarTabs(locale),
       defaultOpenLevel: 2, // Keep folders expanded by default
     },
   };
