@@ -17,14 +17,24 @@
  * - Sidebar positioned within the container (not full viewport width)
  * - Content area respects the max-width container
  * - Proper spacing for fixed header
+ * - TOC sticky positioning adjusted for header
  *
- * Fumadocs uses CSS grid with named areas: sidebar, header, content
+ * Fumadocs uses CSS grid with named areas: sidebar, header, toc, content
+ * Key CSS variables:
+ * - --fd-docs-height: Total available height for docs
+ * - --fd-docs-row-1: Top offset for sticky elements (row 1)
+ * - --fd-docs-row-2: Top offset for sticky elements (row 2)
+ * - --fd-docs-row-3: Top offset for sticky elements (row 3)
  */
 
-/* Override Fumadocs layout container */
+/* Override Fumadocs layout container - set CSS variables for sticky positioning */
 #eleva-care-help {
-  /* Set docs height to account for header */
+  /* Height available for docs (viewport minus header) */
   --fd-docs-height: calc(100vh - 96px);
+  /* Row offsets for sticky elements - relative to the container top (after pt-24) */
+  --fd-docs-row-1: 0px;
+  --fd-docs-row-2: 0px;
+  --fd-docs-row-3: 0px;
 }
 
 @media (max-width: 1023px) {
@@ -43,6 +53,13 @@
 #eleva-care-help [data-collapsed] {
   /* Keep sidebar within container bounds */
   position: sticky;
+}
+
+/* TOC (Table of Contents) - sticky on right side */
+#eleva-care-help [class*='[grid-area:toc]'] {
+  position: sticky;
+  top: 0;
+  height: var(--fd-docs-height);
 }
 
 /* Ensure the docs layout respects container width */
