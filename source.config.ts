@@ -46,10 +46,10 @@ export default defineConfig({
 
 /**
  * Patient Help Center
- * Documentation for end users who book appointments
+ * Help articles for end users who book appointments
  */
 export const patient = defineDocs({
-  dir: 'src/content/docs/patient',
+  dir: 'src/content/help/patient',
   docs: {
     postprocess: {
       includeProcessedMarkdown: true, // Enable for AI/LLM access
@@ -59,10 +59,10 @@ export const patient = defineDocs({
 
 /**
  * Expert Resources
- * Documentation for healthcare professionals (Community and Top Experts)
+ * Help articles for healthcare professionals (Community and Top Experts)
  */
 export const expert = defineDocs({
-  dir: 'src/content/docs/expert',
+  dir: 'src/content/help/expert',
   docs: {
     postprocess: {
       includeProcessedMarkdown: true, // Enable for AI/LLM access
@@ -72,12 +72,12 @@ export const expert = defineDocs({
 
 /**
  * Workspace Portal
- * Documentation for workspace management (clinics, wellness centers, employers)
+ * Help articles for workspace management (clinics, wellness centers, employers)
  * Internal terminology: "Workspace" (e.g., "Dr. Patricia's workspace")
  * Marketing terminology: "For Organizations" (external sales/SEO)
  */
 export const workspace = defineDocs({
-  dir: 'src/content/docs/workspace',
+  dir: 'src/content/help/workspace',
   docs: {
     postprocess: {
       includeProcessedMarkdown: true, // Enable for AI/LLM access
@@ -85,18 +85,6 @@ export const workspace = defineDocs({
   },
 });
 
-/**
- * Developer API Documentation
- * Documentation for API integration partners
- */
-export const developer = defineDocs({
-  dir: 'src/content/docs/developer',
-  docs: {
-    postprocess: {
-      includeProcessedMarkdown: true, // Enable for AI/LLM access
-    },
-  },
-});
 
 // =============================================================================
 // NOTE: MARKETING, LEGAL & TRUST USE NATIVE MDX IMPORTS

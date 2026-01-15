@@ -12,8 +12,8 @@ import type { I18nConfig } from 'fumadocs-core/i18n';
  * - hideLocale: 'default-locale' - Hide locale prefix for English (default)
  *
  * URL structure:
- * - English (default): /docs/expert (no prefix)
- * - Other locales: /pt/docs/expert → rewritten to /docs/expert with cookie
+ * - English (default): /help/expert (no prefix)
+ * - Other locales: /pt/help/expert → rewritten to /help/expert with cookie
  *
  * @see https://fumadocs.vercel.app/docs/headless/internationalization
  * @see https://fumadocs.vercel.app/docs/headless/page-conventions#i18n-routing

@@ -12,7 +12,7 @@ var source_config_default = defineConfig({
   }
 });
 var patient = defineDocs({
-  dir: "src/content/docs/patient",
+  dir: "src/content/help/patient",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true
@@ -21,7 +21,7 @@ var patient = defineDocs({
   }
 });
 var expert = defineDocs({
-  dir: "src/content/docs/expert",
+  dir: "src/content/help/expert",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true
@@ -30,16 +30,7 @@ var expert = defineDocs({
   }
 });
 var workspace = defineDocs({
-  dir: "src/content/docs/workspace",
-  docs: {
-    postprocess: {
-      includeProcessedMarkdown: true
-      // Enable for AI/LLM access
-    }
-  }
-});
-var developer = defineDocs({
-  dir: "src/content/docs/developer",
+  dir: "src/content/help/workspace",
   docs: {
     postprocess: {
       includeProcessedMarkdown: true
@@ -49,7 +40,6 @@ var developer = defineDocs({
 });
 export {
   source_config_default as default,
-  developer,
   expert,
   patient,
   workspace

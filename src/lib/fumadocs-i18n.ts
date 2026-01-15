@@ -23,7 +23,7 @@ import { i18n, isValidFumadocsLocale, type FumadocsLanguage } from './fumadocs-i
  * Get locale for Fumadocs from cookie or header
  *
  * Locale detection priority (following Fumadocs i18n pattern):
- * 1. FUMADOCS_LOCALE cookie (set via /pt/docs/* URLs by proxy middleware)
+ * 1. FUMADOCS_LOCALE cookie (set via /pt/help/* URLs by proxy middleware)
  * 2. x-fumadocs-locale header (set by proxy middleware during rewrite)
  * 3. NEXT_LOCALE cookie (set by next-intl for marketing pages - shared preference)
  * 4. Default to 'en' (i18n.defaultLanguage)
@@ -39,7 +39,7 @@ export async function getFumadocsLocale(): Promise<FumadocsLanguage> {
   const cookieStore = await cookies();
   const headerStore = await headers();
 
-  // Priority 1: FUMADOCS_LOCALE cookie (set via /pt/docs/* URLs)
+  // Priority 1: FUMADOCS_LOCALE cookie (set via /pt/help/* URLs)
   const fumadocsLocale = cookieStore.get('FUMADOCS_LOCALE')?.value;
   if (fumadocsLocale && isValidFumadocsLocale(fumadocsLocale)) {
     return fumadocsLocale;

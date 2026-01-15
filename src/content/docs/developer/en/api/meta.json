@@ -1,6 +1,0 @@
-{
-  "title": "API Reference",
-  "icon": "Code",
-  "defaultOpen": true,
-  "pages": ["authentication", "endpoints", "errors"]
-}

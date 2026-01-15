@@ -41,12 +41,12 @@ const handleI18nRouting = createMiddleware(routing);
 /**
  * AI/LLM Content Negotiation
  *
- * Rewrite documentation paths to .mdx format when AI agents request markdown.
+ * Rewrite help center paths to .mdx format when AI agents request markdown.
  * Uses the Accept header to detect AI agents preferring markdown content.
  *
- * Pattern handles locale-prefixed paths: /en/docs/*, /pt/docs/*, etc.
+ * Pattern handles locale-prefixed paths: /en/help/*, /pt/help/*, etc.
  */
-const DOCS_LOCALE_PATTERN = /^\/(en|es|pt|pt-BR)\/docs(\/.*)?$/;
+const HELP_LOCALE_PATTERN = /^\/(en|es|pt|pt-BR)\/help(\/.*)?$/;
 
 /**
  * Protected routes with required permissions
@@ -241,20 +241,20 @@ export default async function proxy(request: NextRequest) {
   // Handle AI/LLM content negotiation FIRST (before auth checks)
   // If an AI agent requests markdown (via Accept header), rewrite to .mdx route
   if (isMarkdownPreferred(request)) {
-    // Matches locale-prefixed paths: /pt/docs/*, /es/docs/*, etc.
-    const localeDocsMatch = path.match(DOCS_LOCALE_PATTERN);
-    if (localeDocsMatch) {
-      const locale = localeDocsMatch[1];
-      const docsPath = localeDocsMatch[2] || '';
-      const mdxPath = `/llms.mdx/${locale}/docs${docsPath}`;
+    // Matches locale-prefixed paths: /pt/help/*, /es/help/*, etc.
+    const localeHelpMatch = path.match(HELP_LOCALE_PATTERN);
+    if (localeHelpMatch) {
+      const locale = localeHelpMatch[1];
+      const helpPath = localeHelpMatch[2] || '';
+      const mdxPath = `/llms.mdx/${locale}/help${helpPath}`;
       if (DEBUG) console.log(`🤖 AI content negotiation: ${path} → ${mdxPath}`);
       return NextResponse.rewrite(new URL(mdxPath, request.url));
     }
-    // Matches non-prefixed paths: /docs/* (defaults to English)
-    const defaultDocsMatch = path.match(/^\/docs(\/.*)?$/);
-    if (defaultDocsMatch) {
-      const docsPath = defaultDocsMatch[1] || '';
-      const mdxPath = `/llms.mdx/en/docs${docsPath}`;
+    // Matches non-prefixed paths: /help/* (defaults to English)
+    const defaultHelpMatch = path.match(/^\/help(\/.*)?$/);
+    if (defaultHelpMatch) {
+      const helpPath = defaultHelpMatch[1] || '';
+      const mdxPath = `/llms.mdx/en/help${helpPath}`;
       if (DEBUG) console.log(`🤖 AI content negotiation (default EN): ${path} → ${mdxPath}`);
       return NextResponse.rewrite(new URL(mdxPath, request.url));
     }
@@ -339,20 +339,20 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 3: HANDLE LOCALE-PREFIXED DOCS ROUTES
+  // STEP 3: HANDLE LOCALE-PREFIXED HELP ROUTES
   // ==========================================
-  // Handle /pt/docs/expert, /es/docs/patient, etc.
-  // Rewrite to /docs/* and set locale cookie for Fumadocs
-  const localeDocsMatch = path.match(DOCS_LOCALE_PATTERN);
-  if (localeDocsMatch) {
-    const locale = localeDocsMatch[1];
-    const docsPath = `/docs${localeDocsMatch[2] || ''}`;
-    if (DEBUG) console.log(`📚 Locale docs route: ${path} → ${docsPath} (locale: ${locale})`);
+  // Handle /pt/help/expert, /es/help/patient, etc.
+  // Rewrite to /help/* and set locale cookie for Fumadocs
+  const localeHelpMatch = path.match(HELP_LOCALE_PATTERN);
+  if (localeHelpMatch) {
+    const locale = localeHelpMatch[1];
+    const helpPath = `/help${localeHelpMatch[2] || ''}`;
+    if (DEBUG) console.log(`📚 Locale help route: ${path} → ${helpPath} (locale: ${locale})`);
 
-    const response = NextResponse.rewrite(new URL(docsPath, request.url));
+    const response = NextResponse.rewrite(new URL(helpPath, request.url));
     response.headers.set('x-fumadocs-locale', locale);
     response.cookies.set('FUMADOCS_LOCALE', locale, {
-      path: '/docs',
+      path: '/help',
       maxAge: 60 * 60 * 24 * 365, // 1 year
       sameSite: 'lax',
     });
@@ -381,7 +381,7 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'booking' ||
     firstSegment === 'admin' ||
     firstSegment === 'partner' ||
-    firstSegment === 'docs';
+    firstSegment === 'help';
 
   // If auth/app route, skip i18n and use JWT-based RBAC
   if (isAuthOrAppRoute) {

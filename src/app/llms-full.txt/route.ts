@@ -1,19 +1,14 @@
 import { getLLMText } from '@/lib/get-llm-text';
-import {
-  patientSource,
-  expertSource,
-  workspaceSource,
-  developerSource,
-} from '@/lib/source';
+import { expertSource, patientSource, workspaceSource } from '@/lib/source';
 
 /**
- * LLM Full Documentation Route
+ * LLM Full Help Center Route
  *
- * Provides a complete text dump of all documentation for AI/LLM consumption.
+ * Provides a complete text dump of all help center content for AI/LLM consumption.
  * This route is cached forever (revalidate: false) for optimal performance.
  *
  * **Purpose:**
- * - Enable AI agents to read and understand all documentation in one request
+ * - Enable AI agents to read and understand all help content in one request
  * - Provide context for AI-powered search and question answering
  * - Improve SEO by making content easily crawlable
  *
@@ -21,7 +16,7 @@ import {
  * GET /llms-full.txt
  *
  * **Returns:**
- * Plain text containing all documentation pages in the format:
+ * Plain text containing all help pages in the format:
  * ```
  * # Page Title (URL)
  * [page content]
@@ -37,12 +32,11 @@ import {
 export const revalidate = false;
 
 export async function GET() {
-  // Collect all pages from all documentation portals
+  // Collect all pages from all help center portals
   const allPages = [
     ...patientSource.getPages(),
     ...expertSource.getPages(),
     ...workspaceSource.getPages(),
-    ...developerSource.getPages(),
   ];
 
   // Convert all pages to LLM-friendly text format

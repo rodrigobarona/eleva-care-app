@@ -1,10 +1,5 @@
+import type { expertSource, patientSource, workspaceSource } from '@/lib/source';
 import type { InferPageType } from 'fumadocs-core/source';
-import type {
-  patientSource,
-  expertSource,
-  workspaceSource,
-  developerSource,
-} from '@/lib/source';
 
 /**
  * Get LLM-Friendly Text from Fumadocs Page
@@ -17,7 +12,7 @@ import type {
  * - All content rendered as plain MDX (no JSX components)
  * - Proper formatting for AI consumption
  *
- * @param page - Any page from patient, expert, workspace, or developer sources
+ * @param page - Any page from patient, expert, or workspace sources
  * @returns Formatted markdown string with title, URL, and content
  *
  * @example
@@ -26,7 +21,7 @@ import type {
  * if (page) {
  *   const llmText = await getLLMText(page);
  *   // Returns:
- *   // # Booking Appointments (/docs/patient/booking)
+ *   // # Booking Appointments (/help/patient/booking)
  *   // [processed markdown content]
  * }
  * ```
@@ -34,9 +29,7 @@ import type {
  * @see https://fumadocs.vercel.app/docs/integrations/llms
  */
 export async function getLLMText(
-  page: InferPageType<
-    typeof patientSource | typeof expertSource | typeof workspaceSource | typeof developerSource
-  >,
+  page: InferPageType<typeof patientSource | typeof expertSource | typeof workspaceSource>,
 ) {
   const processed = await page.data.getText('processed');
 
@@ -44,4 +37,3 @@ export async function getLLMText(
 
 ${processed}`;
 }
-
