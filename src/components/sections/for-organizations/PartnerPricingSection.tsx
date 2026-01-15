@@ -104,7 +104,7 @@ export default function PartnerPricingSection({
             <h3 className="mb-4 text-center text-lg font-semibold">Revenue Share Model</h3>
             <div className="grid gap-6 md:grid-cols-3">
               <div className="text-center">
-                <div className="mb-2 text-3xl font-bold text-primary">8-20%</div>
+                <div className="mb-2 text-3xl font-bold text-primary">8-15%</div>
                 <div className="text-sm text-muted-foreground">
                   Platform commission on expert bookings
                 </div>

@@ -22,7 +22,7 @@ import type { I18nConfig } from 'fumadocs-core/i18n';
  * Supported languages for documentation
  * Keep as const for proper type inference
  */
-const FUMADOCS_LANGUAGES = ['en', 'es', 'pt', 'pt-BR'] as const;
+const FUMADOCS_LANGUAGES = ['en', 'pt'] as const;
 
 export const i18n: I18nConfig = {
   defaultLanguage: 'en',
@@ -54,30 +54,8 @@ export const translations = {
     previousPage: 'Previous',
     backToTop: 'Back to top',
   },
-  es: {
-    displayName: 'Español',
-    search: 'Buscar documentación...',
-    searchNoResults: 'No se encontraron resultados',
-    toc: 'En esta página',
-    editPage: 'Editar esta página',
-    lastUpdated: 'Última actualización',
-    nextPage: 'Siguiente',
-    previousPage: 'Anterior',
-    backToTop: 'Volver arriba',
-  },
   pt: {
     displayName: 'Português',
-    search: 'Pesquisar documentação...',
-    searchNoResults: 'Nenhum resultado encontrado',
-    toc: 'Nesta página',
-    editPage: 'Editar esta página',
-    lastUpdated: 'Última atualização',
-    nextPage: 'Próximo',
-    previousPage: 'Anterior',
-    backToTop: 'Voltar ao topo',
-  },
-  'pt-BR': {
-    displayName: 'Português (Brasil)',
     search: 'Pesquisar documentação...',
     searchNoResults: 'Nenhum resultado encontrado',
     toc: 'Nesta página',
