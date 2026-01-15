@@ -29,9 +29,18 @@ import { useState } from 'react';
  * - expert: Expert Resources
  * - workspace: Workspace Portal
  *
+ * @example
+ * ```tsx
+ * import HelpSearchDialog from './search-dialog';
+ *
+ * <RootProvider search={{ SearchDialog: HelpSearchDialog }}>
+ *   {children}
+ * </RootProvider>
+ * ```
+ *
  * @see https://fumadocs.vercel.app/docs/search/orama
  */
-export default function DocsSearchDialog(props: SharedProps) {
+export default function HelpSearchDialog(props: SharedProps) {
   const [tag, setTag] = useState<string | undefined>();
 
   const { search, setSearch, query } = useDocsSearch({
@@ -50,7 +59,7 @@ export default function DocsSearchDialog(props: SharedProps) {
       <SearchDialogContent>
         <SearchDialogHeader>
           <SearchDialogIcon />
-          <SearchDialogInput placeholder="Search documentation..." />
+          <SearchDialogInput placeholder="Search help center..." />
           <SearchDialogClose />
         </SearchDialogHeader>
         <SearchDialogList items={query.data !== 'empty' ? query.data : null} />

@@ -1,4 +1,5 @@
 import { getLLMText } from '@/lib/get-llm-text';
+import { locales } from '@/lib/i18n/routing';
 import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
 import { notFound } from 'next/navigation';
 
@@ -75,7 +76,6 @@ export async function GET(_req: Request, { params }: RouteContext) {
  */
 export function generateStaticParams() {
   const portals: PortalKey[] = ['patient', 'expert', 'workspace'];
-  const locales = ['en', 'es', 'pt', 'pt-BR'];
   const allParams: { locale: string; portal: string; slug?: string[] }[] = [];
 
   for (const locale of locales) {

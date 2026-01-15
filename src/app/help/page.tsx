@@ -1,9 +1,9 @@
 import { permanentRedirect } from 'next/navigation';
 
 /**
- * Docs Root Page
+ * Help Center Root Page
  *
- * Permanently redirects to the default documentation portal.
+ * Permanently redirects to the default help center portal (patient).
  */
 export default function HelpPage() {
   permanentRedirect('/help/patient');

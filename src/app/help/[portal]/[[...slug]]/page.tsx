@@ -46,6 +46,14 @@ const portalTitles: Record<PortalKey, string> = {
   workspace: 'Workspace Portal',
 };
 
+/**
+ * Normalize slug to array format for Fumadocs
+ * Index pages have undefined slug, which needs to be converted to empty array
+ */
+function normalizeSlug(slug: string[] | undefined): string[] {
+  return slug ?? [];
+}
+
 export default async function PortalDocsPage({ params }: PageProps) {
   const { portal, slug } = await params;
 
@@ -69,11 +77,8 @@ export default async function PortalDocsPage({ params }: PageProps) {
     data: { portal, slug: slug?.join('/') || 'index', locale },
   });
 
-  // For index pages, pass empty array instead of undefined
-  const slugArray = slug ?? [];
-
   // Pass slug and locale separately - Fumadocs handles locale internally
-  const page = source.getPage(slugArray, locale);
+  const page = source.getPage(normalizeSlug(slug), locale);
 
   if (!page) {
     Sentry.addBreadcrumb({
@@ -134,11 +139,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const source = getPortalSource(portal);
   const locale = await getFumadocsLocale();
 
-  // For index pages, pass empty array instead of undefined
-  const slugArray = slug ?? [];
-
   // Pass slug and locale separately - Fumadocs handles locale internally
-  const page = source.getPage(slugArray, locale);
+  const page = source.getPage(normalizeSlug(slug), locale);
 
   if (!page) {
     return {};

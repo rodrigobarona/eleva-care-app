@@ -34,7 +34,7 @@ export default defineConfig({
  * Fumadocs Content Collections Configuration
  *
  * This file defines all content collections for the Eleva Care platform:
- * - Documentation portals (Patient, Expert, Workspace, Developer) - Use Fumadocs UI
+ * - Help Center portals (Patient, Expert, Workspace) - Use Fumadocs UI
  * - Marketing pages - Use Fumadocs Core (headless) with Eleva components
  * - Legal documents - Use Fumadocs Core (headless)
  * - Trust center - Use Fumadocs Core (headless)

@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 /**
  * Fumadocs MDX Components
  *
- * Custom MDX components for documentation pages (/[locale]/docs/*).
+ * Custom MDX components for Help Center pages (/help/*).
  * Extends Fumadocs defaults with all built-in components for rich documentation.
  *
  * Built-in components included:
@@ -140,6 +140,18 @@ export const docsMdxComponents: MDXComponents = {
 
 /**
  * Get docs MDX components with optional overrides
+ *
+ * @param components - Optional MDX components to override defaults
+ * @returns MDX components for Help Center pages
+ *
+ * @example
+ * ```tsx
+ * const components = getDocsMDXComponents({
+ *   CustomAlert: MyCustomAlert,
+ * });
+ *
+ * <MDXContent components={components} />
+ * ```
  */
 export function getDocsMDXComponents(components?: MDXComponents): MDXComponents {
   return {

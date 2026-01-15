@@ -45,8 +45,10 @@ const handleI18nRouting = createMiddleware(routing);
  * Uses the Accept header to detect AI agents preferring markdown content.
  *
  * Pattern handles locale-prefixed paths: /en/help/*, /pt/help/*, etc.
+ * Generated dynamically from the canonical locales array to prevent drift.
  */
-const HELP_LOCALE_PATTERN = /^\/(en|es|pt|pt-BR)\/help(\/.*)?$/;
+const LOCALE_ALTERNATION = locales.map((l) => l.replace('-', '\\-')).join('|');
+const HELP_LOCALE_PATTERN = new RegExp(`^\\/(${LOCALE_ALTERNATION})\\/help(\\/.*)?$`);
 
 /**
  * Protected routes with required permissions

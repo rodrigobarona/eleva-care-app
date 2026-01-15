@@ -1,16 +1,17 @@
 import { cookies, headers } from 'next/headers';
 
-// Re-export client-safe config
-export {
-  i18n,
-  translations,
-  getTranslations,
-  isValidFumadocsLocale,
+import {
   type FumadocsLanguage,
   type FumadocsLocale,
+  getTranslations,
+  i18n,
+  isValidFumadocsLocale,
+  translations,
 } from './fumadocs-i18n.config';
 
-import { i18n, isValidFumadocsLocale, type FumadocsLanguage } from './fumadocs-i18n.config';
+// Re-export client-safe config
+export { i18n, translations, getTranslations, isValidFumadocsLocale };
+export type { FumadocsLanguage, FumadocsLocale };
 
 /**
  * Fumadocs Server-side i18n Utilities

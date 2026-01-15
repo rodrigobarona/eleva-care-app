@@ -51,7 +51,20 @@ function getPortalUrl(basePath: string, locale: string): string {
 
 /**
  * Base layout options with i18n support
- * Includes nav configuration with locale-aware docs home link (as-needed pattern)
+ *
+ * Includes nav configuration with locale-aware docs home link (as-needed pattern).
+ *
+ * @param locale - The current locale code (e.g., 'en', 'pt')
+ * @returns Base layout props for Fumadocs
+ *
+ * @example
+ * ```tsx
+ * const options = baseOptions('pt');
+ * // Returns layout with nav.url = '/pt/help'
+ *
+ * const enOptions = baseOptions('en');
+ * // Returns layout with nav.url = '/help' (no prefix for default locale)
+ * ```
  */
 export function baseOptions(locale: string): BaseLayoutProps {
   return {
@@ -98,6 +111,19 @@ function getSidebarTabs(locale: string): NonNullable<DocsLayoutProps['sidebar']>
 
 /**
  * DocsLayout options with locale support (excludes tree - passed separately)
+ *
+ * @param locale - The current locale code (e.g., 'en', 'pt')
+ * @returns Docs layout props (without tree) for Fumadocs
+ *
+ * @example
+ * ```tsx
+ * const options = docsOptions('es');
+ * // Returns layout with locale-aware sidebar tabs
+ *
+ * <DocsLayout {...options} tree={pageTree}>
+ *   {children}
+ * </DocsLayout>
+ * ```
  */
 export function docsOptions(locale: string): Omit<DocsLayoutProps, 'tree'> {
   return {

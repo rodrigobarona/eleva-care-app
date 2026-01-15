@@ -26,8 +26,6 @@ interface MetadataTranslations {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
 
-  console.log('Marketing layout - generateMetadata called with locale:', locale);
-
   if (!isValidLocale(locale)) {
     console.error(`Invalid locale in generateMetadata: ${locale}`);
     notFound();
@@ -78,8 +76,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function MarketingLayout({ children, params }: Props) {
   const { locale } = await params;
-
-  console.log('Marketing layout rendering with locale:', locale);
 
   if (!isValidLocale(locale)) {
     console.error(`Invalid locale in layout: ${locale}`);
