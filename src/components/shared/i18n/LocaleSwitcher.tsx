@@ -1,6 +1,6 @@
 import type { Locale } from '@/lib/i18n/routing';
 import { routing } from '@/lib/i18n/routing';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import LocaleSwitcherSelect from './LocaleSwitcherSelect';
 
@@ -30,11 +30,12 @@ const localeNames: Record<Locale, string> = {
  */
 export function LanguageSwitcher() {
   const locale = useLocale() as Locale;
+  const t = useTranslations('common');
 
   const options = routing.locales.map((localeCode) => ({
     value: localeCode,
     label: localeNames[localeCode],
   }));
 
-  return <LocaleSwitcherSelect value={locale} options={options} label="Select language" />;
+  return <LocaleSwitcherSelect value={locale} options={options} label={t('selectLanguage')} />;
 }

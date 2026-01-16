@@ -66,8 +66,11 @@
  * Colors aligned with Eleva Care brand:
  * - Primary: #006D77 (Deep Teal)
  * - Primary Light: #83C5BE (Sage Green)
- * - Secondary: #E29578 (Soft Coral)
  * - Neutral: #FCFDFD, #F7F9F9, #333333
+ *
+ * Note: #E29578 (Soft Coral) is a brand accent color used elsewhere.
+ * For Fumadocs, --color-fd-secondary uses #F7F9F9 (neutral gray) for
+ * subtle backgrounds, keeping the UI clean and professional.
  */
 @theme {
   /* Clean white background - matches marketing site */
@@ -105,7 +108,8 @@
   --color-fd-ring: #83c5be;
 }
 
-.dark {
+/* Dark theme - scoped to help container to avoid conflicts with other pages */
+.dark #eleva-care-help {
   --color-fd-background: #1a1a1a;
   --color-fd-foreground: #e5e5e5;
   --color-fd-muted: #262626;
@@ -142,12 +146,8 @@
  * that appear when the sidebar is in collapsed/floating mode.
  * Since we set collapsible: false, this panel is never needed.
  *
- * Using @layer base ensures this applies at the foundation level.
+ * Scoped to help container to avoid affecting other Fumadocs instances.
  */
-@layer base {
-  /* Target the sidebar panel by data attribute */
-  div[data-sidebar-panel] {
-    display: none !important;
-  }
+#eleva-care-help div[data-sidebar-panel] {
+  display: none;
 }
-
