@@ -90,7 +90,7 @@ export default async function MarketingLayout({ children, params }: Props) {
   return (
     <IntlProvider locale={locale} messages={messages}>
       <SmoothScrollProvider>
-        <div id="eleva-care-marketing" className="relative overflow-hidden">
+        <div id="eleva-care-marketing" className="relative">
           <Header />
           {children}
           <Footer />

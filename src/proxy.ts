@@ -341,99 +341,12 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 3: HANDLE LOCALE-PREFIXED HELP ROUTES
-  // ==========================================
-  // Handle /pt/help/expert, /es/help/patient, etc.
-  // Rewrite to /help/* and set locale cookie for Fumadocs
-  const localeHelpMatch = path.match(HELP_LOCALE_PATTERN);
-  if (localeHelpMatch) {
-    const locale = localeHelpMatch[1];
-    const helpSubPath = localeHelpMatch[2] || '';
-
-    // Handle root help path redirect at proxy level to ensure cookies are set
-    // When visiting /pt/help (no subpath), redirect to /pt/help/patient with cookies
-    // This prevents the page-level redirect from losing the locale cookie
-    if (!helpSubPath || helpSubPath === '/') {
-      if (DEBUG) console.log(`📚 Locale help root redirect: ${path} → /${locale}/help/patient`);
-      const redirectResponse = NextResponse.redirect(
-        new URL(`/${locale}/help/patient`, request.url),
-        308,
-      );
-      redirectResponse.cookies.set('FUMADOCS_LOCALE', locale, {
-        path: '/help',
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-        sameSite: 'lax',
-      });
-      applyAuthkitHeaders(redirectResponse, authkitHeaders);
-      return redirectResponse;
-    }
-
-    const helpPath = `/help${helpSubPath}`;
-    if (DEBUG) console.log(`📚 Locale help route: ${path} → ${helpPath} (locale: ${locale})`);
-
-    const response = NextResponse.rewrite(new URL(helpPath, request.url));
-    response.headers.set('x-fumadocs-locale', locale);
-    response.cookies.set('FUMADOCS_LOCALE', locale, {
-      path: '/help',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      sameSite: 'lax',
-    });
-
-    // Preserve AuthKit headers using helper
-    applyAuthkitHeaders(response, authkitHeaders);
-
-    return response;
-  }
-
-  // ==========================================
-  // STEP 4: HANDLE NON-LOCALE HELP ROOT REDIRECT
-  // ==========================================
-  // Handle /help (no locale prefix) - redirect to appropriate locale path
-  // Check if user has an existing locale preference and respect it
-  if (path === '/help' || path === '/help/') {
-    // Check for existing locale preference from cookies
-    const existingLocale =
-      request.cookies.get('FUMADOCS_LOCALE')?.value ||
-      request.cookies.get('NEXT_LOCALE')?.value ||
-      'en';
-
-    // For non-English locales, redirect to locale-prefixed path
-    if (existingLocale !== 'en') {
-      if (DEBUG)
-        console.log(
-          `📚 Help root redirect (locale: ${existingLocale}): ${path} → /${existingLocale}/help/patient`,
-        );
-      const redirectResponse = NextResponse.redirect(
-        new URL(`/${existingLocale}/help/patient`, request.url),
-        308,
-      );
-      redirectResponse.cookies.set('FUMADOCS_LOCALE', existingLocale, {
-        path: '/help',
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-        sameSite: 'lax',
-      });
-      applyAuthkitHeaders(redirectResponse, authkitHeaders);
-      return redirectResponse;
-    }
-
-    // For English (default), redirect to /help/patient without locale prefix
-    if (DEBUG) console.log(`📚 Help root redirect: ${path} → /help/patient`);
-    const redirectResponse = NextResponse.redirect(new URL('/help/patient', request.url), 308);
-    redirectResponse.cookies.set('FUMADOCS_LOCALE', 'en', {
-      path: '/help',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      sameSite: 'lax',
-    });
-    applyAuthkitHeaders(redirectResponse, authkitHeaders);
-    return redirectResponse;
-  }
-
-  // ==========================================
-  // STEP 5: CHECK IF AUTH/APP ROUTE (no i18n needed)
+  // STEP 3: CHECK IF AUTH/APP ROUTE (no i18n needed)
   // ==========================================
   const pathSegments = path.split('/').filter(Boolean);
   const firstSegment = pathSegments[0];
 
+  // Note: 'help' is NOT in this list - it's now inside [locale]/help and handled by i18n middleware
   const isAuthOrAppRoute =
     firstSegment === 'login' ||
     firstSegment === 'register' ||
@@ -445,10 +358,9 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'appointments' ||
     firstSegment === 'booking' ||
     firstSegment === 'admin' ||
-    firstSegment === 'partner' ||
-    firstSegment === 'help';
+    firstSegment === 'partner';
 
-  // If auth/app route, skip i18n and use JWT-based RBAC (STEP 5 continued)
+  // If auth/app route, skip i18n and use JWT-based RBAC (STEP 3 continued)
   if (isAuthOrAppRoute) {
     if (DEBUG) {
       console.log(`🔒 Auth/App route (no locale): ${path}`);
@@ -518,7 +430,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 6: RUN I18N MIDDLEWARE (for marketing routes only)
+  // STEP 4: RUN I18N MIDDLEWARE (for marketing routes only)
   // ==========================================
   // Pass original request to i18n middleware to preserve all Next.js properties
   // (nextUrl, geo, ip, etc.) Marketing pages don't use withAuth() so we don't
@@ -533,12 +445,12 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 7: PRESERVE AUTH HEADERS ON I18N RESPONSE
+  // STEP 5: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
   applyAuthkitHeaders(i18nResponse, authkitHeaders);
 
   // ==========================================
-  // STEP 8: APPLY AUTHORIZATION CHECKS (for marketing routes)
+  // STEP 6: APPLY AUTHORIZATION CHECKS (for marketing routes)
   // ==========================================
   const pathWithoutLocale = locales.some((locale) => finalPath.startsWith(`/${locale}/`))
     ? finalPath.substring(finalPath.indexOf('/', 1))

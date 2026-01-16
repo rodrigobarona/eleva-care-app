@@ -1,8 +1,7 @@
 'use client';
 
-import { defaultLocale } from '@/lib/i18n/routing';
+import { usePathname, useRouter } from '@/lib/i18n/navigation';
 import type { Locale } from '@/lib/i18n/routing';
-import { useLocale } from 'next-intl';
 import { type ChangeEvent, type ReactNode, useTransition } from 'react';
 
 type Props = {
@@ -11,42 +10,29 @@ type Props = {
   label: string;
 };
 
+/**
+ * Locale Switcher Select Component
+ *
+ * Uses next-intl's navigation utilities to handle locale switching correctly.
+ * This ensures proper URL construction for all routes, including:
+ * - Default locale (en): /help/patient, /about
+ * - Other locales: /pt/help/patient, /pt/about
+ *
+ * The `useRouter().replace()` method handles the locale prefix automatically
+ * based on the `localePrefix: 'as-needed'` configuration.
+ */
 export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
   const [isPending, startTransition] = useTransition();
-  const currentLocale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextLocale = event.target.value as Locale;
-    console.log('Switching locale to:', nextLocale); // Debugging log
 
     startTransition(() => {
-      // Set cookie to remember this locale
-      document.cookie = `ELEVA_LOCALE=${nextLocale};max-age=31536000;path=/`;
-
-      // Use direct URL manipulation which handles dynamic routes better in this case
-      // Get current URL and parse it
-      const url = new URL(window.location.href);
-      const pathParts = url.pathname.split('/');
-
-      // Check if the first segment is a locale
-      if (pathParts[1] === currentLocale) {
-        // Replace the locale segment
-        pathParts[1] = nextLocale;
-      } else {
-        // Insert the locale after the first slash
-        pathParts.splice(1, 0, nextLocale);
-      }
-
-      // Construct new path, handling case where nextLocale is default locale
-      let newPath = pathParts.join('/');
-      if (nextLocale === defaultLocale && pathParts.length > 2) {
-        // For default locale, we might want to remove the locale prefix
-        // (depending on your localePrefix setting)
-        newPath = `/${pathParts.slice(2).join('/')}`;
-      }
-
-      // Navigate to new URL, preserving query parameters
-      window.location.href = `${url.origin}${newPath}${url.search}`;
+      // Use next-intl's router to handle locale switching
+      // This automatically handles the locale prefix based on routing config
+      router.replace(pathname, { locale: nextLocale });
     });
   }
 

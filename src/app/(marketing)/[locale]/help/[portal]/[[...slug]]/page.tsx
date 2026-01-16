@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
-import { getFumadocsLocale } from '@/lib/fumadocs-i18n';
+import { docsMdxComponents } from '@/components/help/mdx-components';
+import type { FumadocsLanguage } from '@/lib/fumadocs-i18n.config';
 import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
 import type { TOCItemType } from 'fumadocs-core/toc';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
@@ -7,27 +8,22 @@ import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { docsMdxComponents } from '../../../../components/help/mdx-components';
-
 /**
- * Dynamic Portal Documentation Page
+ * Portal Documentation Page
  *
- * Renders MDX content for any documentation portal.
- * Portal is determined by the [portal] route segment.
+ * Renders MDX content for help center portals.
+ * Locale comes from URL params via [locale] segment.
  *
- * Locale detection uses shared getFumadocsLocale() utility which follows
- * Fumadocs i18n pattern and works alongside next-intl.
+ * URL Structure:
+ * - /help/patient (locale = 'en')
+ * - /pt/help/patient/faq (locale = 'pt')
  *
- * URL Structure (following next-intl as-needed pattern):
- * - English (default): /help/patient (no locale prefix)
- * - Other locales: /pt/help/patient → rewritten to /help/patient with locale cookie
- *
- * @see https://fumadocs.vercel.app/docs/headless/internationalization
  * @see https://fumadocs.vercel.app/docs/ui/layouts/page
  */
 
 interface PageProps {
   params: Promise<{
+    locale: string;
     portal: string;
     slug?: string[];
   }>;
@@ -47,6 +43,15 @@ const portalTitles: Record<PortalKey, string> = {
 };
 
 /**
+ * Map next-intl locale to Fumadocs language
+ */
+function mapToFumadocsLocale(locale: string): FumadocsLanguage {
+  if (locale === 'pt-BR' || locale === 'pt') return 'pt';
+  if (locale === 'es') return 'en';
+  return 'en';
+}
+
+/**
  * Normalize slug to array format for Fumadocs
  * Index pages have undefined slug, which needs to be converted to empty array
  */
@@ -55,37 +60,37 @@ function normalizeSlug(slug: string[] | undefined): string[] {
 }
 
 export default async function PortalDocsPage({ params }: PageProps) {
-  const { portal, slug } = await params;
+  const { locale, portal, slug } = await params;
 
   if (!isValidPortal(portal)) {
     notFound();
   }
 
+  const fumadocsLocale = mapToFumadocsLocale(locale);
   const source = getPortalSource(portal);
-  const locale = await getFumadocsLocale();
   const pagePath = slug ? `/help/${portal}/${slug.join('/')}` : `/help/${portal}`;
 
   // Sentry tracking
   Sentry.setTag('docs.portal', portal);
   Sentry.setTag('docs.page', pagePath);
-  Sentry.setTag('docs.locale', locale);
+  Sentry.setTag('docs.locale', fumadocsLocale);
 
   Sentry.addBreadcrumb({
     category: 'docs.navigation',
     message: `Viewing ${portal} docs: ${pagePath}`,
     level: 'info',
-    data: { portal, slug: slug?.join('/') || 'index', locale },
+    data: { portal, slug: slug?.join('/') || 'index', locale: fumadocsLocale },
   });
 
-  // Pass slug and locale separately - Fumadocs handles locale internally
-  const page = source.getPage(normalizeSlug(slug), locale);
+  // Get page with locale from URL params
+  const page = source.getPage(normalizeSlug(slug), fumadocsLocale);
 
   if (!page) {
     Sentry.addBreadcrumb({
       category: 'docs.error',
       message: `Documentation page not found: ${pagePath}`,
       level: 'warning',
-      data: { slug, locale },
+      data: { slug, locale: fumadocsLocale },
     });
     notFound();
   }
@@ -98,7 +103,7 @@ export default async function PortalDocsPage({ params }: PageProps) {
     description: data.description,
     path: pagePath,
     portal,
-    locale,
+    locale: fumadocsLocale,
     tocItems: data.toc?.length || 0,
   });
 
@@ -130,17 +135,15 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { portal, slug } = await params;
+  const { locale, portal, slug } = await params;
 
   if (!isValidPortal(portal)) {
     return {};
   }
 
+  const fumadocsLocale = mapToFumadocsLocale(locale);
   const source = getPortalSource(portal);
-  const locale = await getFumadocsLocale();
-
-  // Pass slug and locale separately - Fumadocs handles locale internally
-  const page = source.getPage(normalizeSlug(slug), locale);
+  const page = source.getPage(normalizeSlug(slug), fumadocsLocale);
 
   if (!page) {
     return {};
@@ -158,3 +161,4 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
   };
 }
+
