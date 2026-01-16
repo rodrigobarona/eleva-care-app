@@ -65,7 +65,8 @@ const PageDataSchema = z.object({
   }),
   toc: z.array(
     z.object({
-      title: z.string(),
+      // Fumadocs returns title as ReactNode (can be string or React element)
+      title: z.unknown(),
       url: z.string(),
       depth: z.number(),
     }),
