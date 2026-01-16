@@ -20,6 +20,14 @@ type Props = {
  *
  * The `useRouter().replace()` method handles the locale prefix automatically
  * based on the `localePrefix: 'as-needed'` configuration.
+ *
+ * @example
+ * ```tsx
+ * <LocaleSwitcherSelect defaultValue="en" label="Select language">
+ *   <option value="en">English</option>
+ *   <option value="pt">Português</option>
+ * </LocaleSwitcherSelect>
+ * ```
  */
 export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
   const [isPending, startTransition] = useTransition();

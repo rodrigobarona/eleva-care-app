@@ -1,12 +1,13 @@
 import * as Sentry from '@sentry/nextjs';
 import { docsMdxComponents } from '@/components/help/mdx-components';
 import type { FumadocsLanguage } from '@/lib/fumadocs-i18n.config';
+import { locales } from '@/lib/i18n/routing';
 import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
-import type { TOCItemType } from 'fumadocs-core/toc';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { z } from 'zod';
 
 /**
  * Portal Documentation Page
@@ -29,13 +30,6 @@ interface PageProps {
   }>;
 }
 
-interface PageData {
-  title: string;
-  description?: string;
-  body: MDXContent;
-  toc: TOCItemType[];
-}
-
 const portalTitles: Record<PortalKey, string> = {
   patient: 'Patient Help Center',
   expert: 'Expert Resources',
@@ -43,7 +37,24 @@ const portalTitles: Record<PortalKey, string> = {
 };
 
 /**
- * Map next-intl locale to Fumadocs language
+ * Maps next-intl locale codes to Fumadocs language codes.
+ *
+ * Fumadocs only supports 'en' and 'pt', so we map:
+ * - 'pt-BR' or 'pt' => 'pt' (Portuguese)
+ * - 'es' => 'en' (Spanish falls back to English - no Spanish docs yet)
+ * - All others => 'en' (default to English)
+ *
+ * @param locale - The next-intl locale code (e.g., 'pt-BR', 'es', 'en')
+ * @returns FumadocsLanguage code ('en' or 'pt')
+ *
+ * @example
+ * ```tsx
+ * mapToFumadocsLocale('pt-BR'); // => 'pt'
+ * mapToFumadocsLocale('pt');    // => 'pt'
+ * mapToFumadocsLocale('es');    // => 'en' (fallback)
+ * mapToFumadocsLocale('en');    // => 'en'
+ * mapToFumadocsLocale('fr');    // => 'en' (default)
+ * ```
  */
 function mapToFumadocsLocale(locale: string): FumadocsLanguage {
   if (locale === 'pt-BR' || locale === 'pt') return 'pt';
@@ -52,12 +63,40 @@ function mapToFumadocsLocale(locale: string): FumadocsLanguage {
 }
 
 /**
- * Normalize slug to array format for Fumadocs
- * Index pages have undefined slug, which needs to be converted to empty array
+ * Normalizes slug array for Fumadocs page lookup.
+ *
+ * Index pages have undefined slug, which needs to be converted to an empty
+ * array for Fumadocs getPage() to work correctly.
+ *
+ * @param slug - Optional slug array from URL params
+ * @returns Normalized slug array (empty array if undefined)
+ *
+ * @example
+ * ```tsx
+ * normalizeSlug(undefined);      // => []
+ * normalizeSlug(['faq']);        // => ['faq']
+ * normalizeSlug(['a', 'b']);     // => ['a', 'b']
+ * ```
  */
 function normalizeSlug(slug: string[] | undefined): string[] {
   return slug ?? [];
 }
+
+/** Zod schema for validating PageData from Fumadocs */
+const PageDataSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  body: z.custom<MDXContent>((val) => typeof val === 'function', {
+    message: 'body must be an MDX component',
+  }),
+  toc: z.array(
+    z.object({
+      title: z.string(),
+      url: z.string(),
+      depth: z.number(),
+    }),
+  ),
+});
 
 export default async function PortalDocsPage({ params }: PageProps) {
   const { locale, portal, slug } = await params;
@@ -95,7 +134,22 @@ export default async function PortalDocsPage({ params }: PageProps) {
     notFound();
   }
 
-  const data = page.data as unknown as PageData;
+  // Validate page data with Zod schema instead of unsafe double-cast
+  const parseResult = PageDataSchema.safeParse(page.data);
+
+  if (!parseResult.success) {
+    Sentry.captureException(new Error('Invalid page data structure'), {
+      extra: {
+        pagePath,
+        portal,
+        locale: fumadocsLocale,
+        zodErrors: parseResult.error.flatten(),
+      },
+    });
+    notFound();
+  }
+
+  const data = parseResult.data;
   const MDXContent = data.body;
 
   Sentry.setContext('documentation_page', {
@@ -118,16 +172,28 @@ export default async function PortalDocsPage({ params }: PageProps) {
   );
 }
 
-export function generateStaticParams() {
+/**
+ * Generates static parameters for all locale/portal/slug combinations.
+ * Includes locale to enable static pre-rendering for all supported locales.
+ *
+ * @returns Array of locale, portal, and slug parameter combinations
+ */
+export function generateStaticParams(): Array<{
+  locale: string;
+  portal: string;
+  slug?: string[];
+}> {
   const portals: PortalKey[] = ['patient', 'expert', 'workspace'];
-  const allParams: { portal: string; slug?: string[] }[] = [];
+  const allParams: { locale: string; portal: string; slug?: string[] }[] = [];
 
-  for (const portal of portals) {
-    const source = getPortalSource(portal);
-    const params = source.generateParams();
+  for (const locale of locales) {
+    for (const portal of portals) {
+      const source = getPortalSource(portal);
+      const params = source.generateParams();
 
-    for (const { slug } of params) {
-      allParams.push({ portal, slug });
+      for (const { slug } of params) {
+        allParams.push({ locale, portal, slug });
+      }
     }
   }
 
@@ -161,4 +227,3 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
   };
 }
-

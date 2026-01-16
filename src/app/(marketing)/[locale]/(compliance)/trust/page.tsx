@@ -5,7 +5,23 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
-export default async function TrustPage({ params }: PageProps) {
+/**
+ * Trust Index Page
+ *
+ * Redirects to the default trust document (Security) based on locale.
+ * Uses isValidLocale to validate the locale parameter before redirecting.
+ *
+ * @param params - Page parameters containing the locale (PageProps)
+ * @returns Never returns - always redirects
+ *
+ * @example
+ * ```tsx
+ * // /trust redirects to /trust/security (English)
+ * // /pt/trust redirects to /pt/trust/security (Portuguese)
+ * TrustPage({ params: Promise.resolve({ locale: 'en' }) });
+ * ```
+ */
+export default async function TrustPage({ params }: PageProps): Promise<never> {
   const { locale } = await params;
 
   // Handle invalid locale - redirect to default locale

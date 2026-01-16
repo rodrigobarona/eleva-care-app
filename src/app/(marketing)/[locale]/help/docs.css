@@ -26,22 +26,32 @@
  * - --fd-docs-row-1/2/3: Top offset for sticky elements
  */
 
+/**
+ * Shared header height variables for consistent sticky positioning.
+ * These values should match the actual header component heights.
+ * @see src/components/shared/navigation/Header.tsx
+ */
+@theme {
+  --header-height-desktop: 96px;
+  --header-height-mobile: 80px;
+}
+
 /* Override Fumadocs CSS variables for our header offset */
 #eleva-care-help {
   /* Height available for docs content (full viewport, sticky elements handle their own offset) */
   --fd-docs-height: 100vh;
   /* Top offset for sticky elements - accounts for fixed header */
-  --fd-docs-row-1: 96px;
-  --fd-docs-row-2: 96px;
-  --fd-docs-row-3: 96px;
+  --fd-docs-row-1: var(--header-height-desktop);
+  --fd-docs-row-2: var(--header-height-desktop);
+  --fd-docs-row-3: var(--header-height-desktop);
 }
 
 @media (max-width: 1023px) {
   #eleva-care-help {
     /* Smaller header on mobile */
-    --fd-docs-row-1: 80px;
-    --fd-docs-row-2: 80px;
-    --fd-docs-row-3: 80px;
+    --fd-docs-row-1: var(--header-height-mobile);
+    --fd-docs-row-2: var(--header-height-mobile);
+    --fd-docs-row-3: var(--header-height-mobile);
   }
 }
 
@@ -83,7 +93,7 @@
   --color-fd-primary: #006d77;
   --color-fd-primary-foreground: #ffffff;
 
-  /* Secondary */
+  /* Secondary - Neutral Gray (used for subtle backgrounds) */
   --color-fd-secondary: #f7f9f9;
   --color-fd-secondary-foreground: #333333;
 
@@ -119,8 +129,8 @@
   background: transparent;
 }
 
-/* Clean sidebar links */
-#eleva-care-help [data-active='true'] {
+/* Clean sidebar links - scoped to sidebar to avoid conflicts with other data-active elements */
+#eleva-care-help aside [data-active='true'] {
   color: var(--color-fd-primary);
   font-weight: 500;
 }

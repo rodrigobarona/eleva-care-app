@@ -1,5 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
 import SmoothLink from '@/components/shared/navigation/SmoothLink';
+import type { MDXContentComponent } from '@/types/mdx';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Link } from '@/lib/i18n/navigation';
@@ -22,6 +23,26 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+/**
+ * Generates metadata for the History page based on locale.
+ *
+ * Uses a safe locale fallback to 'en' if the provided locale is invalid.
+ * Dynamically imports MDX metadata for the locale, falling back to default
+ * values if the import fails.
+ *
+ * @param params - Page parameters containing the locale (PageProps)
+ * @returns Promise resolving to Next.js Metadata object
+ *
+ * @example
+ * ```tsx
+ * // Called automatically by Next.js during rendering
+ * const metadata = await generateMetadata({ params: Promise.resolve({ locale: 'en' }) });
+ * // Returns: { title: 'Our Story - Eleva Care', description: '...', openGraph: {...} }
+ * ```
+ *
+ * @see isValidLocale - Validates the locale parameter
+ * @see generatePageMetadata - Generates standardized page metadata
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
@@ -68,11 +89,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export async function generateStaticParams() {
+/**
+ * Generates static parameters for all supported locales.
+ * Enables static pre-rendering of the History page for each locale at build time.
+ *
+ * @returns Array of locale parameters for static generation
+ */
+export function generateStaticParams(): Array<{ locale: string }> {
   return locales.map((locale) => ({ locale }));
 }
 
-export default async function HistoryPage({ params }: PageProps) {
+/**
+ * History Page Component
+ *
+ * Renders the company history/story page with localized MDX content.
+ * Redirects to default locale if the provided locale is invalid.
+ *
+ * @param params - Page parameters containing the locale (PageProps)
+ * @returns JSX element rendering the History page content
+ *
+ * @example
+ * ```tsx
+ * // Rendered by Next.js App Router
+ * <HistoryPage params={Promise.resolve({ locale: 'pt' })} />
+ * ```
+ */
+export default async function HistoryPage({ params }: PageProps): Promise<React.JSX.Element> {
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
@@ -80,10 +122,10 @@ export default async function HistoryPage({ params }: PageProps) {
   }
 
   // Native Next.js 16 MDX import - Turbopack optimized
-  let HistoryContent: React.ComponentType<any>;
+  let HistoryContent: MDXContentComponent;
   try {
     const mdxModule = await import(`@/content/history/${locale}.mdx`);
-    HistoryContent = mdxModule.default;
+    HistoryContent = mdxModule.default as MDXContentComponent;
   } catch (error) {
     console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();

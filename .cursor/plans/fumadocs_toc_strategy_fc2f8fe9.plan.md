@@ -4,7 +4,7 @@ overview: Research findings on using Fumadocs Table of Contents for legal/trust 
 todos:
   - id: research-complete
     content: Research Fumadocs headless ToC capabilities (DONE)
-    status: pending
+    status: completed
 ---
 
 # Fumadocs ToC for Legal/Trust Pages
@@ -98,6 +98,21 @@ Create a custom ToC component using fumadocs-core headless primitives. No CSS fr
 - Need to build and maintain ToC component
 - Manual extraction of headings from MDX
 
+**Accessibility Requirements:**
+
+- Implement keyboard navigation (Arrow keys, Home/End) for ToC items
+- Add proper focus management with visible focus indicators
+- Use ARIA roles: `role="navigation"` on ToC container, `aria-label="Table of contents"`
+- Add `aria-current="location"` to active heading link
+- Ensure heading links have descriptive `aria-label` attributes
+
+**Testing Checklist:**
+
+- [ ] Unit tests for ToC component rendering and state
+- [ ] Axe accessibility audit passes with no violations
+- [ ] Keyboard navigation test: Tab, Arrow keys, Enter activate links
+- [ ] Screen reader testing: VoiceOver/NVDA announces navigation landmarks
+
 ---
 
 ### Option B: Use DocsPage Without DocsLayout
@@ -121,6 +136,20 @@ Use only the `DocsPage` component from fumadocs-ui (which includes ToC) without 
 
 - Need to import fumadocs-ui CSS (potential style conflicts)
 - Mixed approaches between help and legal sections
+
+**Accessibility Considerations:**
+
+- Fumadocs-ui provides built-in ARIA attributes; verify they meet WCAG 2.1 AA
+- Check ToC component has proper `role="navigation"` and `aria-label`
+- Verify focus management works correctly with fumadocs-ui styling
+- Note: fumadocs-ui may have its own keyboard navigation patterns
+
+**Testing Checklist:**
+
+- [ ] Verify fumadocs-ui ARIA attributes in browser DevTools
+- [ ] Axe accessibility audit on pages using DocsPage
+- [ ] Keyboard navigation test with fumadocs-ui ToC
+- [ ] Visual regression test to catch CSS conflicts
 
 ---
 
@@ -148,6 +177,20 @@ Move legal/trust content to Fumadocs MDX collections with a different theme.
 - Major restructuring of legal/trust content
 - Need to manage two Fumadocs themes
 - More complex i18n setup (need to mirror help center approach)
+
+**Performance Considerations:**
+
+- Additional source loaders increase build time (~10-30s per loader)
+- Each loader processes all MDX files in its directory at build time
+- Consider incremental builds: Fumadocs supports `experimental_lazyBuild` option
+- Caching suggestions: use `revalidate` config for ISR, leverage Next.js build cache
+
+**Testing Checklist:**
+
+- [ ] Measure build time before/after adding new loaders
+- [ ] Load-time benchmarks: compare TTFB and LCP for legal/trust pages
+- [ ] Memory profiling during build to detect loader overhead
+- [ ] Verify search indexing works for new content sources
 
 ---
 

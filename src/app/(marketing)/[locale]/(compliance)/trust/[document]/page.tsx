@@ -14,18 +14,39 @@ interface PageProps {
   params: Promise<{ locale: string; document: string }>;
 }
 
-const validDocuments = ['security', 'dpa'];
+/** Valid trust document slugs */
+const validDocuments = ['security', 'dpa'] as const;
 
-// Create a mapping of document types to their display names
+/** Union type of valid trust document slugs */
+type DocumentKey = (typeof validDocuments)[number];
+
+/** Mapping of document slugs to their display names */
 const documentDisplayNames = {
   security: 'Security',
   dpa: 'Data Processing Agreement',
-};
+} as const satisfies Record<DocumentKey, string>;
 
+/**
+ * Generates metadata for trust document pages.
+ *
+ * Validates locale and document parameters via isValidLocale and validDocuments,
+ * then dynamically imports MDX metadata. Falls back to display names if import fails.
+ *
+ * @param params - Page parameters containing locale and document slug (PageProps)
+ * @returns Promise resolving to Next.js Metadata object
+ *
+ * @example
+ * ```tsx
+ * const metadata = await generateMetadata({
+ *   params: Promise.resolve({ locale: 'en', document: 'security' })
+ * });
+ * // Returns: { title: 'Security', description: '...', ... }
+ * ```
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, document } = await params;
 
-  if (!isValidLocale(locale) || !validDocuments.includes(document)) {
+  if (!isValidLocale(locale) || !validDocuments.includes(document as DocumentKey)) {
     return generatePageMetadata({
       locale: 'en',
       path: '/trust/security',
@@ -50,13 +71,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       keywords: ['trust', 'security', 'compliance', document, 'eleva care', 'healthcare'],
     });
   } catch (error) {
-    console.error(`Error loading metadata from MDX for trust/${document}:`, error);
-    console.warn(
-      `No translations found for trust document ${document} in locale ${locale}, using fallback`,
+    // Log error with context about fallback behavior
+    console.error(
+      `Failed to load metadata for trust/${document} in locale ${locale}. Using display name fallback.`,
+      error,
     );
 
     const displayName =
-      documentDisplayNames[document as keyof typeof documentDisplayNames] ||
+      documentDisplayNames[document as DocumentKey] ||
       document.charAt(0).toUpperCase() + document.slice(1);
 
     return generatePageMetadata({
@@ -69,7 +91,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export async function generateStaticParams() {
+/**
+ * Generates static parameters for all locale/document combinations.
+ * Enables static pre-rendering of trust documents at build time.
+ *
+ * @returns Array of locale and document parameter combinations
+ *
+ * @example
+ * ```tsx
+ * // Returns:
+ * // [{ locale: 'en', document: 'security' }, { locale: 'en', document: 'dpa' }, ...]
+ * ```
+ */
+export function generateStaticParams(): Array<{ locale: string; document: string }> {
   return locales.flatMap((locale) =>
     validDocuments.map((document) => ({
       locale,
@@ -78,14 +112,30 @@ export async function generateStaticParams() {
   );
 }
 
-export default async function TrustDocumentPage({ params }: PageProps) {
+/**
+ * Trust Document Page Component
+ *
+ * Renders trust/security documents (security policy, DPA) with MDX content.
+ * Validates locale and document parameters, redirecting or showing 404 as needed.
+ *
+ * @param params - Page parameters containing locale and document slug
+ * @returns JSX element rendering the trust document
+ *
+ * @example
+ * ```tsx
+ * // Rendered by Next.js App Router for /trust/security
+ * <TrustDocumentPage params={Promise.resolve({ locale: 'en', document: 'security' })} />
+ * ```
+ */
+export default async function TrustDocumentPage({ params }: PageProps): Promise<React.JSX.Element> {
   const { locale, document } = await params;
 
   if (!isValidLocale(locale)) {
     redirect(`/trust/${document}`); // Default locale (en) has no prefix
+    return undefined as never; // Explicit return for control flow clarity (redirect throws)
   }
 
-  if (!validDocuments.includes(document)) {
+  if (!validDocuments.includes(document as DocumentKey)) {
     return notFound();
   }
 

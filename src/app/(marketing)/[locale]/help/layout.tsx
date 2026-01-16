@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { DocsProvider } from '@/components/providers/help-provider';
+import { DOCS_TYPE, DOCS_VERSION } from '@/lib/docs-config';
 import type { FumadocsLanguage } from '@/lib/fumadocs-i18n.config';
 import type { ReactNode } from 'react';
 
@@ -19,6 +20,17 @@ import './docs.css';
  * - Portuguese: /pt/help/patient (locale = 'pt')
  *
  * @see https://fumadocs.vercel.app/docs/ui/layouts
+ *
+ * @example
+ * ```tsx
+ * // Used by Next.js App Router for /help routes
+ * // URL: /help/patient or /pt/help/patient
+ * <HelpLayout params={Promise.resolve({ locale: 'en' })}>
+ *   <PortalLayout>
+ *     <DocsPage />
+ *   </PortalLayout>
+ * </HelpLayout>
+ * ```
  */
 
 interface Props {
@@ -45,8 +57,8 @@ export default async function HelpLayout({ children, params }: Props) {
   Sentry.setTag('section', 'documentation');
   Sentry.setTag('docs.locale', fumadocsLocale);
   Sentry.setContext('documentation', {
-    type: 'fumadocs',
-    version: '1.0.0',
+    type: DOCS_TYPE,
+    version: DOCS_VERSION,
     locale: fumadocsLocale,
   });
 
@@ -67,4 +79,3 @@ export default async function HelpLayout({ children, params }: Props) {
     </DocsProvider>
   );
 }
-
