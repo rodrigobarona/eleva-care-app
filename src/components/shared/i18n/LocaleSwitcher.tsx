@@ -1,34 +1,40 @@
+import type { Locale } from '@/lib/i18n/routing';
 import { routing } from '@/lib/i18n/routing';
 import { useLocale } from 'next-intl';
 
 import LocaleSwitcherSelect from './LocaleSwitcherSelect';
 
-// Define fallback translations for language names - using ISO locale codes
-const localeNames = {
+/**
+ * Locale display names mapped to ISO locale codes.
+ * Uses native language names for each locale.
+ */
+const localeNames: Record<Locale, string> = {
   en: 'English',
   es: 'Español',
   pt: 'Português',
   'pt-BR': 'Português (Brasil)',
 };
 
+/**
+ * Language Switcher Component
+ *
+ * Renders an accessible language selector dropdown.
+ * Uses next-intl's useLocale hook to get current locale
+ * and routing config for available locales.
+ *
+ * @example
+ * ```tsx
+ * // In Footer or Header
+ * <LanguageSwitcher />
+ * ```
+ */
 export function LanguageSwitcher() {
-  const locale = useLocale();
+  const locale = useLocale() as Locale;
 
-  // For simplicity, we'll always use the static labels
-  // Replace with useTranslations('LocaleSwitcher') if you add the namespace
-  const label = 'Select language';
+  const options = routing.locales.map((localeCode) => ({
+    value: localeCode,
+    label: localeNames[localeCode],
+  }));
 
-  const getLocaleName = (localeCode: string) => {
-    return localeNames[localeCode as keyof typeof localeNames] || localeCode;
-  };
-
-  return (
-    <LocaleSwitcherSelect defaultValue={locale} label={label}>
-      {routing.locales.map((cur) => (
-        <option key={cur} value={cur}>
-          {getLocaleName(cur)}
-        </option>
-      ))}
-    </LocaleSwitcherSelect>
-  );
+  return <LocaleSwitcherSelect value={locale} options={options} label="Select language" />;
 }

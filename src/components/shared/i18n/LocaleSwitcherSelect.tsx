@@ -1,111 +1,104 @@
 'use client';
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { usePathname, useRouter } from '@/lib/i18n/navigation';
 import type { Locale } from '@/lib/i18n/routing';
+import { cn } from '@/lib/utils';
+import { GlobeIcon, LoaderIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { type ChangeEvent, type ReactNode, useTransition } from 'react';
+import { useTransition } from 'react';
 
-type Props = {
-  children: ReactNode;
-  defaultValue: string;
+interface LocaleOption {
+  value: Locale;
   label: string;
-};
+}
+
+interface Props {
+  /** Currently selected locale */
+  value: Locale;
+  /** Available locale options */
+  options: LocaleOption[];
+  /** Accessible label for the select */
+  label: string;
+}
 
 /**
  * Locale Switcher Select Component
  *
- * Uses next-intl's navigation utilities to handle locale switching correctly.
- * This ensures proper URL construction for all routes, including:
- * - Default locale (en): /help/patient, /about
- * - Other locales: /pt/help/patient, /pt/about
+ * Accessible language selector using shadcn/ui Select (Radix UI).
+ * Provides full keyboard navigation, ARIA attributes, and screen reader support.
  *
- * When `pathnames` are configured in routing (including dynamic routes),
- * we pass both pathname and params to enable type-safe navigation.
- * The `@ts-expect-error` is the official next-intl pattern for this case.
+ * Features:
+ * - Full keyboard navigation (Arrow keys, Enter, Escape, Home, End)
+ * - ARIA attributes for screen readers
+ * - Visual focus indicators
+ * - Loading state during navigation
+ * - Globe icon for visual context
  *
  * @see https://next-intl.dev/docs/routing/navigation#change-locale
+ * @see https://ui.shadcn.com/docs/components/select
  *
  * @example
  * ```tsx
- * <LocaleSwitcherSelect defaultValue="en" label="Select language">
- *   <option value="en">English</option>
- *   <option value="pt">Português</option>
- * </LocaleSwitcherSelect>
+ * <LocaleSwitcherSelect
+ *   value="en"
+ *   options={[
+ *     { value: 'en', label: 'English' },
+ *     { value: 'pt', label: 'Português' },
+ *   ]}
+ *   label="Select language"
+ * />
  * ```
  */
-export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
+export default function LocaleSwitcherSelect({ value, options, label }: Props) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
 
-  function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
-    const nextLocale = event.target.value as Locale;
-
+  function handleLocaleChange(nextLocale: string) {
     startTransition(() => {
       // When routing has `pathnames` configured, pass both pathname and params.
       // TypeScript can't verify at compile time that pathname and params match,
       // but at runtime they always will (they come from the same route).
       // This is the official next-intl approach for locale switching.
       // @ts-expect-error -- pathname and params always match at runtime
-      router.replace({ pathname, params }, { locale: nextLocale });
+      router.replace({ pathname, params }, { locale: nextLocale as Locale });
     });
   }
 
   return (
-    <div className="flex items-center gap-1 text-sm text-gray-600">
-      {/* World Globe Icon */}
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="mr-1"
-        aria-hidden="true"
+    <Select value={value} onValueChange={handleLocaleChange} disabled={isPending}>
+      <SelectTrigger
+        className={cn(
+          'h-8 w-auto gap-1.5 border-none bg-transparent px-2 shadow-none',
+          'hover:bg-gray-100 focus:ring-0 focus:ring-offset-0',
+          'focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2',
+        )}
+        aria-label={label}
       >
-        <title>Language</title>
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        <path d="M2 12h20" />
-      </svg>
-
-      <label className="relative">
-        <span className="sr-only">{label}</span>
-        <select
-          className="appearance-none bg-transparent py-1 pr-6 pl-1 text-sm font-medium"
-          defaultValue={defaultValue}
-          disabled={isPending}
-          onChange={onSelectChange}
-        >
-          {children}
-        </select>
-        <span className="pointer-events-none absolute top-1/2 right-1 -translate-y-1/2">
-          {isPending ? (
-            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-t-transparent" />
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <title>Dropdown Arrow</title>
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          )}
-        </span>
-      </label>
-    </div>
+        {isPending ? (
+          <LoaderIcon className="size-4 animate-spin text-gray-500" aria-hidden="true" />
+        ) : (
+          <GlobeIcon className="size-4 text-gray-500" aria-hidden="true" />
+        )}
+        <SelectValue placeholder={label}>
+          {options.find((opt) => opt.value === value)?.label}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align="end" position="popper" sideOffset={4}>
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
