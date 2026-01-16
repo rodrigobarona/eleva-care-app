@@ -85,3 +85,31 @@ export function getTranslations(locale: string) {
 export function isValidFumadocsLocale(locale: string): locale is FumadocsLanguage {
   return FUMADOCS_LANGUAGES.includes(locale as FumadocsLanguage);
 }
+
+/**
+ * Maps next-intl locale codes to Fumadocs language codes.
+ *
+ * Fumadocs only supports 'en' and 'pt', so we map:
+ * - 'pt-BR' or 'pt' => 'pt' (Portuguese)
+ * - 'es' => 'en' (Spanish falls back to English - no Spanish docs yet)
+ * - All others => 'en' (default to English)
+ *
+ * @param locale - The next-intl locale code (e.g., 'pt-BR', 'es', 'en')
+ * @returns FumadocsLanguage code ('en' or 'pt')
+ *
+ * @example
+ * ```tsx
+ * mapToFumadocsLocale('pt-BR'); // => 'pt'
+ * mapToFumadocsLocale('pt');    // => 'pt'
+ * mapToFumadocsLocale('es');    // => 'en' (fallback)
+ * mapToFumadocsLocale('en');    // => 'en'
+ * mapToFumadocsLocale('fr');    // => 'en' (default)
+ * ```
+ */
+export function mapToFumadocsLocale(locale: string): FumadocsLanguage {
+  // Handle all Portuguese variants (pt, pt-BR, pt-PT, etc.)
+  // Use strict matching to only accept exact 'pt' or valid BCP47 'pt-' prefixed variants
+  if (locale === 'pt' || locale.startsWith('pt-')) return 'pt';
+  // All other locales (including 'es', 'en', 'fr', etc.) default to English
+  return 'en';
+}

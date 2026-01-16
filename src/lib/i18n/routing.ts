@@ -32,7 +32,7 @@ export const routing = {
     '/trust': '/trust',
     '/trust/security': '/trust/security',
     '/trust/dpa': '/trust/dpa',
-    // Help Center routes - proxy handles locale-prefixed paths (e.g., /pt/help/patient → /help/patient)
+    // Help Center routes - handled by [locale]/help route with URL-based locale
     '/help': '/help',
     '/help/patient': '/help/patient',
     '/help/expert': '/help/expert',

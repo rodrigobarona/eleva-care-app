@@ -8,7 +8,7 @@
  *
  * @see https://fumadocs.vercel.app/docs/ui/theme
  */
-@source '../../../node_modules/fumadocs-ui/dist/**/*.js';
+@source '../../../../node_modules/fumadocs-ui/dist/**/*.js';
 
 /**
  * Help Center Layout Overrides
@@ -26,22 +26,32 @@
  * - --fd-docs-row-1/2/3: Top offset for sticky elements
  */
 
+/**
+ * Shared header height variables for consistent sticky positioning.
+ * These values should match the actual header component heights.
+ * @see src/components/shared/navigation/Header.tsx
+ */
+@theme {
+  --header-height-desktop: 96px;
+  --header-height-mobile: 80px;
+}
+
 /* Override Fumadocs CSS variables for our header offset */
 #eleva-care-help {
   /* Height available for docs content (full viewport, sticky elements handle their own offset) */
   --fd-docs-height: 100vh;
   /* Top offset for sticky elements - accounts for fixed header */
-  --fd-docs-row-1: 96px;
-  --fd-docs-row-2: 96px;
-  --fd-docs-row-3: 96px;
+  --fd-docs-row-1: var(--header-height-desktop);
+  --fd-docs-row-2: var(--header-height-desktop);
+  --fd-docs-row-3: var(--header-height-desktop);
 }
 
 @media (max-width: 1023px) {
   #eleva-care-help {
     /* Smaller header on mobile */
-    --fd-docs-row-1: 80px;
-    --fd-docs-row-2: 80px;
-    --fd-docs-row-3: 80px;
+    --fd-docs-row-1: var(--header-height-mobile);
+    --fd-docs-row-2: var(--header-height-mobile);
+    --fd-docs-row-3: var(--header-height-mobile);
   }
 }
 
@@ -56,8 +66,11 @@
  * Colors aligned with Eleva Care brand:
  * - Primary: #006D77 (Deep Teal)
  * - Primary Light: #83C5BE (Sage Green)
- * - Secondary: #E29578 (Soft Coral)
  * - Neutral: #FCFDFD, #F7F9F9, #333333
+ *
+ * Note: #E29578 (Soft Coral) is a brand accent color used elsewhere.
+ * For Fumadocs, --color-fd-secondary uses #F7F9F9 (neutral gray) for
+ * subtle backgrounds, keeping the UI clean and professional.
  */
 @theme {
   /* Clean white background - matches marketing site */
@@ -83,7 +96,7 @@
   --color-fd-primary: #006d77;
   --color-fd-primary-foreground: #ffffff;
 
-  /* Secondary */
+  /* Secondary - Neutral Gray (used for subtle backgrounds) */
   --color-fd-secondary: #f7f9f9;
   --color-fd-secondary-foreground: #333333;
 
@@ -95,7 +108,8 @@
   --color-fd-ring: #83c5be;
 }
 
-.dark {
+/* Dark theme - scoped to help container to avoid conflicts with other pages */
+.dark #eleva-care-help {
   --color-fd-background: #1a1a1a;
   --color-fd-foreground: #e5e5e5;
   --color-fd-muted: #262626;
@@ -119,8 +133,8 @@
   background: transparent;
 }
 
-/* Clean sidebar links */
-#eleva-care-help [data-active='true'] {
+/* Clean sidebar links - scoped to sidebar to avoid conflicts with other data-active elements */
+#eleva-care-help aside [data-active='true'] {
   color: var(--color-fd-primary);
   font-weight: 500;
 }
@@ -132,11 +146,8 @@
  * that appear when the sidebar is in collapsed/floating mode.
  * Since we set collapsible: false, this panel is never needed.
  *
- * Using @layer base ensures this applies at the foundation level.
+ * Scoped to help container to avoid affecting other Fumadocs instances.
  */
-@layer base {
-  /* Target the sidebar panel by data attribute */
-  div[data-sidebar-panel] {
-    display: none !important;
-  }
+#eleva-care-help div[data-sidebar-panel] {
+  display: none;
 }

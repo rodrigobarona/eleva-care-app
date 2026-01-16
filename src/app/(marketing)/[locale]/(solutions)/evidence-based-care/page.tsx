@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import HeadlineSection from '@/components/shared/text/HeadlineSection';
 import TextBlock from '@/components/shared/text/TextBlock';
+import type { MDXContentComponent } from '@/types/mdx';
 import {
   HeroSection,
   KeyNumbersSection,
@@ -26,6 +27,32 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+/**
+ * Generates metadata for the Evidence-Based Care page.
+ *
+ * Uses a safe locale fallback to 'en' if the provided locale is invalid
+ * (via safeLocale). Dynamically imports MDX metadata from the content path
+ * pattern `@/content/evidence-based-care/{locale}.mdx`.
+ *
+ * @param params - Page parameters containing the locale (PageProps)
+ * @returns Promise resolving to Next.js Metadata object
+ *
+ * @example
+ * ```tsx
+ * // Called automatically by Next.js
+ * const metadata = await generateMetadata({
+ *   params: Promise.resolve({ locale: 'en' })
+ * });
+ * // Returns: { title: 'Evidence-Based Care...', description: '...', ... }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // MDX import path pattern:
+ * // '@/content/evidence-based-care/en.mdx'
+ * // '@/content/evidence-based-care/pt.mdx'
+ * ```
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
@@ -70,11 +97,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export async function generateStaticParams() {
+/**
+ * Generates static parameters for all supported locales.
+ * Enables static pre-rendering at build time.
+ *
+ * @returns Array of locale parameters for static generation
+ */
+export function generateStaticParams(): Array<{ locale: string }> {
   return locales.map((locale) => ({ locale }));
 }
 
-export default async function EvidenceBasedCarePage({ params }: PageProps) {
+/**
+ * Evidence-Based Care Page Component
+ *
+ * Renders the evidence-based care page with localized MDX content.
+ * Showcases clinical excellence and research backing.
+ *
+ * @param params - Page parameters containing the locale
+ * @returns JSX element rendering the page content
+ */
+export default async function EvidenceBasedCarePage({ params }: PageProps): Promise<React.JSX.Element> {
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
@@ -83,10 +125,10 @@ export default async function EvidenceBasedCarePage({ params }: PageProps) {
 
   // Native Next.js 16 MDX import - Turbopack optimized
   // Dynamic import with proper error handling
-  let EvidenceBasedCareContent: React.ComponentType<any>;
+  let EvidenceBasedCareContent: MDXContentComponent;
   try {
     const mdxModule = await import(`@/content/evidence-based-care/${locale}.mdx`);
-    EvidenceBasedCareContent = mdxModule.default;
+    EvidenceBasedCareContent = mdxModule.default as MDXContentComponent;
   } catch (error) {
     console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();

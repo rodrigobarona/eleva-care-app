@@ -6,6 +6,7 @@ import MissionSection from '@/components/sections/about/MissionSection';
 import TeamSection from '@/components/sections/about/TeamSection';
 import HeadlineSection from '@/components/shared/text/HeadlineSection';
 import TextBlock from '@/components/shared/text/TextBlock';
+import type { MDXContentComponent } from '@/types/mdx';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { locales } from '@/lib/i18n/routing';
@@ -24,6 +25,27 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+/**
+ * Generates metadata for the About page based on locale.
+ *
+ * Uses a safe locale fallback to 'en' if the provided locale is invalid.
+ * Dynamically imports MDX metadata for the locale, falling back to default
+ * values if the import fails.
+ *
+ * @param params - Page parameters containing the locale
+ * @returns Promise resolving to Next.js Metadata object
+ *
+ * @example
+ * ```tsx
+ * // Called automatically by Next.js during rendering
+ * const metadata = await generateMetadata({ params: Promise.resolve({ locale: 'en' }) });
+ * // Returns: { title: 'About Eleva Care', description: '...', openGraph: {...} }
+ *
+ * // With invalid locale, falls back to 'en'
+ * const metadata = await generateMetadata({ params: Promise.resolve({ locale: 'invalid' }) });
+ * // Uses 'en' locale for metadata generation
+ * ```
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
@@ -56,11 +78,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export async function generateStaticParams() {
+/**
+ * Generates static parameters for all supported locales.
+ * Enables static pre-rendering of the About page for each locale at build time.
+ *
+ * @returns Array of locale parameters for static generation
+ */
+export function generateStaticParams(): Array<{ locale: string }> {
   return locales.map((locale) => ({ locale }));
 }
 
-export default async function AboutPage({ params }: PageProps) {
+/**
+ * About Page Component
+ *
+ * Renders the About page with localized MDX content.
+ * Redirects to default locale if the provided locale is invalid.
+ *
+ * @param params - Page parameters containing the locale
+ * @returns JSX element rendering the About page content
+ *
+ * @example
+ * ```tsx
+ * // Rendered by Next.js App Router
+ * <AboutPage params={Promise.resolve({ locale: 'en' })} />
+ * ```
+ */
+export default async function AboutPage({ params }: PageProps): Promise<React.JSX.Element> {
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
@@ -69,10 +112,10 @@ export default async function AboutPage({ params }: PageProps) {
 
   // Native Next.js 16 MDX import - Turbopack optimized
   // Dynamic import with proper error handling
-  let AboutContent: React.ComponentType<any>;
+  let AboutContent: MDXContentComponent;
   try {
     const mdxModule = await import(`@/content/about/${locale}.mdx`);
-    AboutContent = mdxModule.default;
+    AboutContent = mdxModule.default as MDXContentComponent;
   } catch (error) {
     console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();

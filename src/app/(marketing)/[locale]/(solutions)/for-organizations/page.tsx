@@ -1,7 +1,12 @@
 import { type Locale, locales } from '@/lib/i18n/routing';
 import { generateGenericPageMetadata } from '@/lib/seo/metadata-utils';
-import { Metadata } from 'next';
+import type { MDXContentComponent } from '@/types/mdx';
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
+
+// Route segment configuration for ISR
+export const dynamic = 'force-static';
+export const revalidate = 86400; // 24 hours
 
 type PageProps = {
   params: Promise<{
@@ -70,16 +75,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /**
  * Generate static params for all supported locales
  * Enables static pre-rendering at build time (ISR)
+ *
+ * @returns Array of locale parameters using the shared locales constant
  */
-export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'es' }, { locale: 'pt' }, { locale: 'pt-BR' }];
+export function generateStaticParams(): Array<{ locale: string }> {
+  return locales.map((locale) => ({ locale }));
 }
 
 /**
  * For Organizations Page Component
  * Server Component with native Next.js 16 MDX imports
+ *
+ * @param params - Page parameters containing the locale
+ * @returns JSX element rendering the page content
  */
-export default async function ForOrganizationsPage({ params }: PageProps) {
+export default async function ForOrganizationsPage({
+  params,
+}: PageProps): Promise<React.JSX.Element> {
   const { locale } = await params;
 
   if (!locales.includes(locale as Locale)) {
@@ -88,17 +100,17 @@ export default async function ForOrganizationsPage({ params }: PageProps) {
 
   // Native Next.js 16 MDX import - Turbopack optimized
   // Dynamic import with proper error handling
-  let ForOrganizationsContent: React.ComponentType<any>;
+  let ForOrganizationsContent: MDXContentComponent;
   try {
     const mdxModule = await import(`@/content/for-organizations/${locale}.mdx`);
-    ForOrganizationsContent = mdxModule.default;
+    ForOrganizationsContent = mdxModule.default as MDXContentComponent;
   } catch (error) {
     console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-background via-muted/20 to-background">
+    <div className="from-background via-muted/20 to-background min-h-screen bg-linear-to-br">
       <ForOrganizationsContent
         components={
           {

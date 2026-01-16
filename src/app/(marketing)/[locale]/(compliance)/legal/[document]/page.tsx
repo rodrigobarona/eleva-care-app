@@ -14,32 +14,65 @@ interface PageProps {
   params: Promise<{ locale: string; document: string }>;
 }
 
-const validDocuments = ['terms', 'privacy', 'cookie', 'payment-policies', 'expert-agreement'];
+/** Valid legal document slugs */
+const validDocuments = [
+  'terms',
+  'privacy',
+  'cookie',
+  'payment-policies',
+  'expert-agreement',
+] as const;
 
-// Create a mapping of document types to their display names
-const documentDisplayNames = {
+/** Union type of valid document slugs */
+type DocumentKey = (typeof validDocuments)[number];
+
+/** Mapping of document slugs to their display names */
+const documentDisplayNames: Record<DocumentKey, string> = {
   terms: 'Terms of Service',
   privacy: 'Privacy Policy',
   cookie: 'Cookie Policy',
   'payment-policies': 'Payment Policies',
   'expert-agreement': 'Expert Agreement',
-};
+} as const;
 
+/**
+ * Generates metadata for legal document pages.
+ *
+ * Validates locale and document parameters, then dynamically imports
+ * MDX metadata. Falls back to a display name if metadata import fails.
+ *
+ * @param params - Page parameters containing locale and document slug
+ * @returns Promise resolving to Next.js Metadata object
+ *
+ * @example
+ * ```tsx
+ * // Called automatically by Next.js
+ * const metadata = await generateMetadata({
+ *   params: Promise.resolve({ locale: 'en', document: 'privacy' })
+ * });
+ * // Returns: { title: 'Privacy Policy', description: '...', ... }
+ * ```
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, document } = await params;
 
-  if (!isValidLocale(locale) || !validDocuments.includes(document)) {
+  if (!isValidLocale(locale) || !validDocuments.includes(document as DocumentKey)) {
     return generatePageMetadata({
       locale: 'en',
-      path: '/legal/terms',
+      path: `/legal/${document}`,
       title: 'Legal Document Not Found',
-      description: 'The requested legal document could not be found',
+      description: `The requested legal document "${document}" could not be found`,
     });
   }
 
   try {
     // Dynamically import metadata from MDX file using Next.js 16 native approach
     const { metadata } = await import(`@/content/${document}/${locale}.mdx`);
+
+    // Validate that metadata has required fields
+    if (!metadata || typeof metadata.title !== 'string' || typeof metadata.description !== 'string') {
+      throw new Error(`Invalid metadata structure for ${document}/${locale}`);
+    }
 
     return generatePageMetadata({
       locale,
@@ -72,7 +105,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export async function generateStaticParams() {
+/**
+ * Generates static parameters for all locale/document combinations.
+ * Enables static pre-rendering of legal documents at build time.
+ *
+ * @returns Array of locale and document parameter combinations
+ *
+ * @example
+ * ```tsx
+ * // Returns combinations like:
+ * // [{ locale: 'en', document: 'terms' }, { locale: 'en', document: 'privacy' }, ...]
+ * ```
+ */
+export function generateStaticParams(): Array<{ locale: string; document: string }> {
   return locales.flatMap((locale) =>
     validDocuments.map((document) => ({
       locale,
@@ -81,14 +126,29 @@ export async function generateStaticParams() {
   );
 }
 
-export default async function LegalDocumentPage({ params }: PageProps) {
+/**
+ * Legal Document Page Component
+ *
+ * Renders legal documents (terms, privacy, cookie policy, etc.) with MDX content.
+ * Validates locale and document parameters, redirecting or showing 404 as needed.
+ *
+ * @param params - Page parameters containing locale and document slug
+ * @returns JSX element rendering the legal document
+ *
+ * @example
+ * ```tsx
+ * // Rendered by Next.js App Router for /legal/privacy
+ * <LegalDocumentPage params={Promise.resolve({ locale: 'en', document: 'privacy' })} />
+ * ```
+ */
+export default async function LegalDocumentPage({ params }: PageProps): Promise<React.JSX.Element> {
   const { locale, document } = await params;
 
   if (!isValidLocale(locale)) {
     redirect(`/legal/${document}`); // Default locale (en) has no prefix
   }
 
-  if (!validDocuments.includes(document)) {
+  if (!validDocuments.includes(document as DocumentKey)) {
     return notFound();
   }
 

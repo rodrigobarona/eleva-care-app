@@ -1,6 +1,7 @@
 {
   "common": {
-    "loading": "Cargando contenido..."
+    "loading": "Cargando contenido...",
+    "selectLanguage": "Seleccionar idioma"
   },
   "language": "Español",
   "metadata": {
