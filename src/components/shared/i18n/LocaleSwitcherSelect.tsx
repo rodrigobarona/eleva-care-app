@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from '@/lib/i18n/navigation';
 import type { Locale } from '@/lib/i18n/routing';
+import { useParams } from 'next/navigation';
 import { type ChangeEvent, type ReactNode, useTransition } from 'react';
 
 type Props = {
@@ -18,8 +19,11 @@ type Props = {
  * - Default locale (en): /help/patient, /about
  * - Other locales: /pt/help/patient, /pt/about
  *
- * The `useRouter().replace()` method handles the locale prefix automatically
- * based on the `localePrefix: 'as-needed'` configuration.
+ * When `pathnames` are configured in routing (including dynamic routes),
+ * we pass both pathname and params to enable type-safe navigation.
+ * The `@ts-expect-error` is the official next-intl pattern for this case.
+ *
+ * @see https://next-intl.dev/docs/routing/navigation#change-locale
  *
  * @example
  * ```tsx
@@ -33,14 +37,18 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextLocale = event.target.value as Locale;
 
     startTransition(() => {
-      // Use next-intl's router to handle locale switching
-      // This automatically handles the locale prefix based on routing config
-      router.replace(pathname, { locale: nextLocale });
+      // When routing has `pathnames` configured, pass both pathname and params.
+      // TypeScript can't verify at compile time that pathname and params match,
+      // but at runtime they always will (they come from the same route).
+      // This is the official next-intl approach for locale switching.
+      // @ts-expect-error -- pathname and params always match at runtime
+      router.replace({ pathname, params }, { locale: nextLocale });
     });
   }
 
@@ -69,14 +77,14 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
       <label className="relative">
         <span className="sr-only">{label}</span>
         <select
-          className="appearance-none bg-transparent py-1 pl-1 pr-6 text-sm font-medium"
+          className="appearance-none bg-transparent py-1 pr-6 pl-1 text-sm font-medium"
           defaultValue={defaultValue}
           disabled={isPending}
           onChange={onSelectChange}
         >
           {children}
         </select>
-        <span className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2">
+        <span className="pointer-events-none absolute top-1/2 right-1 -translate-y-1/2">
           {isPending ? (
             <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-t-transparent" />
           ) : (
