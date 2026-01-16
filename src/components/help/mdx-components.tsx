@@ -93,7 +93,8 @@ function DocsCard({ title, href, children }: { title: string; href: string; chil
       <h3 className="text-fd-foreground group-hover:text-eleva-primary mb-2 font-semibold">
         {title}
       </h3>
-      <p className="text-fd-muted-foreground text-sm">{children}</p>
+      {/* Use div instead of p to avoid nesting issues when MDX content contains <p> tags */}
+      <div className="text-fd-muted-foreground text-sm">{children}</div>
     </Link>
   );
 }
@@ -159,4 +160,3 @@ export function getDocsMDXComponents(components?: MDXComponents): MDXComponents 
     ...components,
   };
 }
-
