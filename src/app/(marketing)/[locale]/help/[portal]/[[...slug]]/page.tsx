@@ -7,6 +7,7 @@ import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layo
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { z } from 'zod';
 
 /**
@@ -66,7 +67,7 @@ const PageDataSchema = z.object({
   toc: z.array(
     z.object({
       // Fumadocs returns title as ReactNode (can be string or React element)
-      title: z.unknown(),
+      title: z.custom<ReactNode>(() => true),
       url: z.string(),
       depth: z.number(),
     }),
