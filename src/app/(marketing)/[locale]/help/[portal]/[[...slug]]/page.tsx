@@ -98,6 +98,24 @@ const PageDataSchema = z.object({
   ),
 });
 
+/**
+ * Renders a portal documentation page with MDX content.
+ *
+ * Fetches the appropriate page based on locale, portal, and slug parameters,
+ * then renders it using Fumadocs UI components.
+ *
+ * @param props - Page props containing async params
+ * @returns Rendered documentation page or 404 if not found
+ *
+ * @example
+ * ```tsx
+ * // Route: /en/help/patient
+ * // Renders the patient portal index page in English
+ *
+ * // Route: /pt/help/expert/getting-started
+ * // Renders the expert portal "getting-started" page in Portuguese
+ * ```
+ */
 export default async function PortalDocsPage({ params }: PageProps) {
   const { locale, portal, slug } = await params;
 
@@ -177,6 +195,19 @@ export default async function PortalDocsPage({ params }: PageProps) {
  * Includes locale to enable static pre-rendering for all supported locales.
  *
  * @returns Array of locale, portal, and slug parameter combinations
+ *
+ * @example
+ * ```tsx
+ * generateStaticParams();
+ * // Returns:
+ * // [
+ * //   { locale: 'en', portal: 'patient', slug: undefined },
+ * //   { locale: 'en', portal: 'patient', slug: ['faq'] },
+ * //   { locale: 'pt', portal: 'patient', slug: undefined },
+ * //   { locale: 'pt', portal: 'expert', slug: ['getting-started'] },
+ * //   // ... all combinations
+ * // ]
+ * ```
  */
 export function generateStaticParams(): Array<{
   locale: string;
@@ -200,6 +231,25 @@ export function generateStaticParams(): Array<{
   return allParams;
 }
 
+/**
+ * Generates metadata for help center pages including title and OpenGraph data.
+ *
+ * @param props - Page props containing async params
+ * @returns Metadata object for SEO and social sharing
+ *
+ * @example
+ * ```tsx
+ * await generateMetadata({
+ *   params: Promise.resolve({ locale: 'en', portal: 'patient', slug: ['faq'] })
+ * });
+ * // Returns:
+ * // {
+ * //   title: 'FAQ | Patient Help Center | Eleva Care',
+ * //   description: 'Frequently asked questions...',
+ * //   openGraph: { title: 'FAQ', description: '...', type: 'article' }
+ * // }
+ * ```
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, portal, slug } = await params;
 
