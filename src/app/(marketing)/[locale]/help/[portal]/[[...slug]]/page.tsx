@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/nextjs';
 import { docsMdxComponents } from '@/components/help/mdx-components';
-import type { FumadocsLanguage } from '@/lib/fumadocs-i18n.config';
+import { mapToFumadocsLocale } from '@/lib/fumadocs-i18n.config';
 import { locales } from '@/lib/i18n/routing';
-import { getPortalSource, isValidPortal, type PortalKey } from '@/lib/source';
+import { getPortalSource, isValidPortal, portalSources, type PortalKey } from '@/lib/source';
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page';
 import type { MDXContent } from 'mdx/types';
 import type { Metadata } from 'next';
@@ -35,32 +35,6 @@ const portalTitles: Record<PortalKey, string> = {
   expert: 'Expert Resources',
   workspace: 'Workspace Portal',
 };
-
-/**
- * Maps next-intl locale codes to Fumadocs language codes.
- *
- * Fumadocs only supports 'en' and 'pt', so we map:
- * - 'pt-BR' or 'pt' => 'pt' (Portuguese)
- * - 'es' => 'en' (Spanish falls back to English - no Spanish docs yet)
- * - All others => 'en' (default to English)
- *
- * @param locale - The next-intl locale code (e.g., 'pt-BR', 'es', 'en')
- * @returns FumadocsLanguage code ('en' or 'pt')
- *
- * @example
- * ```tsx
- * mapToFumadocsLocale('pt-BR'); // => 'pt'
- * mapToFumadocsLocale('pt');    // => 'pt'
- * mapToFumadocsLocale('es');    // => 'en' (fallback)
- * mapToFumadocsLocale('en');    // => 'en'
- * mapToFumadocsLocale('fr');    // => 'en' (default)
- * ```
- */
-function mapToFumadocsLocale(locale: string): FumadocsLanguage {
-  if (locale === 'pt-BR' || locale === 'pt') return 'pt';
-  if (locale === 'es') return 'en';
-  return 'en';
-}
 
 /**
  * Normalizes slug array for Fumadocs page lookup.
@@ -192,6 +166,7 @@ export default async function PortalDocsPage({ params }: PageProps) {
 
 /**
  * Generates static parameters for all locale/portal/slug combinations.
+ * Derives portal list from portalSources to ensure single source of truth.
  * Includes locale to enable static pre-rendering for all supported locales.
  *
  * @returns Array of locale, portal, and slug parameter combinations
@@ -214,7 +189,7 @@ export function generateStaticParams(): Array<{
   portal: string;
   slug?: string[];
 }> {
-  const portals: PortalKey[] = ['patient', 'expert', 'workspace'];
+  const portals = Object.keys(portalSources) as PortalKey[];
   const allParams: { locale: string; portal: string; slug?: string[] }[] = [];
 
   for (const locale of locales) {

@@ -13,10 +13,10 @@ import { i18n } from './fumadocs-i18n.config';
  *
  * URL Structure (following next-intl as-needed pattern):
  * - /help/patient - English patient help (default, no locale prefix)
- * - /pt/help/patient - Portuguese patient help (rewritten via proxy.ts)
+ * - /pt/help/patient - Portuguese patient help
  *
- * The proxy middleware rewrites locale-prefixed paths to /help/* and sets
- * a FUMADOCS_LOCALE cookie for locale detection.
+ * Locale is determined from URL params via the [locale] route segment.
+ * The proxy middleware runs i18n routing for marketing routes including /help.
  *
  * @see https://fumadocs.vercel.app/docs/headless/source-api
  * @see https://fumadocs.vercel.app/docs/mdx

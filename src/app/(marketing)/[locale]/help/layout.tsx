@@ -5,7 +5,7 @@ import { mapToFumadocsLocale } from '@/lib/fumadocs-i18n.config';
 import type { ReactNode } from 'react';
 
 // Import Fumadocs styles
-import './docs.css';
+import './help.css';
 
 /**
  * Help Center Layout
