@@ -108,7 +108,8 @@ export function isValidFumadocsLocale(locale: string): locale is FumadocsLanguag
  */
 export function mapToFumadocsLocale(locale: string): FumadocsLanguage {
   // Handle all Portuguese variants (pt, pt-BR, pt-PT, etc.)
-  if (locale.startsWith('pt')) return 'pt';
+  // Use strict matching to only accept exact 'pt' or valid BCP47 'pt-' prefixed variants
+  if (locale === 'pt' || locale.startsWith('pt-')) return 'pt';
   // All other locales (including 'es', 'en', 'fr', etc.) default to English
   return 'en';
 }
