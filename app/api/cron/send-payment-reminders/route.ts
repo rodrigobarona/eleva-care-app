@@ -20,6 +20,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
+// Rate limiting helper to avoid hitting Stripe API limits
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const STRIPE_API_DELAY_MS = 100; // 100ms between calls = max 10 requests/sec
+
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
@@ -214,6 +218,9 @@ export async function GET(request: NextRequest) {
 
           if (reservation.stripePaymentIntentId) {
             try {
+              // Rate limit Stripe API calls to avoid hitting rate limits
+              await delay(STRIPE_API_DELAY_MS);
+
               const paymentIntent = await stripe.paymentIntents.retrieve(
                 reservation.stripePaymentIntentId,
               );

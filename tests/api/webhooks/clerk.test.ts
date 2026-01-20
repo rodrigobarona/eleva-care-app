@@ -131,7 +131,7 @@ const createWebhookHandler = () => {
   function buildPayload(event: any) {
     const cleanPayload: Record<string, string | number | boolean | null | undefined> = {
       eventType: event.type,
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
     };
 
     // Convert event data to unknown first, then to Record
@@ -381,7 +381,7 @@ describe('Clerk Webhook Handler', () => {
           workflowId: 'user-created',
           payload: expect.objectContaining({
             eventType: 'user.created',
-            timestamp: expect.any(Number),
+            timestamp: expect.any(String),
           }),
           to: expect.objectContaining({
             subscriberId: 'user_123',
@@ -702,7 +702,7 @@ describe('Clerk Webhook Handler', () => {
             valid_boolean: true,
             // Note: valid_object is filtered out since buildPayload only includes primitives
             eventType: 'user.created',
-            timestamp: expect.any(Number),
+            timestamp: expect.any(String),
           }),
           to: expect.objectContaining({
             subscriberId: 'user_123',

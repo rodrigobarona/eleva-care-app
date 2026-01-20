@@ -589,7 +589,7 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
 const STRIPE_TO_PAYMENT_EVENT_TYPE: Record<string, string> = {
   'payment_intent.succeeded': 'success',
   'payment_intent.payment_failed': 'failed',
-  'charge.refunded': 'failed',
+  'charge.refunded': 'refunded',
   'checkout.session.completed': 'confirmed',
   'customer.subscription.created': 'confirmed',
   'customer.subscription.updated': 'confirmed',
