@@ -75,6 +75,16 @@ try {
  * @param subscriber - Subscriber data for the notification target
  * @param payload - Custom payload data for the workflow
  * @returns Promise with success/error response
+ *
+ * @example
+ * ```typescript
+ * const result = await triggerNovuWorkflow(
+ *   'welcome-email',
+ *   { subscriberId: 'user_123', email: 'user@example.com', firstName: 'John' },
+ *   { welcomeMessage: 'Hello!' }
+ * );
+ * if (result.success) console.log('Workflow triggered');
+ * ```
  */
 export async function triggerNovuWorkflow(
   workflowId: string,
@@ -133,6 +143,15 @@ export async function triggerNovuWorkflow(
  *
  * @param options - Workflow trigger options including subscriber and payload
  * @returns Result object or null if failed
+ *
+ * @example
+ * ```typescript
+ * const result = await triggerWorkflow({
+ *   workflowId: 'booking-confirmation',
+ *   to: { subscriberId: 'user_123', email: 'user@example.com' },
+ *   payload: { appointmentDate: '2024-01-15', expertName: 'Dr. Smith' },
+ * });
+ * ```
  */
 export async function triggerWorkflow(options: TriggerWorkflowOptions) {
   if (!novu) {
@@ -181,6 +200,19 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
 /**
  * Create or update a subscriber using modern API
  * Synchronizes user profile data with Novu following best practices
+ *
+ * @param subscriber - Subscriber data to create or update
+ * @returns Result object or null if failed
+ *
+ * @example
+ * ```typescript
+ * await updateSubscriber({
+ *   subscriberId: 'user_123',
+ *   email: 'user@example.com',
+ *   firstName: 'John',
+ *   lastName: 'Doe',
+ * });
+ * ```
  */
 export async function updateSubscriber(subscriber: TriggerWorkflowOptions['to']) {
   if (!novu || !ENV_CONFIG.NOVU_SECRET_KEY) {
@@ -209,6 +241,16 @@ export async function updateSubscriber(subscriber: TriggerWorkflowOptions['to'])
 
 /**
  * Get Novu client status and configuration for diagnostics
+ *
+ * @returns Object containing initialization status and configuration details
+ *
+ * @example
+ * ```typescript
+ * const status = getNovuStatus();
+ * if (!status.initialized) {
+ *   console.error('Novu not initialized:', status.initializationError);
+ * }
+ * ```
  */
 export function getNovuStatus() {
   return {
@@ -231,6 +273,16 @@ export function getNovuStatus() {
 /**
  * Comprehensive Novu health monitoring and diagnostics
  * Use this function to diagnose Novu configuration issues
+ *
+ * @returns Diagnostics object with client status, workflows, errors, and recommendations
+ *
+ * @example
+ * ```typescript
+ * const diagnostics = await runNovuDiagnostics();
+ * if (!diagnostics.summary.healthy) {
+ *   console.error('Issues found:', diagnostics.errors);
+ * }
+ * ```
  */
 export async function runNovuDiagnostics() {
   console.log('\n🔍 Starting Novu Comprehensive Diagnostics...\n');
@@ -404,6 +456,17 @@ interface ClerkUser {
  * Build subscriber data from Clerk user data
  * @param user - Clerk user object from webhook
  * @returns Formatted subscriber data for Novu
+ *
+ * @example
+ * ```typescript
+ * const subscriber = buildNovuSubscriberFromClerk({
+ *   id: 'user_abc123',
+ *   first_name: 'Jane',
+ *   last_name: 'Doe',
+ *   email_addresses: [{ email_address: 'jane@example.com' }],
+ * });
+ * // Returns: { subscriberId: 'user_abc123', firstName: 'Jane', ... }
+ * ```
  */
 export function buildNovuSubscriberFromClerk(user: ClerkUser): SubscriberPayloadDto {
   return {
@@ -436,6 +499,16 @@ interface StripeCustomer {
  * Build subscriber data from Stripe customer data
  * @param customer - Stripe customer object
  * @returns Formatted subscriber data for Novu
+ *
+ * @example
+ * ```typescript
+ * const subscriber = buildNovuSubscriberFromStripe({
+ *   id: 'cus_xyz789',
+ *   name: 'John Smith',
+ *   email: 'john@example.com',
+ * });
+ * // Returns: { subscriberId: 'cus_xyz789', firstName: 'John', lastName: 'Smith', ... }
+ * ```
  */
 export function buildNovuSubscriberFromStripe(customer: StripeCustomer): SubscriberPayloadDto {
   // Split the full name into first and last name
@@ -562,6 +635,15 @@ export interface StripeWebhookPayload {
  * @param eventType - Clerk webhook event type
  * @param eventData - Event data for email events with slugs
  * @returns Workflow ID or undefined if not mapped
+ *
+ * @example
+ * ```typescript
+ * const workflowId = getWorkflowFromClerkEvent('user.created');
+ * // Returns: 'user-lifecycle'
+ *
+ * const emailWorkflow = getWorkflowFromClerkEvent('email.created', { slug: 'magic_link_sign_in' });
+ * // Returns: 'security-auth'
+ * ```
  */
 export function getWorkflowFromClerkEvent(
   eventType: string,
@@ -584,6 +666,12 @@ export function getWorkflowFromClerkEvent(
  * Get workflow ID from Stripe event type
  * @param eventType - Stripe webhook event type
  * @returns Workflow ID or undefined if not mapped
+ *
+ * @example
+ * ```typescript
+ * const workflowId = getWorkflowFromStripeEvent('payment_intent.succeeded');
+ * // Returns: 'payment-universal'
+ * ```
  */
 export function getWorkflowFromStripeEvent(eventType: string): string | undefined {
   return STRIPE_EVENT_TO_WORKFLOW_MAPPINGS[

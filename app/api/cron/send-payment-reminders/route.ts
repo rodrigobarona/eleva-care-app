@@ -8,6 +8,7 @@ import {
 } from '@/lib/integrations/betterstack/heartbeat';
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
+import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -199,10 +200,11 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
-          // Fetch payment intent from Stripe to get customer name and Multibanco details
+          // Fetch payment intent from Stripe to get customer name, locale, and Multibanco details
           let customerName = 'Valued Customer';
           let customerFirstName = 'Valued';
           let customerLastName = 'Customer';
+          let locale = 'en';
           let multibancoDetails = {
             entity: '',
             reference: '',
@@ -215,6 +217,9 @@ export async function GET(request: NextRequest) {
               const paymentIntent = await stripe.paymentIntents.retrieve(
                 reservation.stripePaymentIntentId,
               );
+
+              // Extract locale from payment intent metadata for internationalization
+              locale = extractLocaleFromPaymentIntent(paymentIntent);
 
               // Extract customer name from payment intent metadata
               customerName = paymentIntent.metadata?.customerName || 'Valued Customer';
@@ -276,7 +281,7 @@ export async function GET(request: NextRequest) {
               hostedVoucherUrl: multibancoDetails.hostedVoucherUrl,
               reminderType: stage.type,
               daysRemaining,
-              locale: 'en',
+              locale,
             },
           });
 
