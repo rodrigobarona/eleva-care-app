@@ -1,18 +1,37 @@
 import { ENV_CONFIG } from '@/config/env';
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
-import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
-import { sendEmail } from '@/lib/integrations/novu/email';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
-import { render } from '@react-email/components';
+import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import Stripe from 'stripe';
+
+// Validate Stripe configuration before initializing client
+// Fail fast if STRIPE_SECRET_KEY is missing to prevent downstream 401 errors
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error(
+    '[Payment Reminders] ❌ STRIPE_SECRET_KEY is not configured. Cron job cannot proceed.',
+  );
+  throw new Error('STRIPE_SECRET_KEY environment variable is required for payment reminders');
+}
+
+// Initialize Stripe client for fetching payment intent metadata
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+});
+
+// Rate limiting helper to avoid hitting Stripe API limits
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const STRIPE_API_DELAY_MS = 100; // 100ms between calls = max 10 requests/sec
 
 // Add route segment config
 export const preferredRegion = 'auto';
@@ -194,14 +213,57 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
-          // Get Multibanco payment details (this would need to be stored or retrieved from Stripe)
-          // For now, we'll create placeholder values - in production, this should come from Stripe metadata
-          const multibancoDetails = {
-            entity: '12345', // This should come from Stripe webhook data
-            reference: '123456789', // This should come from Stripe webhook data
-            amount: '0.00', // This should come from the payment intent
-            hostedVoucherUrl: `https://stripe.com/voucher/${reservation.stripePaymentIntentId}`,
+          // Fetch payment intent from Stripe to get customer name, locale, and Multibanco details
+          let customerName = 'Valued Customer';
+          let customerFirstName = 'Valued';
+          let customerLastName = 'Customer';
+          let locale = 'en';
+          let multibancoDetails = {
+            entity: '',
+            reference: '',
+            amount: '0.00',
+            hostedVoucherUrl: '',
           };
+
+          if (reservation.stripePaymentIntentId) {
+            try {
+              // Rate limit Stripe API calls to avoid hitting rate limits
+              await delay(STRIPE_API_DELAY_MS);
+
+              const paymentIntent = await stripe.paymentIntents.retrieve(
+                reservation.stripePaymentIntentId,
+              );
+
+              // Extract locale from payment intent metadata for internationalization
+              locale = extractLocaleFromPaymentIntent(paymentIntent);
+
+              // Extract customer name from payment intent metadata
+              customerName = paymentIntent.metadata?.customerName || 'Valued Customer';
+              const nameParts = customerName.split(' ');
+              customerFirstName = nameParts[0] || 'Valued';
+              customerLastName = nameParts.slice(1).join(' ') || 'Customer';
+
+              // Extract Multibanco details from next_action if available
+              if (paymentIntent.next_action?.type === 'multibanco_display_details') {
+                const mb = paymentIntent.next_action.multibanco_display_details;
+                multibancoDetails = {
+                  entity: mb?.entity || '',
+                  reference: mb?.reference || '',
+                  amount: (paymentIntent.amount / 100).toFixed(2),
+                  hostedVoucherUrl: mb?.hosted_voucher_url || '',
+                };
+              } else {
+                // Fallback amount from payment intent
+                multibancoDetails.amount = (paymentIntent.amount / 100).toFixed(2);
+              }
+            } catch (stripeError) {
+              console.warn(
+                `[CRON] Could not fetch payment intent ${reservation.stripePaymentIntentId}:`,
+                stripeError,
+              );
+              // Continue with default values
+            }
+          }
 
           // Format appointment details
           const expertName =
@@ -210,10 +272,18 @@ export async function GET(request: NextRequest) {
           const appointmentTime = format(reservation.startTime, 'h:mm a');
           const voucherExpiresFormatted = format(reservation.expiresAt, 'PPP p');
 
-          // Render reminder email
-          const emailHtml = await render(
-            MultibancoPaymentReminderTemplate({
-              customerName: 'Valued Customer', // Could be stored in reservation or retrieved from metadata
+          // Trigger Novu workflow for Multibanco payment reminder
+          // This sends both email and in-app notification via the unified Novu system
+          const workflowResult = await triggerWorkflow({
+            workflowId: 'multibanco-payment-reminder',
+            to: {
+              subscriberId: `guest_${reservation.guestEmail}`,
+              email: reservation.guestEmail,
+              firstName: customerFirstName,
+              lastName: customerLastName,
+            },
+            payload: {
+              customerName,
               expertName,
               serviceName: event.name,
               appointmentDate,
@@ -227,23 +297,13 @@ export async function GET(request: NextRequest) {
               hostedVoucherUrl: multibancoDetails.hostedVoucherUrl,
               reminderType: stage.type,
               daysRemaining,
-              locale: 'en',
-            }),
-          );
-
-          // Send reminder email
-          const emailResult = await sendEmail({
-            to: reservation.guestEmail,
-            subject:
-              stage.type === 'urgent'
-                ? '🚨 URGENT: Complete Your Multibanco Payment - Final Reminder'
-                : '💙 Friendly Reminder: Complete Your Multibanco Payment',
-            html: emailHtml,
+              locale,
+            },
           });
 
-          if (emailResult.success) {
+          if (workflowResult) {
             console.log(
-              `[CRON] ✅ ${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
+              `[CRON] ✅ ${stage.description} sent via Novu to ${reservation.guestEmail} for reservation ${reservation.id}`,
             );
 
             // Mark reminder as sent to prevent duplicates
@@ -258,7 +318,7 @@ export async function GET(request: NextRequest) {
             stageRemindersSent++;
           } else {
             console.error(
-              `[CRON] ❌ Failed to send ${stage.description} to ${reservation.guestEmail}: ${emailResult.error}`,
+              `[CRON] ❌ Failed to send ${stage.description} via Novu to ${reservation.guestEmail}`,
             );
           }
         } catch (reminderError) {

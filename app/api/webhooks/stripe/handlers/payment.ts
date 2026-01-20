@@ -1,4 +1,3 @@
-import { triggerWorkflow } from '@/app/utils/novu';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -10,7 +9,6 @@ import {
   SlotReservationTable,
   UserTable,
 } from '@/drizzle/schema';
-import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -22,11 +20,12 @@ import {
   PAYMENT_TRANSFER_STATUS_READY,
   PAYMENT_TRANSFER_STATUS_REFUNDED,
 } from '@/lib/constants/payment-transfers';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
+import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { logAuditEvent } from '@/lib/utils/server/audit';
-import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
@@ -36,37 +35,6 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
-
-/**
- * Extract locale from payment intent metadata and fallback sources
- */
-function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): string {
-  try {
-    // First, try to get locale from meeting metadata
-    if (paymentIntent.metadata?.meeting) {
-      const meetingData = JSON.parse(paymentIntent.metadata.meeting);
-      if (meetingData.locale && typeof meetingData.locale === 'string') {
-        console.log(`📍 Using locale from payment intent meeting metadata: ${meetingData.locale}`);
-        return meetingData.locale;
-      }
-    }
-
-    // Fallback: Check if there's a locale in the payment intent metadata directly
-    if (paymentIntent.metadata?.locale) {
-      console.log(
-        `📍 Using locale from payment intent direct metadata: ${paymentIntent.metadata.locale}`,
-      );
-      return paymentIntent.metadata.locale;
-    }
-
-    // Final fallback
-    console.log('📍 No locale found in payment intent metadata, using default: en');
-    return 'en';
-  } catch (error) {
-    console.error('Error extracting locale from payment intent metadata:', error);
-    return 'en';
-  }
-}
 
 // Helper function to parse metadata safely
 function parseMetadata<T>(json: string | undefined, fallback: T): T {
@@ -1444,9 +1412,17 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             // Extract locale for internationalization
             const locale = extractLocaleFromPaymentIntent(paymentIntent);
 
-            // Render email template
-            const emailHtml = await render(
-              MultibancoBookingPendingTemplate({
+            // Trigger Novu workflow for Multibanco booking pending notification
+            // This sends both email and in-app notification via the unified Novu system
+            const workflowResult = await triggerWorkflow({
+              workflowId: 'multibanco-booking-pending',
+              to: {
+                subscriberId: `guest_${customerEmail}`,
+                email: customerEmail,
+                firstName: customerName.split(' ')[0] || customerName,
+                lastName: customerName.split(' ').slice(1).join(' ') || '',
+              },
+              payload: {
                 customerName,
                 expertName,
                 serviceName: event[0].name,
@@ -1461,20 +1437,13 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
                 hostedVoucherUrl,
                 customerNotes,
                 locale,
-              }),
-            );
-
-            // Send email using Resend
-            const emailResult = await sendEmail({
-              to: customerEmail,
-              subject: `Booking Confirmed - Payment Required via Multibanco`,
-              html: emailHtml,
+              },
             });
 
-            if (emailResult.success) {
-              console.log(`✅ Multibanco booking confirmation email sent to ${customerEmail}`);
+            if (workflowResult) {
+              console.log(`✅ Multibanco booking notification sent via Novu to ${customerEmail}`);
             } else {
-              console.error(`❌ Failed to send Multibanco booking email: ${emailResult.error}`);
+              console.error(`❌ Failed to send Multibanco booking notification via Novu`);
             }
           } catch (emailError) {
             console.error('Error sending Multibanco booking confirmation email:', emailError);

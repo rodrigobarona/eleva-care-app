@@ -296,7 +296,7 @@ global.fetch = jest.fn().mockImplementation(() =>
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
   } as Response),
-) as jest.MockedFunction<typeof fetch>;
+) as unknown as jest.MockedFunction<typeof fetch>;
 
 // Suppress console.log statements during tests to keep output clean
 const originalConsoleLog = console.log;

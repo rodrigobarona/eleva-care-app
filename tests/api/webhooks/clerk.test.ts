@@ -1,22 +1,12 @@
-import { triggerWorkflow, TriggerWorkflowOptions } from '@/app/utils/novu';
 import { ENV_CONFIG } from '@/config/env';
+import { triggerWorkflow, TriggerWorkflowOptions } from '@/lib/integrations/novu';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Mock Webhook class to avoid svix import issues
-class MockWebhook {
-  constructor(private secret: string) {}
-  verify(payload: string, _headers: Record<string, string>): any {
-    try {
-      return JSON.parse(payload);
-    } catch {
-      throw new Error('Invalid signature');
-    }
-  }
-}
-const Webhook = MockWebhook;
-
-// Mock all external dependencies first
-jest.mock('@/app/utils/novu');
+// Mock all external dependencies first - Jest mocks must be before imports
+jest.mock('@/lib/integrations/novu', () => ({
+  triggerWorkflow: jest.fn().mockResolvedValue({ data: { acknowledged: true } }),
+  TriggerWorkflowOptions: {},
+}));
 
 jest.mock('@/config/env', () => ({
   ENV_CONFIG: {
@@ -42,6 +32,19 @@ jest.mock('next/server', () => ({
     }),
   },
 }));
+
+// Mock Webhook class to avoid svix import issues
+class MockWebhook {
+  constructor(private secret: string) {}
+  verify(payload: string, _headers: Record<string, string>): any {
+    try {
+      return JSON.parse(payload);
+    } catch {
+      throw new Error('Invalid signature');
+    }
+  }
+}
+const Webhook = MockWebhook;
 
 // Recreate the essential webhook handler logic for testing
 const createWebhookHandler = () => {
@@ -128,7 +131,7 @@ const createWebhookHandler = () => {
   function buildPayload(event: any) {
     const cleanPayload: Record<string, string | number | boolean | null | undefined> = {
       eventType: event.type,
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
     };
 
     // Convert event data to unknown first, then to Record
@@ -378,7 +381,7 @@ describe('Clerk Webhook Handler', () => {
           workflowId: 'user-created',
           payload: expect.objectContaining({
             eventType: 'user.created',
-            timestamp: expect.any(Number),
+            timestamp: expect.any(String),
           }),
           to: expect.objectContaining({
             subscriberId: 'user_123',
@@ -699,7 +702,7 @@ describe('Clerk Webhook Handler', () => {
             valid_boolean: true,
             // Note: valid_object is filtered out since buildPayload only includes primitives
             eventType: 'user.created',
-            timestamp: expect.any(Number),
+            timestamp: expect.any(String),
           }),
           to: expect.objectContaining({
             subscriberId: 'user_123',

@@ -1,8 +1,8 @@
 'use server';
 
-import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';

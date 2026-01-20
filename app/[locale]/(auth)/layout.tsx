@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
+// Force dynamic rendering to prevent static prerendering without Clerk credentials
+export const dynamic = 'force-dynamic';
 
 // Inline the logo SVG for better performance
 const ElevaCareLogo = ({ className }: { className?: string }) => (

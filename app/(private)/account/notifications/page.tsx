@@ -1,7 +1,9 @@
 import { SecurityPreferencesForm } from '@/components/features/profile/SecurityPreferencesForm';
+import { SecureNovuInbox } from '@/components/integrations/novu/SecureNovuInbox';
 import { auth } from '@clerk/nextjs/server';
 
-// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
+// Force dynamic rendering - auth() makes this route inherently dynamic
+export const dynamic = 'force-dynamic';
 
 export default async function NotificationsPage() {
   const { userId, redirectToSignIn } = await auth();
@@ -14,9 +16,19 @@ export default async function NotificationsPage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">My Notifications</h1>
           <p className="text-muted-foreground">
-            Manage your personal notification settings for security alerts, appointments, and system
-            updates.
+            View and manage your notifications and security settings.
           </p>
+        </div>
+
+        {/* Novu Inbox - Full notification list */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h2 className="text-lg font-medium">Notification Inbox</h2>
+            <p className="text-sm text-muted-foreground">
+              View all your notifications including appointments, payments, and system alerts.
+            </p>
+          </div>
+          <SecureNovuInbox className="min-h-[400px] rounded-lg border bg-card" />
         </div>
 
         {/* Security Preferences Section */}
@@ -30,29 +42,6 @@ export default async function NotificationsPage() {
           </div>
           <SecurityPreferencesForm />
         </div>
-
-        {/* Future sections can be added here */}
-        {/* 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-lg font-medium">Appointments & Bookings</h2>
-            <p className="text-sm text-muted-foreground">
-              Manage notifications for appointment confirmations, reminders, and updates.
-            </p>
-          </div>
-          <AppointmentNotificationsForm />
-        </div>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-lg font-medium">System Updates</h2>
-            <p className="text-sm text-muted-foreground">
-              Stay informed about platform updates, maintenance, and new features.
-            </p>
-          </div>
-          <SystemNotificationsForm />
-        </div>
-        */}
       </div>
     </div>
   );

@@ -4,8 +4,7 @@ import { AuthorizationProvider } from '@/components/shared/providers/Authorizati
 import { ENV_CONFIG } from '@/config/env';
 import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
 import { ClerkProvider, useUser } from '@clerk/nextjs';
-import { NovuProvider } from '@novu/nextjs';
-import { NovuProvider as ReactNovuProvider } from '@novu/react';
+import { NovuProvider } from '@novu/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -170,7 +169,11 @@ function PostHogUserTracker() {
   return null;
 }
 
-// Define NovuWrapper component here to access useUser hook
+/**
+ * NovuWrapper - Provides Novu context for notification components
+ * Uses @novu/react NovuProvider with EU region endpoints
+ * HMAC authentication is handled separately via useSecureNovu hook
+ */
 function NovuWrapper({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
 
@@ -179,21 +182,14 @@ function NovuWrapper({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  console.log('[Novu] Provider initialized for user:', user.id);
-
   return (
     <NovuProvider
-      subscriberId={user.id}
       applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+      subscriberId={user.id}
+      backendUrl={ENV_CONFIG.NOVU_BASE_URL}
+      socketUrl={ENV_CONFIG.NOVU_SOCKET_URL}
     >
-      <ReactNovuProvider
-        applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
-        subscriberId={user.id}
-        apiUrl="https://eu.api.novu.co"
-        socketUrl="https://eu.ws.novu.co"
-      >
-        {children}
-      </ReactNovuProvider>
+      {children}
     </NovuProvider>
   );
 }

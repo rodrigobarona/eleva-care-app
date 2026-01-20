@@ -53,6 +53,7 @@
     "novu:sync:dev": "bash -c 'source .env && npx novu@latest sync --bridge-url \"$NGROK_URL/api/novu\" --secret-key \"$NOVU_SECRET_KEY\" --api-url \"$NOVU_BASE_URL\"'",
     "novu:sync:dev:auto": "bash -c 'NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | jq -r \".tunnels[0].public_url\" 2>/dev/null || echo \"http://localhost:3000\") && source .env && npx novu@latest sync --bridge-url \"$NGROK_URL/api/novu\" --secret-key \"$NOVU_SECRET_KEY\" --api-url \"$NOVU_BASE_URL\"'",
     "novu:sync:prod": "bash -c 'source .env && npx novu@latest sync --bridge-url \"https://eleva.care/api/novu\" --secret-key \"$NOVU_SECRET_KEY_PROD\" --api-url \"$NOVU_BASE_URL\"'",
+    "novu:sync:sandbox": "bash -c 'source .env && npx novu@latest sync --bridge-url \"https://eleva.care/api/novu\" --secret-key \"$NOVU_SECRET_KEY\" --api-url \"$NOVU_BASE_URL\"'",
     "novu:sync:preview": "bash -c 'source .env && npx novu@latest sync --bridge-url \"$VERCEL_PREVIEW_URL/api/novu\" --secret-key \"$NOVU_SECRET_KEY\" --api-url \"$NOVU_BASE_URL\"'",
     "novu:diagnostics": "node scripts/test-novu-diagnostics.js",
     "test:security": "node scripts/test-enhanced-security.js",
