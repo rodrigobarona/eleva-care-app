@@ -1,5 +1,5 @@
-import { getNovuStatus, triggerWorkflow } from '@/app/utils/novu';
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
+import { getNovuStatus, triggerWorkflow } from '@/lib/integrations/novu';
 import { checkAllServices, ServiceHealthResult } from '@/lib/utils/server/service-health';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';

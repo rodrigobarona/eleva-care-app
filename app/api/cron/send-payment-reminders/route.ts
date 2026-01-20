@@ -1,14 +1,12 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
-import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
-import { sendEmail } from '@/lib/integrations/novu/email';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
-import { render } from '@react-email/components';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -210,10 +208,18 @@ export async function GET(request: NextRequest) {
           const appointmentTime = format(reservation.startTime, 'h:mm a');
           const voucherExpiresFormatted = format(reservation.expiresAt, 'PPP p');
 
-          // Render reminder email
-          const emailHtml = await render(
-            MultibancoPaymentReminderTemplate({
-              customerName: 'Valued Customer', // Could be stored in reservation or retrieved from metadata
+          // Trigger Novu workflow for Multibanco payment reminder
+          // This sends both email and in-app notification via the unified Novu system
+          const workflowResult = await triggerWorkflow({
+            workflowId: 'multibanco-payment-reminder',
+            to: {
+              subscriberId: `guest_${reservation.guestEmail}`,
+              email: reservation.guestEmail,
+              firstName: reservation.guestName?.split(' ')[0] || 'Valued',
+              lastName: reservation.guestName?.split(' ').slice(1).join(' ') || 'Customer',
+            },
+            payload: {
+              customerName: reservation.guestName || 'Valued Customer',
               expertName,
               serviceName: event.name,
               appointmentDate,
@@ -228,22 +234,12 @@ export async function GET(request: NextRequest) {
               reminderType: stage.type,
               daysRemaining,
               locale: 'en',
-            }),
-          );
-
-          // Send reminder email
-          const emailResult = await sendEmail({
-            to: reservation.guestEmail,
-            subject:
-              stage.type === 'urgent'
-                ? '🚨 URGENT: Complete Your Multibanco Payment - Final Reminder'
-                : '💙 Friendly Reminder: Complete Your Multibanco Payment',
-            html: emailHtml,
+            },
           });
 
-          if (emailResult.success) {
+          if (workflowResult) {
             console.log(
-              `[CRON] ✅ ${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
+              `[CRON] ✅ ${stage.description} sent via Novu to ${reservation.guestEmail} for reservation ${reservation.id}`,
             );
 
             // Mark reminder as sent to prevent duplicates
@@ -258,7 +254,7 @@ export async function GET(request: NextRequest) {
             stageRemindersSent++;
           } else {
             console.error(
-              `[CRON] ❌ Failed to send ${stage.description} to ${reservation.guestEmail}: ${emailResult.error}`,
+              `[CRON] ❌ Failed to send ${stage.description} via Novu to ${reservation.guestEmail}`,
             );
           }
         } catch (reminderError) {

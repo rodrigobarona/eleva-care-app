@@ -1,4 +1,3 @@
-import { triggerWorkflow } from '@/app/utils/novu';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -6,6 +5,7 @@ import {
   NOTIFICATION_TYPE_VERIFICATION_HELP,
   type NotificationType,
 } from '@/lib/constants/notifications';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 
 export interface CreateNotificationParams {
   userId: string;

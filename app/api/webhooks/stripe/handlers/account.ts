@@ -1,7 +1,7 @@
-import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';

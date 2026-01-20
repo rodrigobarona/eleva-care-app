@@ -1,6 +1,6 @@
-import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { addDays, format } from 'date-fns';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';

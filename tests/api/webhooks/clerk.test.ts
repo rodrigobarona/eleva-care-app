@@ -1,5 +1,5 @@
-import { triggerWorkflow, TriggerWorkflowOptions } from '@/app/utils/novu';
 import { ENV_CONFIG } from '@/config/env';
+import { triggerWorkflow, TriggerWorkflowOptions } from '@/lib/integrations/novu';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Mock Webhook class to avoid svix import issues
@@ -16,7 +16,10 @@ class MockWebhook {
 const Webhook = MockWebhook;
 
 // Mock all external dependencies first
-jest.mock('@/app/utils/novu');
+jest.mock('@/lib/integrations/novu', () => ({
+  triggerWorkflow: jest.fn().mockResolvedValue({ data: { acknowledged: true } }),
+  TriggerWorkflowOptions: {},
+}));
 
 jest.mock('@/config/env', () => ({
   ENV_CONFIG: {
