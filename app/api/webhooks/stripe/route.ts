@@ -753,7 +753,7 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
     const rawPayload: StripeWebhookPayload = {
       eventType: event.type,
       eventId: event.id,
-      eventData: event.data.object as Record<string, unknown>,
+      eventData: event.data.object as unknown as Record<string, unknown>,
       timestamp: Date.now(),
       source: 'stripe_webhook',
       amount: 'amount' in event.data.object ? (event.data.object.amount as number) : undefined,
