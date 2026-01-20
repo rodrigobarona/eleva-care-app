@@ -15,6 +15,10 @@ export {
   buildNovuSubscriberFromStripe,
   getWorkflowFromClerkEvent,
   getWorkflowFromStripeEvent,
+  transformStripePayloadForNovu,
   CLERK_EVENT_TO_WORKFLOW_MAPPINGS,
   STRIPE_EVENT_TO_WORKFLOW_MAPPINGS,
 } from './utils';
+
+// Type exports
+export type { StripeWebhookPayload } from './utils';

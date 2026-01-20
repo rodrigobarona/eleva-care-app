@@ -14,8 +14,10 @@ import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfe
 import {
   buildNovuSubscriberFromStripe,
   getWorkflowFromStripeEvent,
+  transformStripePayloadForNovu,
   triggerNovuWorkflow,
 } from '@/lib/integrations/novu/utils';
+import type { StripeWebhookPayload } from '@/lib/integrations/novu/utils';
 import { webhookMonitor } from '@/lib/redis/webhook-monitor';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
@@ -747,16 +749,20 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
     // Build subscriber data from Stripe customer
     const subscriber = buildNovuSubscriberFromStripe(customer);
 
-    // Create payload with event data
-    const payload = {
+    // Create raw payload from Stripe event
+    const rawPayload: StripeWebhookPayload = {
       eventType: event.type,
       eventId: event.id,
-      eventData: event.data.object,
+      eventData: event.data.object as Record<string, unknown>,
       timestamp: Date.now(),
       source: 'stripe_webhook',
-      amount: 'amount' in event.data.object ? event.data.object.amount : undefined,
-      currency: 'currency' in event.data.object ? event.data.object.currency : undefined,
+      amount: 'amount' in event.data.object ? (event.data.object.amount as number) : undefined,
+      currency:
+        'currency' in event.data.object ? (event.data.object.currency as string) : undefined,
     };
+
+    // Transform payload to match target workflow schema
+    const payload = transformStripePayloadForNovu(workflowId, rawPayload, customer);
 
     // Trigger the Novu workflow
     console.log(`🔔 Triggering Novu workflow '${workflowId}' for Stripe event '${event.type}'`);

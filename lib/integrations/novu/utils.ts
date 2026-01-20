@@ -218,10 +218,52 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   'capability.updated': 'expert-management', // Uses eventType: 'capability-updated'
 } as const;
 
+/**
+ * Stripe event type → Novu payment-universal workflow eventType
+ * Maps raw Stripe event types to the values expected by paymentWorkflow schema
+ */
+const STRIPE_TO_PAYMENT_EVENT_TYPE: Record<string, string> = {
+  'payment_intent.succeeded': 'success',
+  'payment_intent.payment_failed': 'failed',
+  'charge.refunded': 'failed',
+  'checkout.session.completed': 'confirmed',
+  'customer.subscription.created': 'confirmed',
+  'customer.subscription.updated': 'confirmed',
+  'customer.subscription.deleted': 'failed',
+  'invoice.payment_succeeded': 'success',
+  'invoice.payment_failed': 'failed',
+  'charge.dispute.created': 'failed',
+};
+
+/**
+ * Stripe event type → Novu expert-management workflow notificationType
+ * Maps raw Stripe event types to the values expected by expertManagementWorkflow schema
+ */
+const STRIPE_TO_EXPERT_NOTIFICATION_TYPE: Record<string, string> = {
+  'account.updated': 'account-update',
+  'capability.updated': 'account-update',
+  'payout.paid': 'payout-processed',
+  'payout.failed': 'account-update',
+};
+
 export interface ClerkEventData {
   slug?: string;
   id?: string;
   [key: string]: unknown;
+}
+
+/**
+ * Raw Stripe webhook payload structure
+ * Used as input for transformStripePayloadForNovu
+ */
+export interface StripeWebhookPayload {
+  eventType: string;
+  eventId: string;
+  eventData: Record<string, unknown>;
+  timestamp: number;
+  source: string;
+  amount?: number;
+  currency?: string;
 }
 
 /**
@@ -256,4 +298,72 @@ export function getWorkflowFromStripeEvent(eventType: string): string | undefine
   return STRIPE_EVENT_TO_WORKFLOW_MAPPINGS[
     eventType as keyof typeof STRIPE_EVENT_TO_WORKFLOW_MAPPINGS
   ];
+}
+
+/**
+ * Transform raw Stripe webhook payload to Novu workflow-compatible format
+ *
+ * This function converts Stripe event data to match the expected schema
+ * for each Novu workflow, handling:
+ * - Event type mapping (e.g., 'payment_intent.succeeded' → 'success')
+ * - Amount formatting (cents to formatted string: 7000 → "70.00")
+ * - Required field extraction (customerName, expertName, etc.)
+ *
+ * @param workflowId - The target Novu workflow ID
+ * @param stripePayload - Raw Stripe webhook payload
+ * @param customer - Stripe customer object (for name/locale extraction)
+ * @returns Transformed payload matching the target workflow schema
+ *
+ * @example
+ * ```typescript
+ * const payload = transformStripePayloadForNovu(
+ *   'payment-universal',
+ *   { eventType: 'payment_intent.succeeded', amount: 7000, ... },
+ *   customer
+ * );
+ * // Returns: { eventType: 'success', amount: '70.00', customerName: 'John Doe', ... }
+ * ```
+ */
+export function transformStripePayloadForNovu(
+  workflowId: string,
+  stripePayload: StripeWebhookPayload,
+  customer: StripeCustomer | null,
+): Record<string, unknown> {
+  // Base payload with debugging info and locale
+  const basePayload = {
+    _stripeEventType: stripePayload.eventType,
+    _stripeEventId: stripePayload.eventId,
+    _timestamp: stripePayload.timestamp,
+    locale: customer?.preferred_locales?.[0] || 'en',
+  };
+
+  switch (workflowId) {
+    case 'payment-universal':
+      return {
+        ...basePayload,
+        eventType: STRIPE_TO_PAYMENT_EVENT_TYPE[stripePayload.eventType] || 'pending',
+        amount: ((stripePayload.amount || 0) / 100).toFixed(2),
+        currency: (stripePayload.currency || 'eur').toUpperCase(),
+        customerName: customer?.name || 'Customer',
+        transactionId: String(stripePayload.eventData?.id || stripePayload.eventId),
+      };
+
+    case 'expert-management':
+      return {
+        ...basePayload,
+        notificationType:
+          STRIPE_TO_EXPERT_NOTIFICATION_TYPE[stripePayload.eventType] || 'account-update',
+        expertName: customer?.name || 'Expert',
+        amount: stripePayload.amount ? (stripePayload.amount / 100).toFixed(2) : undefined,
+        currency: (stripePayload.currency || 'eur').toUpperCase(),
+        message: `Account update: ${stripePayload.eventType}`,
+      };
+
+    default:
+      // Passthrough for unmapped workflows - preserve original data
+      return {
+        ...basePayload,
+        ...stripePayload,
+      };
+  }
 }
