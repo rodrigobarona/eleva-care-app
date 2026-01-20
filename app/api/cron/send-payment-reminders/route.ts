@@ -1,4 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
 import {
@@ -11,6 +12,12 @@ import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import Stripe from 'stripe';
+
+// Initialize Stripe client for fetching payment intent metadata
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+});
 
 // Add route segment config
 export const preferredRegion = 'auto';
@@ -192,14 +199,50 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
-          // Get Multibanco payment details (this would need to be stored or retrieved from Stripe)
-          // For now, we'll create placeholder values - in production, this should come from Stripe metadata
-          const multibancoDetails = {
-            entity: '12345', // This should come from Stripe webhook data
-            reference: '123456789', // This should come from Stripe webhook data
-            amount: '0.00', // This should come from the payment intent
-            hostedVoucherUrl: `https://stripe.com/voucher/${reservation.stripePaymentIntentId}`,
+          // Fetch payment intent from Stripe to get customer name and Multibanco details
+          let customerName = 'Valued Customer';
+          let customerFirstName = 'Valued';
+          let customerLastName = 'Customer';
+          let multibancoDetails = {
+            entity: '',
+            reference: '',
+            amount: '0.00',
+            hostedVoucherUrl: '',
           };
+
+          if (reservation.stripePaymentIntentId) {
+            try {
+              const paymentIntent = await stripe.paymentIntents.retrieve(
+                reservation.stripePaymentIntentId,
+              );
+
+              // Extract customer name from payment intent metadata
+              customerName = paymentIntent.metadata?.customerName || 'Valued Customer';
+              const nameParts = customerName.split(' ');
+              customerFirstName = nameParts[0] || 'Valued';
+              customerLastName = nameParts.slice(1).join(' ') || 'Customer';
+
+              // Extract Multibanco details from next_action if available
+              if (paymentIntent.next_action?.type === 'multibanco_display_details') {
+                const mb = paymentIntent.next_action.multibanco_display_details;
+                multibancoDetails = {
+                  entity: mb?.entity || '',
+                  reference: mb?.reference || '',
+                  amount: (paymentIntent.amount / 100).toFixed(2),
+                  hostedVoucherUrl: mb?.hosted_voucher_url || '',
+                };
+              } else {
+                // Fallback amount from payment intent
+                multibancoDetails.amount = (paymentIntent.amount / 100).toFixed(2);
+              }
+            } catch (stripeError) {
+              console.warn(
+                `[CRON] Could not fetch payment intent ${reservation.stripePaymentIntentId}:`,
+                stripeError,
+              );
+              // Continue with default values
+            }
+          }
 
           // Format appointment details
           const expertName =
@@ -215,11 +258,11 @@ export async function GET(request: NextRequest) {
             to: {
               subscriberId: `guest_${reservation.guestEmail}`,
               email: reservation.guestEmail,
-              firstName: reservation.guestName?.split(' ')[0] || 'Valued',
-              lastName: reservation.guestName?.split(' ').slice(1).join(' ') || 'Customer',
+              firstName: customerFirstName,
+              lastName: customerLastName,
             },
             payload: {
-              customerName: reservation.guestName || 'Valued Customer',
+              customerName,
               expertName,
               serviceName: event.name,
               appointmentDate,
