@@ -2,20 +2,7 @@ import { ENV_CONFIG } from '@/config/env';
 import { triggerWorkflow, TriggerWorkflowOptions } from '@/lib/integrations/novu';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Mock Webhook class to avoid svix import issues
-class MockWebhook {
-  constructor(private secret: string) {}
-  verify(payload: string, _headers: Record<string, string>): any {
-    try {
-      return JSON.parse(payload);
-    } catch {
-      throw new Error('Invalid signature');
-    }
-  }
-}
-const Webhook = MockWebhook;
-
-// Mock all external dependencies first
+// Mock all external dependencies first - Jest mocks must be before imports
 jest.mock('@/lib/integrations/novu', () => ({
   triggerWorkflow: jest.fn().mockResolvedValue({ data: { acknowledged: true } }),
   TriggerWorkflowOptions: {},
@@ -45,6 +32,19 @@ jest.mock('next/server', () => ({
     }),
   },
 }));
+
+// Mock Webhook class to avoid svix import issues
+class MockWebhook {
+  constructor(private secret: string) {}
+  verify(payload: string, _headers: Record<string, string>): any {
+    try {
+      return JSON.parse(payload);
+    } catch {
+      throw new Error('Invalid signature');
+    }
+  }
+}
+const Webhook = MockWebhook;
 
 // Recreate the essential webhook handler logic for testing
 const createWebhookHandler = () => {

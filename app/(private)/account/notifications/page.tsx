@@ -2,7 +2,8 @@ import { SecurityPreferencesForm } from '@/components/features/profile/SecurityP
 import { SecureNovuInbox } from '@/components/integrations/novu/SecureNovuInbox';
 import { auth } from '@clerk/nextjs/server';
 
-// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
+// Force dynamic rendering - auth() makes this route inherently dynamic
+export const dynamic = 'force-dynamic';
 
 export default async function NotificationsPage() {
   const { userId, redirectToSignIn } = await auth();
