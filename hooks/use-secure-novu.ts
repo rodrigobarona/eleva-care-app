@@ -84,6 +84,9 @@ export function useSecureNovu(): UseSecureNovuResult {
 /**
  * Hook specifically for getting subscriber data for Novu Inbox component
  * Returns ready-to-use props for the Inbox component
+ *
+ * Note: backendUrl and socketUrl are configured in the component via ENV_CONFIG
+ * to ensure consistent use of EU region endpoints (https://eu.api.novu.co, wss://eu.socket.novu.co)
  */
 export function useNovuInboxProps() {
   const { subscriberData, isLoading, error } = useSecureNovu();
@@ -94,8 +97,6 @@ export function useNovuInboxProps() {
       subscriberData?.applicationIdentifier || process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
     subscriberId: subscriberData?.subscriberId,
     subscriberHash: subscriberData?.subscriberHash,
-    apiUrl: 'https://eu.api.novu.co',
-    socketUrl: 'https://eu.ws.novu.co',
 
     // State management
     isReady: !isLoading && !error && !!subscriberData,
