@@ -348,7 +348,7 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
         templateVariant: 'default',
         // Keep full event data for reference
         eventData: evt.data,
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         source: 'clerk_webhook',
         alertType: evt.type,
         message: `User event: ${evt.type}`,
@@ -362,7 +362,7 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
           ? (evt.data as { user_id?: string; id: string }).user_id || evt.data.id
           : evt.data.id,
         eventData: evt.data,
-        timestamp: Date.now(),
+        timestamp: new Date().toISOString(),
         source: 'clerk_webhook',
         // Add additional fields for security-auth workflow
         alertType: evt.type === 'session.created' ? 'recent-login' : evt.type,
