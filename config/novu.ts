@@ -257,7 +257,16 @@ export const paymentWorkflow = workflow(
     description: 'Payment confirmations, failures, and reminders',
     payloadSchema: z.object({
       eventType: z
-        .enum(['success', 'failed', 'pending', 'confirmed', 'refunded', 'multibanco-reminder'])
+        .enum([
+          'success',
+          'failed',
+          'pending',
+          'confirmed',
+          'refunded',
+          'cancelled',
+          'disputed',
+          'multibanco-reminder',
+        ])
         .optional(),
       amount: z.string(),
       currency: z.string().optional().default('EUR'),

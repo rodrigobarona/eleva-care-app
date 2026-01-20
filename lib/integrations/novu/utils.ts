@@ -215,8 +215,12 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
  * ```
  */
 export async function updateSubscriber(subscriber: TriggerWorkflowOptions['to']) {
-  if (!novu || !ENV_CONFIG.NOVU_SECRET_KEY) {
-    console.warn('[Novu Utils] Cannot update subscriber: not initialized');
+  // Check for either NOVU_SECRET_KEY or legacy NOVU_API_KEY
+  const hasValidKey = ENV_CONFIG.NOVU_SECRET_KEY || ENV_CONFIG.NOVU_API_KEY;
+  if (!novu || !hasValidKey) {
+    console.warn(
+      '[Novu Utils] Cannot update subscriber: client not initialized or missing NOVU_SECRET_KEY/NOVU_API_KEY',
+    );
     return null;
   }
 
@@ -593,10 +597,10 @@ const STRIPE_TO_PAYMENT_EVENT_TYPE: Record<string, string> = {
   'checkout.session.completed': 'confirmed',
   'customer.subscription.created': 'confirmed',
   'customer.subscription.updated': 'confirmed',
-  'customer.subscription.deleted': 'failed',
+  'customer.subscription.deleted': 'cancelled',
   'invoice.payment_succeeded': 'success',
   'invoice.payment_failed': 'failed',
-  'charge.dispute.created': 'failed',
+  'charge.dispute.created': 'disputed',
 };
 
 /**

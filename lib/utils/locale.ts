@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import type Stripe from 'stripe';
 
 /**
@@ -24,24 +25,37 @@ export function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentInte
     if (paymentIntent.metadata?.meeting) {
       const meetingData = JSON.parse(paymentIntent.metadata.meeting);
       if (meetingData.locale && typeof meetingData.locale === 'string') {
-        console.log(`📍 Using locale from payment intent meeting metadata: ${meetingData.locale}`);
+        logger.info('Using locale from payment intent meeting metadata', {
+          paymentIntentId: paymentIntent.id,
+          locale: meetingData.locale,
+          source: 'meeting_metadata',
+        });
         return meetingData.locale;
       }
     }
 
     // Fallback: Check if there's a locale in the payment intent metadata directly
     if (paymentIntent.metadata?.locale) {
-      console.log(
-        `📍 Using locale from payment intent direct metadata: ${paymentIntent.metadata.locale}`,
-      );
+      logger.info('Using locale from payment intent direct metadata', {
+        paymentIntentId: paymentIntent.id,
+        locale: paymentIntent.metadata.locale,
+        source: 'direct_metadata',
+      });
       return paymentIntent.metadata.locale;
     }
 
     // Final fallback
-    console.log('📍 No locale found in payment intent metadata, using default: en');
+    logger.info('No locale found in payment intent metadata, using default', {
+      paymentIntentId: paymentIntent.id,
+      locale: 'en',
+      source: 'default_fallback',
+    });
     return 'en';
   } catch (error) {
-    console.error('Error extracting locale from payment intent metadata:', error);
+    logger.error('Error extracting locale from payment intent metadata', {
+      paymentIntentId: paymentIntent.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return 'en';
   }
 }

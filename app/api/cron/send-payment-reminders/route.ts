@@ -15,8 +15,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
+// Validate Stripe configuration before initializing client
+// Fail fast if STRIPE_SECRET_KEY is missing to prevent downstream 401 errors
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error(
+    '[Payment Reminders] ❌ STRIPE_SECRET_KEY is not configured. Cron job cannot proceed.',
+  );
+  throw new Error('STRIPE_SECRET_KEY environment variable is required for payment reminders');
+}
+
 // Initialize Stripe client for fetching payment intent metadata
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
