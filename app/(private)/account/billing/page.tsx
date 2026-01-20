@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 
 import { BillingPageClient } from './billing-client';
 
-// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
+// Force dynamic rendering to prevent static prerendering without Clerk credentials
+export const dynamic = 'force-dynamic';
 
 export default async function BillingPage() {
   const { userId, getToken } = await auth();
