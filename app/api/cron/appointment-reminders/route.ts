@@ -1,157 +1,37 @@
-import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, UserTable } from '@/drizzle/schema';
+import {
+  formatDateTime,
+  formatTimeUntilAppointment,
+  getUpcomingAppointments,
+} from '@/lib/cron/appointment-utils';
 import { triggerWorkflow } from '@/lib/integrations/novu';
+import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
-import { and, between, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-interface Appointment {
-  id: string;
-  customerClerkId: string;
-  expertClerkId: string;
-  customerName: string;
-  expertName: string;
-  appointmentType: string;
-  startTime: Date;
-  meetingUrl: string;
-  customerLocale: string;
-  expertLocale: string;
-  customerTimezone: string;
-  expertTimezone: string;
-}
-
-// Query database for appointments starting in the next 24-25 hours
-async function getUpcomingAppointments(): Promise<Appointment[]> {
-  try {
-    const now = new Date();
-    const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const in25Hours = new Date(now.getTime() + 25 * 60 * 60 * 1000);
-
-    // Query for meetings that start between 24-25 hours from now
-    // This gives us a 1-hour window to catch all appointments for the next day
-    const upcomingMeetings = await db
-      .select({
-        meetingId: MeetingTable.id,
-        guestEmail: MeetingTable.guestEmail,
-        guestName: MeetingTable.guestName,
-        startTime: MeetingTable.startTime,
-        endTime: MeetingTable.endTime,
-        timezone: MeetingTable.timezone,
-        meetingUrl: MeetingTable.meetingUrl,
-        eventName: EventTable.name,
-        expertClerkId: EventTable.clerkUserId,
-        // Expert info
-        expertFirstName: UserTable.firstName,
-        expertLastName: UserTable.lastName,
-        expertCountry: UserTable.country,
-      })
-      .from(MeetingTable)
-      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
-      .innerJoin(UserTable, eq(UserTable.clerkUserId, EventTable.clerkUserId))
-      .where(
-        and(
-          between(MeetingTable.startTime, in24Hours, in25Hours),
-          eq(MeetingTable.stripePaymentStatus, 'succeeded'), // Only confirmed appointments
-        ),
-      );
-
-    console.log(`Found ${upcomingMeetings.length} upcoming appointments for reminders`);
-
-    // Transform the data to match the expected interface
-    const appointments: Appointment[] = upcomingMeetings.map((meeting) => {
-      // Determine locales based on country
-      const getLocaleFromCountry = (country: string | null): string => {
-        switch (country?.toUpperCase()) {
-          case 'PT':
-            return 'pt-PT';
-          case 'BR':
-            return 'pt-BR';
-          case 'ES':
-            return 'es-ES';
-          default:
-            return 'en-US';
-        }
-      };
-
-      const expertName =
-        [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert';
-
-      return {
-        id: meeting.meetingId,
-        customerClerkId: 'guest', // Guests don't have Clerk IDs, we'll handle this differently
-        expertClerkId: meeting.expertClerkId,
-        customerName: meeting.guestName,
-        expertName,
-        appointmentType: meeting.eventName,
-        startTime: meeting.startTime,
-        meetingUrl: meeting.meetingUrl || `https://meet.eleva.care/${meeting.meetingId}`,
-        customerLocale: 'en-US', // Default for guests, could be enhanced with guest preferences
-        expertLocale: getLocaleFromCountry(meeting.expertCountry),
-        customerTimezone: meeting.timezone,
-        expertTimezone: meeting.timezone, // Using meeting timezone as default
-      };
-    });
-
-    return appointments;
-  } catch (error) {
-    console.error('Error querying upcoming appointments:', error);
-    throw error;
-  }
-}
-
-async function formatTimeUntilAppointment(appointmentTime: Date, locale: string): Promise<string> {
-  const now = new Date();
-  const hoursUntil = Math.round((appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-
-  if (locale.startsWith('pt')) {
-    if (hoursUntil <= 1) return 'em 1 hora';
-    if (hoursUntil <= 24) return `em ${hoursUntil} horas`;
-    return 'amanhã';
-  } else if (locale.startsWith('es')) {
-    if (hoursUntil <= 1) return 'en 1 hora';
-    if (hoursUntil <= 24) return `en ${hoursUntil} horas`;
-    return 'mañana';
-  } else {
-    if (hoursUntil <= 1) return 'in 1 hour';
-    if (hoursUntil <= 24) return `in ${hoursUntil} hours`;
-    return 'tomorrow';
-  }
-}
-
-async function formatDateTime(date: Date, timezone: string, locale: string) {
-  const formatter = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const formatted = formatter.formatToParts(date);
-  const datePart = `${formatted.find((p) => p.type === 'day')?.value} ${formatted.find((p) => p.type === 'month')?.value} ${formatted.find((p) => p.type === 'year')?.value}`;
-  const timePart = `${formatted.find((p) => p.type === 'hour')?.value}:${formatted.find((p) => p.type === 'minute')?.value}`;
-
-  return { datePart, timePart };
-}
+// Time window constants (in minutes)
+const WINDOW_START_MINUTES = 24 * 60; // 24 hours
+const WINDOW_END_MINUTES = 25 * 60; // 25 hours
 
 async function handler() {
-  console.log('🔔 Running appointment reminder cron job...');
+  console.log('🔔 Running 24-hour appointment reminder cron job...');
 
   try {
-    const appointments = await getUpcomingAppointments();
+    const appointments = await getUpcomingAppointments(WINDOW_START_MINUTES, WINDOW_END_MINUTES);
     console.log(`Found ${appointments.length} appointments needing reminders`);
 
+    let expertRemindersSent = 0;
+    let patientRemindersSent = 0;
+
     for (const appointment of appointments) {
-      // Send reminder to expert (experts have Clerk IDs)
+      // Send reminder to expert (experts have Clerk IDs via Novu)
       try {
-        const expertDateTime = await formatDateTime(
+        const expertDateTime = formatDateTime(
           appointment.startTime,
           appointment.expertTimezone,
           appointment.expertLocale,
         );
 
-        const expertTimeUntil = await formatTimeUntilAppointment(
+        const expertTimeUntil = formatTimeUntilAppointment(
           appointment.startTime,
           appointment.expertLocale,
         );
@@ -172,20 +52,76 @@ async function handler() {
             message: `Appointment reminder: You have an appointment with ${appointment.customerName} ${expertTimeUntil}`,
             meetLink: appointment.meetingUrl,
           },
+          transactionId: `reminder-24h-expert-${appointment.id}`, // Idempotency key
         });
 
         console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
+        expertRemindersSent++;
       } catch (error) {
         console.error(`❌ Failed to send reminder to expert ${appointment.expertClerkId}:`, error);
       }
 
-      // Note: Guest reminders would need a different approach since guests don't have Clerk IDs
-      // You could implement email-based reminders directly using Resend here if needed
-      // For now, we're only sending reminders to experts who have accounts
+      // Send reminder to patient/guest via direct email (Resend)
+      // Patients don't have Clerk IDs, so we send email directly
+      try {
+        const patientDateTime = formatDateTime(
+          appointment.startTime,
+          appointment.customerTimezone,
+          appointment.customerLocale,
+        );
+
+        const patientTimeUntil = formatTimeUntilAppointment(
+          appointment.startTime,
+          appointment.customerLocale,
+        );
+
+        // Determine locale for email template
+        const locale = appointment.customerLocale.startsWith('pt') ? 'pt' : 'en';
+
+        // Generate the appointment reminder email
+        const { html, text, subject } = await generateAppointmentEmail({
+          expertName: appointment.expertName,
+          clientName: appointment.customerName,
+          appointmentDate: patientDateTime.datePart,
+          appointmentTime: patientDateTime.timePart,
+          timezone: appointment.customerTimezone,
+          appointmentDuration: `${appointment.durationMinutes} minutes`,
+          eventTitle: appointment.appointmentType,
+          meetLink: appointment.meetingUrl,
+          locale,
+        });
+
+        // Send email directly to guest via Resend
+        const emailResult = await sendEmail({
+          to: appointment.guestEmail,
+          subject: `📅 Reminder: ${subject} - ${patientTimeUntil}`,
+          html,
+          text,
+        });
+
+        if (emailResult.success) {
+          console.log(`✅ Reminder sent to patient: ${appointment.guestEmail}`);
+          patientRemindersSent++;
+        } else {
+          console.error(
+            `❌ Failed to send reminder to patient ${appointment.guestEmail}:`,
+            emailResult.error,
+          );
+        }
+      } catch (error) {
+        console.error(`❌ Failed to send reminder to patient ${appointment.guestEmail}:`, error);
+      }
     }
 
-    console.log('🎉 Appointment reminder cron job completed');
-    return NextResponse.json({ success: true, count: appointments.length });
+    console.log(
+      `🎉 24-hour appointment reminder cron job completed. Expert: ${expertRemindersSent}, Patient: ${patientRemindersSent}`,
+    );
+    return NextResponse.json({
+      success: true,
+      count: appointments.length,
+      expertRemindersSent,
+      patientRemindersSent,
+    });
   } catch (error) {
     console.error('❌ Error in appointment reminder cron job:', error);
     return NextResponse.json({ error: 'Failed to process reminders' }, { status: 500 });

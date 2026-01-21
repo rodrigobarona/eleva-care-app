@@ -1,6 +1,13 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable, SlotReservationTable } from '@/drizzle/schema';
+import {
+  EventTable,
+  PaymentTransferTable,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- ScheduleTable used in db.query.ScheduleTable (Drizzle ORM pattern)
+  ScheduleTable,
+  SlotReservationTable,
+  UserTable,
+} from '@/drizzle/schema';
 import {
   isValidPaymentStatus,
   PAYMENT_STATUS_PENDING,
@@ -21,6 +28,8 @@ import type { StripeWebhookPayload } from '@/lib/integrations/novu/utils';
 import { webhookMonitor } from '@/lib/redis/webhook-monitor';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
+import { formatInTimeZone } from 'date-fns-tz';
+import { enUS, es, pt, ptBR } from 'date-fns/locale';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -65,6 +74,22 @@ const MeetingMetadataSchema = z.object({
   locale: z.string().optional(),
   timezone: z.string().optional(),
 });
+
+/**
+ * Maps locale codes to date-fns Locale objects for localized date formatting
+ */
+function getDateFnsLocale(localeCode?: string) {
+  const localeMap: Record<string, typeof enUS> = {
+    en: enUS,
+    'en-US': enUS,
+    pt: pt,
+    'pt-PT': pt,
+    'pt-BR': ptBR,
+    es: es,
+    'es-ES': es,
+  };
+  return localeMap[localeCode || 'en'] || enUS;
+}
 
 /**
  * Zod schema for payment metadata validation
@@ -749,6 +774,157 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
     // Build subscriber data from Stripe customer
     const subscriber = buildNovuSubscriberFromStripe(customer);
 
+    // Extract appointment details from payment metadata (for payment events)
+    let appointmentDetails:
+      | {
+          service: string;
+          expert: string;
+          // Patient-formatted (for patient emails)
+          date: string;
+          time: string;
+          // Expert-formatted (for expert emails)
+          expertDate?: string;
+          expertTime?: string;
+          // Common fields
+          duration?: string;
+          patientTimezone?: string;
+          expertTimezone?: string;
+          notes?: string;
+        }
+      | undefined;
+
+    // Check if this is a payment event with meeting metadata
+    if (
+      workflowId === 'payment-universal' &&
+      'metadata' in event.data.object &&
+      event.data.object.metadata
+    ) {
+      const metadata = event.data.object.metadata as Record<string, string>;
+
+      // Parse meeting metadata if available
+      if (metadata.meeting) {
+        try {
+          const meetingData = JSON.parse(metadata.meeting) as {
+            id?: string;
+            expert?: string;
+            guest?: string;
+            guestName?: string;
+            start?: string;
+            dur?: number;
+            notes?: string;
+            timezone?: string;
+            locale?: string;
+          };
+
+          // Resolve expert name from database
+          let expertName = 'Expert';
+          if (meetingData.expert) {
+            try {
+              const expertUser = await db
+                .select({
+                  firstName: UserTable.firstName,
+                  lastName: UserTable.lastName,
+                })
+                .from(UserTable)
+                .where(eq(UserTable.clerkUserId, meetingData.expert))
+                .limit(1);
+
+              if (expertUser.length > 0 && expertUser[0]) {
+                const { firstName, lastName } = expertUser[0];
+                expertName = [firstName, lastName].filter(Boolean).join(' ') || 'Expert';
+              }
+            } catch (dbError) {
+              console.warn('Could not resolve expert name from database:', dbError);
+            }
+          }
+
+          // Fetch expert's timezone from ScheduleTable
+          let expertTimezone = 'Europe/Lisbon'; // Default fallback for experts
+          if (meetingData.expert) {
+            try {
+              const expertSchedule = await db.query.ScheduleTable.findFirst({
+                where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, meetingData.expert!),
+              });
+
+              if (expertSchedule?.timezone) {
+                expertTimezone = expertSchedule.timezone;
+              }
+            } catch (dbError) {
+              console.warn('Could not resolve expert timezone from database:', dbError);
+            }
+          }
+
+          // Resolve service name from event if available
+          let serviceName = 'Consultation';
+          if (meetingData.id) {
+            try {
+              const eventRecord = await db
+                .select({ name: EventTable.name })
+                .from(EventTable)
+                .where(eq(EventTable.id, meetingData.id))
+                .limit(1);
+
+              if (eventRecord.length > 0 && eventRecord[0]) {
+                serviceName = eventRecord[0].name || 'Consultation';
+              }
+            } catch (dbError) {
+              console.warn('Could not resolve service name from database:', dbError);
+            }
+          }
+
+          // Format date and time from ISO string with locale support
+          const startDate = meetingData.start ? new Date(meetingData.start) : new Date();
+          const patientTimezone = meetingData.timezone || 'UTC';
+          const patientLocale = getDateFnsLocale(meetingData.locale);
+          // Default expert locale to English for professional contexts
+          const expertLocale = getDateFnsLocale('en');
+
+          // Format for patient (in their local timezone with their locale)
+          const patientDate = formatInTimeZone(startDate, patientTimezone, 'EEEE, MMMM d, yyyy', {
+            locale: patientLocale,
+          });
+          const patientTime = formatInTimeZone(startDate, patientTimezone, 'h:mm a', {
+            locale: patientLocale,
+          });
+
+          // Format for expert (in their local timezone)
+          const expertDate = formatInTimeZone(startDate, expertTimezone, 'EEEE, MMMM d, yyyy', {
+            locale: expertLocale,
+          });
+          const expertTime = formatInTimeZone(startDate, expertTimezone, 'h:mm a', {
+            locale: expertLocale,
+          });
+
+          appointmentDetails = {
+            service: serviceName,
+            expert: expertName,
+            // Patient-formatted (for patient emails)
+            date: patientDate,
+            time: `${patientTime} (${patientTimezone})`,
+            // Expert-formatted (for expert emails)
+            expertDate: expertDate,
+            expertTime: `${expertTime} (${expertTimezone})`,
+            // Common fields
+            duration: meetingData.dur ? `${meetingData.dur} minutes` : '60 minutes',
+            patientTimezone,
+            expertTimezone,
+            notes: meetingData.notes,
+          };
+
+          // Log sanitized appointment details (without PHI/PII)
+          console.log('📅 Extracted appointment details from payment metadata:', {
+            service: appointmentDetails.service,
+            duration: appointmentDetails.duration,
+            patientTimezone: appointmentDetails.patientTimezone,
+            expertTimezone: appointmentDetails.expertTimezone,
+            hasNotes: !!appointmentDetails.notes,
+          });
+        } catch (parseError) {
+          console.warn('Could not parse meeting metadata:', parseError);
+        }
+      }
+    }
+
     // Create raw payload from Stripe event
     const rawPayload: StripeWebhookPayload = {
       eventType: event.type,
@@ -759,6 +935,7 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
       amount: 'amount' in event.data.object ? (event.data.object.amount as number) : undefined,
       currency:
         'currency' in event.data.object ? (event.data.object.currency as string) : undefined,
+      appointmentDetails,
     };
 
     // Transform payload to match target workflow schema

@@ -34,6 +34,12 @@ export interface TriggerWorkflowOptions {
     subscriberId: string;
     data?: Record<string, string | number | boolean>;
   };
+  /**
+   * Unique transaction ID for idempotency
+   * If provided, Novu will deduplicate triggers with the same transactionId
+   * Use this to prevent duplicate emails from webhook retries
+   */
+  transactionId?: string;
 }
 
 try {
@@ -168,6 +174,7 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
       subscriberId: options.to.subscriberId,
       hasPayload: !!options.payload,
       payloadKeys: options.payload ? Object.keys(options.payload) : [],
+      transactionId: options.transactionId,
     });
 
     const result = await novu.trigger({
@@ -176,6 +183,8 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
       payload: options.payload || {},
       overrides: options.overrides,
       actor: options.actor,
+      // Idempotency: If transactionId is provided, Novu will deduplicate
+      ...(options.transactionId && { transactionId: options.transactionId }),
     });
 
     console.log(`[Novu Utils] ✅ Successfully triggered workflow: ${options.workflowId}`);
@@ -574,10 +583,14 @@ export const CLERK_EVENT_TO_WORKFLOW_MAPPINGS = {
 /**
  * Mapping of Stripe events to Novu workflow IDs
  * Updated to use standardized workflow IDs from config/novu-workflows.ts
+ *
+ * NOTE: payment_intent.succeeded is NOT mapped here because the confirmation email
+ * is sent directly via Resend in handlePaymentSucceeded() to avoid duplicate emails.
+ * The direct Resend email uses appointment-confirmation.tsx with full appointment details.
  */
 export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   // Payment events - use universal workflow with eventType
-  'payment_intent.succeeded': 'payment-universal', // Uses eventType: 'success'
+  // NOTE: payment_intent.succeeded removed - email sent directly via Resend in handlePaymentSucceeded()
   'payment_intent.payment_failed': 'payment-universal', // Uses eventType: 'failed'
   'charge.refunded': 'payment-universal', // Uses eventType: 'refund'
 
@@ -601,9 +614,12 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
 /**
  * Stripe event type → Novu payment-universal workflow eventType
  * Maps raw Stripe event types to the values expected by paymentWorkflow schema
+ *
+ * NOTE: payment_intent.succeeded is NOT mapped here because the confirmation email
+ * is sent directly via Resend in handlePaymentSucceeded() to avoid duplicate emails.
  */
 const STRIPE_TO_PAYMENT_EVENT_TYPE: Record<string, string> = {
-  'payment_intent.succeeded': 'success',
+  // NOTE: payment_intent.succeeded removed - email sent directly via Resend
   'payment_intent.payment_failed': 'failed',
   'charge.refunded': 'refunded',
   'checkout.session.completed': 'confirmed',
@@ -633,6 +649,26 @@ export interface ClerkEventData {
 }
 
 /**
+ * Appointment details extracted from Stripe metadata
+ * Used for payment confirmation emails
+ */
+export interface AppointmentDetails {
+  service: string;
+  expert: string;
+  // Patient-formatted (for patient emails)
+  date: string;
+  time: string;
+  // Expert-formatted (for expert emails)
+  expertDate?: string;
+  expertTime?: string;
+  // Common fields
+  duration?: string;
+  patientTimezone?: string;
+  expertTimezone?: string;
+  notes?: string;
+}
+
+/**
  * Raw Stripe webhook payload structure
  * Used as input for transformStripePayloadForNovu
  */
@@ -644,6 +680,8 @@ export interface StripeWebhookPayload {
   source: string;
   amount?: number;
   currency?: string;
+  /** Appointment details extracted from payment metadata */
+  appointmentDetails?: AppointmentDetails;
 }
 
 /**
@@ -741,6 +779,8 @@ export function transformStripePayloadForNovu(
         currency: (stripePayload.currency || 'eur').toUpperCase(),
         customerName: customer?.name || 'Customer',
         transactionId: String(stripePayload.eventData?.id || stripePayload.eventId),
+        // Include appointment details if available (extracted from payment metadata)
+        appointmentDetails: stripePayload.appointmentDetails,
       };
 
     case 'expert-management':

@@ -250,6 +250,8 @@ function createSharedMetadata({
       start: startTime,
       dur: duration,
       notes: guestNotes || '',
+      timezone: meetingData.timezone || 'UTC',
+      locale: meetingData.locale || 'en',
     }),
     payment: JSON.stringify({
       amount: price.toString(),

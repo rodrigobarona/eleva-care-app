@@ -1344,11 +1344,80 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
 
       // Create slot reservation for Multibanco payments
       try {
-        const { eventId, clerkUserId, selectedDate, selectedTime, customerEmail } =
-          paymentIntent.metadata;
+        // Parse meeting metadata - can be nested JSON (new format) or flat fields (legacy)
+        let eventId: string | undefined;
+        let clerkUserId: string | undefined;
+        let selectedDate: string | undefined;
+        let selectedTime: string | undefined;
+        let customerEmail: string | undefined;
+        let customerName: string | undefined;
+        let customerNotes: string | undefined;
+        let expertName: string | undefined;
+        let timezone: string = 'Europe/Lisbon';
+        let guestName: string | undefined;
+
+        // Check if metadata uses new nested JSON format (meeting, payment, transfer)
+        if (paymentIntent.metadata.meeting) {
+          try {
+            const meetingData = JSON.parse(paymentIntent.metadata.meeting) as {
+              id?: string;
+              expert?: string;
+              guest?: string;
+              guestName?: string;
+              start?: string;
+              dur?: number;
+              notes?: string;
+              timezone?: string;
+              locale?: string;
+            };
+
+            eventId = meetingData.id;
+            clerkUserId = meetingData.expert;
+            customerEmail = meetingData.guest;
+            guestName = meetingData.guestName;
+            customerNotes = meetingData.notes;
+            timezone = meetingData.timezone || 'Europe/Lisbon';
+
+            // Parse start time from ISO string
+            if (meetingData.start) {
+              const startDate = new Date(meetingData.start);
+              selectedDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+              selectedTime = startDate.toISOString().split('T')[1]?.split('.')[0]; // HH:mm:ss
+            }
+
+            console.log('📦 Parsed meeting metadata (nested JSON format):', {
+              eventId,
+              clerkUserId,
+              customerEmail,
+              guestName,
+              selectedDate,
+              selectedTime,
+              timezone,
+            });
+          } catch (parseError) {
+            console.error('Failed to parse meeting metadata JSON:', parseError);
+          }
+        } else {
+          // Legacy flat metadata format
+          eventId = paymentIntent.metadata.eventId;
+          clerkUserId = paymentIntent.metadata.clerkUserId;
+          selectedDate = paymentIntent.metadata.selectedDate;
+          selectedTime = paymentIntent.metadata.selectedTime;
+          customerEmail = paymentIntent.metadata.customerEmail;
+          customerName = paymentIntent.metadata.customerName;
+          expertName = paymentIntent.metadata.expertName;
+          customerNotes = paymentIntent.metadata.customerNotes;
+        }
 
         if (!eventId || !clerkUserId || !selectedDate || !selectedTime) {
-          console.error('Missing required metadata for slot reservation');
+          console.error('Missing required metadata for slot reservation:', {
+            eventId,
+            clerkUserId,
+            selectedDate,
+            selectedTime,
+            hasMetadata: !!paymentIntent.metadata,
+            metadataKeys: Object.keys(paymentIntent.metadata || {}),
+          });
           return;
         }
 
@@ -1381,22 +1450,26 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
         // Send Multibanco booking confirmation email
         if (customerEmail && multibancoDetails) {
           try {
-            // Get expert details
-            const expert = await db
-              .select({ clerkUserId: UserTable.clerkUserId })
-              .from(UserTable)
-              .where(eq(UserTable.clerkUserId, clerkUserId))
-              .limit(1);
+            // Resolve expert name from database
+            let resolvedExpertName = expertName || 'Expert';
+            if (!expertName && clerkUserId) {
+              const expertRecord = await db
+                .select({
+                  firstName: UserTable.firstName,
+                  lastName: UserTable.lastName,
+                })
+                .from(UserTable)
+                .where(eq(UserTable.clerkUserId, clerkUserId))
+                .limit(1);
 
-            if (expert.length === 0) {
-              console.error(`Expert ${clerkUserId} not found`);
-              return;
+              if (expertRecord.length > 0 && expertRecord[0]) {
+                const { firstName, lastName } = expertRecord[0];
+                resolvedExpertName = [firstName, lastName].filter(Boolean).join(' ') || 'Expert';
+              }
             }
 
-            // Parse additional metadata
-            const customerName = paymentIntent.metadata.customerName || 'Customer';
-            const expertName = paymentIntent.metadata.expertName || 'Expert';
-            const customerNotes = paymentIntent.metadata.customerNotes;
+            // Use parsed customer name or guest name
+            const resolvedCustomerName = customerName || guestName || 'Customer';
 
             // Format Multibanco details
             const multibancoEntity = multibancoDetails.entity || '';
@@ -1404,13 +1477,28 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const multibancoAmount = (paymentIntent.amount / 100).toFixed(2);
             const hostedVoucherUrl = multibancoDetails.hosted_voucher_url || '';
 
-            // Format dates
-            const appointmentDate = format(startDateTime, 'PPPP');
-            const appointmentTime = format(startDateTime, 'p');
-            const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p');
+            // Format dates with meeting timezone
+            const appointmentDate = format(startDateTime, 'PPPP', { timeZone: timezone });
+            const appointmentTime = format(startDateTime, 'p', { timeZone: timezone });
+            const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p', {
+              timeZone: timezone,
+            });
 
             // Extract locale for internationalization
             const locale = extractLocaleFromPaymentIntent(paymentIntent);
+
+            console.log('📧 Sending Multibanco booking email with data:', {
+              customerEmail,
+              resolvedCustomerName,
+              resolvedExpertName,
+              serviceName: event[0].name,
+              multibancoEntity,
+              multibancoReference,
+              multibancoAmount,
+              appointmentDate,
+              appointmentTime,
+              timezone,
+            });
 
             // Trigger Novu workflow for Multibanco booking pending notification
             // This sends both email and in-app notification via the unified Novu system
@@ -1419,25 +1507,27 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
               to: {
                 subscriberId: `guest_${customerEmail}`,
                 email: customerEmail,
-                firstName: customerName.split(' ')[0] || customerName,
-                lastName: customerName.split(' ').slice(1).join(' ') || '',
+                firstName: resolvedCustomerName.split(' ')[0] || resolvedCustomerName,
+                lastName: resolvedCustomerName.split(' ').slice(1).join(' ') || '',
               },
               payload: {
-                customerName,
-                expertName,
+                customerName: resolvedCustomerName,
+                expertName: resolvedExpertName,
                 serviceName: event[0].name,
                 appointmentDate,
                 appointmentTime,
-                timezone: 'Europe/Lisbon', // Default for Multibanco
+                timezone,
                 duration: event[0].durationInMinutes,
                 multibancoEntity,
                 multibancoReference,
                 multibancoAmount,
                 voucherExpiresAt: voucherExpiresFormatted,
                 hostedVoucherUrl,
-                customerNotes,
+                customerNotes: customerNotes || '',
                 locale,
               },
+              // Use payment intent ID as idempotency key to prevent duplicate notifications on retries
+              transactionId: `multibanco-pending-${paymentIntent.id}`,
             });
 
             if (workflowResult) {

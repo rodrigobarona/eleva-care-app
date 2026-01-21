@@ -256,6 +256,18 @@ export const ELEVA_TEXT_STYLES = {
     color: ELEVA_COLORS.primary,
     fontWeight: ELEVA_TYPOGRAPHY.weights.semibold,
   },
+  listItem: {
+    ...ELEVA_TYPOGRAPHY.body.regular,
+    fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+    color: ELEVA_COLORS.neutral.dark,
+    margin: '0 0 8px 0',
+    paddingLeft: '8px',
+  },
+  divider: {
+    borderColor: ELEVA_COLORS.neutral.border,
+    borderTop: '1px solid',
+    margin: '24px 0',
+  },
 } as const;
 
 // Helper function to generate table cell styles

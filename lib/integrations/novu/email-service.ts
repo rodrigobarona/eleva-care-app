@@ -2,10 +2,13 @@
 // Import email templates
 import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
+import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
 import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
+import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
@@ -263,6 +266,26 @@ export class TemplateSelectionService {
     // Payment workflows
     'payment-universal': {
       success: {
+        patient: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+        expert: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+      },
+      confirmed: {
+        patient: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+        expert: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+      },
+      pending: {
         patient: {
           default: MultibancoBookingPendingTemplate,
           branded: MultibancoBookingPendingTemplate,
@@ -833,6 +856,77 @@ export class ElevaEmailService {
       meetLink: data.meetLink,
       notes: data.notes,
       locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * Render expert new appointment notification email
+   *
+   * This method renders the ExpertNewAppointmentTemplate for notifying experts
+   * when a patient books an appointment with them. It returns the rendered HTML
+   * string suitable for sending via email.
+   *
+   * @param data - The appointment data to render
+   * @param data.expertName - Name of the expert receiving the notification
+   * @param data.clientName - Name of the patient who booked the appointment
+   * @param data.appointmentDate - Formatted appointment date (e.g., "Wednesday, January 21, 2026")
+   * @param data.appointmentTime - Formatted appointment time (e.g., "12:30 PM")
+   * @param data.timezone - Timezone for the appointment (e.g., "Europe/Lisbon")
+   * @param data.appointmentDuration - Duration string (e.g., "45 minutes")
+   * @param data.eventTitle - Title of the appointment type (e.g., "Physical Therapy Appointment")
+   * @param data.meetLink - Optional video meeting link
+   * @param data.notes - Optional notes from the patient
+   * @param data.locale - Locale for internationalization (default: 'en')
+   * @returns Promise<string> - The rendered HTML email content
+   *
+   * @example
+   * ```typescript
+   * const emailService = new ElevaEmailService();
+   * const html = await emailService.renderExpertNewAppointment({
+   *   expertName: 'Patricia Mota',
+   *   clientName: 'Marta Carvalho',
+   *   appointmentDate: 'Wednesday, January 21, 2026',
+   *   appointmentTime: '12:30 PM',
+   *   timezone: 'Europe/Lisbon',
+   *   appointmentDuration: '45 minutes',
+   *   eventTitle: 'Physical Therapy Appointment',
+   *   meetLink: 'https://meet.google.com/abc-defg-hij',
+   *   notes: 'First consultation',
+   *   locale: 'en',
+   * });
+   * ```
+   */
+  async renderExpertNewAppointment(data: {
+    expertName: string;
+    clientName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    timezone: string;
+    appointmentDuration: string;
+    eventTitle: string;
+    meetLink?: string;
+    notes?: string;
+    locale?: string;
+  }) {
+    // Validate and cast locale to SupportedLocale, defaulting to 'en'
+    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
+    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
+      ? (data.locale as SupportedLocale)
+      : 'en';
+
+    const template = React.createElement(ExpertNewAppointmentTemplate, {
+      expertName: data.expertName,
+      clientName: data.clientName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      timezone: data.timezone,
+      appointmentDuration: data.appointmentDuration,
+      eventTitle: data.eventTitle,
+      meetLink: data.meetLink,
+      notes: data.notes,
+      locale,
     });
 
     return render(template);

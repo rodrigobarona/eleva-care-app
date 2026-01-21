@@ -644,11 +644,10 @@ export const appointmentConfirmationWorkflow = workflow(
     });
 
     await step.email('appointment-confirmation-email', async () => {
-      // CRITICAL: Use recipient-specific timezone
-      // For EXPERT: payload.timezone (expert's timezone)
-      // For GUEST: payload.guestTimezone (guest's timezone)
-      // This email is sent to the EXPERT, so use payload.timezone
-      const emailBody = await elevaEmailService.renderAppointmentConfirmation({
+      // CRITICAL: This email is sent to the EXPERT
+      // Use the ExpertNewAppointment template which says "Hello [expertName]"
+      // and shows them the patient details (not vice versa)
+      const emailBody = await elevaEmailService.renderExpertNewAppointment({
         expertName: payload.expertName,
         clientName: payload.clientName,
         appointmentDate: payload.appointmentDate,
@@ -662,7 +661,7 @@ export const appointmentConfirmationWorkflow = workflow(
       });
 
       return {
-        subject: `✅ Appointment Confirmed - ${payload.eventTitle}`,
+        subject: `📅 New Booking: ${payload.eventTitle} with ${payload.clientName}`,
         body: emailBody,
       };
     });
@@ -927,6 +926,74 @@ export const expertPayoutNotificationWorkflow = workflow(
   },
 );
 
+// Reservation Expired Workflow - Notifies when a Multibanco payment expires
+export const reservationExpiredWorkflow = workflow(
+  'reservation-expired',
+  async ({ payload, step }) => {
+    // In-app notification for expert
+    await step.inApp('reservation-expired-inapp', async () => {
+      return {
+        subject: `⏰ Pending booking cancelled - ${payload.serviceName}`,
+        body: `A pending booking from ${payload.clientName} for ${payload.serviceName} has been cancelled because the Multibanco payment was not completed within 7 days.`,
+        data: {
+          expertName: payload.expertName,
+          clientName: payload.clientName,
+          serviceName: payload.serviceName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          timezone: payload.timezone,
+        },
+      };
+    });
+
+    // Email notification for expert
+    await step.email('reservation-expired-email', async () => {
+      const emailBody = await elevaEmailService.renderGenericEmail({
+        templateName: 'reservation-expired',
+        subject: `⏰ Pending booking cancelled - ${payload.serviceName}`,
+        templateData: {
+          recipientName: payload.expertName,
+          recipientType: 'expert',
+          expertName: payload.expertName,
+          clientName: payload.clientName,
+          serviceName: payload.serviceName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          timezone: payload.timezone || 'Europe/Lisbon',
+          locale: payload.locale || 'en',
+        },
+        locale: payload.locale || 'en',
+      });
+
+      return {
+        subject: `⏰ Pending booking cancelled - ${payload.serviceName}`,
+        body: emailBody,
+      };
+    });
+  },
+  {
+    name: 'Reservation Expired Notifications',
+    description: 'Notifies experts when a Multibanco payment expires and the booking is cancelled',
+    payloadSchema: z.object({
+      expertName: z.string(),
+      clientName: z.string(),
+      serviceName: z.string(),
+      appointmentDate: z.string(),
+      appointmentTime: z.string(),
+      timezone: z.string().optional(),
+      locale: z.string().optional(),
+    }),
+    tags: ['payments', 'reservations', 'expiration'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
+  },
+);
+
 // All workflows exported for the Novu framework
 export const workflows = [
   userLifecycleWorkflow,
@@ -940,6 +1007,7 @@ export const workflows = [
   multibancoBookingPendingWorkflow,
   multibancoPaymentReminderWorkflow,
   expertPayoutNotificationWorkflow,
+  reservationExpiredWorkflow,
 ];
 
 // Add to the existing workflow configuration
