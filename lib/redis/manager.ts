@@ -98,6 +98,11 @@ class RedisManager {
           return result;
         }
 
+        // If result is a number (from INCR/INCRBY operations), convert to string
+        if (typeof result === 'number') {
+          return result.toString();
+        }
+
         // If result is an object, it's likely already parsed JSON from Upstash
         // Re-stringify it to maintain API contract
         if (typeof result === 'object') {
@@ -106,7 +111,7 @@ class RedisManager {
 
         // For any other unexpected type, log error and delete
         console.error(
-          `RedisManager.get: Invalid value type for key "${key}". Expected string, null, or object, got ${typeof result}. Deleting invalid cache.`,
+          `RedisManager.get: Invalid value type for key "${key}". Expected string, null, number, or object, got ${typeof result}. Deleting invalid cache.`,
         );
         await this.redis.del(key);
         return null;

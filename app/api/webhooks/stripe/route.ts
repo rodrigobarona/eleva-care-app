@@ -478,6 +478,12 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         mapPaymentStatus(session.payment_status, session.id) === 'succeeded',
     });
 
+    // Extract payment intent ID - can be string or expanded PaymentIntent object
+    const paymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+
     const result = await createMeeting({
       eventId: meetingData.id,
       clerkUserId: meetingData.expert,
@@ -487,6 +493,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       guestNotes: meetingData.notes,
       timezone: meetingData.timezone || 'UTC', // Use provided timezone or fallback to UTC
       stripeSessionId: session.id,
+      stripePaymentIntentId: paymentIntentId, // 🔧 FIX: Store paymentIntentId for later lookup in payment_intent.succeeded
       stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
       stripeAmount: session.amount_total ?? undefined,
       stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
