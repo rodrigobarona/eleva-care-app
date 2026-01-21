@@ -43,6 +43,8 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_ACCOUNT_UPDATE:
+        // Note: This was previously used for payment notifications with eventType: 'welcome'
+        // which incorrectly sent welcome emails. Changed to 'account-updated' for proper usage.
         await triggerWorkflow({
           workflowId: 'user-lifecycle',
           to: {
@@ -51,7 +53,7 @@ export async function createUserNotification(params: CreateNotificationParams): 
             ...(data.firstName ? { firstName: data.firstName as string } : {}),
           },
           payload: {
-            eventType: 'welcome',
+            eventType: 'account-updated',
             userName: (data.userName as string) || 'User',
             ...data,
           },

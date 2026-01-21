@@ -22,6 +22,7 @@ import {
 } from '@/lib/constants/payment-transfers';
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
+import { elevaEmailService } from '@/lib/integrations/novu/email-service';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
@@ -47,21 +48,9 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
   }
 }
 
-/**
- * Notify expert about successful payment
- */
-async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
-  await createUserNotification({
-    userId: transfer.expertClerkUserId,
-    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
-    data: {
-      userName: 'Expert',
-      title: 'Payment Received',
-      message: 'A payment for your session has been successfully processed.',
-      actionUrl: '/account/payments',
-    },
-  });
-}
+// Note: notifyExpertOfPaymentSuccess was removed - it incorrectly used user-lifecycle
+// workflow with eventType: 'welcome', sending welcome emails instead of payment notifications.
+// Expert payment notifications are now handled by marketplace-universal workflow.
 
 /**
  * Notify expert about failed payment
@@ -1109,10 +1098,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         );
         console.log(`Transfer record ${transfer.id} status updated to READY.`);
 
-        // Notify the expert about the successful payment
-        await notifyExpertOfPaymentSuccess(transfer);
-
-        // Also trigger Novu marketplace workflow for enhanced notifications
+        // Trigger Novu marketplace workflow for expert payment notification
+        // Note: Removed notifyExpertOfPaymentSuccess() as it incorrectly sent welcome emails
         try {
           const user = await db.query.UserTable.findFirst({
             where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
@@ -1124,15 +1111,18 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             const amount = (transfer.amount / 100).toFixed(2); // Convert cents to euros
 
             const payload = {
+              eventType: 'payment-received' as const,
               amount,
               clientName: meeting.guestName || 'Client',
               sessionDate,
               transactionId: paymentIntent.id,
               dashboardUrl: '/account/billing',
+              expertName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Expert',
+              message: `Payment of €${amount} received for session on ${sessionDate}`,
             };
 
             await triggerWorkflow({
-              workflowId: 'marketplace-payment-received',
+              workflowId: 'marketplace-universal',
               to: {
                 subscriberId: user.clerkUserId,
                 email: user.email || 'no-email@eleva.care',
@@ -1217,32 +1207,54 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           const appointmentDuration = `${durationMinutes} minutes`;
 
           try {
-            console.log(`Attempting to send payment confirmation email to ${guestEmail}`);
-            const { html, text, subject } = await generateAppointmentEmail({
-              expertName,
-              clientName: guestName,
-              appointmentDate,
-              appointmentTime,
-              timezone: meetingTimezone,
-              appointmentDuration,
-              eventTitle: eventName,
-              meetLink: meetingDetails.meetingUrl ?? undefined,
-              notes: meetingDetails.guestNotes ?? undefined,
-              locale: extractLocaleFromPaymentIntent(paymentIntent),
+            console.log(`Attempting to send payment receipt email to ${guestEmail}`);
+            const locale = extractLocaleFromPaymentIntent(paymentIntent);
+            const amount = (paymentIntent.amount / 100).toFixed(2);
+            const currency = paymentIntent.currency?.toUpperCase() || 'EUR';
+
+            // Determine payment method from payment intent
+            const paymentMethodTypes = paymentIntent.payment_method_types || [];
+            const paymentMethod = paymentMethodTypes.includes('multibanco')
+              ? 'Multibanco'
+              : paymentMethodTypes.includes('card')
+                ? 'Card'
+                : 'Online Payment';
+
+            // Render payment confirmation email (simple receipt, not full appointment details)
+            const html = await elevaEmailService.renderPaymentConfirmation({
+              customerName: guestName,
+              amount: `${amount}`,
+              currency,
+              transactionId: paymentIntent.id,
+              locale,
+              // Include basic appointment reference (full details come from calendar email)
+              appointmentDetails: {
+                service: eventName,
+                expert: expertName,
+                date: appointmentDate,
+                time: appointmentTime,
+                duration: appointmentDuration,
+              },
             });
+
+            const subject = locale.startsWith('pt')
+              ? `✅ Pagamento confirmado - ${currency} ${amount}`
+              : locale.startsWith('es')
+                ? `✅ Pago confirmado - ${currency} ${amount}`
+                : `✅ Payment Confirmed - ${currency} ${amount}`;
 
             await sendEmail({
               to: guestEmail,
               subject,
               html,
-              text,
+              text: `Your payment of ${currency} ${amount} via ${paymentMethod} has been confirmed. Transaction ID: ${paymentIntent.id}. Appointment details will follow in a separate email.`,
             });
             console.log(
-              `Payment confirmation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
+              `Payment receipt email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
             );
           } catch (emailError) {
             console.error(
-              `Failed to send payment confirmation email to ${guestEmail} for PI ${paymentIntent.id}:`,
+              `Failed to send payment receipt email to ${guestEmail} for PI ${paymentIntent.id}:`,
               emailError,
             );
             // Do not fail the entire webhook for email error
