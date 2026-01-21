@@ -1,5 +1,4 @@
 import { isExpert } from '@/lib/auth/roles.server';
-import { sendDebugTelemetry } from '@/lib/utils/debug-telemetry';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -12,14 +11,6 @@ export const dynamic = 'force-dynamic';
 export default async function BillingPage() {
   const { userId, getToken } = await auth();
 
-  // Debug telemetry - gated and redacted
-  sendDebugTelemetry({
-    location: 'billing/page.tsx:entry',
-    message: 'BillingPage entry',
-    data: { userId, hasUserId: !!userId },
-    hypothesisId: 'A,C',
-  });
-
   // Check if user has expert role, redirect to unauthorized if not
   if (!userId || !(await isExpert())) {
     return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
@@ -27,19 +18,6 @@ export default async function BillingPage() {
 
   try {
     const token = await getToken();
-
-    // Debug telemetry - gated and redacted
-    sendDebugTelemetry({
-      location: 'billing/page.tsx:token',
-      message: 'Token obtained',
-      data: { hasToken: !!token, tokenLength: token?.length },
-      hypothesisId: 'C',
-    });
-
-    // #region agent log - console for Vercel
-    console.log('[DEBUG billing/page.tsx:token]', { hasToken: !!token });
-    // #endregion
-
     if (!token) {
       return (
         <div className="container flex min-h-[400px] items-center justify-center">
@@ -48,21 +26,7 @@ export default async function BillingPage() {
       );
     }
 
-    const fetchUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/user/billing`;
-
-    // Debug telemetry - gated and redacted
-    sendDebugTelemetry({
-      location: 'billing/page.tsx:fetch-start',
-      message: 'Starting fetch',
-      data: { fetchUrl, envVar: process.env.NEXT_PUBLIC_APP_URL },
-      hypothesisId: 'B',
-    });
-
-    // #region agent log - console for Vercel
-    console.log('[DEBUG billing/page.tsx:fetch-start]', { fetchUrl });
-    // #endregion
-
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/billing`, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
@@ -70,48 +34,11 @@ export default async function BillingPage() {
       cache: 'no-store',
     });
 
-    // Debug telemetry - gated and redacted
-    sendDebugTelemetry({
-      location: 'billing/page.tsx:fetch-response',
-      message: 'Fetch response received',
-      data: { ok: response.ok, status: response.status, statusText: response.statusText },
-      hypothesisId: 'B,D',
-    });
-
-    // #region agent log - console for Vercel
-    console.log('[DEBUG billing/page.tsx:fetch-response]', {
-      ok: response.ok,
-      status: response.status,
-    });
-    // #endregion
-
     if (!response.ok) {
       throw new Error('Failed to load billing data');
     }
 
     const data = await response.json();
-
-    // Debug telemetry - gated and redacted
-    sendDebugTelemetry({
-      location: 'billing/page.tsx:data-parsed',
-      message: 'Data parsed',
-      data: {
-        hasData: !!data,
-        hasUser: !!data?.user,
-        userKeys: data?.user ? Object.keys(data.user) : [],
-        hasAccountStatus: !!data?.accountStatus,
-      },
-      hypothesisId: 'A,D',
-    });
-
-    // #region agent log - console for Vercel
-    console.log('[DEBUG billing/page.tsx:data-parsed]', {
-      hasData: !!data,
-      hasUser: !!data?.user,
-      userKeys: data?.user ? Object.keys(data.user) : [],
-      hasAccountStatus: !!data?.accountStatus,
-    });
-    // #endregion
 
     if (!data || !data.user) {
       return (
@@ -134,47 +61,8 @@ export default async function BillingPage() {
       });
     }
 
-    // Debug telemetry - gated and redacted
-    sendDebugTelemetry({
-      location: 'billing/page.tsx:render',
-      message: 'Rendering BillingPageClient',
-      data: {
-        userId: data.user.id,
-        hasStripeConnectAccountId: !!data.user.stripeConnectAccountId,
-        hasStripeIdentityVerified: 'stripeIdentityVerified' in data.user,
-        stripeIdentityVerifiedValue: data.user.stripeIdentityVerified,
-      },
-      hypothesisId: 'A',
-    });
-
-    // #region agent log - console for Vercel
-    console.log('[DEBUG billing/page.tsx:render]', {
-      hasStripeConnectAccountId: !!data.user.stripeConnectAccountId,
-      hasStripeIdentityVerified: 'stripeIdentityVerified' in data.user,
-      stripeIdentityVerifiedValue: data.user.stripeIdentityVerified,
-    });
-    // #endregion
-
     return <BillingPageClient dbUser={data.user} accountStatus={data.accountStatus} />;
-  } catch (error) {
-    // Debug telemetry - gated and redacted (no stack traces)
-    sendDebugTelemetry({
-      location: 'billing/page.tsx:catch',
-      message: 'Error caught',
-      data: {
-        errorMessage: error instanceof Error ? error.message : String(error),
-      },
-      hypothesisId: 'E',
-    });
-
-    // #region agent log - console for Vercel
-    console.error(
-      '[DEBUG billing/page.tsx:catch] Error caught:',
-      error instanceof Error ? error.message : String(error),
-      error instanceof Error ? error.stack : '',
-    );
-    // #endregion
-
+  } catch {
     return (
       <div className="container flex min-h-[400px] items-center justify-center">
         <p className="text-destructive">Failed to load billing data. Please try again later.</p>
