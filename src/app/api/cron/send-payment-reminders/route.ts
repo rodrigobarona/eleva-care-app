@@ -6,22 +6,100 @@ import {
   SlotReservationsTable,
   UsersTable,
 } from '@/drizzle/schema';
-import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
-import { sendEmail } from '@/lib/integrations/novu/email';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
-import { render } from '@react-email/components';
+import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
+import { logger } from '@/lib/utils/logger';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import Stripe from 'stripe';
 
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
+
+// Initialize Stripe client with validation (fail-fast pattern)
+if (!ENV_CONFIG.STRIPE_SECRET_KEY) {
+  throw new Error(
+    '[CRON] STRIPE_SECRET_KEY is required for payment reminders. Please set it in your environment variables.',
+  );
+}
+
+const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
+  apiVersion: ENV_CONFIG.STRIPE_API_VERSION as Stripe.LatestApiVersion,
+});
+
+/**
+ * Rate-limited Stripe API call helper
+ * Adds a small delay between Stripe API calls to avoid rate limiting
+ */
+async function rateLimitedStripeCall<T>(
+  apiCall: () => Promise<T>,
+  operationName: string,
+): Promise<T> {
+  try {
+    const result = await apiCall();
+    // Small delay to avoid hitting Stripe rate limits (100 requests per second)
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    return result;
+  } catch (error) {
+    logger.error(`Stripe API error during ${operationName}`, {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
+/**
+ * Parse customer name from Stripe PaymentIntent or customer metadata
+ */
+function parseCustomerName(
+  paymentIntent: Stripe.PaymentIntent,
+  customerData?: { name?: string | null } | null,
+): { firstName: string; lastName: string } {
+  // Try to get name from payment intent metadata first
+  const meetingData = paymentIntent.metadata?.meeting;
+  if (meetingData) {
+    try {
+      const parsed = JSON.parse(meetingData);
+      if (parsed.guestName) {
+        const nameParts = parsed.guestName.split(' ');
+        return {
+          firstName: nameParts[0] || 'Valued',
+          lastName: nameParts.slice(1).join(' ') || 'Customer',
+        };
+      }
+    } catch {
+      // Continue to next fallback
+    }
+  }
+
+  // Try direct metadata
+  if (paymentIntent.metadata?.customerName) {
+    const nameParts = paymentIntent.metadata.customerName.split(' ');
+    return {
+      firstName: nameParts[0] || 'Valued',
+      lastName: nameParts.slice(1).join(' ') || 'Customer',
+    };
+  }
+
+  // Try customer data
+  if (customerData?.name) {
+    const nameParts = customerData.name.split(' ');
+    return {
+      firstName: nameParts[0] || 'Valued',
+      lastName: nameParts.slice(1).join(' ') || 'Customer',
+    };
+  }
+
+  return { firstName: 'Valued', lastName: 'Customer' };
+}
 
 /**
  * CRON Job: Send Multibanco Payment Reminders
@@ -36,10 +114,9 @@ export const maxDuration = 60;
  * Scheduling recommendation: Run every 6 hours to ensure timely delivery
  */
 export async function GET(request: NextRequest) {
-  console.log(
-    'Received request to send-payment-reminders with headers:',
-    Object.fromEntries(request.headers.entries()),
-  );
+  logger.info('Received request to send-payment-reminders', {
+    headers: Object.fromEntries(request.headers.entries()),
+  });
 
   // Enhanced authentication with multiple fallbacks
   // First try QStash verification
@@ -74,10 +151,9 @@ export async function GET(request: NextRequest) {
     (hasUpstashSignature && isUpstashUserAgent) ||
     (isProduction && allowFallback && isUpstashUserAgent)
   ) {
-    console.log('🔓 Authentication successful for send-payment-reminders');
+    logger.info('Authentication successful for send-payment-reminders');
   } else {
-    console.error('❌ Unauthorized access attempt to send-payment-reminders');
-    console.error('Authentication details:', {
+    logger.error('Unauthorized access attempt to send-payment-reminders', {
       verifiedQStash,
       isValidApiKey,
       isValidCronSecret,
@@ -89,7 +165,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('[CRON] Starting Multibanco payment reminders job...');
+  logger.info('Starting Multibanco payment reminders job...');
 
   try {
     const currentTime = new Date();
@@ -114,7 +190,7 @@ export async function GET(request: NextRequest) {
     const reminderResults = [];
 
     for (const stage of reminderStages) {
-      console.log(`[CRON] Processing ${stage.description}...`);
+      logger.info(`Processing ${stage.description}...`);
 
       // Calculate the time window for this reminder stage
       const reminderWindowStart = new Date(
@@ -162,9 +238,7 @@ export async function GET(request: NextRequest) {
           ),
         );
 
-      console.log(
-        `[CRON] Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`,
-      );
+      logger.info(`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`);
 
       let stageRemindersSent = 0;
 
@@ -172,9 +246,7 @@ export async function GET(request: NextRequest) {
         const { reservation, event, expert, profile } = item;
 
         if (!event || !expert) {
-          console.warn(
-            `[CRON] Skipping reservation ${reservation.id} - missing event or expert data`,
-          );
+          logger.warn(`Skipping reservation ${reservation.id} - missing event or expert data`);
           continue;
         }
 
@@ -190,28 +262,75 @@ export async function GET(request: NextRequest) {
 
           // Don't send gentle reminders too early (wait at least 48 hours after creation)
           if (stage.type === 'gentle' && hoursSinceCreation < 48) {
-            console.log(
-              `[CRON] Skipping gentle reminder for reservation ${reservation.id} - too recent (${hoursSinceCreation.toFixed(1)}h old)`,
+            logger.info(
+              `Skipping gentle reminder for reservation ${reservation.id} - too recent (${hoursSinceCreation.toFixed(1)}h old)`,
             );
             continue;
           }
 
           // Don't send urgent reminders too early (wait at least 120 hours after creation)
           if (stage.type === 'urgent' && hoursSinceCreation < 120) {
-            console.log(
-              `[CRON] Skipping urgent reminder for reservation ${reservation.id} - not urgent yet (${hoursSinceCreation.toFixed(1)}h old)`,
+            logger.info(
+              `Skipping urgent reminder for reservation ${reservation.id} - not urgent yet (${hoursSinceCreation.toFixed(1)}h old)`,
             );
             continue;
           }
 
-          // Get Multibanco payment details (this would need to be stored or retrieved from Stripe)
-          // For now, we'll create placeholder values - in production, this should come from Stripe metadata
-          const multibancoDetails = {
-            entity: '12345', // This should come from Stripe webhook data
-            reference: '123456789', // This should come from Stripe webhook data
-            amount: '0.00', // This should come from the payment intent
-            hostedVoucherUrl: `https://stripe.com/voucher/${reservation.stripePaymentIntentId}`,
+          // Fetch real Multibanco details from Stripe PaymentIntent
+          let multibancoDetails = {
+            entity: '',
+            reference: '',
+            amount: '0.00',
+            hostedVoucherUrl: '',
           };
+          let locale = 'en';
+          let customerFirstName = 'Valued';
+          let customerLastName = 'Customer';
+
+          if (reservation.stripePaymentIntentId) {
+            try {
+              const paymentIntent = await rateLimitedStripeCall(
+                () =>
+                  stripe.paymentIntents.retrieve(reservation.stripePaymentIntentId!, {
+                    expand: ['latest_charge.payment_method_details'],
+                  }),
+                'retrieve payment intent',
+              );
+
+              // Extract locale from payment intent metadata
+              locale = extractLocaleFromPaymentIntent(paymentIntent);
+
+              // Parse customer name
+              const customerName = parseCustomerName(paymentIntent);
+              customerFirstName = customerName.firstName;
+              customerLastName = customerName.lastName;
+
+              // Get Multibanco voucher details from the latest charge
+              const latestCharge = paymentIntent.latest_charge as Stripe.Charge | null;
+              const paymentMethodDetails = latestCharge?.payment_method_details;
+
+              if (paymentMethodDetails?.type === 'multibanco' && paymentMethodDetails.multibanco) {
+                const multibanco = paymentMethodDetails.multibanco;
+                multibancoDetails = {
+                  entity: multibanco.entity || '',
+                  reference: multibanco.reference || '',
+                  amount: (paymentIntent.amount / 100).toFixed(2),
+                  hostedVoucherUrl: latestCharge?.receipt_url || '',
+                };
+              } else {
+                // Fallback: Use amount from payment intent if Multibanco details not available
+                multibancoDetails.amount = (paymentIntent.amount / 100).toFixed(2);
+                logger.warn(
+                  `Multibanco details not found for payment intent ${reservation.stripePaymentIntentId}`,
+                );
+              }
+            } catch (stripeError) {
+              logger.error(`Failed to fetch Stripe payment intent for reservation ${reservation.id}`, {
+                error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+              });
+              // Continue with placeholder values
+            }
+          }
 
           // Format appointment details
           // Use profile name if available, otherwise fallback to username or 'Expert'
@@ -221,11 +340,22 @@ export async function GET(request: NextRequest) {
           const appointmentDate = format(reservation.startTime, 'EEEE, MMMM d, yyyy');
           const appointmentTime = format(reservation.startTime, 'h:mm a');
           const voucherExpiresFormatted = format(reservation.expiresAt, 'PPP p');
+          const customerFullName = `${customerFirstName} ${customerLastName}`.trim();
 
-          // Render reminder email
-          const emailHtml = await render(
-            MultibancoPaymentReminderTemplate({
-              customerName: 'Valued Customer', // Could be stored in reservation or retrieved from metadata
+          // Trigger Novu workflow for payment reminder
+          const workflowResult = await triggerWorkflow({
+            workflowId: 'multibanco-payment-reminder',
+            to: {
+              subscriberId: reservation.guestEmail,
+              email: reservation.guestEmail,
+              firstName: customerFirstName,
+              lastName: customerLastName,
+              data: {
+                locale,
+              },
+            },
+            payload: {
+              customerName: customerFullName,
               expertName,
               serviceName: event.name,
               appointmentDate,
@@ -239,23 +369,13 @@ export async function GET(request: NextRequest) {
               hostedVoucherUrl: multibancoDetails.hostedVoucherUrl,
               reminderType: stage.type,
               daysRemaining,
-              locale: 'en',
-            }),
-          );
-
-          // Send reminder email
-          const emailResult = await sendEmail({
-            to: reservation.guestEmail,
-            subject:
-              stage.type === 'urgent'
-                ? '🚨 URGENT: Complete Your Multibanco Payment - Final Reminder'
-                : '💙 Friendly Reminder: Complete Your Multibanco Payment',
-            html: emailHtml,
+              locale,
+            },
           });
 
-          if (emailResult.success) {
-            console.log(
-              `[CRON] ✅ ${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
+          if (workflowResult) {
+            logger.info(
+              `${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
             );
 
             // Mark reminder as sent to prevent duplicates
@@ -269,15 +389,14 @@ export async function GET(request: NextRequest) {
 
             stageRemindersSent++;
           } else {
-            console.error(
-              `[CRON] ❌ Failed to send ${stage.description} to ${reservation.guestEmail}: ${emailResult.error}`,
+            logger.error(
+              `Failed to trigger workflow for ${stage.description} to ${reservation.guestEmail}`,
             );
           }
         } catch (reminderError) {
-          console.error(
-            `[CRON] Error sending reminder for reservation ${reservation.id}:`,
-            reminderError,
-          );
+          logger.error(`Error sending reminder for reservation ${reservation.id}`, {
+            error: reminderError instanceof Error ? reminderError.message : String(reminderError),
+          });
         }
       }
 
@@ -290,7 +409,7 @@ export async function GET(request: NextRequest) {
       totalRemindersSent += stageRemindersSent;
     }
 
-    console.log(`[CRON] Payment reminders job completed:`, {
+    logger.info('Payment reminders job completed', {
       totalRemindersSent,
       stages: reminderResults,
       timestamp: currentTime.toISOString(),
@@ -309,7 +428,9 @@ export async function GET(request: NextRequest) {
       timestamp: currentTime.toISOString(),
     });
   } catch (error) {
-    console.error('[CRON] Error during payment reminders job:', error);
+    logger.error('Error during payment reminders job', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Send failure heartbeat to BetterStack
     await sendHeartbeatFailure(
