@@ -134,7 +134,7 @@ export const POST = async (request: Request) => {
       case 'account.external_account.updated':
       case 'account.external_account.deleted': {
         const externalAccount = event.data.object as Stripe.BankAccount | Stripe.Card;
-        const eventType = event.type.split('.').pop(); // 'created', 'updated', or 'deleted'
+        const eventAction = event.type.split('.').pop(); // 'created', 'updated', or 'deleted'
 
         // Update user's bank account status
         if ('bank_name' in externalAccount && typeof externalAccount.account === 'string') {
@@ -148,7 +148,7 @@ export const POST = async (request: Request) => {
             .where(eq(UserTable.stripeConnectAccountId, externalAccount.account));
         }
 
-        console.log(`Bank account ${eventType} for Connect account:`, {
+        console.log(`Bank account ${eventAction} for Connect account:`, {
           accountId: externalAccount.account,
           last4: externalAccount.last4,
           bankName: 'bank_name' in externalAccount ? externalAccount.bank_name : undefined,
