@@ -1,3 +1,20 @@
+/**
+ * Stripe Connect Webhook Handler
+ *
+ * Processes Stripe Connect events for the expert marketplace:
+ * - `account.updated` - Expert onboarding status changes
+ * - `account.application.deauthorized` - Expert disconnects Stripe
+ * - `account.external_account.*` - Bank account changes
+ * - `payout.*` - Payout status (created, paid, failed)
+ *
+ * @route POST /api/webhooks/stripe-connect
+ *
+ * @security
+ * - Verifies Stripe signature using STRIPE_CONNECT_WEBHOOK_SECRET
+ * - Returns 400 for invalid signatures
+ *
+ * @see https://stripe.com/docs/connect/webhooks
+ */
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
@@ -5,7 +22,7 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Add route segment config
+// Route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

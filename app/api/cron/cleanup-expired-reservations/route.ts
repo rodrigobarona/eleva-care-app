@@ -1,3 +1,36 @@
+/**
+ * Cleanup Expired Slot Reservations Cron Job
+ *
+ * Removes expired and duplicate slot reservations to keep the system clean.
+ * Runs periodically via QStash to release appointment slots that were
+ * reserved but never paid for (e.g., abandoned Multibanco payments).
+ *
+ * @route GET /api/cron/cleanup-expired-reservations
+ *
+ * ## Tasks Performed
+ * - Identifies slot reservations past their expiration time
+ * - Removes expired reservations from the database
+ * - Detects and removes duplicate reservations (same event, time, guest)
+ * - Logs detailed information about deleted reservations
+ * - Reports to BetterStack heartbeat for monitoring
+ *
+ * ## Authentication
+ * Supports multiple authentication methods (in priority order):
+ * 1. QStash signature verification
+ * 2. API key header (x-api-key)
+ * 3. Upstash signature headers
+ * 4. Legacy cron secret (x-cron-secret)
+ *
+ * @example Response
+ * ```json
+ * {
+ *   "status": "OK",
+ *   "deletedReservations": 3,
+ *   "deletedDuplicates": 1,
+ *   "timestamp": "2026-01-21T12:00:00.000Z"
+ * }
+ * ```
+ */
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { SlotReservationTable } from '@/drizzle/schema';
@@ -10,17 +43,9 @@ import { lt, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Add route segment config
+// Route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
-
-// Enhanced Cleanup for Slot Reservations - Removes expired and duplicate reservations
-// Performs the following tasks:
-// - Identifies slot reservations that have passed their expiration time
-// - Removes expired reservations from the database
-// - Detects and removes duplicate reservations (same event, time, guest)
-// - Logs detailed information about deleted reservations
-// - Provides cleanup statistics for monitoring
 
 export async function GET(request: NextRequest) {
   // Log all headers for debugging

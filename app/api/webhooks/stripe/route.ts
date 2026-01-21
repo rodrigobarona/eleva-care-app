@@ -1,3 +1,28 @@
+/**
+ * Main Stripe Webhook Handler
+ *
+ * Processes all payment-related Stripe webhook events:
+ * - `checkout.session.completed` - New booking created
+ * - `payment_intent.succeeded` - Payment confirmed (card or Multibanco)
+ * - `payment_intent.payment_failed` - Payment failed
+ * - `payment_intent.requires_action` - Multibanco voucher generated
+ * - `charge.refunded` - Payment refunded
+ * - `charge.dispute.created` - Chargeback initiated
+ * - `payout.*` - Expert payout events
+ * - `account.*` - Stripe Connect account updates
+ * - `identity.*` - Identity verification updates
+ *
+ * @route POST /api/webhooks/stripe
+ *
+ * @security
+ * - Verifies Stripe signature using STRIPE_WEBHOOK_SECRET
+ * - Returns 400 for invalid signatures
+ * - Monitors webhook health via Redis metrics
+ *
+ * @see {@link https://stripe.com/docs/webhooks} - Stripe Webhooks Guide
+ * @see {@link ./handlers/payment} - Payment event handlers
+ * @see {@link ./handlers/payout} - Payout event handlers
+ */
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import {

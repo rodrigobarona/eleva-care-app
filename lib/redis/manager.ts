@@ -81,7 +81,34 @@ class RedisManager {
   }
 
   /**
-   * Get a value by key
+   * Retrieves a value from Redis by key.
+   *
+   * Handles multiple return types from Redis operations:
+   * - `string` - Direct string values (returned as-is)
+   * - `number` - Counter values from INCR/INCRBY (converted to string)
+   * - `object` - Parsed JSON from Upstash (re-stringified for consistency)
+   * - `null` - Key doesn't exist
+   *
+   * @param {string} key - The cache key to retrieve
+   * @returns {Promise<string | null>} The cached value or null if not found
+   *
+   * @example
+   * ```typescript
+   * // Get a string value
+   * const value = await redis.get('user:123:name');
+   *
+   * // Get a counter value (from INCR)
+   * const count = await redis.get('webhook:success_count');
+   * // Returns "42" (as string)
+   *
+   * // Get a JSON object (will be re-stringified)
+   * const data = await redis.get('cache:settings');
+   * const parsed = JSON.parse(data);
+   * ```
+   *
+   * @remarks
+   * Falls back to in-memory cache if Redis is unavailable.
+   * Invalid/unexpected types are logged, deleted, and return null.
    */
   async get(key: string): Promise<string | null> {
     if (this.isRedisAvailable && this.redis) {
