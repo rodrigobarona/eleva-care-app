@@ -1068,14 +1068,23 @@ export const reservationExpiredWorkflow = workflow(
         locale: payload.locale || 'en',
       });
 
-      // Different subjects for patient vs expert
-      const subject = isPatient
-        ? payload.locale === 'pt'
-          ? `⏰ A sua reserva expirou - ${payload.serviceName}`
-          : payload.locale === 'es'
-            ? `⏰ Su reserva ha expirado - ${payload.serviceName}`
-            : `⏰ Your booking has expired - ${payload.serviceName}`
-        : `⏰ Pending booking cancelled - ${payload.serviceName}`;
+      // Different subjects for patient vs expert (both localized)
+      let subject: string;
+      if (isPatient) {
+        subject =
+          payload.locale === 'pt'
+            ? `⏰ A sua reserva expirou - ${payload.serviceName}`
+            : payload.locale === 'es'
+              ? `⏰ Su reserva ha expirado - ${payload.serviceName}`
+              : `⏰ Your booking has expired - ${payload.serviceName}`;
+      } else {
+        subject =
+          payload.locale === 'pt'
+            ? `⏰ Reserva pendente cancelada - ${payload.serviceName}`
+            : payload.locale === 'es'
+              ? `⏰ Reserva pendiente cancelada - ${payload.serviceName}`
+              : `⏰ Pending booking cancelled - ${payload.serviceName}`;
+      }
 
       return {
         subject,

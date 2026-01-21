@@ -123,14 +123,21 @@ async function handler() {
             ? 'es'
             : 'en';
 
+        // Safely extract firstName and lastName from customerName
+        // Handle empty, whitespace-only, or missing names
+        const trimmedCustomerName = (appointment.customerName || '').trim();
+        const nameParts = trimmedCustomerName ? trimmedCustomerName.split(' ') : [];
+        const firstName = nameParts[0] || undefined;
+        const lastName = nameParts.slice(1).join(' ') || undefined;
+
         // Trigger patient urgent reminder via Novu workflow (uses email as subscriber ID)
         const patientResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
             subscriberId: appointment.guestEmail, // Use email as subscriber ID for guests
             email: appointment.guestEmail,
-            firstName: appointment.customerName.split(' ')[0],
-            lastName: appointment.customerName.split(' ').slice(1).join(' ') || undefined,
+            firstName,
+            lastName,
           },
           payload: {
             eventType: 'reminder',
