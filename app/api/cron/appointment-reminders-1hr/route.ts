@@ -73,7 +73,7 @@ async function handler() {
           appointment.expertLocale,
         );
 
-        await triggerWorkflow({
+        const expertResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
             subscriberId: appointment.expertClerkId,
@@ -91,6 +91,10 @@ async function handler() {
           },
           transactionId: `reminder-1hr-expert-${appointment.id}`, // Idempotency key
         });
+
+        if (!expertResult) {
+          throw new Error('Workflow trigger returned null');
+        }
 
         console.log(`⚡ URGENT reminder sent to expert: ${appointment.expertClerkId}`);
         expertRemindersSent++;
@@ -120,7 +124,7 @@ async function handler() {
             : 'en';
 
         // Trigger patient urgent reminder via Novu workflow (uses email as subscriber ID)
-        await triggerWorkflow({
+        const patientResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
             subscriberId: appointment.guestEmail, // Use email as subscriber ID for guests
@@ -146,6 +150,10 @@ async function handler() {
           },
           transactionId: `reminder-1hr-patient-${appointment.id}`, // Idempotency key
         });
+
+        if (!patientResult) {
+          throw new Error('Workflow trigger returned null');
+        }
 
         console.log(`⚡ URGENT reminder sent to patient via Novu: ${appointment.guestEmail}`);
         patientRemindersSent++;

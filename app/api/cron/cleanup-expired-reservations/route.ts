@@ -227,6 +227,7 @@ export async function GET(request: NextRequest) {
             appointmentTime,
             timezone,
             locale,
+            recipientType: 'expert',
           },
           transactionId: `reservation-expired-${reservation.id}`, // Idempotency key
         });
