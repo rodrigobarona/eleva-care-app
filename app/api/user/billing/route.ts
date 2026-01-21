@@ -1,5 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
+import { redactResponsePayload, sendDebugTelemetry } from '@/lib/utils/debug-telemetry';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -21,20 +22,13 @@ export async function GET() {
     clerkUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/5ec49622-4f23-4e7d-b9b7-b1ff787148b0', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'api/user/billing:auth',
-        message: 'Auth result',
-        data: { userId, hasId: !!userId },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        hypothesisId: 'C',
-      }),
-    }).catch(() => {});
-    // #endregion
+    // Debug telemetry - gated and redacted
+    sendDebugTelemetry({
+      location: 'api/user/billing:auth',
+      message: 'Auth result',
+      data: { userId, hasId: !!userId },
+      hypothesisId: 'C',
+    });
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,26 +37,19 @@ export async function GET() {
     // Use our synchronization service to ensure all systems are in sync
     const user = await ensureFullUserSynchronization(userId);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/5ec49622-4f23-4e7d-b9b7-b1ff787148b0', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'api/user/billing:sync',
-        message: 'User sync result',
-        data: {
-          hasUser: !!user,
-          userId: user?.id,
-          stripeIdentityVerified: user?.stripeIdentityVerified,
-          stripeConnectAccountId: user?.stripeConnectAccountId,
-          allUserKeys: user ? Object.keys(user) : [],
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        hypothesisId: 'A',
-      }),
-    }).catch(() => {});
-    // #endregion
+    // Debug telemetry - gated and redacted
+    sendDebugTelemetry({
+      location: 'api/user/billing:sync',
+      message: 'User sync result',
+      data: {
+        hasUser: !!user,
+        userId: user?.id,
+        stripeIdentityVerified: user?.stripeIdentityVerified,
+        stripeConnectAccountId: user?.stripeConnectAccountId,
+        allUserKeys: user ? Object.keys(user) : [],
+      },
+      hypothesisId: 'A',
+    });
 
     if (!user) {
       console.error('Failed to synchronize user:', { clerkUserId: userId });
@@ -112,37 +99,24 @@ export async function GET() {
       accountStatus,
     };
 
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/5ec49622-4f23-4e7d-b9b7-b1ff787148b0', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'api/user/billing:response',
-        message: 'Sending response',
-        data: { responsePayload },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        hypothesisId: 'A,D',
-      }),
-    }).catch(() => {});
-    // #endregion
+    // Debug telemetry - gated and redacted (uses special response payload redactor)
+    sendDebugTelemetry({
+      location: 'api/user/billing:response',
+      message: 'Sending response',
+      data: redactResponsePayload(responsePayload as Record<string, unknown>),
+      hypothesisId: 'A,D',
+    });
 
     return NextResponse.json(responsePayload);
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/5ec49622-4f23-4e7d-b9b7-b1ff787148b0', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'api/user/billing:error',
-        message: 'API error',
-        data: { errorMessage: error instanceof Error ? error.message : String(error) },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        hypothesisId: 'E',
-      }),
-    }).catch(() => {});
-    // #endregion
+    // Debug telemetry - gated and redacted
+    sendDebugTelemetry({
+      location: 'api/user/billing:error',
+      message: 'API error',
+      data: { errorMessage: error instanceof Error ? error.message : String(error) },
+      hypothesisId: 'E',
+    });
+
     console.error('Error in user billing API:', {
       error,
       clerkUserId,

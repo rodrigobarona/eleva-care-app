@@ -517,6 +517,17 @@ export const appointmentWorkflow = workflow(
           : `Reminder: Your appointment with ${payload.expertName}`;
       } else if (payload.eventType === 'confirmed') {
         if (isExpert) {
+          // Normalize payload.locale to base language (e.g., 'pt-BR' -> 'pt')
+          // and validate against allowed set {'en', 'pt', 'es'}
+          const rawLocale = payload.locale || 'en';
+          const baseLanguage = rawLocale.split('-')[0].toLowerCase();
+          const allowedLocales = ['en', 'pt', 'es'] as const;
+          const normalizedLocale: 'en' | 'pt' | 'es' = allowedLocales.includes(
+            baseLanguage as 'en' | 'pt' | 'es',
+          )
+            ? (baseLanguage as 'en' | 'pt' | 'es')
+            : 'en';
+
           // Use expert-specific appointment confirmation template
           emailBody = await elevaEmailService.renderExpertNewAppointment({
             expertName: payload.expertName,
@@ -528,7 +539,7 @@ export const appointmentWorkflow = workflow(
             eventTitle: payload.serviceName || 'Consultation',
             meetLink: payload.meetingUrl,
             notes: payload.notes,
-            locale: (payload.locale as 'en' | 'pt' | 'es') || 'en',
+            locale: normalizedLocale,
           });
           subject = `New appointment: ${payload.customerName} - ${payload.serviceName || 'Consultation'}`;
         } else {

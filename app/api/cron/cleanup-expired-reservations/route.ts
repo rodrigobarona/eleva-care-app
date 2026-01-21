@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
 
       // Send notification to patient via Novu (using email as subscriber ID)
       try {
-        await triggerWorkflow({
+        const patientResult = await triggerWorkflow({
           workflowId: 'reservation-expired',
           to: {
             subscriberId: reservation.guestEmail, // Use email as subscriber ID for guests
@@ -198,6 +198,13 @@ export async function GET(request: NextRequest) {
           transactionId: `reservation-expired-patient-${reservation.id}`, // Idempotency key
         });
 
+        // Validate result - triggerWorkflow can return null without throwing
+        if (!patientResult) {
+          throw new Error(
+            `Workflow trigger returned null for patient notification (reservationId: ${reservation.id}, recipient: ${reservation.guestEmail})`,
+          );
+        }
+
         console.log(
           `✅ Expiration notification sent to patient via Novu: ${reservation.guestEmail}`,
         );
@@ -211,7 +218,7 @@ export async function GET(request: NextRequest) {
 
       // Send notification to expert (via Novu for in-app + email)
       try {
-        await triggerWorkflow({
+        const expertResult = await triggerWorkflow({
           workflowId: 'reservation-expired',
           to: {
             subscriberId: expertClerkId,
@@ -231,6 +238,13 @@ export async function GET(request: NextRequest) {
           },
           transactionId: `reservation-expired-${reservation.id}`, // Idempotency key
         });
+
+        // Validate result - triggerWorkflow can return null without throwing
+        if (!expertResult) {
+          throw new Error(
+            `Workflow trigger returned null for expert notification (reservationId: ${reservation.id}, recipient: ${expertClerkId})`,
+          );
+        }
 
         console.log(`✅ Expiration notification sent to expert: ${expertClerkId}`);
         notificationsSent++;
