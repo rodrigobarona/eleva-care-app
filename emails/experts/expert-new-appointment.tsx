@@ -20,12 +20,32 @@ interface ExpertNewAppointmentProps {
   eventTitle?: string;
   meetLink?: string;
   notes?: string;
-  locale?: string;
+  locale?: SupportedLocale;
 }
 
 /**
  * Email template sent to EXPERTS when they receive a new appointment booking
  * This is different from appointment-confirmation.tsx which is sent to PATIENTS
+ *
+ * @example
+ * ```tsx
+ * import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
+ *
+ * // Render the template with props
+ * const emailHtml = render(
+ *   <ExpertNewAppointmentTemplate
+ *     expertName="Patricia Mota"
+ *     clientName="Marta Carvalho"
+ *     appointmentDate="Wednesday, January 21, 2026"
+ *     appointmentTime="12:30 PM"
+ *     timezone="Europe/Lisbon"
+ *     appointmentDuration="45 minutes"
+ *     eventTitle="Physical Therapy Appointment"
+ *     meetLink="https://meet.google.com/abc-defg-hij"
+ *     locale="en"
+ *   />
+ * );
+ * ```
  */
 export default function ExpertNewAppointmentTemplate({
   expertName = 'Patricia Mota',
@@ -48,7 +68,7 @@ export default function ExpertNewAppointmentTemplate({
       previewText={previewText}
       headerVariant="branded"
       footerVariant="default"
-      locale={locale as SupportedLocale}
+      locale={locale}
     >
       {/* Success Banner */}
       <Section style={ELEVA_CARD_STYLES.success}>

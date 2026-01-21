@@ -138,10 +138,23 @@ export async function GET(request: NextRequest) {
           .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c) => c.toUpperCase()) || 'Client';
 
-      // Determine locale from guest email domain or default
-      const locale = reservation.guestEmail?.endsWith('.pt') ? 'pt' : 'en';
+      // Determine locale from guest email domain using priority:
+      // 1. Check for Portuguese domains (.pt, .com.br)
+      // 2. Check for Spanish domains (.es)
+      // 3. Default to English
+      const guestEmailLower = reservation.guestEmail?.toLowerCase() || '';
+      let locale: 'pt' | 'en' | 'es' = 'en';
+      if (
+        guestEmailLower.endsWith('.pt') ||
+        guestEmailLower.endsWith('.com.br') ||
+        guestEmailLower.endsWith('.br')
+      ) {
+        locale = 'pt';
+      } else if (guestEmailLower.endsWith('.es')) {
+        locale = 'es';
+      }
 
-      // Send notification to patient (via direct email)
+      // Send notification to patient (via direct email with idempotency)
       try {
         const patientEmailHtml = await render(
           React.createElement(ReservationExpiredTemplate, {
@@ -156,17 +169,29 @@ export async function GET(request: NextRequest) {
           }),
         );
 
-        await sendEmail({
+        // Note: For true idempotency, consider adding a 'patientNotified' flag to the reservation
+        // before deletion and checking it before sending. Current approach relies on the
+        // reservation being deleted after successful processing.
+        const emailResult = await sendEmail({
           to: reservation.guestEmail,
           subject:
             locale === 'pt'
               ? `A sua reserva expirou - ${eventName}`
-              : `Your booking reservation has expired - ${eventName}`,
+              : locale === 'es'
+                ? `Su reserva ha expirado - ${eventName}`
+                : `Your booking reservation has expired - ${eventName}`,
           html: patientEmailHtml,
         });
 
-        console.log(`✅ Expiration notification sent to patient: ${reservation.guestEmail}`);
-        notificationsSent++;
+        if (emailResult.success) {
+          console.log(`✅ Expiration notification sent to patient: ${reservation.guestEmail}`);
+          notificationsSent++;
+        } else {
+          console.error(
+            `❌ Failed to send expiration notification to patient ${reservation.guestEmail}:`,
+            emailResult.error,
+          );
+        }
       } catch (patientError) {
         console.error(
           `❌ Failed to send expiration notification to patient ${reservation.guestEmail}:`,

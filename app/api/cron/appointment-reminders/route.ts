@@ -92,15 +92,22 @@ async function handler() {
         });
 
         // Send email directly to guest via Resend
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: appointment.guestEmail,
           subject: `📅 Reminder: ${subject} - ${patientTimeUntil}`,
           html,
           text,
         });
 
-        console.log(`✅ Reminder sent to patient: ${appointment.guestEmail}`);
-        patientRemindersSent++;
+        if (emailResult.success) {
+          console.log(`✅ Reminder sent to patient: ${appointment.guestEmail}`);
+          patientRemindersSent++;
+        } else {
+          console.error(
+            `❌ Failed to send reminder to patient ${appointment.guestEmail}:`,
+            emailResult.error,
+          );
+        }
       } catch (error) {
         console.error(`❌ Failed to send reminder to patient ${appointment.guestEmail}:`, error);
       }

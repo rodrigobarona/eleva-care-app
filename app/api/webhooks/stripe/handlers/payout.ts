@@ -31,9 +31,8 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
       return;
     }
 
-    // Query the most recent successful meeting for this expert to get real appointment data
-    // This links the payout to the actual client and service
-    const recentMeeting = await db
+    // First, try to find the exact meeting by stripePayoutId
+    let meeting = await db
       .select({
         id: MeetingTable.id,
         guestName: MeetingTable.guestName,
@@ -45,16 +44,35 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
       })
       .from(MeetingTable)
       .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
-      .where(
-        and(
-          eq(MeetingTable.clerkUserId, user.clerkUserId),
-          eq(MeetingTable.stripePaymentStatus, 'succeeded'),
-        ),
-      )
-      .orderBy(desc(MeetingTable.startTime))
-      .limit(1);
+      .where(eq(MeetingTable.stripePayoutId, payout.id))
+      .limit(1)
+      .then((rows) => rows[0]);
 
-    const meeting = recentMeeting[0];
+    // If no exact match, fall back to the most recent successful meeting for this expert
+    if (!meeting) {
+      const recentMeeting = await db
+        .select({
+          id: MeetingTable.id,
+          guestName: MeetingTable.guestName,
+          guestEmail: MeetingTable.guestEmail,
+          startTime: MeetingTable.startTime,
+          endTime: MeetingTable.endTime,
+          eventName: EventTable.name,
+          stripeAmount: MeetingTable.stripeAmount,
+        })
+        .from(MeetingTable)
+        .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
+        .where(
+          and(
+            eq(MeetingTable.clerkUserId, user.clerkUserId),
+            eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+          ),
+        )
+        .orderBy(desc(MeetingTable.startTime))
+        .limit(1);
+
+      meeting = recentMeeting[0];
+    }
 
     // Calculate expected arrival date based on payout arrival_date or estimate
     const arrivalDate = payout.arrival_date
@@ -70,9 +88,17 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
     const appointmentDate = meeting?.startTime
       ? format(meeting.startTime, 'EEEE, MMMM d, yyyy')
       : format(new Date(), 'EEEE, MMMM d, yyyy');
-    const appointmentTime = meeting?.startTime
-      ? `${format(meeting.startTime, 'h:mm a')} - ${meeting.endTime ? format(meeting.endTime, 'h:mm a') : ''}`
-      : format(new Date(), 'h:mm a');
+
+    // Build appointment time string, only including end time if it exists
+    let appointmentTime: string;
+    if (meeting?.startTime) {
+      const startTimeStr = format(meeting.startTime, 'h:mm a');
+      appointmentTime = meeting.endTime
+        ? `${startTimeStr} - ${format(meeting.endTime, 'h:mm a')}`
+        : startTimeStr;
+    } else {
+      appointmentTime = format(new Date(), 'h:mm a');
+    }
 
     // Use actual bank account last4 from user profile if available
     const bankLastFour = user.stripeBankAccountLast4 || '••••';

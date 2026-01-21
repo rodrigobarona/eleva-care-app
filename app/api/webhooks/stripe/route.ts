@@ -29,6 +29,7 @@ import { webhookMonitor } from '@/lib/redis/webhook-monitor';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { formatInTimeZone } from 'date-fns-tz';
+import { enUS, es, pt, ptBR } from 'date-fns/locale';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -73,6 +74,22 @@ const MeetingMetadataSchema = z.object({
   locale: z.string().optional(),
   timezone: z.string().optional(),
 });
+
+/**
+ * Maps locale codes to date-fns Locale objects for localized date formatting
+ */
+function getDateFnsLocale(localeCode?: string) {
+  const localeMap: Record<string, typeof enUS> = {
+    en: enUS,
+    'en-US': enUS,
+    pt: pt,
+    'pt-PT': pt,
+    'pt-BR': ptBR,
+    es: es,
+    'es-ES': es,
+  };
+  return localeMap[localeCode || 'en'] || enUS;
+}
 
 /**
  * Zod schema for payment metadata validation
@@ -855,17 +872,28 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
             }
           }
 
-          // Format date and time from ISO string
+          // Format date and time from ISO string with locale support
           const startDate = meetingData.start ? new Date(meetingData.start) : new Date();
           const patientTimezone = meetingData.timezone || 'UTC';
+          const patientLocale = getDateFnsLocale(meetingData.locale);
+          // Default expert locale to English for professional contexts
+          const expertLocale = getDateFnsLocale('en');
 
-          // Format for patient (in their local timezone)
-          const patientDate = formatInTimeZone(startDate, patientTimezone, 'EEEE, MMMM d, yyyy');
-          const patientTime = formatInTimeZone(startDate, patientTimezone, 'h:mm a');
+          // Format for patient (in their local timezone with their locale)
+          const patientDate = formatInTimeZone(startDate, patientTimezone, 'EEEE, MMMM d, yyyy', {
+            locale: patientLocale,
+          });
+          const patientTime = formatInTimeZone(startDate, patientTimezone, 'h:mm a', {
+            locale: patientLocale,
+          });
 
           // Format for expert (in their local timezone)
-          const expertDate = formatInTimeZone(startDate, expertTimezone, 'EEEE, MMMM d, yyyy');
-          const expertTime = formatInTimeZone(startDate, expertTimezone, 'h:mm a');
+          const expertDate = formatInTimeZone(startDate, expertTimezone, 'EEEE, MMMM d, yyyy', {
+            locale: expertLocale,
+          });
+          const expertTime = formatInTimeZone(startDate, expertTimezone, 'h:mm a', {
+            locale: expertLocale,
+          });
 
           appointmentDetails = {
             service: serviceName,
@@ -883,10 +911,14 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
             notes: meetingData.notes,
           };
 
-          console.log(
-            '📅 Extracted appointment details from payment metadata:',
-            appointmentDetails,
-          );
+          // Log sanitized appointment details (without PHI/PII)
+          console.log('📅 Extracted appointment details from payment metadata:', {
+            service: appointmentDetails.service,
+            duration: appointmentDetails.duration,
+            patientTimezone: appointmentDetails.patientTimezone,
+            expertTimezone: appointmentDetails.expertTimezone,
+            hasNotes: !!appointmentDetails.notes,
+          });
         } catch (parseError) {
           console.warn('Could not parse meeting metadata:', parseError);
         }

@@ -17,9 +17,53 @@ interface ReservationExpiredEmailProps {
   appointmentDate?: string;
   appointmentTime?: string;
   timezone?: string;
-  locale?: string;
+  locale?: SupportedLocale;
 }
 
+// Local divider style for Hr component
+const DIVIDER_STYLE = {
+  borderColor: ELEVA_COLORS.neutral.light,
+  borderTop: '1px solid',
+  margin: '24px 0',
+} as const;
+
+/**
+ * Email template sent when a Multibanco reservation expires without payment
+ * Supports both patient and expert recipients with i18n translations
+ *
+ * @example
+ * ```tsx
+ * import { ReservationExpiredEmail } from '@/emails/payments/reservation-expired';
+ * import { render } from '@react-email/render';
+ *
+ * // For patient notification
+ * const patientHtml = render(
+ *   <ReservationExpiredEmail
+ *     recipientName="João Silva"
+ *     recipientType="patient"
+ *     expertName="Dr. Maria Santos"
+ *     serviceName="Consulta de Cardiologia"
+ *     appointmentDate="Monday, February 19, 2024"
+ *     appointmentTime="2:30 PM"
+ *     timezone="Europe/Lisbon"
+ *     locale="pt"
+ *   />
+ * );
+ *
+ * // For expert notification
+ * const expertHtml = render(
+ *   <ReservationExpiredEmail
+ *     recipientName="Dr. Maria Santos"
+ *     recipientType="expert"
+ *     expertName="Dr. Maria Santos"
+ *     serviceName="Consulta de Cardiologia"
+ *     appointmentDate="Monday, February 19, 2024"
+ *     appointmentTime="2:30 PM"
+ *     locale="en"
+ *   />
+ * );
+ * ```
+ */
 export const ReservationExpiredEmail = ({
   recipientName = 'João Silva',
   recipientType = 'patient',
@@ -32,7 +76,7 @@ export const ReservationExpiredEmail = ({
 }: ReservationExpiredEmailProps) => {
   const isPatient = recipientType === 'patient';
 
-  // Internationalization support
+  // Internationalization support - using plain text messages (no HTML injection risk)
   const translations = {
     en: {
       // Patient-specific
@@ -40,7 +84,9 @@ export const ReservationExpiredEmail = ({
       patientPreview: `Your reservation for ${serviceName} with ${expertName} has expired due to unpaid payment`,
       patientTitle: 'Booking Reservation Expired',
       patientGreeting: `Hello ${recipientName},`,
-      patientMessage: `We're writing to let you know that your booking reservation with <strong style="color: ${ELEVA_COLORS.primary}">${expertName}</strong> has expired because the payment was not completed within the required timeframe.`,
+      patientMessagePrefix: "We're writing to let you know that your booking reservation with",
+      patientMessageSuffix:
+        'has expired because the payment was not completed within the required timeframe.',
       patientExplanation:
         'Multibanco payments must be completed within 7 days of booking. Since the payment was not received, the time slot has been released and is now available to other clients.',
       // Expert-specific
@@ -48,7 +94,8 @@ export const ReservationExpiredEmail = ({
       expertPreview: `A pending booking from ${recipientName} has been cancelled due to unpaid payment`,
       expertTitle: 'Pending Booking Cancelled',
       expertGreeting: `Hello ${recipientName},`,
-      expertMessage: `A pending booking has been automatically cancelled because the client did not complete the Multibanco payment within the required 7-day period.`,
+      expertMessage:
+        'A pending booking has been automatically cancelled because the client did not complete the Multibanco payment within the required 7-day period.',
       expertExplanation:
         'The time slot has been automatically released and is now available for other bookings.',
       // Shared
@@ -75,7 +122,9 @@ export const ReservationExpiredEmail = ({
       patientPreview: `A sua reserva para ${serviceName} com ${expertName} expirou por falta de pagamento`,
       patientTitle: 'Reserva de Marcação Expirada',
       patientGreeting: `Olá ${recipientName},`,
-      patientMessage: `Escrevemos para informar que a sua reserva com <strong style="color: ${ELEVA_COLORS.primary}">${expertName}</strong> expirou porque o pagamento não foi concluído dentro do prazo necessário.`,
+      patientMessagePrefix: 'Escrevemos para informar que a sua reserva com',
+      patientMessageSuffix:
+        'expirou porque o pagamento não foi concluído dentro do prazo necessário.',
       patientExplanation:
         'Os pagamentos por Multibanco devem ser concluídos dentro de 7 dias após a marcação. Como o pagamento não foi recebido, o horário foi libertado e está agora disponível para outros clientes.',
       // Expert-specific
@@ -83,7 +132,8 @@ export const ReservationExpiredEmail = ({
       expertPreview: `Uma marcação pendente de ${recipientName} foi cancelada por falta de pagamento`,
       expertTitle: 'Marcação Pendente Cancelada',
       expertGreeting: `Olá ${recipientName},`,
-      expertMessage: `Uma marcação pendente foi automaticamente cancelada porque o cliente não completou o pagamento Multibanco dentro do período de 7 dias.`,
+      expertMessage:
+        'Uma marcação pendente foi automaticamente cancelada porque o cliente não completou o pagamento Multibanco dentro do período de 7 dias.',
       expertExplanation:
         'O horário foi automaticamente libertado e está agora disponível para outras marcações.',
       // Shared
@@ -112,11 +162,24 @@ export const ReservationExpiredEmail = ({
   const previewText = isPatient ? t.patientPreview : t.expertPreview;
   const title = isPatient ? t.patientTitle : t.expertTitle;
   const greeting = isPatient ? t.patientGreeting : t.expertGreeting;
-  const message = isPatient ? t.patientMessage : t.expertMessage;
   const explanation = isPatient ? t.patientExplanation : t.expertExplanation;
   const nextSteps = isPatient ? t.patientNextSteps : t.expertNextSteps;
   const actionButton = isPatient ? t.bookAgain : t.viewSchedule;
   const actionUrl = isPatient ? 'https://eleva.care' : 'https://eleva.care/account/schedule';
+
+  // Render message as React elements to avoid dangerouslySetInnerHTML
+  const renderMessage = () => {
+    if (isPatient) {
+      return (
+        <>
+          {t.patientMessagePrefix}{' '}
+          <strong style={{ color: ELEVA_COLORS.primary }}>{expertName}</strong>{' '}
+          {t.patientMessageSuffix}
+        </>
+      );
+    }
+    return t.expertMessage;
+  };
 
   return (
     <EmailLayout
@@ -124,7 +187,7 @@ export const ReservationExpiredEmail = ({
       previewText={previewText}
       headerVariant="branded"
       footerVariant="default"
-      locale={locale as SupportedLocale}
+      locale={locale}
     >
       {/* Warning Banner */}
       <Section style={ELEVA_CARD_STYLES.warning}>
@@ -143,10 +206,9 @@ export const ReservationExpiredEmail = ({
       {/* Greeting and Message */}
       <Section style={{ margin: '32px 0' }}>
         <Text style={{ ...ELEVA_TEXT_STYLES.bodyLarge, margin: '0 0 16px 0' }}>{greeting}</Text>
-        <Text
-          style={{ ...ELEVA_TEXT_STYLES.bodyRegular, margin: '0 0 16px 0' }}
-          dangerouslySetInnerHTML={{ __html: message }}
-        />
+        <Text style={{ ...ELEVA_TEXT_STYLES.bodyRegular, margin: '0 0 16px 0' }}>
+          {renderMessage()}
+        </Text>
         <Text
           style={{
             ...ELEVA_TEXT_STYLES.bodyRegular,
@@ -217,7 +279,7 @@ export const ReservationExpiredEmail = ({
         </Section>
       </Section>
 
-      <Hr style={ELEVA_TEXT_STYLES.divider} />
+      <Hr style={DIVIDER_STYLE} />
 
       {/* Support */}
       <Section

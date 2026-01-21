@@ -168,8 +168,16 @@ export const POST = async (request: Request) => {
           timestamp: new Date().toISOString(),
         });
 
-        // Send payout notification to expert
-        await handlePayoutPaid(payout);
+        // Send payout notification to expert (wrapped in try-catch to prevent webhook failures)
+        try {
+          await handlePayoutPaid(payout);
+        } catch (payoutHandlerError) {
+          console.error('Error in handlePayoutPaid, continuing webhook processing:', {
+            payoutId: payout.id,
+            error:
+              payoutHandlerError instanceof Error ? payoutHandlerError.message : payoutHandlerError,
+          });
+        }
         break;
       }
 

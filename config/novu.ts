@@ -955,6 +955,7 @@ export const reservationExpiredWorkflow = workflow(
           recipientName: payload.expertName,
           recipientType: 'expert',
           expertName: payload.expertName,
+          clientName: payload.clientName,
           serviceName: payload.serviceName,
           appointmentDate: payload.appointmentDate,
           appointmentTime: payload.appointmentTime,

@@ -8,6 +8,7 @@ import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booki
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
@@ -862,7 +863,40 @@ export class ElevaEmailService {
 
   /**
    * Render expert new appointment notification email
-   * This is sent to EXPERTS when a patient books an appointment with them
+   *
+   * This method renders the ExpertNewAppointmentTemplate for notifying experts
+   * when a patient books an appointment with them. It returns the rendered HTML
+   * string suitable for sending via email.
+   *
+   * @param data - The appointment data to render
+   * @param data.expertName - Name of the expert receiving the notification
+   * @param data.clientName - Name of the patient who booked the appointment
+   * @param data.appointmentDate - Formatted appointment date (e.g., "Wednesday, January 21, 2026")
+   * @param data.appointmentTime - Formatted appointment time (e.g., "12:30 PM")
+   * @param data.timezone - Timezone for the appointment (e.g., "Europe/Lisbon")
+   * @param data.appointmentDuration - Duration string (e.g., "45 minutes")
+   * @param data.eventTitle - Title of the appointment type (e.g., "Physical Therapy Appointment")
+   * @param data.meetLink - Optional video meeting link
+   * @param data.notes - Optional notes from the patient
+   * @param data.locale - Locale for internationalization (default: 'en')
+   * @returns Promise<string> - The rendered HTML email content
+   *
+   * @example
+   * ```typescript
+   * const emailService = new ElevaEmailService();
+   * const html = await emailService.renderExpertNewAppointment({
+   *   expertName: 'Patricia Mota',
+   *   clientName: 'Marta Carvalho',
+   *   appointmentDate: 'Wednesday, January 21, 2026',
+   *   appointmentTime: '12:30 PM',
+   *   timezone: 'Europe/Lisbon',
+   *   appointmentDuration: '45 minutes',
+   *   eventTitle: 'Physical Therapy Appointment',
+   *   meetLink: 'https://meet.google.com/abc-defg-hij',
+   *   notes: 'First consultation',
+   *   locale: 'en',
+   * });
+   * ```
    */
   async renderExpertNewAppointment(data: {
     expertName: string;
@@ -876,6 +910,12 @@ export class ElevaEmailService {
     notes?: string;
     locale?: string;
   }) {
+    // Validate and cast locale to SupportedLocale, defaulting to 'en'
+    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
+    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
+      ? (data.locale as SupportedLocale)
+      : 'en';
+
     const template = React.createElement(ExpertNewAppointmentTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
@@ -886,7 +926,7 @@ export class ElevaEmailService {
       eventTitle: data.eventTitle,
       meetLink: data.meetLink,
       notes: data.notes,
-      locale: data.locale || 'en',
+      locale,
     });
 
     return render(template);
