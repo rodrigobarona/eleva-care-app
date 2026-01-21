@@ -644,11 +644,10 @@ export const appointmentConfirmationWorkflow = workflow(
     });
 
     await step.email('appointment-confirmation-email', async () => {
-      // CRITICAL: Use recipient-specific timezone
-      // For EXPERT: payload.timezone (expert's timezone)
-      // For GUEST: payload.guestTimezone (guest's timezone)
-      // This email is sent to the EXPERT, so use payload.timezone
-      const emailBody = await elevaEmailService.renderAppointmentConfirmation({
+      // CRITICAL: This email is sent to the EXPERT
+      // Use the ExpertNewAppointment template which says "Hello [expertName]"
+      // and shows them the patient details (not vice versa)
+      const emailBody = await elevaEmailService.renderExpertNewAppointment({
         expertName: payload.expertName,
         clientName: payload.clientName,
         appointmentDate: payload.appointmentDate,
@@ -662,7 +661,7 @@ export const appointmentConfirmationWorkflow = workflow(
       });
 
       return {
-        subject: `✅ Appointment Confirmed - ${payload.eventTitle}`,
+        subject: `📅 New Booking: ${payload.eventTitle} with ${payload.clientName}`,
         body: emailBody,
       };
     });

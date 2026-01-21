@@ -2,6 +2,7 @@
 // Import email templates
 import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
+import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
 import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
@@ -844,6 +845,38 @@ export class ElevaEmailService {
 
     // Fallback to original implementation for backward compatibility
     const template = React.createElement(AppointmentConfirmationTemplate, {
+      expertName: data.expertName,
+      clientName: data.clientName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      timezone: data.timezone,
+      appointmentDuration: data.appointmentDuration,
+      eventTitle: data.eventTitle,
+      meetLink: data.meetLink,
+      notes: data.notes,
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * Render expert new appointment notification email
+   * This is sent to EXPERTS when a patient books an appointment with them
+   */
+  async renderExpertNewAppointment(data: {
+    expertName: string;
+    clientName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    timezone: string;
+    appointmentDuration: string;
+    eventTitle: string;
+    meetLink?: string;
+    notes?: string;
+    locale?: string;
+  }) {
+    const template = React.createElement(ExpertNewAppointmentTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
       appointmentDate: data.appointmentDate,

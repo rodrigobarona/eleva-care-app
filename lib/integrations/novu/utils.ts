@@ -34,6 +34,12 @@ export interface TriggerWorkflowOptions {
     subscriberId: string;
     data?: Record<string, string | number | boolean>;
   };
+  /**
+   * Unique transaction ID for idempotency
+   * If provided, Novu will deduplicate triggers with the same transactionId
+   * Use this to prevent duplicate emails from webhook retries
+   */
+  transactionId?: string;
 }
 
 try {
@@ -168,6 +174,7 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
       subscriberId: options.to.subscriberId,
       hasPayload: !!options.payload,
       payloadKeys: options.payload ? Object.keys(options.payload) : [],
+      transactionId: options.transactionId,
     });
 
     const result = await novu.trigger({
@@ -176,6 +183,8 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
       payload: options.payload || {},
       overrides: options.overrides,
       actor: options.actor,
+      // Idempotency: If transactionId is provided, Novu will deduplicate
+      ...(options.transactionId && { transactionId: options.transactionId }),
     });
 
     console.log(`[Novu Utils] ✅ Successfully triggered workflow: ${options.workflowId}`);

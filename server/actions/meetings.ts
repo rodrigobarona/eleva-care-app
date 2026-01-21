@@ -327,6 +327,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         const appointmentDuration = `${event.durationInMinutes} minutes`;
 
         // Trigger Novu workflow to notify the expert (with EXPERT's timezone)
+        // Use transactionId for idempotency to prevent duplicate emails from webhook retries
+        const transactionId = `expert-appointment-${meeting.id}`;
         const novuResult = await triggerWorkflow({
           workflowId: 'appointment-confirmation',
           to: {
@@ -349,6 +351,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             notes: data.guestNotes || undefined,
             locale: data.locale || 'en',
           },
+          transactionId, // Prevents duplicate notifications from webhook retries
         });
 
         if (novuResult) {
