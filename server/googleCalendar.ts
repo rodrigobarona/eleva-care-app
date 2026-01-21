@@ -9,7 +9,7 @@
  * @module GoogleCalendarService
  */
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
-import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
+import { triggerWorkflow } from '@/lib/integrations/novu/utils';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -414,108 +414,103 @@ class GoogleCalendarService {
     }
 
     try {
-      // After creating the event, send an immediate email notification to the expert
-      console.log('📧 Event created, sending email notification to expert:', {
-        expertEmail: calendarUser.primaryEmailAddress.emailAddress,
-        eventId: calendarEvent?.data?.id,
+      const calendarEventId = calendarEvent?.data?.id || 'unknown';
+      const expertEmail = calendarUser.primaryEmailAddress.emailAddress;
+      const expertFullName = calendarUser.fullName || 'Expert';
+
+      // Send expert notification via Novu workflow
+      console.log('📧 Triggering Novu workflow for expert appointment confirmation:', {
+        expertEmail,
+        eventId: calendarEventId,
         eventSummary: eventSummary,
         timezone,
         locale,
       });
 
-      // Generate the email content for the expert
-      const expertEmailContent = await generateAppointmentEmail({
-        expertName: calendarUser.fullName || 'Expert',
-        clientName: guestName,
-        appointmentDate,
-        appointmentTime,
-        timezone,
-        appointmentDuration: formattedDuration,
-        eventTitle: eventName,
-        meetLink: shortMeetLink || meetLink || undefined,
-        notes: guestNotes ? guestNotes : undefined,
-        locale,
+      const expertResult = await triggerWorkflow({
+        workflowId: 'appointment-universal',
+        to: {
+          subscriberId: clerkUserId,
+          email: expertEmail,
+          firstName: expertFullName.split(' ')[0],
+          lastName: expertFullName.split(' ').slice(1).join(' ') || undefined,
+        },
+        payload: {
+          eventType: 'confirmed',
+          expertName: expertFullName,
+          customerName: guestName,
+          appointmentDate,
+          appointmentTime,
+          timezone,
+          appointmentDuration: formattedDuration,
+          serviceName: eventName,
+          meetingUrl: shortMeetLink || meetLink || undefined,
+          notes: guestNotes || undefined,
+          locale,
+          userSegment: 'expert',
+          appointmentId: calendarEventId,
+        },
+        transactionId: `appt-expert-${calendarEventId}`,
       });
 
-      console.log('📝 Generated expert email content:', {
-        subject: expertEmailContent.subject,
-        hasHtml: !!expertEmailContent.html,
-        hasText: !!expertEmailContent.text,
-      });
-
-      // Send the expert notification
-      const expertEmailResult = await sendEmail({
-        to: calendarUser.primaryEmailAddress.emailAddress,
-        subject: expertEmailContent.subject,
-        html: expertEmailContent.html,
-        text: expertEmailContent.text,
-      });
-
-      if (!expertEmailResult.success) {
-        console.error('❌ Failed to send expert notification email:', {
-          error: expertEmailResult.error,
-          to: calendarUser.primaryEmailAddress.emailAddress,
+      if (expertResult) {
+        console.log('✅ Expert appointment notification triggered via Novu:', {
+          to: expertEmail,
+          calendarEventId,
         });
       } else {
-        console.log('✅ Expert notification email sent successfully:', {
-          messageId: expertEmailResult.messageId,
-          to: calendarUser.primaryEmailAddress.emailAddress,
-        });
+        console.error('❌ Failed to trigger expert appointment notification via Novu');
       }
 
-      // Also send notification to the client
-      console.log('📧 Sending email notification to client:', {
+      // Send patient notification via Novu workflow
+      console.log('📧 Triggering Novu workflow for patient appointment confirmation:', {
         clientEmail: guestEmail,
-        eventId: calendarEvent?.data?.id,
+        eventId: calendarEventId,
         eventSummary: eventSummary,
         timezone,
         locale,
       });
 
-      // Generate client email
-      const clientEmailContent = await generateAppointmentEmail({
-        expertName: calendarUser.fullName || 'Expert',
-        clientName: guestName,
-        appointmentDate,
-        appointmentTime,
-        timezone,
-        appointmentDuration: formattedDuration,
-        eventTitle: eventName,
-        meetLink: shortMeetLink || meetLink || undefined,
-        notes: guestNotes ? guestNotes : undefined,
-        locale,
+      const patientResult = await triggerWorkflow({
+        workflowId: 'appointment-universal',
+        to: {
+          subscriberId: guestEmail, // Use email as subscriber ID for guests
+          email: guestEmail,
+          firstName: guestName.split(' ')[0],
+          lastName: guestName.split(' ').slice(1).join(' ') || undefined,
+        },
+        payload: {
+          eventType: 'confirmed',
+          expertName: expertFullName,
+          customerName: guestName,
+          appointmentDate,
+          appointmentTime,
+          timezone,
+          appointmentDuration: formattedDuration,
+          serviceName: eventName,
+          meetingUrl: shortMeetLink || meetLink || undefined,
+          notes: guestNotes || undefined,
+          locale,
+          userSegment: 'patient',
+          appointmentId: calendarEventId,
+        },
+        transactionId: `appt-patient-${calendarEventId}`,
       });
 
-      console.log('📝 Generated client email content:', {
-        subject: clientEmailContent.subject,
-        hasHtml: !!clientEmailContent.html,
-        hasText: !!clientEmailContent.text,
-      });
-
-      const clientEmailResult = await sendEmail({
-        to: guestEmail,
-        subject: clientEmailContent.subject,
-        html: clientEmailContent.html,
-        text: clientEmailContent.text,
-      });
-
-      if (!clientEmailResult.success) {
-        console.error('❌ Failed to send client notification email:', {
-          error: clientEmailResult.error,
+      if (patientResult) {
+        console.log('✅ Patient appointment notification triggered via Novu:', {
           to: guestEmail,
+          calendarEventId,
         });
       } else {
-        console.log('✅ Client notification email sent successfully:', {
-          messageId: clientEmailResult.messageId,
-          to: guestEmail,
-        });
+        console.error('❌ Failed to trigger patient appointment notification via Novu');
       }
     } catch (error) {
-      console.error('❌ Error sending notifications:', {
+      console.error('❌ Error triggering appointment notifications via Novu:', {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
       });
-      // Don't fail the whole operation if just the email notification fails
+      // Don't fail the whole operation if just the notification fails
     }
 
     // Add the original and shortened Meet links to the returned data

@@ -1,5 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
+import { redactResponsePayload, sendDebugTelemetry } from '@/lib/utils/debug-telemetry';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -21,12 +22,34 @@ export async function GET() {
     clerkUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
+    // Debug telemetry - gated and redacted
+    sendDebugTelemetry({
+      location: 'api/user/billing:auth',
+      message: 'Auth result',
+      data: { userId, hasId: !!userId },
+      hypothesisId: 'C',
+    });
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Use our synchronization service to ensure all systems are in sync
     const user = await ensureFullUserSynchronization(userId);
+
+    // Debug telemetry - gated and redacted
+    sendDebugTelemetry({
+      location: 'api/user/billing:sync',
+      message: 'User sync result',
+      data: {
+        hasUser: !!user,
+        userId: user?.id,
+        stripeIdentityVerified: user?.stripeIdentityVerified,
+        stripeConnectAccountId: user?.stripeConnectAccountId,
+        allUserKeys: user ? Object.keys(user) : [],
+      },
+      hypothesisId: 'A',
+    });
 
     if (!user) {
       console.error('Failed to synchronize user:', { clerkUserId: userId });
@@ -60,10 +83,11 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({
+    const responsePayload = {
       user: {
         id: user.id,
         stripeConnectAccountId: user.stripeConnectAccountId,
+        stripeIdentityVerified: user.stripeIdentityVerified,
       },
       customer: customerData
         ? {
@@ -73,8 +97,26 @@ export async function GET() {
           }
         : null,
       accountStatus,
+    };
+
+    // Debug telemetry - gated and redacted (uses special response payload redactor)
+    sendDebugTelemetry({
+      location: 'api/user/billing:response',
+      message: 'Sending response',
+      data: redactResponsePayload(responsePayload as Record<string, unknown>),
+      hypothesisId: 'A,D',
     });
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
+    // Debug telemetry - gated and redacted
+    sendDebugTelemetry({
+      location: 'api/user/billing:error',
+      message: 'API error',
+      data: { errorMessage: error instanceof Error ? error.message : String(error) },
+      hypothesisId: 'E',
+    });
+
     console.error('Error in user billing API:', {
       error,
       clerkUserId,

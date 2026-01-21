@@ -34,20 +34,16 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { EventTable, ScheduleTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
-import ReservationExpiredTemplate from '@/emails/payments/reservation-expired';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
 import { triggerWorkflow } from '@/lib/integrations/novu';
-import { sendEmail } from '@/lib/integrations/novu/email';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
-import { render } from '@react-email/render';
 import { format, toZonedTime } from 'date-fns-tz';
 import { eq, lt, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import React from 'react';
 
 // Route segment config
 export const preferredRegion = 'auto';
@@ -179,44 +175,40 @@ export async function GET(request: NextRequest) {
         locale = 'es';
       }
 
-      // Send notification to patient (via direct email with idempotency)
+      // Send notification to patient via Novu (using email as subscriber ID)
       try {
-        const patientEmailHtml = await render(
-          React.createElement(ReservationExpiredTemplate, {
-            recipientName: guestName,
-            recipientType: 'patient',
+        const patientResult = await triggerWorkflow({
+          workflowId: 'reservation-expired',
+          to: {
+            subscriberId: reservation.guestEmail, // Use email as subscriber ID for guests
+            email: reservation.guestEmail,
+            firstName: guestName.split(' ')[0],
+            lastName: guestName.split(' ').slice(1).join(' ') || undefined,
+          },
+          payload: {
             expertName,
+            clientName: guestName,
             serviceName: eventName,
             appointmentDate,
             appointmentTime,
             timezone,
             locale,
-          }),
-        );
-
-        // Note: For true idempotency, consider adding a 'patientNotified' flag to the reservation
-        // before deletion and checking it before sending. Current approach relies on the
-        // reservation being deleted after successful processing.
-        const emailResult = await sendEmail({
-          to: reservation.guestEmail,
-          subject:
-            locale === 'pt'
-              ? `A sua reserva expirou - ${eventName}`
-              : locale === 'es'
-                ? `Su reserva ha expirado - ${eventName}`
-                : `Your booking reservation has expired - ${eventName}`,
-          html: patientEmailHtml,
+            recipientType: 'patient',
+          },
+          transactionId: `reservation-expired-patient-${reservation.id}`, // Idempotency key
         });
 
-        if (emailResult.success) {
-          console.log(`✅ Expiration notification sent to patient: ${reservation.guestEmail}`);
-          notificationsSent++;
-        } else {
-          console.error(
-            `❌ Failed to send expiration notification to patient ${reservation.guestEmail}:`,
-            emailResult.error,
+        // Validate result - triggerWorkflow can return null without throwing
+        if (!patientResult) {
+          throw new Error(
+            `Workflow trigger returned null for patient notification (reservationId: ${reservation.id}, recipient: ${reservation.guestEmail})`,
           );
         }
+
+        console.log(
+          `✅ Expiration notification sent to patient via Novu: ${reservation.guestEmail}`,
+        );
+        notificationsSent++;
       } catch (patientError) {
         console.error(
           `❌ Failed to send expiration notification to patient ${reservation.guestEmail}:`,
@@ -226,7 +218,7 @@ export async function GET(request: NextRequest) {
 
       // Send notification to expert (via Novu for in-app + email)
       try {
-        await triggerWorkflow({
+        const expertResult = await triggerWorkflow({
           workflowId: 'reservation-expired',
           to: {
             subscriberId: expertClerkId,
@@ -242,9 +234,17 @@ export async function GET(request: NextRequest) {
             appointmentTime,
             timezone,
             locale,
+            recipientType: 'expert',
           },
           transactionId: `reservation-expired-${reservation.id}`, // Idempotency key
         });
+
+        // Validate result - triggerWorkflow can return null without throwing
+        if (!expertResult) {
+          throw new Error(
+            `Workflow trigger returned null for expert notification (reservationId: ${reservation.id}, recipient: ${expertClerkId})`,
+          );
+        }
 
         console.log(`✅ Expiration notification sent to expert: ${expertClerkId}`);
         notificationsSent++;
