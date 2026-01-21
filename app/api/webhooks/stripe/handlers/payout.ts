@@ -164,6 +164,7 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
           accountStatus: 'action_required',
           message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
         },
+        transactionId: `payout-failed-${payout.id}`,
       });
       console.log('✅ Marketplace payout failure notification sent via Novu');
     } catch (novuError) {
