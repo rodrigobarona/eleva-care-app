@@ -192,7 +192,6 @@ async function handler() {
 
         // Generate the appointment reminder email
         const { html, text, subject } = await generateAppointmentEmail({
-          type: 'reminder',
           expertName: appointment.expertName,
           clientName: appointment.customerName,
           appointmentDate: patientDateTime.datePart,

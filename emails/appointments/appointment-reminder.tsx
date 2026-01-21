@@ -163,7 +163,7 @@ export const AppointmentReminderEmail = ({
 
         {meetingLink && (
           <Section style={{ textAlign: 'center', marginTop: '24px' }}>
-            <EmailButton href={meetingLink} variant="success" size="lg">
+            <EmailButton href={meetingLink} variant="primary" size="lg">
               🎥 {t.joinVideoCall}
             </EmailButton>
           </Section>
