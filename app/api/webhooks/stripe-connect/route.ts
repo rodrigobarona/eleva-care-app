@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+import { handlePayoutFailed, handlePayoutPaid } from '../stripe/handlers/payout';
+
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
@@ -138,12 +140,44 @@ export const POST = async (request: Request) => {
         break;
       }
 
-      case 'payout.created':
-      case 'payout.paid':
+      case 'payout.created': {
+        const payout = event.data.object as Stripe.Payout;
+        console.log('Payout created:', {
+          payoutId: payout.id,
+          accountId: payout.destination,
+          amount: payout.amount,
+          currency: payout.currency,
+          arrivalDate: payout.arrival_date
+            ? new Date(payout.arrival_date * 1000).toISOString()
+            : null,
+          timestamp: new Date().toISOString(),
+        });
+        break;
+      }
+
+      case 'payout.paid': {
+        const payout = event.data.object as Stripe.Payout;
+        console.log('Payout paid:', {
+          payoutId: payout.id,
+          accountId: payout.destination,
+          amount: payout.amount,
+          currency: payout.currency,
+          arrivalDate: payout.arrival_date
+            ? new Date(payout.arrival_date * 1000).toISOString()
+            : null,
+          timestamp: new Date().toISOString(),
+        });
+
+        // Send payout notification to expert
+        await handlePayoutPaid(payout);
+        break;
+      }
+
       case 'payout.failed': {
         const payout = event.data.object as Stripe.Payout;
 
-        if (event.type === 'payout.failed' && typeof payout.destination === 'string') {
+        // Update user's payout status
+        if (typeof payout.destination === 'string') {
           await db
             .update(UserTable)
             .set({
@@ -153,18 +187,18 @@ export const POST = async (request: Request) => {
             .where(eq(UserTable.stripeConnectAccountId, payout.destination));
         }
 
-        console.log(`Payout ${event.type.split('.')[1]}:`, {
+        console.log('Payout failed:', {
           payoutId: payout.id,
           accountId: payout.destination,
           amount: payout.amount,
           currency: payout.currency,
           failureCode: payout.failure_code,
           failureMessage: payout.failure_message,
-          arrivalDate: payout.arrival_date
-            ? new Date(payout.arrival_date * 1000).toISOString()
-            : null,
           timestamp: new Date().toISOString(),
         });
+
+        // Send payout failure notification to expert
+        await handlePayoutFailed(payout);
         break;
       }
 
