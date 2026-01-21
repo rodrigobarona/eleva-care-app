@@ -33,15 +33,21 @@
  */
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { SlotReservationTable } from '@/drizzle/schema';
+import { EventTable, ScheduleTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
+import ReservationExpiredTemplate from '@/emails/payments/reservation-expired';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
+import { triggerWorkflow } from '@/lib/integrations/novu';
+import { sendEmail } from '@/lib/integrations/novu/email';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
-import { lt, sql } from 'drizzle-orm';
+import { render } from '@react-email/render';
+import { format, toZonedTime } from 'date-fns-tz';
+import { eq, lt, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import React from 'react';
 
 // Route segment config
 export const preferredRegion = 'auto';
@@ -107,7 +113,150 @@ export async function GET(request: NextRequest) {
   try {
     const currentTime = new Date();
 
-    // **Step 1: Clean up expired reservations**
+    // **Step 1: Query expired reservations with full details for notifications**
+    // Join with ScheduleTable to get the expert's actual timezone
+    const expiredReservationsQuery = await db
+      .select({
+        reservation: SlotReservationTable,
+        eventName: EventTable.name,
+        eventDuration: EventTable.durationInMinutes,
+        expertClerkId: EventTable.clerkUserId,
+        expertFirstName: UserTable.firstName,
+        expertLastName: UserTable.lastName,
+        expertEmail: UserTable.email,
+        // Get expert's timezone from their schedule settings
+        expertTimezone: ScheduleTable.timezone,
+      })
+      .from(SlotReservationTable)
+      .innerJoin(EventTable, eq(EventTable.id, SlotReservationTable.eventId))
+      .innerJoin(UserTable, eq(UserTable.clerkUserId, SlotReservationTable.clerkUserId))
+      .leftJoin(ScheduleTable, eq(ScheduleTable.clerkUserId, SlotReservationTable.clerkUserId))
+      .where(lt(SlotReservationTable.expiresAt, currentTime));
+
+    console.log(`[CRON] Found ${expiredReservationsQuery.length} expired reservations to process`);
+
+    // **Step 2: Send notifications before deleting**
+    let notificationsSent = 0;
+    for (const expired of expiredReservationsQuery) {
+      const {
+        reservation,
+        eventName,
+        expertFirstName,
+        expertLastName,
+        expertClerkId,
+        expertEmail,
+        expertTimezone,
+      } = expired;
+      const expertName = [expertFirstName, expertLastName].filter(Boolean).join(' ') || 'Expert';
+
+      // Use expert's actual timezone from their schedule settings
+      // Fall back to UTC if not set (UTC is safe since Vercel runs in UTC)
+      const timezone = expertTimezone || 'UTC';
+      const zonedStartTime = toZonedTime(reservation.startTime, timezone);
+      const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', { timeZone: timezone });
+      const appointmentTime = format(zonedStartTime, 'h:mm a', { timeZone: timezone });
+
+      // Extract name from email (before @) or use 'Client'
+      const guestName =
+        reservation.guestEmail
+          .split('@')[0]
+          .replace(/[._-]/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase()) || 'Client';
+
+      // Determine locale from guest email domain using priority:
+      // 1. Check for Portuguese domains (.pt, .com.br)
+      // 2. Check for Spanish domains (.es)
+      // 3. Default to English
+      const guestEmailLower = reservation.guestEmail?.toLowerCase() || '';
+      let locale: 'pt' | 'en' | 'es' = 'en';
+      if (
+        guestEmailLower.endsWith('.pt') ||
+        guestEmailLower.endsWith('.com.br') ||
+        guestEmailLower.endsWith('.br')
+      ) {
+        locale = 'pt';
+      } else if (guestEmailLower.endsWith('.es')) {
+        locale = 'es';
+      }
+
+      // Send notification to patient (via direct email with idempotency)
+      try {
+        const patientEmailHtml = await render(
+          React.createElement(ReservationExpiredTemplate, {
+            recipientName: guestName,
+            recipientType: 'patient',
+            expertName,
+            serviceName: eventName,
+            appointmentDate,
+            appointmentTime,
+            timezone,
+            locale,
+          }),
+        );
+
+        // Note: For true idempotency, consider adding a 'patientNotified' flag to the reservation
+        // before deletion and checking it before sending. Current approach relies on the
+        // reservation being deleted after successful processing.
+        const emailResult = await sendEmail({
+          to: reservation.guestEmail,
+          subject:
+            locale === 'pt'
+              ? `A sua reserva expirou - ${eventName}`
+              : locale === 'es'
+                ? `Su reserva ha expirado - ${eventName}`
+                : `Your booking reservation has expired - ${eventName}`,
+          html: patientEmailHtml,
+        });
+
+        if (emailResult.success) {
+          console.log(`✅ Expiration notification sent to patient: ${reservation.guestEmail}`);
+          notificationsSent++;
+        } else {
+          console.error(
+            `❌ Failed to send expiration notification to patient ${reservation.guestEmail}:`,
+            emailResult.error,
+          );
+        }
+      } catch (patientError) {
+        console.error(
+          `❌ Failed to send expiration notification to patient ${reservation.guestEmail}:`,
+          patientError,
+        );
+      }
+
+      // Send notification to expert (via Novu for in-app + email)
+      try {
+        await triggerWorkflow({
+          workflowId: 'reservation-expired',
+          to: {
+            subscriberId: expertClerkId,
+            email: expertEmail || undefined,
+            firstName: expertFirstName || undefined,
+            lastName: expertLastName || undefined,
+          },
+          payload: {
+            expertName,
+            clientName: guestName,
+            serviceName: eventName,
+            appointmentDate,
+            appointmentTime,
+            timezone,
+            locale,
+          },
+          transactionId: `reservation-expired-${reservation.id}`, // Idempotency key
+        });
+
+        console.log(`✅ Expiration notification sent to expert: ${expertClerkId}`);
+        notificationsSent++;
+      } catch (expertError) {
+        console.error(
+          `❌ Failed to send expiration notification to expert ${expertClerkId}:`,
+          expertError,
+        );
+      }
+    }
+
+    // **Step 3: Clean up expired reservations**
     const deletedExpiredReservations = await db
       .delete(SlotReservationTable)
       .where(lt(SlotReservationTable.expiresAt, currentTime))
@@ -117,6 +266,7 @@ export async function GET(request: NextRequest) {
       `[CRON] Cleaned up ${deletedExpiredReservations.length} expired slot reservations:`,
       {
         count: deletedExpiredReservations.length,
+        notificationsSent,
         currentTime: currentTime.toISOString(),
         deletedReservations: deletedExpiredReservations.map((r) => ({
           id: r.id,
@@ -204,6 +354,7 @@ export async function GET(request: NextRequest) {
       expiredCleaned: deletedExpiredReservations.length,
       duplicatesCleaned: totalDuplicatesDeleted,
       totalCleaned: totalCleaned,
+      notificationsSent,
       duplicateGroups: duplicates.rows.length,
       duplicateDetails: duplicateCleanupResults,
       timestamp: currentTime.toISOString(),

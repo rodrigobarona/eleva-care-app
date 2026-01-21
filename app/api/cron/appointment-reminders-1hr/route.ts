@@ -79,7 +79,7 @@ async function handler() {
             message: `🚨 URGENT: Your appointment with ${appointment.customerName} starts in 1 hour!`,
             meetLink: appointment.meetingUrl,
           },
-          transactionId: `1hr-reminder-expert-${appointment.id}`, // Idempotency
+          transactionId: `reminder-1hr-expert-${appointment.id}`, // Idempotency key
         });
 
         console.log(`⚡ URGENT reminder sent to expert: ${appointment.expertClerkId}`);
@@ -122,7 +122,7 @@ async function handler() {
           html,
           text,
           headers: {
-            'Idempotency-Key': `1hr-reminder-patient-${appointment.id}`,
+            'Idempotency-Key': `reminder-1hr-patient-${appointment.id}`,
           },
         });
 

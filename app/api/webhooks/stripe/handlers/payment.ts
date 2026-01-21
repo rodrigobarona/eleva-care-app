@@ -1692,10 +1692,12 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const multibancoAmount = (paymentIntent.amount / 100).toFixed(2);
             const hostedVoucherUrl = multibancoDetails.hosted_voucher_url || '';
 
-            // Format dates with timezone
-            const appointmentDate = format(startDateTime, 'PPPP');
-            const appointmentTime = format(startDateTime, 'p');
-            const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p');
+            // Format dates with meeting timezone
+            const appointmentDate = format(startDateTime, 'PPPP', { timeZone: timezone });
+            const appointmentTime = format(startDateTime, 'p', { timeZone: timezone });
+            const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p', {
+              timeZone: timezone,
+            });
 
             // Extract locale for internationalization
             const locale = extractLocaleFromPaymentIntent(paymentIntent);
@@ -1739,6 +1741,8 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
                 customerNotes: customerNotes || '',
                 locale,
               },
+              // Use payment intent ID as idempotency key to prevent duplicate notifications on retries
+              transactionId: `multibanco-pending-${paymentIntent.id}`,
             });
 
             if (workflowResult) {

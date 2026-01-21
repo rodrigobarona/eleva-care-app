@@ -87,7 +87,7 @@ async function handler() {
             message: `Appointment reminder: You have an appointment with ${appointment.customerName} ${expertTimeUntil}`,
             meetLink: appointment.meetingUrl,
           },
-          transactionId: `24hr-reminder-expert-${appointment.id}`, // Idempotency
+          transactionId: `reminder-24h-expert-${appointment.id}`, // Idempotency key
         });
 
         console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
@@ -117,6 +117,7 @@ async function handler() {
         // Determine locale for email template
         const locale = appointment.customerLocale.startsWith('pt') ? 'pt' : 'en';
 
+        // Generate the appointment reminder email
         const { html, text, subject } = await generateAppointmentEmail({
           expertName: appointment.expertName,
           clientName: appointment.customerName,
@@ -129,13 +130,14 @@ async function handler() {
           locale,
         });
 
+        // Send email directly to guest via Resend
         const emailResult = await sendEmail({
           to: appointment.guestEmail,
           subject: `📅 Reminder: ${subject} - ${patientTimeUntil}`,
           html,
           text,
           headers: {
-            'Idempotency-Key': `24hr-reminder-patient-${appointment.id}`,
+            'Idempotency-Key': `reminder-24h-patient-${appointment.id}`,
           },
         });
 

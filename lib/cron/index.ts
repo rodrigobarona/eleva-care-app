@@ -28,9 +28,9 @@
  */
 
 export {
+  type Appointment,
   formatDateTime,
   formatTimeUntilAppointment,
   getLocaleFromCountry,
   getUpcomingAppointments,
-  type Appointment,
 } from './appointment-utils';

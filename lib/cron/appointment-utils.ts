@@ -47,6 +47,7 @@ import { and, between, eq } from 'drizzle-orm';
  * @property {string} expertName - Expert's full name
  * @property {string} appointmentType - Event/service name (e.g., "Physical Therapy Session")
  * @property {Date} startTime - Appointment start time (UTC)
+ * @property {Date} endTime - Appointment end time (UTC)
  * @property {number} durationMinutes - Duration of the appointment
  * @property {string} meetingUrl - Google Meet or video call URL
  * @property {string} customerLocale - Locale for patient communications (e.g., 'en-US')
@@ -63,6 +64,7 @@ export interface Appointment {
   expertName: string;
   appointmentType: string;
   startTime: Date;
+  endTime: Date;
   durationMinutes: number;
   meetingUrl: string;
   customerLocale: string;
@@ -119,11 +121,11 @@ export function getLocaleFromCountry(country: string | null): string {
  *
  * // Portuguese format
  * formatDateTime(apptTime, 'Europe/Lisbon', 'pt-PT');
- * // { datePart: '25 janeiro 2026', timePart: '10:30' }
+ * // { datePart: 'Saturday, 25 January 2026', timePart: '10:30 AM WET' }
  *
  * // English format
  * formatDateTime(apptTime, 'America/New_York', 'en-US');
- * // { datePart: '25 January 2026', timePart: '05:30' }
+ * // { datePart: 'Saturday, January 25, 2026', timePart: '05:30 AM EST' }
  * ```
  */
 export function formatDateTime(
@@ -131,20 +133,26 @@ export function formatDateTime(
   timezone: string,
   locale: string,
 ): { datePart: string; timePart: string } {
-  const formatter = new Intl.DateTimeFormat(locale, {
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
     timeZone: timezone,
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    weekday: 'long',
   });
 
-  const formatted = formatter.formatToParts(date);
-  const datePart = `${formatted.find((p) => p.type === 'day')?.value} ${formatted.find((p) => p.type === 'month')?.value} ${formatted.find((p) => p.type === 'year')?.value}`;
-  const timePart = `${formatted.find((p) => p.type === 'hour')?.value}:${formatted.find((p) => p.type === 'minute')?.value}`;
+  const timeFormatter = new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  });
 
-  return { datePart, timePart };
+  return {
+    datePart: dateFormatter.format(date),
+    timePart: timeFormatter.format(date),
+  };
 }
 
 /**
@@ -161,9 +169,8 @@ export function formatDateTime(
  * ```typescript
  * const apptTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
  *
- * formatTimeUntilAppointment(apptTime, 'en-US'); // 'in 1 hour'
- * formatTimeUntilAppointment(apptTime, 'pt-PT'); // 'em 1 hora'
- * formatTimeUntilAppointment(apptTime, 'es-ES'); // 'en 1 hora'
+ * formatTimeUntilAppointment(apptTime, 'en-US'); // 'in less than 1 hour'
+ * formatTimeUntilAppointment(apptTime, 'pt-PT'); // 'em menos de 1 hora'
  * ```
  */
 export function formatTimeUntilAppointment(appointmentTime: Date, locale: string): string {
@@ -171,16 +178,16 @@ export function formatTimeUntilAppointment(appointmentTime: Date, locale: string
   const hoursUntil = Math.round((appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60));
 
   if (locale.startsWith('pt')) {
-    if (hoursUntil <= 1) return 'em 1 hora';
-    if (hoursUntil <= 24) return `em ${hoursUntil} horas`;
+    if (hoursUntil <= 1) return 'em menos de 1 hora';
+    if (hoursUntil < 24) return `em ${hoursUntil} horas`;
     return 'amanhã';
   } else if (locale.startsWith('es')) {
-    if (hoursUntil <= 1) return 'en 1 hora';
-    if (hoursUntil <= 24) return `en ${hoursUntil} horas`;
+    if (hoursUntil <= 1) return 'en menos de 1 hora';
+    if (hoursUntil < 24) return `en ${hoursUntil} horas`;
     return 'mañana';
   } else {
-    if (hoursUntil <= 1) return 'in 1 hour';
-    if (hoursUntil <= 24) return `in ${hoursUntil} hours`;
+    if (hoursUntil <= 1) return 'in less than 1 hour';
+    if (hoursUntil < 24) return `in ${hoursUntil} hours`;
     return 'tomorrow';
   }
 }
@@ -222,7 +229,8 @@ export async function getUpcomingAppointments(
     const windowStart = new Date(now.getTime() + startOffsetMinutes * 60 * 1000);
     const windowEnd = new Date(now.getTime() + endOffsetMinutes * 60 * 1000);
 
-    // Query for meetings that start within the specified window
+    // Query for meetings within the specified time window
+    // Join with ScheduleTable to get expert's actual timezone
     const upcomingMeetings = await db
       .select({
         meetingId: MeetingTable.id,
@@ -239,7 +247,7 @@ export async function getUpcomingAppointments(
         expertFirstName: UserTable.firstName,
         expertLastName: UserTable.lastName,
         expertCountry: UserTable.country,
-        // Expert's schedule timezone
+        // Expert's actual timezone from their schedule settings
         expertScheduleTimezone: ScheduleTable.timezone,
       })
       .from(MeetingTable)
@@ -258,7 +266,7 @@ export async function getUpcomingAppointments(
     );
 
     // Transform the data to match the expected interface
-    return upcomingMeetings.map((meeting) => {
+    const appointments: Appointment[] = upcomingMeetings.map((meeting) => {
       const expertName =
         [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert';
 
@@ -274,14 +282,17 @@ export async function getUpcomingAppointments(
         expertName,
         appointmentType: meeting.eventName,
         startTime: meeting.startTime,
+        endTime: meeting.endTime,
         durationMinutes: meeting.eventDuration,
         meetingUrl: meeting.meetingUrl || `https://meet.eleva.care/${meeting.meetingId}`,
-        customerLocale: 'en-US', // Default for guests
+        customerLocale: 'en-US', // Default for guests, could be enhanced with guest preferences
         expertLocale: getLocaleFromCountry(meeting.expertCountry),
-        customerTimezone: meeting.timezone,
-        expertTimezone,
+        customerTimezone: meeting.timezone, // Patient's timezone from booking
+        expertTimezone, // Expert's actual timezone from schedule settings
       };
     });
+
+    return appointments;
   } catch (error) {
     console.error('Error querying upcoming appointments:', error);
     throw error;
