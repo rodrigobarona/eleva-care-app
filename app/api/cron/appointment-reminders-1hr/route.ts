@@ -73,6 +73,14 @@ async function handler() {
           appointment.expertLocale,
         );
 
+        // Determine locale for expert email template (supports pt, es, en)
+        const expertLocaleLower = (appointment.expertLocale || 'en').toLowerCase();
+        const expertLocale: SupportedLocale = expertLocaleLower.startsWith('pt')
+          ? 'pt'
+          : expertLocaleLower.startsWith('es')
+            ? 'es'
+            : 'en';
+
         const expertResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
@@ -87,7 +95,9 @@ async function handler() {
             appointmentTime: expertDateTime.timePart,
             timezone: appointment.expertTimezone,
             message: `🚨 URGENT: Your appointment with ${appointment.customerName} starts in 1 hour!`,
-            meetLink: appointment.meetingUrl,
+            meetingUrl: appointment.meetingUrl,
+            userSegment: 'expert',
+            locale: expertLocale,
           },
           transactionId: `reminder-1hr-expert-${appointment.id}`, // Idempotency key
         });
