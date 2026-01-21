@@ -107,6 +107,14 @@ export async function GET() {
       hypothesisId: 'A,D',
     });
 
+    // #region agent log - console for Vercel
+    console.log('[DEBUG api/user/billing:response]', {
+      userKeys: Object.keys(responsePayload.user),
+      hasAccountStatus: !!responsePayload.accountStatus,
+      hasStripeIdentityVerified: 'stripeIdentityVerified' in responsePayload.user,
+    });
+    // #endregion
+
     return NextResponse.json(responsePayload);
   } catch (error) {
     // Debug telemetry - gated and redacted

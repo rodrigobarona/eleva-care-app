@@ -36,6 +36,10 @@ export default async function BillingPage() {
       hypothesisId: 'C',
     });
 
+    // #region agent log - console for Vercel
+    console.log('[DEBUG billing/page.tsx:token]', { hasToken: !!token });
+    // #endregion
+
     if (!token) {
       return (
         <div className="container flex min-h-[400px] items-center justify-center">
@@ -54,6 +58,10 @@ export default async function BillingPage() {
       hypothesisId: 'B',
     });
 
+    // #region agent log - console for Vercel
+    console.log('[DEBUG billing/page.tsx:fetch-start]', { fetchUrl });
+    // #endregion
+
     const response = await fetch(fetchUrl, {
       headers: {
         'Content-Type': 'application/json',
@@ -69,6 +77,13 @@ export default async function BillingPage() {
       data: { ok: response.ok, status: response.status, statusText: response.statusText },
       hypothesisId: 'B,D',
     });
+
+    // #region agent log - console for Vercel
+    console.log('[DEBUG billing/page.tsx:fetch-response]', {
+      ok: response.ok,
+      status: response.status,
+    });
+    // #endregion
 
     if (!response.ok) {
       throw new Error('Failed to load billing data');
@@ -88,6 +103,15 @@ export default async function BillingPage() {
       },
       hypothesisId: 'A,D',
     });
+
+    // #region agent log - console for Vercel
+    console.log('[DEBUG billing/page.tsx:data-parsed]', {
+      hasData: !!data,
+      hasUser: !!data?.user,
+      userKeys: data?.user ? Object.keys(data.user) : [],
+      hasAccountStatus: !!data?.accountStatus,
+    });
+    // #endregion
 
     if (!data || !data.user) {
       return (
@@ -123,6 +147,14 @@ export default async function BillingPage() {
       hypothesisId: 'A',
     });
 
+    // #region agent log - console for Vercel
+    console.log('[DEBUG billing/page.tsx:render]', {
+      hasStripeConnectAccountId: !!data.user.stripeConnectAccountId,
+      hasStripeIdentityVerified: 'stripeIdentityVerified' in data.user,
+      stripeIdentityVerifiedValue: data.user.stripeIdentityVerified,
+    });
+    // #endregion
+
     return <BillingPageClient dbUser={data.user} accountStatus={data.accountStatus} />;
   } catch (error) {
     // Debug telemetry - gated and redacted (no stack traces)
@@ -134,6 +166,14 @@ export default async function BillingPage() {
       },
       hypothesisId: 'E',
     });
+
+    // #region agent log - console for Vercel
+    console.error(
+      '[DEBUG billing/page.tsx:catch] Error caught:',
+      error instanceof Error ? error.message : String(error),
+      error instanceof Error ? error.stack : '',
+    );
+    // #endregion
 
     return (
       <div className="container flex min-h-[400px] items-center justify-center">
