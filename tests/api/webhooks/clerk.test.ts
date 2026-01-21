@@ -2,6 +2,9 @@ import { ENV_CONFIG } from '@/config/env';
 import { triggerWorkflow, TriggerWorkflowOptions } from '@/lib/integrations/novu';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Import Webhook directly from mock to avoid collision with svix binary in project root
+import { Webhook } from '../../__mocks__/svix';
+
 // Mock all external dependencies first - Jest mocks must be before imports
 jest.mock('@/lib/integrations/novu', () => ({
   triggerWorkflow: jest.fn().mockResolvedValue({ data: { acknowledged: true } }),
@@ -15,6 +18,7 @@ jest.mock('@/config/env', () => ({
 }));
 
 // Note: svix is mocked via moduleNameMapper in jest.config.ts
+// The Webhook class is provided by tests/__mocks__/svix.ts
 
 // Mock headers function to return proper Headers-like object
 const mockHeaders = jest.fn();
@@ -32,19 +36,6 @@ jest.mock('next/server', () => ({
     }),
   },
 }));
-
-// Mock Webhook class to avoid svix import issues
-class MockWebhook {
-  constructor(private secret: string) {}
-  verify(payload: string, _headers: Record<string, string>): any {
-    try {
-      return JSON.parse(payload);
-    } catch {
-      throw new Error('Invalid signature');
-    }
-  }
-}
-const Webhook = MockWebhook;
 
 // Recreate the essential webhook handler logic for testing
 const createWebhookHandler = () => {
@@ -208,11 +199,11 @@ describe('Clerk Webhook Handler', () => {
     // Create POST handler from our test implementation
     POST = createWebhookHandler();
 
-    // Setup mock webhook by spying on the MockWebhook prototype
+    // Setup mock webhook by spying on the Webhook prototype from svix mock
     mockWebhook = {
       verify: jest.fn(),
     };
-    jest.spyOn(MockWebhook.prototype, 'verify').mockImplementation(mockWebhook.verify);
+    jest.spyOn(Webhook.prototype, 'verify').mockImplementation(mockWebhook.verify);
 
     // Setup mock request
     mockRequest = {

@@ -238,10 +238,11 @@ export async function GET(request: NextRequest) {
               locale = extractLocaleFromPaymentIntent(paymentIntent);
 
               // Extract customer name from payment intent metadata
+              // Normalize whitespace and handle single-word names properly
               customerName = paymentIntent.metadata?.customerName || 'Valued Customer';
-              const nameParts = customerName.split(' ');
+              const nameParts = customerName.trim().split(/\s+/).filter(Boolean);
               customerFirstName = nameParts[0] || 'Valued';
-              customerLastName = nameParts.slice(1).join(' ') || 'Customer';
+              customerLastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
               // Extract Multibanco details from next_action if available
               if (paymentIntent.next_action?.type === 'multibanco_display_details') {

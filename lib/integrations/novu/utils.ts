@@ -394,28 +394,40 @@ export async function runNovuDiagnostics() {
     }
   });
 
-  // 4. Bridge endpoint check
+  // 4. Bridge endpoint check (opt-in, requires running application)
   console.log('\n4️⃣ Bridge Endpoint Check');
-  try {
-    const baseUrl = ENV_CONFIG.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const bridgeUrl = `${baseUrl}/api/novu`;
+  const skipBridgeCheck = process.env.SKIP_NOVU_BRIDGE_CHECK === 'true';
 
-    const bridgeResponse = await fetch(bridgeUrl, {
-      method: 'GET',
-      signal: AbortSignal.timeout(5000),
-    });
+  if (skipBridgeCheck) {
+    console.log('   ⚠️ Bridge check skipped (SKIP_NOVU_BRIDGE_CHECK=true)');
+    diagnostics.recommendations.push(
+      'Bridge endpoint check was skipped. Run with SKIP_NOVU_BRIDGE_CHECK=false to verify the /api/novu endpoint.',
+    );
+    diagnostics.summary.warnings++;
+  } else {
+    try {
+      const baseUrl = ENV_CONFIG.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const bridgeUrl = `${baseUrl}/api/novu`;
 
-    if (bridgeResponse.ok) {
-      console.log('   ✅ Bridge endpoint is accessible');
-    } else {
-      console.log(`   ⚠️ Bridge endpoint returned ${bridgeResponse.status}`);
-      diagnostics.recommendations.push('Check /api/novu bridge endpoint configuration');
+      const bridgeResponse = await fetch(bridgeUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (bridgeResponse.ok) {
+        console.log('   ✅ Bridge endpoint is accessible');
+      } else {
+        console.log(`   ⚠️ Bridge endpoint returned ${bridgeResponse.status}`);
+        diagnostics.recommendations.push('Check /api/novu bridge endpoint configuration');
+        diagnostics.summary.warnings++;
+      }
+    } catch (error) {
+      console.log('   ⚠️ Bridge endpoint check failed:', error);
+      diagnostics.recommendations.push(
+        'Bridge endpoint check failed. Ensure the application is running before running diagnostics, or set SKIP_NOVU_BRIDGE_CHECK=true to skip this check.',
+      );
       diagnostics.summary.warnings++;
     }
-  } catch (error) {
-    console.log('   ❌ Bridge endpoint check failed:', error);
-    diagnostics.errors.push(`Bridge endpoint error: ${error}`);
-    diagnostics.summary.criticalErrors++;
   }
 
   // 5. Summary and recommendations
