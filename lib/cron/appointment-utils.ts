@@ -177,11 +177,21 @@ export function formatTimeUntilAppointment(appointmentTime: Date, locale: string
   const now = new Date();
   const hoursUntil = Math.round((appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60));
 
-  if (locale.startsWith('pt')) {
+  // Normalize locale for comparison
+  const localeLower = (locale || 'en').toLowerCase();
+
+  // Handle past or immediate appointments (hoursUntil <= 0)
+  if (hoursUntil <= 0) {
+    if (localeLower.startsWith('pt')) return 'agora';
+    if (localeLower.startsWith('es')) return 'ahora';
+    return 'now';
+  }
+
+  if (localeLower.startsWith('pt')) {
     if (hoursUntil <= 1) return 'em menos de 1 hora';
     if (hoursUntil < 24) return `em ${hoursUntil} horas`;
     return 'amanhã';
-  } else if (locale.startsWith('es')) {
+  } else if (localeLower.startsWith('es')) {
     if (hoursUntil <= 1) return 'en menos de 1 hora';
     if (hoursUntil < 24) return `en ${hoursUntil} horas`;
     return 'mañana';

@@ -12,6 +12,12 @@ import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/ema
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 
+/** Vercel region configuration for serverless function */
+export const preferredRegion = 'auto';
+
+/** Maximum execution time in seconds (1 minute for processing appointments) */
+export const maxDuration = 60;
+
 /** Minutes from now for urgent reminder window start (1 hour) */
 const WINDOW_START_MINUTES = 60;
 
@@ -101,8 +107,13 @@ async function handler() {
           appointment.customerLocale,
         );
 
-        // Determine locale for email template
-        const locale = appointment.customerLocale.startsWith('pt') ? 'pt' : 'en';
+        // Determine locale for email template (supports pt, es, en)
+        const customerLocaleLower = (appointment.customerLocale || 'en').toLowerCase();
+        const locale = customerLocaleLower.startsWith('pt')
+          ? 'pt'
+          : customerLocaleLower.startsWith('es')
+            ? 'es'
+            : 'en';
 
         const { html, text, subject } = await generateAppointmentEmail({
           expertName: appointment.expertName,
