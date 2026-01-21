@@ -900,10 +900,18 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         `No meeting found with paymentIntentId ${paymentIntent.id} to update status to succeeded.`,
       );
 
-      // 🔧 Fallback: Try to find meeting by ID from metadata and update status
+      // 🔧 Fallback: Try to find meeting by eventId + startTime + guestEmail from metadata
+      // The metadata.meeting.id is the eventId (service type), NOT the meeting's primary key
       // Only sets stripePaymentIntentId if it's currently null to avoid overwriting existing IDs
-      if (meetingData.id) {
-        console.log(`🔄 Attempting fallback lookup by meeting ID: ${meetingData.id}`);
+      if (meetingData.id && meetingData.start && meetingData.guest) {
+        console.log(`🔄 Attempting fallback lookup by eventId + startTime + guestEmail:`, {
+          eventId: meetingData.id,
+          startTime: meetingData.start,
+          guestEmail: meetingData.guest,
+        });
+
+        // Parse the start time from metadata
+        const startTimeFromMetadata = new Date(meetingData.start);
 
         // First, try to update meetings where stripePaymentIntentId IS NULL
         // This safely sets the paymentIntentId without overwriting any existing value
@@ -916,7 +924,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           })
           .where(
             and(
-              eq(MeetingTable.id, meetingData.id),
+              eq(MeetingTable.eventId, meetingData.id),
+              eq(MeetingTable.startTime, startTimeFromMetadata),
+              eq(MeetingTable.guestEmail, meetingData.guest),
               isNull(MeetingTable.stripePaymentIntentId), // Guard: only update if null
             ),
           )
@@ -924,7 +934,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         if (fallbackUpdate.length > 0) {
           console.log(
-            `✅ Fallback successful: Meeting ${meetingData.id} updated with paymentIntentId ${paymentIntent.id}`,
+            `✅ Fallback successful: Meeting ${fallbackUpdate[0].id} (eventId: ${meetingData.id}) updated with paymentIntentId ${paymentIntent.id}`,
           );
           meeting = fallbackUpdate[0];
           // Proceed with calendar creation for the found meeting
@@ -934,7 +944,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         } else {
           // Meeting might already have a different paymentIntentId - just update status
           console.log(
-            `🔄 Meeting ${meetingData.id} may already have paymentIntentId, updating status only...`,
+            `🔄 Meeting with eventId ${meetingData.id} may already have paymentIntentId, updating status only...`,
           );
           const statusOnlyUpdate = await db
             .update(MeetingTable)
@@ -942,17 +952,25 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               stripePaymentStatus: 'succeeded',
               updatedAt: new Date(),
             })
-            .where(eq(MeetingTable.id, meetingData.id))
+            .where(
+              and(
+                eq(MeetingTable.eventId, meetingData.id),
+                eq(MeetingTable.startTime, startTimeFromMetadata),
+                eq(MeetingTable.guestEmail, meetingData.guest),
+              ),
+            )
             .returning();
 
           if (statusOnlyUpdate.length > 0) {
-            console.log(`✅ Status-only update successful for meeting ${meetingData.id}`);
+            console.log(`✅ Status-only update successful for meeting ${statusOnlyUpdate[0].id}`);
             meeting = statusOnlyUpdate[0];
             if (!meeting.meetingUrl) {
               await createDeferredCalendarEvent(meeting, paymentIntent);
             }
           } else {
-            console.warn(`❌ Fallback failed: No meeting found with ID ${meetingData.id}`);
+            console.warn(
+              `❌ Fallback failed: No meeting found with eventId ${meetingData.id}, startTime ${meetingData.start}, guestEmail ${meetingData.guest}`,
+            );
           }
         }
       }
