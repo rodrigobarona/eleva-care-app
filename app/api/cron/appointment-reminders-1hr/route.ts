@@ -1,14 +1,15 @@
 /**
  * 1-Hour Urgent Appointment Reminder Cron Job
  *
- * Sends urgent reminders to both experts (via Novu) and patients (via direct email)
- * for appointments starting in the next 1-1.25 hours.
+ * Sends urgent reminders to both experts and patients via Novu workflows.
+ * For patients without ClerkIDs, their email is used as the subscriber ID
+ * (Novu auto-creates subscribers when triggered with a new subscriberId).
  *
  * Schedule: Every 15 minutes via QStash
  */
 import { formatDateTime, getUpcomingAppointments } from '@/lib/cron/appointment-utils';
 import { triggerWorkflow } from '@/lib/integrations/novu';
-import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
+import { SupportedLocale } from '@/lib/integrations/novu/email-service';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 
@@ -28,10 +29,13 @@ const WINDOW_END_MINUTES = 75;
  * Cron job handler that sends 1-hour urgent appointment reminders.
  *
  * Processes all confirmed appointments starting in 60-75 minutes and sends:
- * - Expert urgent reminders via Novu (in-app + email)
- * - Patient urgent reminders via direct Resend email
+ * - Expert urgent reminders via Novu (in-app + email) using ClerkID as subscriberId
+ * - Patient urgent reminders via Novu (email only) using email as subscriberId
  *
- * Uses idempotency keys to prevent duplicate reminders on cron retries.
+ * Novu auto-creates subscribers when triggered, so patients without
+ * accounts still receive email notifications and appear in Novu activity logs.
+ *
+ * Uses idempotency keys (transactionId) to prevent duplicate reminders on cron retries.
  * Runs every 15 minutes to catch appointments within the window.
  *
  * @returns {Promise<NextResponse>} JSON response with reminder statistics
@@ -99,7 +103,7 @@ async function handler() {
         expertRemindersFailed++;
       }
 
-      // 2. Send urgent reminder to patient/guest via direct email (guests don't have Clerk IDs)
+      // 2. Send urgent reminder to patient/guest via Novu (using email as subscriber ID)
       try {
         const patientDateTime = formatDateTime(
           appointment.startTime,
@@ -109,45 +113,42 @@ async function handler() {
 
         // Determine locale for email template (supports pt, es, en)
         const customerLocaleLower = (appointment.customerLocale || 'en').toLowerCase();
-        const locale = customerLocaleLower.startsWith('pt')
+        const locale: SupportedLocale = customerLocaleLower.startsWith('pt')
           ? 'pt'
           : customerLocaleLower.startsWith('es')
             ? 'es'
             : 'en';
 
-        const { html, text, subject } = await generateAppointmentEmail({
-          expertName: appointment.expertName,
-          clientName: appointment.customerName,
-          appointmentDate: patientDateTime.datePart,
-          appointmentTime: patientDateTime.timePart,
-          timezone: appointment.customerTimezone,
-          appointmentDuration: `${appointment.durationMinutes} minutes`,
-          eventTitle: appointment.appointmentType,
-          meetLink: appointment.meetingUrl,
-          locale,
-        });
-
-        const emailResult = await sendEmail({
-          to: appointment.guestEmail,
-          subject: `🚨 Starting Soon: ${subject} - in 1 hour!`,
-          html,
-          text,
-          headers: {
-            'Idempotency-Key': `reminder-1hr-patient-${appointment.id}`,
+        // Trigger patient urgent reminder via Novu workflow (uses email as subscriber ID)
+        await triggerWorkflow({
+          workflowId: 'appointment-universal',
+          to: {
+            subscriberId: appointment.guestEmail, // Use email as subscriber ID for guests
+            email: appointment.guestEmail,
+            firstName: appointment.customerName.split(' ')[0],
+            lastName: appointment.customerName.split(' ').slice(1).join(' ') || undefined,
           },
+          payload: {
+            eventType: 'reminder',
+            expertName: appointment.expertName,
+            customerName: appointment.customerName,
+            serviceName: appointment.appointmentType,
+            appointmentDate: patientDateTime.datePart,
+            appointmentTime: patientDateTime.timePart,
+            timezone: appointment.customerTimezone,
+            appointmentDuration: `${appointment.durationMinutes} minutes`,
+            meetingUrl: appointment.meetingUrl,
+            timeUntilAppointment: 'in 1 hour',
+            message: `🚨 URGENT: Your appointment with ${appointment.expertName} starts in 1 hour!`,
+            locale,
+            userSegment: 'patient',
+            templateVariant: 'urgent',
+          },
+          transactionId: `reminder-1hr-patient-${appointment.id}`, // Idempotency key
         });
 
-        if (emailResult.success) {
-          console.log(`⚡ URGENT reminder sent to patient: ${appointment.guestEmail}`);
-          patientRemindersSent++;
-        } else {
-          console.error(`❌ Failed to send urgent reminder to patient:`, {
-            appointmentId: appointment.id,
-            guestEmail: appointment.guestEmail,
-            error: emailResult.error,
-          });
-          patientRemindersFailed++;
-        }
+        console.log(`⚡ URGENT reminder sent to patient via Novu: ${appointment.guestEmail}`);
+        patientRemindersSent++;
       } catch (error) {
         console.error(`❌ Failed to send urgent reminder to patient:`, {
           appointmentId: appointment.id,

@@ -21,7 +21,7 @@ import {
   PAYMENT_TRANSFER_STATUS_REFUNDED,
 } from '@/lib/constants/payment-transfers';
 import { triggerWorkflow } from '@/lib/integrations/novu';
-import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
+import { sendEmail } from '@/lib/integrations/novu/email';
 import { elevaEmailService } from '@/lib/integrations/novu/email-service';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
@@ -1248,57 +1248,55 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           const appointmentDuration = `${durationMinutes} minutes`;
 
           try {
-            console.log(`Attempting to send payment receipt email to ${guestEmail}`);
+            console.log(`Attempting to trigger payment receipt via Novu workflow to ${guestEmail}`);
             const locale = extractLocaleFromPaymentIntent(paymentIntent);
             const amount = (paymentIntent.amount / 100).toFixed(2);
             const currency = paymentIntent.currency?.toUpperCase() || 'EUR';
 
-            // Determine payment method from payment intent
-            const paymentMethodTypes = paymentIntent.payment_method_types || [];
-            const paymentMethod = paymentMethodTypes.includes('multibanco')
-              ? 'Multibanco'
-              : paymentMethodTypes.includes('card')
-                ? 'Card'
-                : 'Online Payment';
-
-            // Render payment confirmation email (simple receipt, not full appointment details)
-            const html = await elevaEmailService.renderPaymentConfirmation({
-              customerName: guestName,
-              amount: `${amount}`,
-              currency,
-              transactionId: paymentIntent.id,
-              locale,
-              // Include basic appointment reference (full details come from calendar email)
-              appointmentDetails: {
-                service: eventName,
-                expert: expertName,
-                date: appointmentDate,
-                time: appointmentTime,
-                duration: appointmentDuration,
+            // Trigger payment confirmation via Novu workflow for activity tracking
+            const paymentResult = await triggerWorkflow({
+              workflowId: 'payment-universal',
+              to: {
+                subscriberId: guestEmail, // Use email as subscriber ID for guests
+                email: guestEmail,
+                firstName: guestName.split(' ')[0],
+                lastName: guestName.split(' ').slice(1).join(' ') || undefined,
               },
+              payload: {
+                eventType: 'success',
+                amount: `${amount}`,
+                currency,
+                customerName: guestName,
+                transactionId: paymentIntent.id,
+                // Include basic appointment reference (full details come from calendar email)
+                appointmentDetails: {
+                  service: eventName,
+                  expert: expertName,
+                  date: appointmentDate,
+                  time: appointmentTime,
+                  duration: appointmentDuration,
+                },
+                locale,
+                userSegment: 'patient',
+              },
+              transactionId: `payment-receipt-${paymentIntent.id}`,
             });
 
-            const subject = locale.startsWith('pt')
-              ? `✅ Pagamento confirmado - ${currency} ${amount}`
-              : locale.startsWith('es')
-                ? `✅ Pago confirmado - ${currency} ${amount}`
-                : `✅ Payment Confirmed - ${currency} ${amount}`;
-
-            await sendEmail({
-              to: guestEmail,
-              subject,
-              html,
-              text: `Your payment of ${currency} ${amount} via ${paymentMethod} has been confirmed. Transaction ID: ${paymentIntent.id}. Appointment details will follow in a separate email.`,
-            });
-            console.log(
-              `Payment receipt email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
-            );
+            if (paymentResult) {
+              console.log(
+                `Payment receipt notification triggered via Novu for ${guestEmail}, PI: ${paymentIntent.id}`,
+              );
+            } else {
+              console.error(
+                `Failed to trigger payment receipt notification via Novu for ${guestEmail}, PI: ${paymentIntent.id}`,
+              );
+            }
           } catch (emailError) {
             console.error(
-              `Failed to send payment receipt email to ${guestEmail} for PI ${paymentIntent.id}:`,
+              `Failed to trigger payment receipt notification for ${guestEmail} for PI ${paymentIntent.id}:`,
               emailError,
             );
-            // Do not fail the entire webhook for email error
+            // Do not fail the entire webhook for notification error
           }
         } else {
           console.warn(
@@ -1455,32 +1453,54 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         const appointmentDuration = `${durationMinutes} minutes`;
 
         try {
-          console.log(`Attempting to send payment failed/cancellation email to ${guestEmail}`);
-          const { html, text, subject } = await generateAppointmentEmail({
-            expertName,
-            clientName: guestName,
-            appointmentDate,
-            appointmentTime,
-            timezone: meetingTimezone,
-            appointmentDuration,
-            eventTitle: eventName,
-            meetLink: meetingDetails.meetingUrl ?? undefined, // May not be relevant if cancelled
-            notes: `We regret to inform you that the payment for this scheduled meeting failed. Reason: ${lastPaymentError}. As a result, this meeting has been canceled. Please update your payment information and try booking again, or contact support if you believe this is an error.`,
-            locale: extractLocaleFromPaymentIntent(paymentIntent),
+          console.log(
+            `Attempting to trigger payment failed notification via Novu to ${guestEmail}`,
+          );
+          const locale = extractLocaleFromPaymentIntent(paymentIntent);
+          const amount = (paymentIntent.amount / 100).toFixed(2);
+          const currency = paymentIntent.currency?.toUpperCase() || 'EUR';
+
+          // Trigger payment failed notification via Novu workflow
+          const failedResult = await triggerWorkflow({
+            workflowId: 'payment-universal',
+            to: {
+              subscriberId: guestEmail, // Use email as subscriber ID for guests
+              email: guestEmail,
+              firstName: guestName.split(' ')[0],
+              lastName: guestName.split(' ').slice(1).join(' ') || undefined,
+            },
+            payload: {
+              eventType: 'failed',
+              amount: `${amount}`,
+              currency,
+              customerName: guestName,
+              transactionId: paymentIntent.id,
+              message: `Your payment failed. Reason: ${lastPaymentError}. Please update your payment information and try booking again.`,
+              appointmentDetails: {
+                service: eventName,
+                expert: expertName,
+                date: appointmentDate,
+                time: appointmentTime,
+                duration: appointmentDuration,
+              },
+              locale,
+              userSegment: 'patient',
+            },
+            transactionId: `payment-failed-${paymentIntent.id}`,
           });
 
-          await sendEmail({
-            to: guestEmail,
-            subject,
-            html,
-            text,
-          });
-          console.log(
-            `Payment failed/cancellation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
-          );
+          if (failedResult) {
+            console.log(
+              `Payment failed notification triggered via Novu for ${guestEmail}, PI: ${paymentIntent.id}`,
+            );
+          } else {
+            console.error(
+              `Failed to trigger payment failed notification via Novu for ${guestEmail}, PI: ${paymentIntent.id}`,
+            );
+          }
         } catch (emailError) {
           console.error(
-            `Failed to send payment failed/cancellation email to ${guestEmail} for PI ${paymentIntent.id}:`,
+            `Failed to trigger payment failed notification for ${guestEmail} for PI ${paymentIntent.id}:`,
             emailError,
           );
         }

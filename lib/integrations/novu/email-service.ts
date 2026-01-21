@@ -14,6 +14,9 @@ import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
 import React from 'react';
 
+// Re-export SupportedLocale for use in other modules
+export type { SupportedLocale };
+
 /**
  * ELEVA-31: Novu Workflow Integration & Email Template Mapping (COMPLETED)
  *

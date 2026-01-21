@@ -185,6 +185,7 @@ export const paymentWorkflow = workflow(
 
     await step.email('payment-email', async () => {
       let emailBody: string;
+      let subject: string;
 
       if (payload.eventType === 'success' || payload.eventType === 'confirmed') {
         // Use payment confirmation template
@@ -206,6 +207,13 @@ export const paymentWorkflow = workflow(
           userSegment: payload.userSegment || 'patient',
           templateVariant: payload.templateVariant || 'default',
         });
+        const locale = (payload.locale || 'en').toLowerCase().split('-')[0];
+        subject =
+          locale === 'pt'
+            ? `✅ Pagamento confirmado - ${payload.currency || 'EUR'} ${payload.amount}`
+            : locale === 'es'
+              ? `✅ Pago confirmado - ${payload.currency || 'EUR'} ${payload.amount}`
+              : `✅ Payment Confirmed - ${payload.currency || 'EUR'} ${payload.amount}`;
       } else if (payload.eventType === 'multibanco-reminder') {
         // Use Multibanco payment reminder template
         emailBody = await elevaEmailService.renderMultibancoPaymentReminder({
@@ -228,6 +236,56 @@ export const paymentWorkflow = workflow(
           userSegment: payload.userSegment || 'patient',
           templateVariant: payload.templateVariant || 'reminder',
         });
+        subject = `Payment Reminder - ${payload.amount} ${payload.currency || 'EUR'}`;
+      } else if (payload.eventType === 'refunded') {
+        // Use refund notification template
+        emailBody = await elevaEmailService.renderRefundNotification({
+          customerName: payload.customerName,
+          expertName: payload.refundDetails?.expertName || payload.appointmentDetails?.expert || '',
+          serviceName: payload.refundDetails?.serviceName || payload.appointmentDetails?.service,
+          appointmentDate:
+            payload.refundDetails?.appointmentDate || payload.appointmentDetails?.date || '',
+          appointmentTime:
+            payload.refundDetails?.appointmentTime || payload.appointmentDetails?.time || '',
+          originalAmount: payload.refundDetails?.originalAmount || payload.amount,
+          refundAmount: payload.amount,
+          currency: payload.currency || 'EUR',
+          refundReason: payload.refundDetails?.refundReason || 'Appointment conflict',
+          transactionId: payload.transactionId,
+          locale: payload.locale || 'en',
+        });
+        const locale = (payload.locale || 'en').toLowerCase().split('-')[0];
+        subject =
+          locale === 'pt'
+            ? `Conflito de Agendamento - Reembolso Total Processado`
+            : locale === 'es'
+              ? `Conflicto de Cita - Reembolso Total Procesado`
+              : `Appointment Conflict - Full Refund Processed`;
+      } else if (payload.eventType === 'failed') {
+        // Use generic email for failed payments
+        emailBody = await elevaEmailService.renderGenericEmail({
+          templateName: 'payment-notification',
+          subject: `Payment Failed`,
+          templateData: {
+            eventType: payload.eventType,
+            amount: payload.amount,
+            currency: payload.currency,
+            customerName: payload.customerName,
+            message:
+              payload.message ||
+              'Your payment could not be processed. Please try again or use a different payment method.',
+          },
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: 'urgent',
+        });
+        const locale = (payload.locale || 'en').toLowerCase().split('-')[0];
+        subject =
+          locale === 'pt'
+            ? `❌ Pagamento falhou - ${payload.currency || 'EUR'} ${payload.amount}`
+            : locale === 'es'
+              ? `❌ Pago fallido - ${payload.currency || 'EUR'} ${payload.amount}`
+              : `❌ Payment Failed - ${payload.currency || 'EUR'} ${payload.amount}`;
       } else {
         // Use generic email renderer for other payment events
         emailBody = await elevaEmailService.renderGenericEmail({
@@ -244,10 +302,11 @@ export const paymentWorkflow = workflow(
           userSegment: payload.userSegment || 'patient',
           templateVariant: payload.templateVariant || 'default',
         });
+        subject = `Payment ${payload.eventType} - ${payload.amount} ${payload.currency || 'EUR'}`;
       }
 
       return {
-        subject: `Payment ${payload.eventType} - ${payload.amount} ${payload.currency || 'EUR'}`,
+        subject,
         body: emailBody,
       };
     });
@@ -286,6 +345,17 @@ export const paymentWorkflow = workflow(
           date: z.string(),
           time: z.string(),
           duration: z.string().optional(),
+        })
+        .optional(),
+      // Refund specific details
+      refundDetails: z
+        .object({
+          expertName: z.string().optional(),
+          serviceName: z.string().optional(),
+          appointmentDate: z.string().optional(),
+          appointmentTime: z.string().optional(),
+          originalAmount: z.string().optional(),
+          refundReason: z.string().optional(),
         })
         .optional(),
       locale: z.string().optional().default('en'),
@@ -425,11 +495,13 @@ export const appointmentWorkflow = workflow(
 
     await step.email('appointment-email', async () => {
       let emailBody: string;
+      let subject: string;
+      const isExpert = payload.userSegment === 'expert';
 
       if (payload.eventType === 'reminder') {
         // Use appointment reminder template
         emailBody = await elevaEmailService.renderAppointmentReminder({
-          userName: payload.customerName,
+          userName: isExpert ? payload.expertName : payload.customerName,
           expertName: payload.expertName,
           appointmentType: payload.serviceName || 'Consultation',
           appointmentDate: payload.appointmentDate,
@@ -440,22 +512,43 @@ export const appointmentWorkflow = workflow(
           userSegment: payload.userSegment || 'patient',
           templateVariant: payload.templateVariant || 'reminder',
         });
+        subject = isExpert
+          ? `Reminder: Appointment with ${payload.customerName}`
+          : `Reminder: Your appointment with ${payload.expertName}`;
       } else if (payload.eventType === 'confirmed') {
-        // Use appointment confirmation template (existing)
-        emailBody = await elevaEmailService.renderAppointmentConfirmation({
-          expertName: payload.expertName,
-          clientName: payload.customerName,
-          appointmentDate: payload.appointmentDate,
-          appointmentTime: payload.appointmentTime,
-          timezone: payload.timezone || 'UTC',
-          appointmentDuration: payload.appointmentDuration || '60 minutes',
-          eventTitle: payload.serviceName || 'Consultation',
-          meetLink: payload.meetingUrl,
-          notes: payload.notes,
-          locale: payload.locale || 'en',
-          userSegment: payload.userSegment || 'patient',
-          templateVariant: payload.templateVariant || 'default',
-        });
+        if (isExpert) {
+          // Use expert-specific appointment confirmation template
+          emailBody = await elevaEmailService.renderExpertNewAppointment({
+            expertName: payload.expertName,
+            clientName: payload.customerName,
+            appointmentDate: payload.appointmentDate,
+            appointmentTime: payload.appointmentTime,
+            timezone: payload.timezone || 'UTC',
+            appointmentDuration: payload.appointmentDuration || '60 minutes',
+            eventTitle: payload.serviceName || 'Consultation',
+            meetLink: payload.meetingUrl,
+            notes: payload.notes,
+            locale: (payload.locale as 'en' | 'pt' | 'es') || 'en',
+          });
+          subject = `New appointment: ${payload.customerName} - ${payload.serviceName || 'Consultation'}`;
+        } else {
+          // Use patient appointment confirmation template
+          emailBody = await elevaEmailService.renderAppointmentConfirmation({
+            expertName: payload.expertName,
+            clientName: payload.customerName,
+            appointmentDate: payload.appointmentDate,
+            appointmentTime: payload.appointmentTime,
+            timezone: payload.timezone || 'UTC',
+            appointmentDuration: payload.appointmentDuration || '60 minutes',
+            eventTitle: payload.serviceName || 'Consultation',
+            meetLink: payload.meetingUrl,
+            notes: payload.notes,
+            locale: payload.locale || 'en',
+            userSegment: payload.userSegment || 'patient',
+            templateVariant: payload.templateVariant || 'default',
+          });
+          subject = `Your appointment with ${payload.expertName} is confirmed`;
+        }
       } else {
         // Use generic email renderer for other appointment events
         emailBody = await elevaEmailService.renderGenericEmail({
@@ -474,10 +567,11 @@ export const appointmentWorkflow = workflow(
           userSegment: payload.userSegment || 'patient',
           templateVariant: payload.templateVariant || 'default',
         });
+        subject = `Appointment ${payload.eventType} - ${payload.serviceName || 'Your Service'}`;
       }
 
       return {
-        subject: `Appointment ${payload.eventType} - ${payload.serviceName || 'Your Service'}`,
+        subject,
         body: emailBody,
       };
     });
@@ -927,14 +1021,22 @@ export const expertPayoutNotificationWorkflow = workflow(
 );
 
 // Reservation Expired Workflow - Notifies when a Multibanco payment expires
+// Supports both expert and patient recipients based on recipientType
 export const reservationExpiredWorkflow = workflow(
   'reservation-expired',
   async ({ payload, step }) => {
-    // In-app notification for expert
+    const isPatient = payload.recipientType === 'patient';
+    const recipientName = isPatient ? payload.clientName : payload.expertName;
+
+    // In-app notification
     await step.inApp('reservation-expired-inapp', async () => {
+      const body = isPatient
+        ? `Your booking for ${payload.serviceName} with ${payload.expertName} has been cancelled because the payment was not completed within 7 days.`
+        : `A pending booking from ${payload.clientName} for ${payload.serviceName} has been cancelled because the Multibanco payment was not completed within 7 days.`;
+
       return {
-        subject: `⏰ Pending booking cancelled - ${payload.serviceName}`,
-        body: `A pending booking from ${payload.clientName} for ${payload.serviceName} has been cancelled because the Multibanco payment was not completed within 7 days.`,
+        subject: `⏰ Booking cancelled - ${payload.serviceName}`,
+        body,
         data: {
           expertName: payload.expertName,
           clientName: payload.clientName,
@@ -942,38 +1044,49 @@ export const reservationExpiredWorkflow = workflow(
           appointmentDate: payload.appointmentDate,
           appointmentTime: payload.appointmentTime,
           timezone: payload.timezone,
+          recipientType: payload.recipientType,
         },
       };
     });
 
-    // Email notification for expert
+    // Email notification
     await step.email('reservation-expired-email', async () => {
       const emailBody = await elevaEmailService.renderGenericEmail({
         templateName: 'reservation-expired',
-        subject: `⏰ Pending booking cancelled - ${payload.serviceName}`,
+        subject: `⏰ Booking cancelled - ${payload.serviceName}`,
         templateData: {
-          recipientName: payload.expertName,
-          recipientType: 'expert',
+          recipientName,
+          recipientType: payload.recipientType || 'expert',
           expertName: payload.expertName,
           clientName: payload.clientName,
           serviceName: payload.serviceName,
           appointmentDate: payload.appointmentDate,
           appointmentTime: payload.appointmentTime,
-          timezone: payload.timezone || 'Europe/Lisbon',
+          timezone: payload.timezone || 'UTC',
           locale: payload.locale || 'en',
         },
         locale: payload.locale || 'en',
       });
 
+      // Different subjects for patient vs expert
+      const subject = isPatient
+        ? payload.locale === 'pt'
+          ? `⏰ A sua reserva expirou - ${payload.serviceName}`
+          : payload.locale === 'es'
+            ? `⏰ Su reserva ha expirado - ${payload.serviceName}`
+            : `⏰ Your booking has expired - ${payload.serviceName}`
+        : `⏰ Pending booking cancelled - ${payload.serviceName}`;
+
       return {
-        subject: `⏰ Pending booking cancelled - ${payload.serviceName}`,
+        subject,
         body: emailBody,
       };
     });
   },
   {
     name: 'Reservation Expired Notifications',
-    description: 'Notifies experts when a Multibanco payment expires and the booking is cancelled',
+    description:
+      'Notifies experts and patients when a Multibanco payment expires and the booking is cancelled',
     payloadSchema: z.object({
       expertName: z.string(),
       clientName: z.string(),
@@ -982,6 +1095,7 @@ export const reservationExpiredWorkflow = workflow(
       appointmentTime: z.string(),
       timezone: z.string().optional(),
       locale: z.string().optional(),
+      recipientType: z.enum(['expert', 'patient']).optional().default('expert'),
     }),
     tags: ['payments', 'reservations', 'expiration'],
     preferences: {
