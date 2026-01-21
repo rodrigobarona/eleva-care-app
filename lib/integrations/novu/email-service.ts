@@ -5,6 +5,7 @@ import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-c
 import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
+import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { Novu } from '@novu/api';
@@ -263,6 +264,26 @@ export class TemplateSelectionService {
     // Payment workflows
     'payment-universal': {
       success: {
+        patient: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+        expert: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+      },
+      confirmed: {
+        patient: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+        expert: {
+          default: PaymentConfirmationTemplate,
+          branded: PaymentConfirmationTemplate,
+        },
+      },
+      pending: {
         patient: {
           default: MultibancoBookingPendingTemplate,
           branded: MultibancoBookingPendingTemplate,
