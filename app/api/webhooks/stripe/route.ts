@@ -554,11 +554,11 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Clean up any existing slot reservation since meeting is now confirmed
     // This handles Multibanco payments where a reservation was created during pending state
-    if (result.meeting && session.payment_intent) {
+    if (result.meeting && paymentIntentId) {
       try {
         const deletedReservations = await db
           .delete(SlotReservationTable)
-          .where(eq(SlotReservationTable.stripePaymentIntentId, session.payment_intent.toString()))
+          .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntentId))
           .returning({ id: SlotReservationTable.id });
 
         if (deletedReservations.length > 0) {

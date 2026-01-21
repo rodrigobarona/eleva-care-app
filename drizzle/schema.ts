@@ -175,6 +175,8 @@ export const MeetingTable = pgTable(
     stripePayoutFailureMessage: text('stripe_payout_failure_message'),
     stripePayoutPaidAt: timestamp('stripe_payout_paid_at'),
     lastProcessedAt: timestamp('lastProcessedAt'),
+    // Idempotency flag to prevent duplicate calendar event creation during concurrent webhook retries
+    calendarCreationClaimed: boolean('calendar_creation_claimed').default(false).notNull(),
     createdAt,
     updatedAt,
   },
