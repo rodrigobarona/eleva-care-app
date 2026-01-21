@@ -1,3 +1,28 @@
+/**
+ * Main Stripe Webhook Handler
+ *
+ * Processes all payment-related Stripe webhook events:
+ * - `checkout.session.completed` - New booking created
+ * - `payment_intent.succeeded` - Payment confirmed (card or Multibanco)
+ * - `payment_intent.payment_failed` - Payment failed
+ * - `payment_intent.requires_action` - Multibanco voucher generated
+ * - `charge.refunded` - Payment refunded
+ * - `charge.dispute.created` - Chargeback initiated
+ * - `payout.*` - Expert payout events
+ * - `account.*` - Stripe Connect account updates
+ * - `identity.*` - Identity verification updates
+ *
+ * @route POST /api/webhooks/stripe
+ *
+ * @security
+ * - Verifies Stripe signature using STRIPE_WEBHOOK_SECRET
+ * - Returns 400 for invalid signatures
+ * - Monitors webhook health via Redis metrics
+ *
+ * @see {@link https://stripe.com/docs/webhooks} - Stripe Webhooks Guide
+ * @see {@link ./handlers/payment} - Payment event handlers
+ * @see {@link ./handlers/payout} - Payout event handlers
+ */
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import {
@@ -495,6 +520,12 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         mapPaymentStatus(session.payment_status, session.id) === 'succeeded',
     });
 
+    // Extract payment intent ID - can be string or expanded PaymentIntent object
+    const paymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+
     const result = await createMeeting({
       eventId: meetingData.id,
       clerkUserId: meetingData.expert,
@@ -504,6 +535,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       guestNotes: meetingData.notes,
       timezone: meetingData.timezone || 'UTC', // Use provided timezone or fallback to UTC
       stripeSessionId: session.id,
+      stripePaymentIntentId: paymentIntentId, // 🔧 FIX: Store paymentIntentId for later lookup in payment_intent.succeeded
       stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
       stripeAmount: session.amount_total ?? undefined,
       stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
@@ -539,11 +571,11 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Clean up any existing slot reservation since meeting is now confirmed
     // This handles Multibanco payments where a reservation was created during pending state
-    if (result.meeting && session.payment_intent) {
+    if (result.meeting && paymentIntentId) {
       try {
         const deletedReservations = await db
           .delete(SlotReservationTable)
-          .where(eq(SlotReservationTable.stripePaymentIntentId, session.payment_intent.toString()))
+          .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntentId))
           .returning({ id: SlotReservationTable.id });
 
         if (deletedReservations.length > 0) {

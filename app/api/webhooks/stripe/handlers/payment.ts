@@ -27,7 +27,7 @@ import { createUserNotification } from '@/lib/notifications/core';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { format, toZonedTime } from 'date-fns-tz';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import Stripe from 'stripe';
 
@@ -132,6 +132,205 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
  */
 function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
   return start1 < end2 && start2 < end1;
+}
+
+/**
+ * Releases a calendar creation claim to allow retries.
+ *
+ * Called when calendar creation fails partway through, allowing
+ * subsequent webhook retries to attempt creation again.
+ *
+ * @param meetingId - The meeting ID to release the claim for
+ */
+async function releaseClaim(meetingId: string): Promise<void> {
+  try {
+    await db
+      .update(MeetingTable)
+      .set({
+        calendarCreationClaimed: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(MeetingTable.id, meetingId));
+    console.log(`🔓 Released calendar creation claim for meeting ${meetingId}`);
+  } catch (releaseError) {
+    console.error(`❌ Failed to release claim for meeting ${meetingId}:`, releaseError);
+    // Log but don't throw - claim will timeout naturally if release fails
+  }
+}
+
+/**
+ * Creates a deferred calendar event for meetings that were created with pending payment
+ * (e.g., Multibanco payments) and finalizes them when payment succeeds.
+ *
+ * This function is called ONLY after payment confirmation to ensure calendar events
+ * are never created for unpaid bookings.
+ *
+ * @param meeting - The meeting record from the database
+ * @param meeting.id - Unique meeting identifier
+ * @param meeting.eventId - Reference to the event type
+ * @param meeting.clerkUserId - Expert's Clerk user ID (for calendar access)
+ * @param meeting.guestName - Patient/guest name
+ * @param meeting.guestEmail - Patient/guest email (receives calendar invite)
+ * @param meeting.startTime - Appointment start time
+ * @param meeting.guestNotes - Optional notes from the guest
+ * @param meeting.timezone - Timezone for the appointment
+ * @param paymentIntent - The Stripe PaymentIntent that triggered this call
+ *
+ * @returns {Promise<void>} Resolves when calendar event is created and meeting is updated
+ *
+ * @example
+ * ```typescript
+ * await createDeferredCalendarEvent(
+ *   {
+ *     id: 'meeting-123',
+ *     eventId: 'event-456',
+ *     clerkUserId: 'user_abc',
+ *     guestName: 'John Doe',
+ *     guestEmail: 'john@example.com',
+ *     startTime: new Date('2026-01-25T10:00:00Z'),
+ *     guestNotes: 'First consultation',
+ *     timezone: 'Europe/Lisbon',
+ *   },
+ *   paymentIntent,
+ * );
+ * ```
+ *
+ * @remarks
+ * - Does NOT throw on failure - calendar errors are logged but don't fail the webhook
+ * - Cleans up any slot reservations after successful calendar creation
+ * - Updates the meeting record with the Google Meet URL
+ */
+async function createDeferredCalendarEvent(
+  meeting: {
+    id: string;
+    eventId: string;
+    clerkUserId: string;
+    guestName: string;
+    guestEmail: string;
+    startTime: Date;
+    guestNotes: string | null;
+    timezone: string;
+  },
+  paymentIntent: Stripe.PaymentIntent,
+) {
+  try {
+    console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
+
+    // 🔒 IDEMPOTENCY CLAIM: Atomically claim the meeting to prevent duplicate calendar events
+    // This protects against concurrent webhook retries creating multiple Google Calendar events
+    const claimResult = await db
+      .update(MeetingTable)
+      .set({
+        calendarCreationClaimed: true,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(MeetingTable.id, meeting.id),
+          isNull(MeetingTable.meetingUrl), // Only claim if no URL exists yet
+          eq(MeetingTable.calendarCreationClaimed, false), // Only claim if not already claimed
+        ),
+      )
+      .returning({ id: MeetingTable.id });
+
+    if (claimResult.length === 0) {
+      console.log(
+        `⏭️ Skipping calendar creation for meeting ${meeting.id}: already claimed or has URL`,
+      );
+      return; // Another process is handling this or it's already done
+    }
+
+    console.log(`🔒 Claimed calendar creation for meeting ${meeting.id}`);
+
+    // Get the event details for calendar creation
+    const event = await db.query.EventTable.findFirst({
+      where: eq(EventTable.id, meeting.eventId),
+    });
+
+    if (!event) {
+      console.error(`❌ Event ${meeting.eventId} not found for deferred calendar creation`);
+      // Release the claim on failure so retries can proceed
+      await releaseClaim(meeting.id);
+      return;
+    }
+
+    // Dynamic import to avoid circular dependency with calendar service
+    const { createCalendarEvent } = await import('@/server/googleCalendar');
+
+    console.log('🚀 Calling createCalendarEvent for deferred booking:', {
+      meetingId: meeting.id,
+      clerkUserId: meeting.clerkUserId,
+      guestEmail: meeting.guestEmail,
+      timezone: meeting.timezone,
+    });
+
+    let calendarEvent;
+    try {
+      calendarEvent = await createCalendarEvent({
+        clerkUserId: meeting.clerkUserId,
+        guestName: meeting.guestName,
+        guestEmail: meeting.guestEmail,
+        startTime: meeting.startTime,
+        guestNotes: meeting.guestNotes || undefined,
+        durationInMinutes: event.durationInMinutes,
+        eventName: event.name,
+        timezone: meeting.timezone,
+        locale: extractLocaleFromPaymentIntent(paymentIntent),
+      });
+    } catch (createError) {
+      console.error(`❌ Calendar creation failed for meeting ${meeting.id}:`, createError);
+      // Release the claim on failure so retries can proceed
+      await releaseClaim(meeting.id);
+      throw createError; // Re-throw to be caught by outer try-catch
+    }
+
+    const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+
+    // Update meeting with the new URL and mark claim as completed
+    if (meetingUrl) {
+      await db
+        .update(MeetingTable)
+        .set({
+          meetingUrl: meetingUrl,
+          calendarCreationClaimed: true, // Keep claimed to prevent re-processing
+          updatedAt: new Date(),
+        })
+        .where(eq(MeetingTable.id, meeting.id));
+
+      console.log(`✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`);
+    } else {
+      console.warn(
+        `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
+      );
+      // Still mark as completed since we successfully created the event
+      await db
+        .update(MeetingTable)
+        .set({
+          calendarCreationClaimed: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(MeetingTable.id, meeting.id));
+    }
+
+    // Clean up slot reservation if it exists
+    try {
+      await db
+        .delete(SlotReservationTable)
+        .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
+      console.log(`🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`);
+    } catch (cleanupError) {
+      console.error('❌ Failed to clean up slot reservation:', cleanupError);
+      // Continue execution - this is not critical
+    }
+  } catch (calendarError) {
+    console.error(`❌ Failed to create deferred calendar event for meeting ${meeting.id}:`, {
+      error: calendarError instanceof Error ? calendarError.message : calendarError,
+      stack: calendarError instanceof Error ? calendarError.stack : undefined,
+      meetingId: meeting.id,
+      paymentIntentId: paymentIntent.id,
+    });
+    // Don't fail the entire webhook for calendar errors - payment succeeded
+  }
 }
 
 /**
@@ -490,6 +689,36 @@ async function notifyAppointmentConflict(
   }
 }
 
+/**
+ * Handles successful payment events from Stripe.
+ *
+ * Processes `payment_intent.succeeded` webhooks and performs:
+ * 1. Late Multibanco payment conflict detection with automatic refunds
+ * 2. Meeting status update to 'succeeded'
+ * 3. Deferred calendar event creation (for pending-to-succeeded transitions)
+ * 4. Transfer creation for expert payouts
+ * 5. Confirmation emails to guests
+ *
+ * @param {Stripe.PaymentIntent} paymentIntent - The Stripe PaymentIntent object
+ * @returns {Promise<void>}
+ *
+ * @example
+ * ```typescript
+ * // Called from main Stripe webhook handler
+ * case 'payment_intent.succeeded':
+ *   await handlePaymentSucceeded(paymentIntent);
+ *   break;
+ * ```
+ *
+ * @remarks
+ * - Uses atomic claims to prevent duplicate calendar events during retries
+ * - Implements fallback meeting lookup by metadata ID if paymentIntentId not found
+ * - Automatically refunds Multibanco payments that conflict with existing bookings
+ * - Only sets stripePaymentIntentId in fallback if column is currently null
+ *
+ * @see {@link createDeferredCalendarEvent} - Calendar creation with idempotency
+ * @see {@link notifyAppointmentConflict} - Conflict notification emails
+ */
 export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   console.log('Payment succeeded:', paymentIntent.id);
 
@@ -663,100 +892,86 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id))
       .returning();
 
+    // Track the meeting from either path for email/transfer processing
+    let meeting: (typeof updatedMeeting)[0] | null = null;
+
     if (updatedMeeting.length === 0) {
       console.warn(
         `No meeting found with paymentIntentId ${paymentIntent.id} to update status to succeeded.`,
       );
-      // It's possible the meeting is created via a different flow or checkout session ID only
-      // If checkout_session_id is available in paymentIntent metadata, we could try that as a fallback.
-      // For now, we proceed to update the transfer record if it exists.
+
+      // 🔧 Fallback: Try to find meeting by ID from metadata and update status
+      // Only sets stripePaymentIntentId if it's currently null to avoid overwriting existing IDs
+      if (meetingData.id) {
+        console.log(`🔄 Attempting fallback lookup by meeting ID: ${meetingData.id}`);
+
+        // First, try to update meetings where stripePaymentIntentId IS NULL
+        // This safely sets the paymentIntentId without overwriting any existing value
+        const fallbackUpdate = await db
+          .update(MeetingTable)
+          .set({
+            stripePaymentIntentId: paymentIntent.id, // Only set if WHERE clause passes
+            stripePaymentStatus: 'succeeded',
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(MeetingTable.id, meetingData.id),
+              isNull(MeetingTable.stripePaymentIntentId), // Guard: only update if null
+            ),
+          )
+          .returning();
+
+        if (fallbackUpdate.length > 0) {
+          console.log(
+            `✅ Fallback successful: Meeting ${meetingData.id} updated with paymentIntentId ${paymentIntent.id}`,
+          );
+          meeting = fallbackUpdate[0];
+          // Proceed with calendar creation for the found meeting
+          if (!meeting.meetingUrl) {
+            await createDeferredCalendarEvent(meeting, paymentIntent);
+          }
+        } else {
+          // Meeting might already have a different paymentIntentId - just update status
+          console.log(
+            `🔄 Meeting ${meetingData.id} may already have paymentIntentId, updating status only...`,
+          );
+          const statusOnlyUpdate = await db
+            .update(MeetingTable)
+            .set({
+              stripePaymentStatus: 'succeeded',
+              updatedAt: new Date(),
+            })
+            .where(eq(MeetingTable.id, meetingData.id))
+            .returning();
+
+          if (statusOnlyUpdate.length > 0) {
+            console.log(`✅ Status-only update successful for meeting ${meetingData.id}`);
+            meeting = statusOnlyUpdate[0];
+            if (!meeting.meetingUrl) {
+              await createDeferredCalendarEvent(meeting, paymentIntent);
+            }
+          } else {
+            console.warn(`❌ Fallback failed: No meeting found with ID ${meetingData.id}`);
+          }
+        }
+      }
     } else {
-      const meeting = updatedMeeting[0];
+      meeting = updatedMeeting[0];
       console.log(
         `Meeting ${meeting.id} status updated to succeeded for paymentIntentId ${paymentIntent.id}`,
       );
 
       // If meeting doesn't have a meeting URL yet (was created with pending payment), create calendar event now
       if (!meeting.meetingUrl) {
-        try {
-          console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
-
-          // Get the event details for calendar creation
-          const event = await db.query.EventTable.findFirst({
-            where: eq(EventTable.id, meeting.eventId),
-          });
-
-          if (event) {
-            // Dynamic import to avoid circular dependency with calendar service
-            // The calendar service depends on meeting types which depend on payment types
-            const { createCalendarEvent } = await import('@/server/googleCalendar');
-
-            console.log('🚀 Calling createCalendarEvent for deferred booking:', {
-              meetingId: meeting.id,
-              clerkUserId: meeting.clerkUserId,
-              guestEmail: meeting.guestEmail,
-              timezone: meeting.timezone,
-            });
-
-            const calendarEvent = await createCalendarEvent({
-              clerkUserId: meeting.clerkUserId,
-              guestName: meeting.guestName,
-              guestEmail: meeting.guestEmail,
-              startTime: meeting.startTime,
-              guestNotes: meeting.guestNotes || undefined,
-              durationInMinutes: event.durationInMinutes,
-              eventName: event.name,
-              timezone: meeting.timezone,
-              locale: extractLocaleFromPaymentIntent(paymentIntent),
-            });
-
-            const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-
-            // Update meeting with the new URL
-            if (meetingUrl) {
-              await db
-                .update(MeetingTable)
-                .set({
-                  meetingUrl: meetingUrl,
-                  updatedAt: new Date(),
-                })
-                .where(eq(MeetingTable.id, meeting.id));
-
-              console.log(
-                `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
-              );
-            } else {
-              console.warn(
-                `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
-              );
-            }
-
-            // Clean up slot reservation if it exists
-            try {
-              await db
-                .delete(SlotReservationTable)
-                .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
-              console.log(`🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`);
-            } catch (cleanupError) {
-              console.error('❌ Failed to clean up slot reservation:', cleanupError);
-              // Continue execution - this is not critical
-            }
-          } else {
-            console.error(`❌ Event ${meeting.eventId} not found for deferred calendar creation`);
-          }
-        } catch (calendarError) {
-          console.error(`❌ Failed to create deferred calendar event for meeting ${meeting.id}:`, {
-            error: calendarError instanceof Error ? calendarError.message : calendarError,
-            stack: calendarError instanceof Error ? calendarError.stack : undefined,
-            meetingId: meeting.id,
-            paymentIntentId: paymentIntent.id,
-          });
-          // Don't fail the entire webhook for calendar errors - payment succeeded
-        }
+        await createDeferredCalendarEvent(meeting, paymentIntent);
       } else {
         console.log(`✅ Meeting ${meeting.id} already has a meeting URL: ${meeting.meetingUrl}`);
       }
+    }
 
+    // Continue with transfer and email processing regardless of which path was used
+    if (meeting) {
       // Find the payment transfer record
       const transfer = await db.query.PaymentTransferTable.findFirst({
         where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),

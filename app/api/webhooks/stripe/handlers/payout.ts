@@ -1,3 +1,20 @@
+/**
+ * Stripe Payout Event Handlers
+ *
+ * Processes payout events from Stripe Connect for expert marketplace payments.
+ * Sends notifications to experts when their earnings are transferred to their bank accounts.
+ *
+ * @module app/api/webhooks/stripe/handlers/payout
+ *
+ * @remarks
+ * Payouts are triggered by the `process-pending-payouts` cron job after:
+ * 1. Successful payment from customer
+ * 2. Transfer to expert's Connect account
+ * 3. Complaint window period (7 days post-appointment)
+ *
+ * @see {@link app/api/cron/process-pending-payouts} - Initiates payouts
+ * @see {@link app/api/webhooks/stripe-connect} - Receives payout webhooks
+ */
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, UserTable } from '@/drizzle/schema';
 import { triggerWorkflow } from '@/lib/integrations/novu';
@@ -6,8 +23,27 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 
 /**
- * Handles Stripe Connect payout events for marketplace payments
- * Sends notification to expert with real appointment data
+ * Handles successful payout events from Stripe Connect.
+ *
+ * Sends a notification to the expert when their earnings have been
+ * successfully transferred to their bank account.
+ *
+ * @param {Stripe.Payout} payout - The Stripe Payout object
+ * @returns {Promise<void>}
+ *
+ * @example
+ * ```typescript
+ * // Called from stripe-connect webhook handler
+ * case 'payout.paid':
+ *   await handlePayoutPaid(payout);
+ *   break;
+ * ```
+ *
+ * @remarks
+ * - Uses idempotency key `payout-{payout.id}` to prevent duplicate notifications
+ * - Calculates expected arrival date from payout.arrival_date
+ * - Falls back to 2-day estimate if arrival_date not provided
+ * - Fetches real appointment data from database when available
  */
 export async function handlePayoutPaid(payout: Stripe.Payout) {
   console.log('Payout processed:', payout.id);
@@ -148,6 +184,28 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
   }
 }
 
+/**
+ * Handles failed payout events from Stripe Connect.
+ *
+ * Sends a failure notification to the expert when a payout to their
+ * bank account fails, including the failure reason and guidance.
+ *
+ * @param {Stripe.Payout} payout - The Stripe Payout object
+ * @returns {Promise<void>}
+ *
+ * @example
+ * ```typescript
+ * // Called from stripe-connect webhook handler
+ * case 'payout.failed':
+ *   await handlePayoutFailed(payout);
+ *   break;
+ * ```
+ *
+ * @remarks
+ * - Uses idempotency key `payout-failed-{payout.id}` to prevent duplicate notifications
+ * - Includes failure reason from payout.failure_message
+ * - Prompts expert to check bank account details
+ */
 export async function handlePayoutFailed(payout: Stripe.Payout) {
   console.log('Payout failed:', payout.id);
 
@@ -190,7 +248,7 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
           accountStatus: 'action_required',
           message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
         },
-        transactionId: `payout-failed-${payout.id}`,
+        transactionId: `payout-failed-${payout.id}`, // Idempotency key to prevent duplicate notifications
       });
       console.log('✅ Marketplace payout failure notification sent via Novu');
     } catch (novuError) {

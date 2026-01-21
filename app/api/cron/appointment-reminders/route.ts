@@ -1,3 +1,11 @@
+/**
+ * 24-Hour Appointment Reminder Cron Job
+ *
+ * Sends reminders to both experts (via Novu) and patients (via direct email)
+ * for appointments starting in the next 24-25 hours.
+ *
+ * Schedule: Every hour via QStash
+ */
 import {
   formatDateTime,
   formatTimeUntilAppointment,
@@ -8,10 +16,41 @@ import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/ema
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 
-// Time window constants (in minutes)
-const WINDOW_START_MINUTES = 24 * 60; // 24 hours
-const WINDOW_END_MINUTES = 25 * 60; // 25 hours
+/** Vercel region configuration for serverless function */
+export const preferredRegion = 'auto';
 
+/** Maximum execution time in seconds (1 minute for processing multiple appointments) */
+export const maxDuration = 60;
+
+/** Minutes from now for reminder window start (24 hours) */
+const WINDOW_START_MINUTES = 24 * 60;
+
+/** Minutes from now for reminder window end (25 hours) */
+const WINDOW_END_MINUTES = 25 * 60;
+
+/**
+ * Cron job handler that sends 24-hour appointment reminders.
+ *
+ * Processes all confirmed appointments starting in 24-25 hours and sends:
+ * - Expert reminders via Novu (in-app + email)
+ * - Patient reminders via direct Resend email (patients don't have Novu IDs)
+ *
+ * Uses idempotency keys to prevent duplicate reminders on cron retries.
+ *
+ * @returns {Promise<NextResponse>} JSON response with reminder statistics
+ *
+ * @example Response
+ * ```json
+ * {
+ *   "success": true,
+ *   "totalAppointments": 5,
+ *   "expertRemindersSent": 5,
+ *   "expertRemindersFailed": 0,
+ *   "patientRemindersSent": 5,
+ *   "patientRemindersFailed": 0
+ * }
+ * ```
+ */
 async function handler() {
   console.log('🔔 Running 24-hour appointment reminder cron job...');
 
@@ -20,10 +59,12 @@ async function handler() {
     console.log(`Found ${appointments.length} appointments needing reminders`);
 
     let expertRemindersSent = 0;
+    let expertRemindersFailed = 0;
     let patientRemindersSent = 0;
+    let patientRemindersFailed = 0;
 
     for (const appointment of appointments) {
-      // Send reminder to expert (experts have Clerk IDs via Novu)
+      // 1. Send reminder to expert (experts have Clerk IDs via Novu)
       try {
         const expertDateTime = formatDateTime(
           appointment.startTime,
@@ -58,11 +99,15 @@ async function handler() {
         console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
         expertRemindersSent++;
       } catch (error) {
-        console.error(`❌ Failed to send reminder to expert ${appointment.expertClerkId}:`, error);
+        console.error(`❌ Failed to send reminder to expert:`, {
+          error: error instanceof Error ? error.message : error,
+          appointmentId: appointment.id,
+          expertClerkId: appointment.expertClerkId,
+        });
+        expertRemindersFailed++;
       }
 
-      // Send reminder to patient/guest via direct email (Resend)
-      // Patients don't have Clerk IDs, so we send email directly
+      // 2. Send reminder to patient/guest via direct email (guests don't have Clerk IDs)
       try {
         const patientDateTime = formatDateTime(
           appointment.startTime,
@@ -75,8 +120,13 @@ async function handler() {
           appointment.customerLocale,
         );
 
-        // Determine locale for email template
-        const locale = appointment.customerLocale.startsWith('pt') ? 'pt' : 'en';
+        // Determine locale for email template (supports pt, es, en)
+        const customerLocaleLower = (appointment.customerLocale || 'en').toLowerCase();
+        const locale = customerLocaleLower.startsWith('pt')
+          ? 'pt'
+          : customerLocaleLower.startsWith('es')
+            ? 'es'
+            : 'en';
 
         // Generate the appointment reminder email
         const { html, text, subject } = await generateAppointmentEmail({
@@ -97,33 +147,50 @@ async function handler() {
           subject: `📅 Reminder: ${subject} - ${patientTimeUntil}`,
           html,
           text,
+          headers: {
+            'Idempotency-Key': `reminder-24h-patient-${appointment.id}`,
+          },
         });
 
         if (emailResult.success) {
           console.log(`✅ Reminder sent to patient: ${appointment.guestEmail}`);
           patientRemindersSent++;
         } else {
-          console.error(
-            `❌ Failed to send reminder to patient ${appointment.guestEmail}:`,
-            emailResult.error,
-          );
+          console.error(`❌ Failed to send reminder to patient:`, {
+            appointmentId: appointment.id,
+            guestEmail: appointment.guestEmail,
+            error: emailResult.error,
+          });
+          patientRemindersFailed++;
         }
       } catch (error) {
-        console.error(`❌ Failed to send reminder to patient ${appointment.guestEmail}:`, error);
+        console.error(`❌ Failed to send reminder to patient:`, {
+          appointmentId: appointment.id,
+          guestEmail: appointment.guestEmail,
+          error: error instanceof Error ? error.message : error,
+        });
+        patientRemindersFailed++;
       }
     }
 
-    console.log(
-      `🎉 24-hour appointment reminder cron job completed. Expert: ${expertRemindersSent}, Patient: ${patientRemindersSent}`,
-    );
+    console.log('🎉 24-hour appointment reminder cron job completed', {
+      totalAppointments: appointments.length,
+      expertRemindersSent,
+      expertRemindersFailed,
+      patientRemindersSent,
+      patientRemindersFailed,
+    });
+
     return NextResponse.json({
       success: true,
-      count: appointments.length,
+      totalAppointments: appointments.length,
       expertRemindersSent,
+      expertRemindersFailed,
       patientRemindersSent,
+      patientRemindersFailed,
     });
   } catch (error) {
-    console.error('❌ Error in appointment reminder cron job:', error);
+    console.error('❌ Error in 24-hour appointment reminder cron job:', error);
     return NextResponse.json({ error: 'Failed to process reminders' }, { status: 500 });
   }
 }

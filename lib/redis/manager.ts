@@ -81,7 +81,34 @@ class RedisManager {
   }
 
   /**
-   * Get a value by key
+   * Retrieves a value from Redis by key.
+   *
+   * Handles multiple return types from Redis operations:
+   * - `string` - Direct string values (returned as-is)
+   * - `number` - Counter values from INCR/INCRBY (converted to string)
+   * - `object` - Parsed JSON from Upstash (re-stringified for consistency)
+   * - `null` - Key doesn't exist
+   *
+   * @param {string} key - The cache key to retrieve
+   * @returns {Promise<string | null>} The cached value or null if not found
+   *
+   * @example
+   * ```typescript
+   * // Get a string value
+   * const value = await redis.get('user:123:name');
+   *
+   * // Get a counter value (from INCR)
+   * const count = await redis.get('webhook:success_count');
+   * // Returns "42" (as string)
+   *
+   * // Get a JSON object (will be re-stringified)
+   * const data = await redis.get('cache:settings');
+   * const parsed = JSON.parse(data);
+   * ```
+   *
+   * @remarks
+   * Falls back to in-memory cache if Redis is unavailable.
+   * Invalid/unexpected types are logged, deleted, and return null.
    */
   async get(key: string): Promise<string | null> {
     if (this.isRedisAvailable && this.redis) {
@@ -98,6 +125,11 @@ class RedisManager {
           return result;
         }
 
+        // If result is a number (from INCR/INCRBY operations), convert to string
+        if (typeof result === 'number') {
+          return result.toString();
+        }
+
         // If result is an object, it's likely already parsed JSON from Upstash
         // Re-stringify it to maintain API contract
         if (typeof result === 'object') {
@@ -106,7 +138,7 @@ class RedisManager {
 
         // For any other unexpected type, log error and delete
         console.error(
-          `RedisManager.get: Invalid value type for key "${key}". Expected string, null, or object, got ${typeof result}. Deleting invalid cache.`,
+          `RedisManager.get: Invalid value type for key "${key}". Expected string, null, number, or object, got ${typeof result}. Deleting invalid cache.`,
         );
         await this.redis.del(key);
         return null;
