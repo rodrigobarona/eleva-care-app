@@ -1,18 +1,21 @@
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, UserTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable, ScheduleTable, UserTable } from '@/drizzle/schema';
 import { triggerWorkflow } from '@/lib/integrations/novu';
+import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, between, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 interface Appointment {
   id: string;
+  guestEmail: string;
   customerClerkId: string;
   expertClerkId: string;
   customerName: string;
   expertName: string;
   appointmentType: string;
   startTime: Date;
+  durationMinutes: number;
   meetingUrl: string;
   customerLocale: string;
   expertLocale: string;
@@ -39,15 +42,19 @@ async function getUpcomingAppointments(): Promise<Appointment[]> {
         timezone: MeetingTable.timezone,
         meetingUrl: MeetingTable.meetingUrl,
         eventName: EventTable.name,
+        eventDuration: EventTable.durationInMinutes,
         expertClerkId: EventTable.clerkUserId,
         // Expert info
         expertFirstName: UserTable.firstName,
         expertLastName: UserTable.lastName,
         expertCountry: UserTable.country,
+        // Expert's schedule timezone
+        expertScheduleTimezone: ScheduleTable.timezone,
       })
       .from(MeetingTable)
       .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
       .innerJoin(UserTable, eq(UserTable.clerkUserId, EventTable.clerkUserId))
+      .leftJoin(ScheduleTable, eq(ScheduleTable.clerkUserId, EventTable.clerkUserId))
       .where(
         and(
           between(MeetingTable.startTime, in24Hours, in25Hours),
@@ -76,19 +83,24 @@ async function getUpcomingAppointments(): Promise<Appointment[]> {
       const expertName =
         [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert';
 
+      // Use expert's schedule timezone if available, otherwise fall back to meeting timezone
+      const expertTimezone = meeting.expertScheduleTimezone || meeting.timezone;
+
       return {
         id: meeting.meetingId,
+        guestEmail: meeting.guestEmail,
         customerClerkId: 'guest', // Guests don't have Clerk IDs, we'll handle this differently
         expertClerkId: meeting.expertClerkId,
         customerName: meeting.guestName,
         expertName,
         appointmentType: meeting.eventName,
         startTime: meeting.startTime,
+        durationMinutes: meeting.eventDuration,
         meetingUrl: meeting.meetingUrl || `https://meet.eleva.care/${meeting.meetingId}`,
         customerLocale: 'en-US', // Default for guests, could be enhanced with guest preferences
         expertLocale: getLocaleFromCountry(meeting.expertCountry),
         customerTimezone: meeting.timezone,
-        expertTimezone: meeting.timezone, // Using meeting timezone as default
+        expertTimezone,
       };
     });
 
@@ -136,14 +148,19 @@ async function formatDateTime(date: Date, timezone: string, locale: string) {
 }
 
 async function handler() {
-  console.log('🔔 Running appointment reminder cron job...');
+  console.log('🔔 Running 24-hour appointment reminder cron job...');
 
   try {
     const appointments = await getUpcomingAppointments();
     console.log(`Found ${appointments.length} appointments needing reminders`);
 
+    let expertRemindersSent = 0;
+    let expertRemindersFailed = 0;
+    let patientRemindersSent = 0;
+    let patientRemindersFailed = 0;
+
     for (const appointment of appointments) {
-      // Send reminder to expert (experts have Clerk IDs)
+      // 1. Send reminder to expert (experts have Clerk IDs via Novu)
       try {
         const expertDateTime = await formatDateTime(
           appointment.startTime,
@@ -172,22 +189,96 @@ async function handler() {
             message: `Appointment reminder: You have an appointment with ${appointment.customerName} ${expertTimeUntil}`,
             meetLink: appointment.meetingUrl,
           },
+          transactionId: `24hr-reminder-expert-${appointment.id}`, // Idempotency
         });
 
         console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
+        expertRemindersSent++;
       } catch (error) {
-        console.error(`❌ Failed to send reminder to expert ${appointment.expertClerkId}:`, error);
+        console.error(`❌ Failed to send reminder to expert ${appointment.expertClerkId}:`, {
+          error: error instanceof Error ? error.message : error,
+          appointmentId: appointment.id,
+        });
+        expertRemindersFailed++;
       }
 
-      // Note: Guest reminders would need a different approach since guests don't have Clerk IDs
-      // You could implement email-based reminders directly using Resend here if needed
-      // For now, we're only sending reminders to experts who have accounts
+      // 2. Send reminder to patient/guest via direct email (guests don't have Clerk IDs)
+      try {
+        const patientDateTime = await formatDateTime(
+          appointment.startTime,
+          appointment.customerTimezone,
+          appointment.customerLocale,
+        );
+
+        const patientTimeUntil = await formatTimeUntilAppointment(
+          appointment.startTime,
+          appointment.customerLocale,
+        );
+
+        // Determine locale for email template
+        const locale = appointment.customerLocale.startsWith('pt') ? 'pt' : 'en';
+
+        const { html, text, subject } = await generateAppointmentEmail({
+          expertName: appointment.expertName,
+          clientName: appointment.customerName,
+          appointmentDate: patientDateTime.datePart,
+          appointmentTime: patientDateTime.timePart,
+          timezone: appointment.customerTimezone,
+          appointmentDuration: `${appointment.durationMinutes} minutes`,
+          eventTitle: appointment.appointmentType,
+          meetLink: appointment.meetingUrl,
+          locale,
+        });
+
+        const emailResult = await sendEmail({
+          to: appointment.guestEmail,
+          subject: `📅 Reminder: ${subject} - ${patientTimeUntil}`,
+          html,
+          text,
+          headers: {
+            'Idempotency-Key': `24hr-reminder-patient-${appointment.id}`,
+          },
+        });
+
+        if (emailResult.success) {
+          console.log(`✅ Reminder sent to patient: ${appointment.guestEmail}`);
+          patientRemindersSent++;
+        } else {
+          console.error(`❌ Failed to send reminder to patient:`, {
+            appointmentId: appointment.id,
+            guestEmail: appointment.guestEmail,
+            error: emailResult.error,
+          });
+          patientRemindersFailed++;
+        }
+      } catch (error) {
+        console.error(`❌ Failed to send reminder to patient:`, {
+          appointmentId: appointment.id,
+          guestEmail: appointment.guestEmail,
+          error: error instanceof Error ? error.message : error,
+        });
+        patientRemindersFailed++;
+      }
     }
 
-    console.log('🎉 Appointment reminder cron job completed');
-    return NextResponse.json({ success: true, count: appointments.length });
+    console.log('🎉 24-hour appointment reminder cron job completed', {
+      totalAppointments: appointments.length,
+      expertRemindersSent,
+      expertRemindersFailed,
+      patientRemindersSent,
+      patientRemindersFailed,
+    });
+
+    return NextResponse.json({
+      success: true,
+      totalAppointments: appointments.length,
+      expertRemindersSent,
+      expertRemindersFailed,
+      patientRemindersSent,
+      patientRemindersFailed,
+    });
   } catch (error) {
-    console.error('❌ Error in appointment reminder cron job:', error);
+    console.error('❌ Error in 24-hour appointment reminder cron job:', error);
     return NextResponse.json({ error: 'Failed to process reminders' }, { status: 500 });
   }
 }

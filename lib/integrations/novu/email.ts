@@ -27,6 +27,7 @@ type SendEmailParams = {
   replyTo?: string;
   cc?: string | string[];
   bcc?: string | string[];
+  headers?: Record<string, string>; // For idempotency keys and custom headers
 };
 
 /**
@@ -44,6 +45,7 @@ export async function sendEmail({
   replyTo,
   cc,
   bcc,
+  headers,
 }: SendEmailParams) {
   try {
     // Use default from address if not provided
@@ -75,6 +77,7 @@ export async function sendEmail({
     if (replyTo) emailParams.replyTo = replyTo;
     if (cc) emailParams.cc = cc;
     if (bcc) emailParams.bcc = bcc;
+    if (headers) emailParams.headers = headers;
 
     const { data, error } = await getResendClient().emails.send(emailParams as CreateEmailOptions);
 
