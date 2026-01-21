@@ -16,10 +16,35 @@ import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/ema
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 
-// Time window: 24-25 hours from now (1-hour window)
-const WINDOW_START_MINUTES = 24 * 60; // 24 hours
-const WINDOW_END_MINUTES = 25 * 60; // 25 hours
+/** Minutes from now for reminder window start (24 hours) */
+const WINDOW_START_MINUTES = 24 * 60;
 
+/** Minutes from now for reminder window end (25 hours) */
+const WINDOW_END_MINUTES = 25 * 60;
+
+/**
+ * Cron job handler that sends 24-hour appointment reminders.
+ *
+ * Processes all confirmed appointments starting in 24-25 hours and sends:
+ * - Expert reminders via Novu (in-app + email)
+ * - Patient reminders via direct Resend email (patients don't have Novu IDs)
+ *
+ * Uses idempotency keys to prevent duplicate reminders on cron retries.
+ *
+ * @returns {Promise<NextResponse>} JSON response with reminder statistics
+ *
+ * @example Response
+ * ```json
+ * {
+ *   "success": true,
+ *   "totalAppointments": 5,
+ *   "expertRemindersSent": 5,
+ *   "expertRemindersFailed": 0,
+ *   "patientRemindersSent": 5,
+ *   "patientRemindersFailed": 0
+ * }
+ * ```
+ */
 async function handler() {
   console.log('🔔 Running 24-hour appointment reminder cron job...');
 

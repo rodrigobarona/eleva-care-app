@@ -136,7 +136,45 @@ function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boo
 
 /**
  * Creates a deferred calendar event for meetings that were created with pending payment
- * (e.g., Multibanco payments) and finalizes them when payment succeeds
+ * (e.g., Multibanco payments) and finalizes them when payment succeeds.
+ *
+ * This function is called ONLY after payment confirmation to ensure calendar events
+ * are never created for unpaid bookings.
+ *
+ * @param meeting - The meeting record from the database
+ * @param meeting.id - Unique meeting identifier
+ * @param meeting.eventId - Reference to the event type
+ * @param meeting.clerkUserId - Expert's Clerk user ID (for calendar access)
+ * @param meeting.guestName - Patient/guest name
+ * @param meeting.guestEmail - Patient/guest email (receives calendar invite)
+ * @param meeting.startTime - Appointment start time
+ * @param meeting.guestNotes - Optional notes from the guest
+ * @param meeting.timezone - Timezone for the appointment
+ * @param paymentIntent - The Stripe PaymentIntent that triggered this call
+ *
+ * @returns {Promise<void>} Resolves when calendar event is created and meeting is updated
+ *
+ * @example
+ * ```typescript
+ * await createDeferredCalendarEvent(
+ *   {
+ *     id: 'meeting-123',
+ *     eventId: 'event-456',
+ *     clerkUserId: 'user_abc',
+ *     guestName: 'John Doe',
+ *     guestEmail: 'john@example.com',
+ *     startTime: new Date('2026-01-25T10:00:00Z'),
+ *     guestNotes: 'First consultation',
+ *     timezone: 'Europe/Lisbon',
+ *   },
+ *   paymentIntent,
+ * );
+ * ```
+ *
+ * @remarks
+ * - Does NOT throw on failure - calendar errors are logged but don't fail the webhook
+ * - Cleans up any slot reservations after successful calendar creation
+ * - Updates the meeting record with the Google Meet URL
  */
 async function createDeferredCalendarEvent(
   meeting: {

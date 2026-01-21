@@ -17,7 +17,21 @@ function getResendClient(): Resend {
   return resendClient;
 }
 
-// Define a type for Resend options matching Resend v4.8.0 API
+/**
+ * Parameters for sending an email via Resend API.
+ *
+ * Matches Resend v4.8.0 API with additional support for idempotency headers.
+ *
+ * @property {string} [from] - Sender address. Defaults to RESEND_EMAIL_BOOKINGS_FROM env var.
+ * @property {string | string[]} to - Recipient email address(es)
+ * @property {string} subject - Email subject line
+ * @property {string} [html] - HTML content (either html or text required)
+ * @property {string} [text] - Plain text content (either html or text required)
+ * @property {string} [replyTo] - Reply-to address
+ * @property {string | string[]} [cc] - CC recipients
+ * @property {string | string[]} [bcc] - BCC recipients
+ * @property {Record<string, string>} [headers] - Custom headers (e.g., Idempotency-Key)
+ */
 type SendEmailParams = {
   from?: string;
   to: string | string[];
@@ -27,14 +41,53 @@ type SendEmailParams = {
   replyTo?: string;
   cc?: string | string[];
   bcc?: string | string[];
-  headers?: Record<string, string>; // For idempotency keys and custom headers
+  headers?: Record<string, string>;
 };
 
 /**
- * Sends an email using the Resend API
+ * Sends an email using the Resend API.
  *
- * @param params Email parameters including recipient, subject, and content
- * @returns Object with success status and message or error
+ * A server action that sends emails directly via Resend, bypassing Novu.
+ * Used for patient-facing emails where recipients don't have Novu subscriber IDs.
+ *
+ * @param {SendEmailParams} params - Email parameters
+ * @returns {Promise<{ success: boolean; messageId?: string; error?: string }>}
+ *   Success status with Resend message ID or error message
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const result = await sendEmail({
+ *   to: 'patient@example.com',
+ *   subject: 'Appointment Reminder',
+ *   html: '<p>Your appointment is tomorrow</p>',
+ *   text: 'Your appointment is tomorrow',
+ * });
+ *
+ * if (result.success) {
+ *   console.log('Email sent:', result.messageId);
+ * } else {
+ *   console.error('Failed:', result.error);
+ * }
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // With idempotency to prevent duplicate emails
+ * await sendEmail({
+ *   to: appointment.guestEmail,
+ *   subject: 'Appointment Reminder',
+ *   html,
+ *   text,
+ *   headers: {
+ *     'Idempotency-Key': `24hr-reminder-${appointment.id}`,
+ *   },
+ * });
+ * ```
+ *
+ * @throws {Error} If RESEND_API_KEY is not configured
+ * @throws {Error} If neither html nor text content is provided
+ * @throws {Error} If recipient email is invalid
  */
 export async function sendEmail({
   from,

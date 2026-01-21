@@ -3,13 +3,56 @@
  *
  * Contains common interfaces, queries, and formatting functions
  * used by both 24-hour and 1-hour reminder routes.
+ *
+ * @module lib/cron/appointment-utils
+ *
+ * @example
+ * ```typescript
+ * import {
+ *   getUpcomingAppointments,
+ *   formatDateTime,
+ *   formatTimeUntilAppointment,
+ * } from '@/lib/cron/appointment-utils';
+ *
+ * // Fetch appointments 24-25 hours from now
+ * const appointments = await getUpcomingAppointments(24 * 60, 25 * 60);
+ *
+ * for (const apt of appointments) {
+ *   const { datePart, timePart } = formatDateTime(
+ *     apt.startTime,
+ *     apt.expertTimezone,
+ *     apt.expertLocale,
+ *   );
+ *   console.log(`Appointment: ${datePart} at ${timePart}`);
+ * }
+ * ```
  */
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, ScheduleTable, UserTable } from '@/drizzle/schema';
 import { and, between, eq } from 'drizzle-orm';
 
 /**
- * Appointment data structure used by reminder cron jobs
+ * Appointment data structure used by reminder cron jobs.
+ *
+ * Represents a fully-hydrated appointment with all necessary
+ * information for sending reminders to both experts and patients.
+ *
+ * @interface Appointment
+ *
+ * @property {string} id - Unique meeting identifier (UUID)
+ * @property {string} guestEmail - Patient/guest email address
+ * @property {string} customerClerkId - Always 'guest' (patients don't have Clerk IDs)
+ * @property {string} expertClerkId - Expert's Clerk user ID (for Novu notifications)
+ * @property {string} customerName - Patient/guest display name
+ * @property {string} expertName - Expert's full name
+ * @property {string} appointmentType - Event/service name (e.g., "Physical Therapy Session")
+ * @property {Date} startTime - Appointment start time (UTC)
+ * @property {number} durationMinutes - Duration of the appointment
+ * @property {string} meetingUrl - Google Meet or video call URL
+ * @property {string} customerLocale - Locale for patient communications (e.g., 'en-US')
+ * @property {string} expertLocale - Locale for expert communications (e.g., 'pt-PT')
+ * @property {string} customerTimezone - IANA timezone for patient (e.g., 'Europe/Lisbon')
+ * @property {string} expertTimezone - IANA timezone for expert (from schedule or meeting)
  */
 export interface Appointment {
   id: string;
@@ -29,7 +72,22 @@ export interface Appointment {
 }
 
 /**
- * Determines locale based on country code
+ * Determines locale based on country code.
+ *
+ * Maps ISO 3166-1 alpha-2 country codes to BCP 47 locale strings.
+ * Defaults to 'en-US' for unknown countries.
+ *
+ * @param {string | null} country - ISO 3166-1 alpha-2 country code (e.g., 'PT', 'BR')
+ * @returns {string} BCP 47 locale string (e.g., 'pt-PT', 'en-US')
+ *
+ * @example
+ * ```typescript
+ * getLocaleFromCountry('PT'); // 'pt-PT'
+ * getLocaleFromCountry('BR'); // 'pt-BR'
+ * getLocaleFromCountry('ES'); // 'es-ES'
+ * getLocaleFromCountry('US'); // 'en-US'
+ * getLocaleFromCountry(null); // 'en-US'
+ * ```
  */
 export function getLocaleFromCountry(country: string | null): string {
   switch (country?.toUpperCase()) {
@@ -45,7 +103,28 @@ export function getLocaleFromCountry(country: string | null): string {
 }
 
 /**
- * Formats a date into separate date and time parts for a given timezone and locale
+ * Formats a date into separate date and time parts for a given timezone and locale.
+ *
+ * Uses `Intl.DateTimeFormat` to produce localized, timezone-aware date strings.
+ * Returns separate parts for flexible email template rendering.
+ *
+ * @param {Date} date - The date to format (UTC)
+ * @param {string} timezone - IANA timezone identifier (e.g., 'Europe/Lisbon')
+ * @param {string} locale - BCP 47 locale string (e.g., 'pt-PT', 'en-US')
+ * @returns {{ datePart: string; timePart: string }} Formatted date and time strings
+ *
+ * @example
+ * ```typescript
+ * const apptTime = new Date('2026-01-25T10:30:00Z');
+ *
+ * // Portuguese format
+ * formatDateTime(apptTime, 'Europe/Lisbon', 'pt-PT');
+ * // { datePart: '25 janeiro 2026', timePart: '10:30' }
+ *
+ * // English format
+ * formatDateTime(apptTime, 'America/New_York', 'en-US');
+ * // { datePart: '25 January 2026', timePart: '05:30' }
+ * ```
  */
 export function formatDateTime(
   date: Date,
@@ -69,7 +148,23 @@ export function formatDateTime(
 }
 
 /**
- * Formats a human-readable time until appointment string
+ * Formats a human-readable "time until appointment" string.
+ *
+ * Produces localized strings like "in 1 hour", "in 12 hours", "tomorrow"
+ * based on the time remaining until the appointment.
+ *
+ * @param {Date} appointmentTime - The appointment start time
+ * @param {string} locale - BCP 47 locale string for translation
+ * @returns {string} Human-readable time remaining (e.g., "in 1 hour", "em 1 hora")
+ *
+ * @example
+ * ```typescript
+ * const apptTime = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+ *
+ * formatTimeUntilAppointment(apptTime, 'en-US'); // 'in 1 hour'
+ * formatTimeUntilAppointment(apptTime, 'pt-PT'); // 'em 1 hora'
+ * formatTimeUntilAppointment(apptTime, 'es-ES'); // 'en 1 hora'
+ * ```
  */
 export function formatTimeUntilAppointment(appointmentTime: Date, locale: string): string {
   const now = new Date();
@@ -91,11 +186,32 @@ export function formatTimeUntilAppointment(appointmentTime: Date, locale: string
 }
 
 /**
- * Query database for appointments within a time window
+ * Query database for appointments within a time window.
  *
- * @param startOffsetMinutes - Minutes from now for window start
- * @param endOffsetMinutes - Minutes from now for window end
- * @returns Array of appointments needing reminders
+ * Fetches confirmed (payment succeeded) appointments that start within
+ * a specified time window. Joins with Event, User, and Schedule tables
+ * to get full appointment context for notifications.
+ *
+ * @param {number} startOffsetMinutes - Minutes from now for window start
+ * @param {number} endOffsetMinutes - Minutes from now for window end
+ * @returns {Promise<Appointment[]>} Array of appointments needing reminders
+ * @throws {Error} If database query fails
+ *
+ * @example
+ * ```typescript
+ * // Get appointments 24-25 hours from now (1-hour window)
+ * const appointments = await getUpcomingAppointments(24 * 60, 25 * 60);
+ *
+ * // Get appointments 1-1.25 hours from now (15-minute window)
+ * const urgentAppointments = await getUpcomingAppointments(60, 75);
+ *
+ * console.log(`Found ${appointments.length} appointments needing reminders`);
+ * ```
+ *
+ * @remarks
+ * - Only returns appointments with `stripePaymentStatus === 'succeeded'`
+ * - Uses expert's schedule timezone if available, falls back to meeting timezone
+ * - Guest locale defaults to 'en-US' (guests don't have stored locale preferences)
  */
 export async function getUpcomingAppointments(
   startOffsetMinutes: number,
