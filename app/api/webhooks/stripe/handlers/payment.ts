@@ -29,7 +29,6 @@ import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq, isNull } from 'drizzle-orm';
-import { getTranslations } from 'next-intl/server';
 import Stripe from 'stripe';
 
 // Initialize Stripe
@@ -595,6 +594,23 @@ async function processPartialRefund(
 /**
  * Send conflict notification using existing email system with multilingual support
  */
+/**
+ * Sends a branded refund notification email to the customer when an appointment
+ * conflict is detected (e.g., late Multibanco payment where slot was already booked).
+ *
+ * Uses the RefundNotificationTemplate for consistent Eleva branding and i18n support.
+ *
+ * @param guestEmail - Customer's email address
+ * @param guestName - Customer's display name
+ * @param expertName - Expert's display name
+ * @param startTime - Original appointment start time
+ * @param refundAmount - Amount refunded in cents
+ * @param originalAmount - Original payment amount in cents
+ * @param locale - Customer's locale for i18n (en, pt, es)
+ * @param conflictReason - Type of conflict (time_range_overlap, expert_blocked_date, etc.)
+ * @param serviceName - Optional service/event name
+ * @param transactionId - Optional Stripe payment intent ID for reference
+ */
 async function notifyAppointmentConflict(
   guestEmail: string,
   guestName: string,
@@ -605,76 +621,83 @@ async function notifyAppointmentConflict(
   locale: string,
   conflictReason: string,
   minimumNoticeHours?: number,
+  serviceName?: string,
+  transactionId?: string,
 ) {
   try {
     console.log(
-      `📧 Sending conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
+      `📧 Sending branded refund notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
     );
 
-    // Load collision messages from internationalization files
-    const t = await getTranslations({ locale, namespace: 'Payments.collision' });
-
-    // Format amounts for display
+    // Format amounts for display (convert from cents to currency)
     const refundAmountFormatted = (refundAmount / 100).toFixed(2);
     const originalAmountFormatted = (originalAmount / 100).toFixed(2);
-    const processingFeeFormatted = ((originalAmount - refundAmount) / 100).toFixed(2);
-    const appointmentDateTime = format(startTime, 'PPP pp');
 
-    // Get base conflict message and append specific reason if applicable
-    let conflictMessage = t('conflictMessage', {
+    // Format date and time for display
+    const appointmentDate = format(startTime, 'EEEE, MMMM d, yyyy');
+    const appointmentTime = format(startTime, 'h:mm a');
+
+    // Render the branded refund notification template
+    const html = await elevaEmailService.renderRefundNotification({
+      customerName: guestName,
       expertName,
-      appointmentDateTime,
-    });
-
-    // Add specific conflict reason context
-    if (conflictReason === 'minimum_notice_violation' && minimumNoticeHours) {
-      const minimumNoticeMessage = t('minimumNoticeViolation', {
-        minimumNoticeHours: minimumNoticeHours.toString(),
-      });
-      conflictMessage += ` ${minimumNoticeMessage}`;
-    }
-
-    // Build email content using translated messages
-    const emailTitle = t('title');
-    const emailSubject = t('subject');
-    const greeting = t('greeting', { clientName: guestName });
-    const latePaymentExplanation = t('latePaymentExplanation', {
+      serviceName: serviceName || 'Appointment',
+      appointmentDate,
+      appointmentTime,
+      originalAmount: originalAmountFormatted,
       refundAmount: refundAmountFormatted,
+      currency: 'EUR',
+      refundReason: conflictReason,
+      transactionId,
+      locale,
     });
-    const apologyAndInvitation = t('apologyAndInvitation');
-    const signature = t('signature');
 
-    // Build refund details section
-    const refundDetailsHTML = `
-      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3>Refund Details</h3>
-        <p>${t('refundDetails.originalAmount', { amount: originalAmountFormatted })}</p>
-        <p>${t('refundDetails.refundAmount', { amount: refundAmountFormatted })}</p>
-        <p>${t('refundDetails.processingFee', { amount: processingFeeFormatted })}</p>
-      </div>
-    `;
-
-    const htmlContent = `
-      <h2>${emailTitle}</h2>
-      <p>${greeting}</p>
-      <p>${conflictMessage}</p>
-      <p>${latePaymentExplanation}</p>
-      ${refundDetailsHTML}
-      <p>${apologyAndInvitation}</p>
-      <p>${signature.replace(/\\n/g, '<br>')}</p>
-    `;
+    // Determine subject based on locale
+    const subjects: Record<string, string> = {
+      en: `Appointment Conflict - Full Refund Processed`,
+      pt: `Conflito de Agendamento - Reembolso Total Processado`,
+      es: `Conflicto de Cita - Reembolso Total Procesado`,
+    };
+    const localePrefix = locale.toLowerCase().split('-')[0];
+    const subject = subjects[localePrefix] || subjects.en;
 
     await sendEmail({
       to: guestEmail,
-      subject: emailSubject,
-      html: htmlContent,
+      subject,
+      html,
     });
 
     console.log(
-      `✅ Conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
+      `✅ Branded refund notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
     );
+
+    // Trigger Novu workflow for activity tracking (in-app notification)
+    // Note: Guest may not have a Novu subscriber ID, so we use email as subscriber
+    try {
+      await triggerWorkflow({
+        workflowId: 'marketplace-universal',
+        to: {
+          subscriberId: guestEmail, // Use email as subscriber ID for guests
+          email: guestEmail,
+          firstName: guestName.split(' ')[0] || guestName,
+        },
+        payload: {
+          eventType: 'refund-processed' as const,
+          amount: refundAmountFormatted,
+          expertName,
+          appointmentDate,
+          message: `Your payment of €${refundAmountFormatted} has been refunded due to a scheduling conflict.`,
+          dashboardUrl: '/',
+        },
+        transactionId: transactionId ? `refund-${transactionId}` : undefined,
+      });
+      console.log(`✅ Novu refund activity tracked for ${guestEmail}`);
+    } catch (novuError) {
+      // Don't fail the notification if Novu tracking fails
+      console.error('⚠️ Failed to track refund in Novu (non-critical):', novuError);
+    }
   } catch (error) {
-    console.error('Error sending conflict notification:', error);
+    console.error('Error sending refund notification:', error);
   }
 }
 
@@ -789,6 +812,22 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           ),
         });
 
+        // 🔒 IDEMPOTENCY CHECK: Skip conflict detection if this payment was already processed
+        // This prevents false positive refunds when Stripe webhooks are resent
+        const existingSuccessfulMeeting = await db.query.MeetingTable.findFirst({
+          where: and(
+            eq(MeetingTable.stripePaymentIntentId, paymentIntent.id),
+            eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+          ),
+        });
+
+        if (existingSuccessfulMeeting) {
+          console.log(
+            `⏭️ Skipping conflict check - payment ${paymentIntent.id} already succeeded for meeting ${existingSuccessfulMeeting.id}`,
+          );
+          return; // Idempotent: already processed successfully
+        }
+
         // Check for conflicts (blocked dates, overlaps, minimum notice)
         // Only perform conflict check if we have valid duration data
         const conflictResult = await checkAppointmentConflict(
@@ -836,7 +875,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               ? `${expertUser.firstName || ''} ${expertUser.lastName || ''}`.trim() || 'Expert'
               : 'Expert';
 
-            // Notify all parties about the conflict
+            // Notify customer about the conflict with branded email
             await notifyAppointmentConflict(
               meetingData.guest,
               meetingData.guestName || 'Guest',
@@ -847,6 +886,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               extractLocaleFromPaymentIntent(paymentIntent),
               conflictResult.reason || 'unknown_conflict',
               conflictResult.minimumNoticeHours,
+              undefined, // serviceName - will be fetched if needed
+              paymentIntent.id, // transactionId for reference
             );
 
             console.log(

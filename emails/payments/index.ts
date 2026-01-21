@@ -4,3 +4,4 @@ export { default as MultibancoBookingPendingTemplate } from './multibanco-bookin
 export { default as MultibancoPaymentReminderTemplate } from './multibanco-payment-reminder';
 export { default as ExpertPayoutNotificationTemplate } from './expert-payout-notification';
 export { default as ReservationExpiredTemplate } from './reservation-expired';
+export { default as RefundNotificationTemplate } from './refund-notification';

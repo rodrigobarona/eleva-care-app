@@ -3,7 +3,7 @@
 import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
 import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
-import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
+import { ExpertPayoutNotificationTemplate, RefundNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
@@ -1191,6 +1191,63 @@ export class ElevaEmailService {
       expectedArrivalDate: data.payoutDate,
       payoutId: data.transactionId,
       _locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render refund notification using React Email template
+   *
+   * Used when an appointment is cancelled due to conflicts (e.g., late Multibanco payment
+   * where the slot was already booked by another client).
+   *
+   * @example
+   * ```typescript
+   * const html = await elevaEmailService.renderRefundNotification({
+   *   customerName: 'Marta Silva',
+   *   expertName: 'Dr. Patricia Mota',
+   *   serviceName: 'Physical Therapy Appointment',
+   *   appointmentDate: 'Tuesday, February 3, 2026',
+   *   appointmentTime: '11:30 AM',
+   *   originalAmount: '70.00',
+   *   refundAmount: '70.00',
+   *   currency: 'EUR',
+   *   refundReason: 'time_range_overlap',
+   *   transactionId: 'pi_3Srm1DK5Ap4Um3Sp1JZyQgo9',
+   *   locale: 'pt',
+   * });
+   * ```
+   */
+  async renderRefundNotification(data: {
+    customerName: string;
+    expertName: string;
+    serviceName?: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    originalAmount: string;
+    refundAmount: string;
+    currency?: string;
+    refundReason: string;
+    transactionId?: string;
+    locale?: string;
+  }): Promise<string> {
+    const locale = (
+      data.locale?.startsWith('pt') ? 'pt' : data.locale?.startsWith('es') ? 'es' : 'en'
+    ) as SupportedLocale;
+
+    const template = React.createElement(RefundNotificationTemplate, {
+      customerName: data.customerName,
+      expertName: data.expertName,
+      serviceName: data.serviceName || 'Appointment',
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      originalAmount: data.originalAmount,
+      refundAmount: data.refundAmount,
+      currency: data.currency || 'EUR',
+      refundReason: data.refundReason,
+      transactionId: data.transactionId,
+      locale,
     });
 
     return render(template);
