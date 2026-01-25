@@ -143,6 +143,26 @@ export function getLocaleFromCountry(country: string | null): string {
 }
 
 /**
+ * Safely creates an Intl.DateTimeFormat instance with fallback.
+ * Falls back to en-US with UTC timezone if the provided locale or timezone is invalid.
+ *
+ * @param {string} locale - BCP 47 locale string
+ * @param {Intl.DateTimeFormatOptions} options - Formatting options
+ * @returns {Intl.DateTimeFormat} A valid DateTimeFormat instance
+ */
+function safeCreateFormatter(
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat {
+  try {
+    return new Intl.DateTimeFormat(locale, options);
+  } catch {
+    // Fallback to en-US with UTC timezone for invalid locale/timezone
+    return new Intl.DateTimeFormat('en-US', { ...options, timeZone: 'UTC' });
+  }
+}
+
+/**
  * Formats a date into separate date and time parts for a given timezone and locale.
  *
  * Uses `Intl.DateTimeFormat` to produce localized, timezone-aware date strings.
@@ -171,59 +191,31 @@ export function formatDateTime(
   timezone: string,
   locale: string,
 ): { datePart: string; timePart: string } {
-  // Determine hour12 based on locale (24h for most European locales, 12h for English)
-  const localeLower = (locale || 'en').toLowerCase();
-  const use12HourFormat = localeLower.startsWith('en');
+  // Use normalizeLocale for consistent locale handling
+  const normalizedLocale = normalizeLocale(locale);
+  const use12HourFormat = normalizedLocale === 'en';
 
-  try {
-    const dateFormatter = new Intl.DateTimeFormat(locale, {
-      timeZone: timezone,
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-    });
+  // Use safeCreateFormatter to handle invalid locale/timezone gracefully
+  const dateFormatter = safeCreateFormatter(locale, {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
 
-    const timeFormatter = new Intl.DateTimeFormat(locale, {
-      timeZone: timezone,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: use12HourFormat,
-      timeZoneName: 'short',
-    });
+  const timeFormatter = safeCreateFormatter(locale, {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: use12HourFormat,
+    timeZoneName: 'short',
+  });
 
-    return {
-      datePart: dateFormatter.format(date),
-      timePart: timeFormatter.format(date),
-    };
-  } catch (error) {
-    // Handle invalid timezone by falling back to UTC
-    console.warn(
-      `Invalid timezone "${timezone}" provided, falling back to UTC. Error:`,
-      error instanceof Error ? error.message : error,
-    );
-
-    const dateFormatter = new Intl.DateTimeFormat(locale, {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-    });
-
-    const timeFormatter = new Intl.DateTimeFormat(locale, {
-      timeZone: 'UTC',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: use12HourFormat,
-      timeZoneName: 'short',
-    });
-
-    return {
-      datePart: dateFormatter.format(date),
-      timePart: timeFormatter.format(date),
-    };
-  }
+  return {
+    datePart: dateFormatter.format(date),
+    timePart: timeFormatter.format(date),
+  };
 }
 
 /**
@@ -249,20 +241,20 @@ export function formatTimeUntilAppointment(appointmentTime: Date, locale: string
   const now = new Date();
   const totalMinutes = (appointmentTime.getTime() - now.getTime()) / (1000 * 60);
 
-  // Normalize locale for comparison
-  const localeLower = (locale || 'en').toLowerCase();
+  // Use shared normalizeLocale helper for consistent locale handling
+  const normalizedLocale = normalizeLocale(locale);
 
   // Handle past or immediate appointments
   if (totalMinutes <= 0) {
-    if (localeLower.startsWith('pt')) return 'agora';
-    if (localeLower.startsWith('es')) return 'ahora';
+    if (normalizedLocale === 'pt') return 'agora';
+    if (normalizedLocale === 'es') return 'ahora';
     return 'now';
   }
 
   // Less than 60 minutes
   if (totalMinutes < 60) {
-    if (localeLower.startsWith('pt')) return 'em menos de 1 hora';
-    if (localeLower.startsWith('es')) return 'en menos de 1 hora';
+    if (normalizedLocale === 'pt') return 'em menos de 1 hora';
+    if (normalizedLocale === 'es') return 'en menos de 1 hora';
     return 'in less than 1 hour';
   }
 
@@ -271,10 +263,10 @@ export function formatTimeUntilAppointment(appointmentTime: Date, locale: string
 
   // Less than 24 hours - show hours
   if (hours < 24) {
-    if (localeLower.startsWith('pt')) {
+    if (normalizedLocale === 'pt') {
       return hours === 1 ? 'em 1 hora' : `em ${hours} horas`;
     }
-    if (localeLower.startsWith('es')) {
+    if (normalizedLocale === 'es') {
       return hours === 1 ? 'en 1 hora' : `en ${hours} horas`;
     }
     return hours === 1 ? 'in 1 hour' : `in ${hours} hours`;
@@ -285,16 +277,16 @@ export function formatTimeUntilAppointment(appointmentTime: Date, locale: string
 
   // Tomorrow (1 day)
   if (days === 1) {
-    if (localeLower.startsWith('pt')) return 'amanhã';
-    if (localeLower.startsWith('es')) return 'mañana';
+    if (normalizedLocale === 'pt') return 'amanhã';
+    if (normalizedLocale === 'es') return 'mañana';
     return 'tomorrow';
   }
 
   // Multiple days
-  if (localeLower.startsWith('pt')) {
+  if (normalizedLocale === 'pt') {
     return `em ${days} dias`;
   }
-  if (localeLower.startsWith('es')) {
+  if (normalizedLocale === 'es') {
     return `en ${days} días`;
   }
   return `in ${days} days`;

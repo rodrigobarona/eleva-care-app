@@ -43,6 +43,12 @@ const isDebugTelemetryEnabled = (): boolean => {
 };
 
 /**
+ * Flag to ensure telemetry endpoint warning is logged only once per session.
+ * Prevents log spam when getTelemetryEndpoint is called multiple times.
+ */
+let telemetryEndpointWarningLogged = false;
+
+/**
  * Telemetry endpoint - MUST be configured via DEBUG_TELEMETRY_ENDPOINT env var.
  * Returns null if not configured, which will cause telemetry to be skipped.
  */
@@ -50,10 +56,11 @@ const getTelemetryEndpoint = (): string | null => {
   const endpoint = process.env.DEBUG_TELEMETRY_ENDPOINT;
   if (!endpoint) {
     // Only warn once per session in development
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && !telemetryEndpointWarningLogged) {
       console.debug(
         '[Telemetry] DEBUG_TELEMETRY_ENDPOINT not configured, telemetry disabled',
       );
+      telemetryEndpointWarningLogged = true;
     }
     return null;
   }

@@ -567,7 +567,9 @@ export const MeetingsTable = pgTable(
     stripeTransferId: text('stripe_transfer_id').unique(),
     /** Transfer amount in minor currency units (cents) */
     stripeTransferAmount: integer('stripe_transfer_amount'),
-    // TODO: Consider using paymentTransferStatusEnum for consistency
+    // NOTE: Uses inline enum with Stripe's transfer status values (pending/processing/succeeded/failed)
+    // This differs from paymentTransferStatusEnum which tracks our internal transfer workflow states
+    // (PENDING/APPROVED/READY/COMPLETED/FAILED/REFUNDED/DISPUTED/PAID_OUT)
     stripeTransferStatus: text('stripe_transfer_status', {
       enum: ['pending', 'processing', 'succeeded', 'failed'],
     }).default('pending'),

@@ -114,8 +114,27 @@ All templates use the shared i18n utility:
 // src/emails/utils/i18n.ts
 export type SupportedLocale = 'en' | 'pt' | 'es';
 
-// Translation structure for email templates
-const translations = {
+/** Generic function type for translation strings with parameters */
+type TranslationFn<T extends unknown[] = []> = (...args: T) => string;
+
+/** Email translation interface - enforces correct function signatures */
+interface EmailTranslations {
+  refund: {
+    title: string;
+    body: TranslationFn<[amount: string]>;
+  };
+  appointment: {
+    confirmed: string;
+    reminder: string;
+  };
+  common: {
+    greeting: TranslationFn<[name: string]>;
+    footer: string;
+  };
+}
+
+// Translation structure for email templates with type safety
+const translations: Record<SupportedLocale, EmailTranslations> = {
   en: {
     refund: {
       title: 'Refund Processed',

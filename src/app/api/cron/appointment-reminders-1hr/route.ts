@@ -118,6 +118,15 @@ async function handler() {
 
       // 2. Send urgent reminder to patient (use email as subscriberId for guests)
       try {
+        // Validate guest email before using as subscriberId
+        if (appointment.customerWorkosId === 'guest' && !appointment.guestEmail) {
+          console.error(
+            `❌ Cannot send reminder: guest appointment ${appointment.id} has no guestEmail`,
+          );
+          patientRemindersFailed++;
+          continue; // Skip to next appointment
+        }
+
         const patientDateTime = formatDateTime(
           appointment.startTime,
           appointment.customerTimezone,

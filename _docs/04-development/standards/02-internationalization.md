@@ -162,8 +162,6 @@ The locale cookie should be set when:
 
 import { cookies } from 'next/headers';
 
-// Example: Setting locale in a Server Action
-
 export async function setUserLocale(locale: string) {
   const cookieStore = await cookies();
   cookieStore.set('ELEVA_LOCALE', locale, {

@@ -257,6 +257,13 @@ export const POST = process.env.NODE_ENV === 'development'
   : verifySignatureAppRouter(handler);
 ```
 
+> **WARNING - Local Testing Only**: The above `POST` export with `NODE_ENV` check bypasses
+> `verifySignatureAppRouter` in development. Do NOT commit this to main branches without:
+> - Adding a `// TODO: Remove before merge` comment
+> - Using a feature flag or git stash for the temporary change
+> - Preferring **Option C** (development-only GET route) which is safer for production since
+>   GET endpoints won't be triggered by QStash schedules.
+
 Then test with:
 ```bash
 curl -X POST http://localhost:3000/api/cron/appointment-reminders

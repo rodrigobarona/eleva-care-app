@@ -1431,6 +1431,8 @@ export class ElevaEmailService {
     meetLink?: string;
     notes?: string;
     locale?: SupportedLocale;
+    /** Base URL for dashboard links. Resolved at call time, not module load. */
+    dashboardUrl?: string;
   }) {
     const template = React.createElement(ExpertNewAppointmentTemplate, {
       expertName: data.expertName,
@@ -1443,6 +1445,8 @@ export class ElevaEmailService {
       meetLink: data.meetLink,
       notes: data.notes,
       locale: data.locale || 'en',
+      // Resolve env var at call time, not module load time
+      dashboardUrl: data.dashboardUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care',
     });
 
     return render(template);

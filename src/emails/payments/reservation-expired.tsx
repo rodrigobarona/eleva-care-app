@@ -83,8 +83,20 @@ export const ReservationExpiredEmail = ({
 }: ReservationExpiredEmailProps) => {
   const isPatient = recipientType === 'patient';
 
-  // For expert-view emails, use patientName for the client cell, fallback to recipientName
-  const clientDisplayName = isPatient ? expertName : (patientName || recipientName);
+  // For expert-view emails, use patientName for the client cell
+  // Do NOT fallback to recipientName (which is the expert's name) as this causes confusion
+  const clientDisplayName = isPatient
+    ? expertName
+    : patientName ||
+      (() => {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(
+            `[ReservationExpiredEmail] Missing patientName for expert notification. ` +
+              `recipientName="${recipientName}" will not be used as fallback.`,
+          );
+        }
+        return 'Unknown Patient';
+      })();
 
   // Internationalization support - using plain text messages (no HTML injection risk)
   const translations = {

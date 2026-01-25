@@ -204,13 +204,13 @@ export const RefundNotificationEmail = ({
     },
   };
 
-  // Runtime-validated locale lookup with fallback (no unsafe type assertions)
+  // Runtime-validated locale lookup with fallback and type assertion for narrowing
   const t =
     locale && locale in translations
       ? translations[locale as keyof typeof translations]
       : translations.en;
 
-  // Runtime-validated reason lookup with fallback
+  // Runtime-validated reason lookup with fallback and type assertion for narrowing
   const reasonText =
     refundReason && refundReason in t.reasonExplanation
       ? t.reasonExplanation[refundReason as keyof typeof t.reasonExplanation]

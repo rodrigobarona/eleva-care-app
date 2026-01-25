@@ -25,8 +25,12 @@ export interface ExpertNewAppointmentProps {
   meetLink?: string;
   notes?: string;
   locale?: SupportedLocale;
-  /** Base URL for dashboard links. Defaults to NEXT_PUBLIC_APP_URL or 'https://eleva.care' */
-  dashboardUrl?: string;
+  /**
+   * Base URL for dashboard links.
+   * IMPORTANT: Must be provided explicitly by callers - resolve from
+   * process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care' at the call site.
+   */
+  dashboardUrl: string;
 }
 
 /**
@@ -64,7 +68,7 @@ export default function ExpertNewAppointmentTemplate({
   meetLink = 'https://meet.google.com/abc-defg-hij',
   notes = 'First consultation - health check',
   locale = 'en',
-  dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care',
+  dashboardUrl, // Required prop - callers must provide explicitly
 }: ExpertNewAppointmentProps) {
   const subject = `New Booking: ${eventTitle} with ${clientName}`;
   const previewText = `You have a new appointment with ${clientName} on ${appointmentDate} at ${appointmentTime}`;
@@ -262,7 +266,11 @@ export default function ExpertNewAppointmentTemplate({
         </Text>
 
         <Section style={{ textAlign: 'center' as const, margin: '20px 0' }}>
-          <EmailButton href={`${dashboardUrl}/dashboard/appointments`} variant="primary" size="lg">
+          <EmailButton
+            href={new URL('/dashboard/appointments', dashboardUrl).href}
+            variant="primary"
+            size="lg"
+          >
             View Dashboard
           </EmailButton>
         </Section>

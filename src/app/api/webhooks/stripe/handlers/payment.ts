@@ -835,60 +835,66 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
                   // Timeout helper to prevent calendar creation from hanging
                   const CALENDAR_CREATION_TIMEOUT_MS = 25000; // 25 seconds
+                  let timerId: ReturnType<typeof setTimeout> | undefined;
                   const timeoutPromise = new Promise<never>((_, reject) => {
-                    setTimeout(() => {
+                    timerId = setTimeout(() => {
                       reject(new Error('Calendar creation timeout after 25 seconds'));
                     }, CALENDAR_CREATION_TIMEOUT_MS);
                   });
 
-                  // Race between calendar creation and timeout
-                  const calendarEvent = await Promise.race([
-                    createCalendarEvent({
-                      workosUserId: meeting.workosUserId,
-                      guestName: meeting.guestName,
-                      guestEmail: meeting.guestEmail,
-                      startTime: meeting.startTime,
-                      guestNotes: meeting.guestNotes || undefined,
-                      durationInMinutes: event.durationInMinutes,
-                      eventName: event.name,
-                      timezone: meeting.timezone,
-                      locale: extractLocaleFromPaymentIntent(paymentIntent),
-                    }),
-                    timeoutPromise,
-                  ]);
-
-                  const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-
-                  // Update meeting with the new URL
-                  if (meetingUrl) {
-                    await db
-                      .update(MeetingsTable)
-                      .set({
-                        meetingUrl: meetingUrl,
-                        updatedAt: new Date(),
-                      })
-                      .where(eq(MeetingsTable.id, meeting.id));
-
-                    console.log(
-                      `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
-                    );
-                  } else {
-                    console.warn(
-                      `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
-                    );
-                  }
-
-                  // Clean up slot reservation if it exists
                   try {
-                    await db
-                      .delete(SlotReservationsTable)
-                      .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
-                    console.log(
-                      `🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
-                    );
-                  } catch (cleanupError) {
-                    console.error('❌ Failed to clean up slot reservation:', cleanupError);
-                    // Continue execution - this is not critical
+                    // Race between calendar creation and timeout
+                    const calendarEvent = await Promise.race([
+                      createCalendarEvent({
+                        workosUserId: meeting.workosUserId,
+                        guestName: meeting.guestName,
+                        guestEmail: meeting.guestEmail,
+                        startTime: meeting.startTime,
+                        guestNotes: meeting.guestNotes || undefined,
+                        durationInMinutes: event.durationInMinutes,
+                        eventName: event.name,
+                        timezone: meeting.timezone,
+                        locale: extractLocaleFromPaymentIntent(paymentIntent),
+                      }),
+                      timeoutPromise,
+                    ]);
+
+                    const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+
+                    // Update meeting with the new URL
+                    if (meetingUrl) {
+                      await db
+                        .update(MeetingsTable)
+                        .set({
+                          meetingUrl: meetingUrl,
+                          updatedAt: new Date(),
+                        })
+                        .where(eq(MeetingsTable.id, meeting.id));
+
+                      console.log(
+                        `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
+                      );
+                    } else {
+                      console.warn(
+                        `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
+                      );
+                    }
+
+                    // Clean up slot reservation if it exists
+                    try {
+                      await db
+                        .delete(SlotReservationsTable)
+                        .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
+                      console.log(
+                        `🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
+                      );
+                    } catch (cleanupError) {
+                      console.error('❌ Failed to clean up slot reservation:', cleanupError);
+                      // Continue execution - this is not critical
+                    }
+                  } finally {
+                    // Always clean up the timeout to prevent memory leaks
+                    if (timerId) clearTimeout(timerId);
                   }
                 } else {
                   console.error(
