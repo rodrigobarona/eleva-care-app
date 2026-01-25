@@ -2,14 +2,23 @@
 // Import email templates
 import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
-import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
+import { ExpertNewAppointmentTemplate } from '@/emails/experts';
+import {
+  ExpertPayoutNotificationTemplate,
+  RefundNotificationTemplate,
+  ReservationExpiredTemplate,
+} from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
 import React from 'react';
+
+// Re-export SupportedLocale for use in other modules
+export type { SupportedLocale };
 
 /**
  * ELEVA-31: Novu Workflow Integration & Email Template Mapping (COMPLETED)
@@ -1328,6 +1337,100 @@ export class ElevaEmailService {
         ),
       ),
     );
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render refund notification email using React Email template
+   * Used when appointments have conflicts and refunds are issued
+   */
+  async renderRefundNotification(data: {
+    customerName: string;
+    expertName: string;
+    serviceName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    originalAmount: string;
+    refundAmount: string;
+    currency?: string;
+    refundReason?: string;
+    transactionId?: string;
+    locale?: SupportedLocale;
+  }) {
+    const template = React.createElement(RefundNotificationTemplate, {
+      customerName: data.customerName,
+      expertName: data.expertName,
+      serviceName: data.serviceName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      originalAmount: data.originalAmount,
+      refundAmount: data.refundAmount,
+      currency: data.currency || 'EUR',
+      refundReason: data.refundReason || 'unknown_conflict',
+      transactionId: data.transactionId,
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render expert new appointment notification email
+   * Sent to experts when they receive new bookings
+   */
+  async renderExpertNewAppointment(data: {
+    expertName: string;
+    clientName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    timezone: string;
+    appointmentDuration: string;
+    eventTitle: string;
+    meetLink?: string;
+    notes?: string;
+    locale?: SupportedLocale;
+  }) {
+    const template = React.createElement(ExpertNewAppointmentTemplate, {
+      expertName: data.expertName,
+      clientName: data.clientName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      timezone: data.timezone,
+      appointmentDuration: data.appointmentDuration,
+      eventTitle: data.eventTitle,
+      meetLink: data.meetLink,
+      notes: data.notes,
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render reservation expired notification email
+   * Sent when Multibanco reservations expire without payment
+   */
+  async renderReservationExpired(data: {
+    recipientName: string;
+    recipientType: 'patient' | 'expert';
+    expertName: string;
+    serviceName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    timezone?: string;
+    locale?: SupportedLocale;
+  }) {
+    const template = React.createElement(ReservationExpiredTemplate, {
+      recipientName: data.recipientName,
+      recipientType: data.recipientType,
+      expertName: data.expertName,
+      serviceName: data.serviceName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      timezone: data.timezone || 'Europe/Lisbon',
+      locale: data.locale || 'en',
+    });
 
     return render(template);
   }

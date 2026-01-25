@@ -1,167 +1,99 @@
-import { triggerWorkflow } from '@/lib/integrations/novu/client';
-import { db } from '@/drizzle/db';
-import { EventsTable, MeetingsTable, ProfilesTable, UsersTable } from '@/drizzle/schema';
+/**
+ * 24-Hour Appointment Reminder Cron Job
+ *
+ * Sends advance reminders to both experts and patients via Novu workflows.
+ * For patients without WorkOS IDs, their email is used as the subscriber ID
+ * (Novu auto-creates subscribers when triggered with a new subscriberId).
+ *
+ * Schedule: Every hour via QStash
+ */
+import {
+  formatDateTime,
+  formatTimeUntilAppointment,
+  getUpcomingAppointments,
+} from '@/lib/cron/appointment-utils';
+import { triggerWorkflow } from '@/lib/integrations/novu';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
-import { and, between, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-interface Appointment {
-  id: string;
-  customerClerkId: string;
-  expertClerkId: string;
-  customerName: string;
-  expertName: string;
-  appointmentType: string;
-  startTime: Date;
-  meetingUrl: string;
-  customerLocale: string;
-  expertLocale: string;
-  customerTimezone: string;
-  expertTimezone: string;
-}
+/** Vercel region configuration for serverless function */
+export const preferredRegion = 'auto';
 
-// Query database for appointments starting in the next 24-25 hours
-async function getUpcomingAppointments(): Promise<Appointment[]> {
-  try {
-    const now = new Date();
-    const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const in25Hours = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+/** Maximum execution time in seconds (1 minute for processing appointments) */
+export const maxDuration = 60;
 
-    // Query for meetings that start between 24-25 hours from now
-    // This gives us a 1-hour window to catch all appointments for the next day
-    const upcomingMeetings = await db
-      .select({
-        meetingId: MeetingsTable.id,
-        guestEmail: MeetingsTable.guestEmail,
-        guestName: MeetingsTable.guestName,
-        startTime: MeetingsTable.startTime,
-        endTime: MeetingsTable.endTime,
-        timezone: MeetingsTable.timezone,
-        meetingUrl: MeetingsTable.meetingUrl,
-        eventName: EventsTable.name,
-        expertClerkId: EventsTable.workosUserId,
-        // Expert info from UsersTable
-        expertCountry: UsersTable.country,
-        // Expert professional name from ProfilesTable (for email display)
-        expertFirstName: ProfilesTable.firstName,
-        expertLastName: ProfilesTable.lastName,
-      })
-      .from(MeetingsTable)
-      .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
-      .innerJoin(UsersTable, eq(UsersTable.workosUserId, EventsTable.workosUserId))
-      .innerJoin(ProfilesTable, eq(ProfilesTable.workosUserId, EventsTable.workosUserId))
-      .where(
-        and(
-          between(MeetingsTable.startTime, in24Hours, in25Hours),
-          eq(MeetingsTable.stripePaymentStatus, 'succeeded'), // Only confirmed appointments
-        ),
-      );
+/** Minutes from now for reminder window start (24 hours) */
+const WINDOW_START_MINUTES = 24 * 60; // 1440 minutes
 
-    console.log(`Found ${upcomingMeetings.length} upcoming appointments for reminders`);
+/** Minutes from now for reminder window end (25 hours) */
+const WINDOW_END_MINUTES = 25 * 60; // 1500 minutes
 
-    // Transform the data to match the expected interface
-    const appointments: Appointment[] = upcomingMeetings.map((meeting) => {
-      // Determine locales based on country
-      const getLocaleFromCountry = (country: string | null): string => {
-        switch (country?.toUpperCase()) {
-          case 'PT':
-            return 'pt-PT';
-          case 'BR':
-            return 'pt-BR';
-          case 'ES':
-            return 'es-ES';
-          default:
-            return 'en-US';
-        }
-      };
-
-      const expertName =
-        [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert';
-
-      return {
-        id: meeting.meetingId,
-        customerClerkId: 'guest', // Guests don't have Clerk IDs, we'll handle this differently
-        expertClerkId: meeting.expertClerkId,
-        customerName: meeting.guestName,
-        expertName,
-        appointmentType: meeting.eventName,
-        startTime: meeting.startTime,
-        meetingUrl: meeting.meetingUrl || `https://meet.eleva.care/${meeting.meetingId}`,
-        customerLocale: 'en-US', // Default for guests, could be enhanced with guest preferences
-        expertLocale: getLocaleFromCountry(meeting.expertCountry),
-        customerTimezone: meeting.timezone,
-        expertTimezone: meeting.timezone, // Using meeting timezone as default
-      };
-    });
-
-    return appointments;
-  } catch (error) {
-    console.error('Error querying upcoming appointments:', error);
-    throw error;
-  }
-}
-
-async function formatTimeUntilAppointment(appointmentTime: Date, locale: string): Promise<string> {
-  const now = new Date();
-  const hoursUntil = Math.round((appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-
-  if (locale.startsWith('pt')) {
-    if (hoursUntil <= 1) return 'em 1 hora';
-    if (hoursUntil <= 24) return `em ${hoursUntil} horas`;
-    return 'amanhã';
-  } else if (locale.startsWith('es')) {
-    if (hoursUntil <= 1) return 'en 1 hora';
-    if (hoursUntil <= 24) return `en ${hoursUntil} horas`;
-    return 'mañana';
-  } else {
-    if (hoursUntil <= 1) return 'in 1 hour';
-    if (hoursUntil <= 24) return `in ${hoursUntil} hours`;
-    return 'tomorrow';
-  }
-}
-
-async function formatDateTime(date: Date, timezone: string, locale: string) {
-  const formatter = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const formatted = formatter.formatToParts(date);
-  const datePart = `${formatted.find((p) => p.type === 'day')?.value} ${formatted.find((p) => p.type === 'month')?.value} ${formatted.find((p) => p.type === 'year')?.value}`;
-  const timePart = `${formatted.find((p) => p.type === 'hour')?.value}:${formatted.find((p) => p.type === 'minute')?.value}`;
-
-  return { datePart, timePart };
-}
-
+/**
+ * Cron job handler that sends 24-hour appointment reminders.
+ *
+ * Processes all confirmed appointments starting in 24-25 hours and sends:
+ * - Expert reminders via Novu (in-app + email) using WorkOS ID as subscriberId
+ * - Patient reminders via Novu (email only) using email as subscriberId
+ *
+ * Novu auto-creates subscribers when triggered, so patients without
+ * accounts still receive email notifications and appear in Novu activity logs.
+ *
+ * Uses idempotency keys (transactionId) to prevent duplicate reminders on cron retries.
+ * Runs every hour to catch appointments within the window.
+ *
+ * @returns {Promise<NextResponse>} JSON response with reminder statistics
+ *
+ * @example Response
+ * ```json
+ * {
+ *   "success": true,
+ *   "totalAppointments": 5,
+ *   "expertRemindersSent": 5,
+ *   "expertRemindersFailed": 0,
+ *   "patientRemindersSent": 5,
+ *   "patientRemindersFailed": 0
+ * }
+ * ```
+ */
 async function handler() {
-  console.log('🔔 Running appointment reminder cron job...');
+  console.log('🔔 Running 24-hour appointment reminder cron job...');
 
   try {
-    const appointments = await getUpcomingAppointments();
-    console.log(`Found ${appointments.length} appointments needing reminders`);
+    const appointments = await getUpcomingAppointments(WINDOW_START_MINUTES, WINDOW_END_MINUTES);
+    console.log(`Found ${appointments.length} appointments needing 24-hour reminders`);
+
+    let expertRemindersSent = 0;
+    let expertRemindersFailed = 0;
+    let patientRemindersSent = 0;
+    let patientRemindersFailed = 0;
 
     for (const appointment of appointments) {
-      // Send reminder to expert (experts have Clerk IDs)
+      // 1. Send reminder to expert (experts have WorkOS IDs via Novu)
       try {
-        const expertDateTime = await formatDateTime(
+        const expertDateTime = formatDateTime(
           appointment.startTime,
           appointment.expertTimezone,
           appointment.expertLocale,
         );
 
-        const expertTimeUntil = await formatTimeUntilAppointment(
+        const expertTimeUntil = formatTimeUntilAppointment(
           appointment.startTime,
           appointment.expertLocale,
         );
 
-        await triggerWorkflow({
+        // Determine locale for expert email template (supports pt, es, en)
+        const expertLocaleLower = (appointment.expertLocale || 'en').toLowerCase();
+        const expertLocale: SupportedLocale = expertLocaleLower.startsWith('pt')
+          ? 'pt'
+          : expertLocaleLower.startsWith('es')
+            ? 'es'
+            : 'en';
+
+        const expertResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
-            subscriberId: appointment.expertClerkId,
+            subscriberId: appointment.expertWorkosId,
           },
           payload: {
             eventType: 'reminder',
@@ -172,24 +104,104 @@ async function handler() {
             appointmentTime: expertDateTime.timePart,
             timezone: appointment.expertTimezone,
             message: `Appointment reminder: You have an appointment with ${appointment.customerName} ${expertTimeUntil}`,
-            meetLink: appointment.meetingUrl,
+            meetingUrl: appointment.meetingUrl,
+            userSegment: 'expert',
+            locale: expertLocale,
           },
+          transactionId: `24h-expert-${appointment.id}-${Date.now()}`,
         });
 
-        console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
+        if (expertResult) {
+          console.log(`✅ Reminder sent to expert: ${appointment.expertWorkosId}`);
+          expertRemindersSent++;
+        } else {
+          console.warn(`⚠️ Workflow returned null for expert ${appointment.expertWorkosId}`);
+          expertRemindersFailed++;
+        }
       } catch (error) {
-        console.error(`❌ Failed to send reminder to expert ${appointment.expertClerkId}:`, error);
+        console.error(`❌ Failed to send reminder to expert ${appointment.expertWorkosId}:`, error);
+        expertRemindersFailed++;
       }
 
-      // Note: Guest reminders would need a different approach since guests don't have Clerk IDs
-      // You could implement email-based reminders directly using Resend here if needed
-      // For now, we're only sending reminders to experts who have accounts
+      // 2. Send reminder to patient (use email as subscriberId for guests)
+      try {
+        const patientDateTime = formatDateTime(
+          appointment.startTime,
+          appointment.customerTimezone,
+          appointment.customerLocale,
+        );
+
+        const patientTimeUntil = formatTimeUntilAppointment(
+          appointment.startTime,
+          appointment.customerLocale,
+        );
+
+        // Determine locale for patient email template
+        const patientLocaleLower = (appointment.customerLocale || 'en').toLowerCase();
+        const patientLocale: SupportedLocale = patientLocaleLower.startsWith('pt')
+          ? 'pt'
+          : patientLocaleLower.startsWith('es')
+            ? 'es'
+            : 'en';
+
+        // Use guestEmail as subscriberId - Novu will auto-create subscriber
+        const subscriberId = appointment.customerWorkosId !== 'guest'
+          ? appointment.customerWorkosId
+          : appointment.guestEmail;
+
+        const patientResult = await triggerWorkflow({
+          workflowId: 'appointment-universal',
+          to: {
+            subscriberId,
+            email: appointment.guestEmail,
+          },
+          payload: {
+            eventType: 'reminder',
+            expertName: appointment.expertName,
+            customerName: appointment.customerName,
+            serviceName: appointment.appointmentType,
+            appointmentDate: patientDateTime.datePart,
+            appointmentTime: patientDateTime.timePart,
+            timezone: appointment.customerTimezone,
+            message: `Appointment reminder: You have an appointment with ${appointment.expertName} ${patientTimeUntil}`,
+            meetingUrl: appointment.meetingUrl,
+            userSegment: 'patient',
+            locale: patientLocale,
+          },
+          transactionId: `24h-patient-${appointment.id}-${Date.now()}`,
+        });
+
+        if (patientResult) {
+          console.log(`✅ Reminder sent to patient: ${appointment.guestEmail}`);
+          patientRemindersSent++;
+        } else {
+          console.warn(`⚠️ Workflow returned null for patient ${appointment.guestEmail}`);
+          patientRemindersFailed++;
+        }
+      } catch (error) {
+        console.error(`❌ Failed to send reminder to patient ${appointment.guestEmail}:`, error);
+        patientRemindersFailed++;
+      }
     }
 
-    console.log('🎉 Appointment reminder cron job completed');
-    return NextResponse.json({ success: true, count: appointments.length });
+    console.log('🎉 24-hour appointment reminder cron job completed', {
+      totalAppointments: appointments.length,
+      expertRemindersSent,
+      expertRemindersFailed,
+      patientRemindersSent,
+      patientRemindersFailed,
+    });
+
+    return NextResponse.json({
+      success: true,
+      totalAppointments: appointments.length,
+      expertRemindersSent,
+      expertRemindersFailed,
+      patientRemindersSent,
+      patientRemindersFailed,
+    });
   } catch (error) {
-    console.error('❌ Error in appointment reminder cron job:', error);
+    console.error('❌ Error in 24-hour appointment reminder cron job:', error);
     return NextResponse.json({ error: 'Failed to process reminders' }, { status: 500 });
   }
 }

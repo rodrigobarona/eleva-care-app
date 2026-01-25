@@ -1,6 +1,6 @@
 export interface Event {
   id: string;
-  clerkUserId: string;
+  workosUserId: string;
   name: string;
   durationInMinutes: number;
   isActive: boolean;

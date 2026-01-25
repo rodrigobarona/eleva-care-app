@@ -1,7 +1,7 @@
 export interface Meeting {
   id: string;
   eventId: string;
-  clerkUserId: string;
+  workosUserId: string;
   guestEmail: string;
   guestName: string;
   startTime: Date;

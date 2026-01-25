@@ -553,6 +553,12 @@ export const MeetingsTable = pgTable(
     }).default('pending'),
     stripeTransferScheduledAt: timestamp('stripe_transfer_scheduled_at'),
 
+    // Stripe payout tracking
+    stripePayoutId: text('stripe_payout_id'),
+
+    // Calendar creation idempotency (prevents duplicate calendar events on webhook retries)
+    calendarCreationClaimed: boolean('calendar_creation_claimed').default(false).notNull(),
+
     createdAt,
     updatedAt,
   },
@@ -563,6 +569,7 @@ export const MeetingsTable = pgTable(
     eventIdIndex: index('meetings_event_id_idx').on(table.eventId),
     paymentIntentIdIndex: index('meetings_payment_intent_id_idx').on(table.stripePaymentIntentId),
     transferIdIndex: index('meetings_transfer_id_idx').on(table.stripeTransferId),
+    payoutIdIndex: index('meetings_payout_id_idx').on(table.stripePayoutId),
   }),
 );
 
