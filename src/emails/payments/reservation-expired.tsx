@@ -9,7 +9,11 @@ import {
 import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
-interface ReservationExpiredEmailProps {
+/**
+ * Props for the ReservationExpiredEmail component.
+ * Exported for type-safe usage in consumers.
+ */
+export interface ReservationExpiredEmailProps {
   recipientName?: string;
   recipientType?: 'patient' | 'expert';
   expertName?: string;
@@ -18,6 +22,8 @@ interface ReservationExpiredEmailProps {
   appointmentTime?: string;
   timezone?: string;
   locale?: SupportedLocale;
+  /** Patient name for expert-view emails. Falls back to recipientName if not provided. */
+  patientName?: string;
 }
 
 // Local divider style for Hr component
@@ -73,8 +79,12 @@ export const ReservationExpiredEmail = ({
   appointmentTime = '2:30 PM',
   timezone = 'Europe/Lisbon',
   locale = 'en',
+  patientName,
 }: ReservationExpiredEmailProps) => {
   const isPatient = recipientType === 'patient';
+
+  // For expert-view emails, use patientName for the client cell, fallback to recipientName
+  const clientDisplayName = isPatient ? expertName : (patientName || recipientName);
 
   // Internationalization support - using plain text messages (no HTML injection risk)
   const translations = {
@@ -242,7 +252,7 @@ export const ReservationExpiredEmail = ({
             <tr>
               <td style={createTableCellStyle(true)}>{isPatient ? t.expert : t.client}:</td>
               <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-                {isPatient ? expertName : recipientName}
+                {clientDisplayName}
               </td>
             </tr>
             <tr>
@@ -312,4 +322,5 @@ ReservationExpiredEmail.PreviewProps = {
   appointmentTime: '2:30 PM',
   timezone: 'Europe/Lisbon',
   locale: 'en',
+  patientName: 'João Silva', // Used when recipientType is 'expert'
 } as ReservationExpiredEmailProps;

@@ -80,6 +80,38 @@ export interface Appointment {
 }
 
 /**
+ * Supported locale type for email templates and notifications.
+ * Re-exported here for convenience in cron job files.
+ */
+export type SupportedLocale = 'en' | 'pt' | 'es';
+
+/**
+ * Normalizes a locale string to one of the supported locales ('en', 'pt', 'es').
+ *
+ * This helper centralizes the locale normalization logic used across cron jobs
+ * to ensure consistent locale handling for email templates and notifications.
+ *
+ * @param {string | null | undefined} locale - The locale string to normalize (e.g., 'pt-PT', 'en-US')
+ * @returns {SupportedLocale} Normalized locale ('en', 'pt', or 'es')
+ *
+ * @example
+ * ```typescript
+ * normalizeLocale('pt-PT');     // 'pt'
+ * normalizeLocale('pt-BR');     // 'pt'
+ * normalizeLocale('es-ES');     // 'es'
+ * normalizeLocale('en-US');     // 'en'
+ * normalizeLocale(null);        // 'en'
+ * normalizeLocale(undefined);   // 'en'
+ * ```
+ */
+export function normalizeLocale(locale: string | null | undefined): SupportedLocale {
+  const localeLower = (locale || 'en').toLowerCase();
+  if (localeLower.startsWith('pt')) return 'pt';
+  if (localeLower.startsWith('es')) return 'es';
+  return 'en';
+}
+
+/**
  * Determines locale based on country code.
  *
  * Maps ISO 3166-1 alpha-2 country codes to BCP 47 locale strings.
@@ -139,32 +171,66 @@ export function formatDateTime(
   timezone: string,
   locale: string,
 ): { datePart: string; timePart: string } {
-  const dateFormatter = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  });
+  // Determine hour12 based on locale (24h for most European locales, 12h for English)
+  const localeLower = (locale || 'en').toLowerCase();
+  const use12HourFormat = localeLower.startsWith('en');
 
-  const timeFormatter = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZoneName: 'short',
-  });
+  try {
+    const dateFormatter = new Intl.DateTimeFormat(locale, {
+      timeZone: timezone,
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
 
-  return {
-    datePart: dateFormatter.format(date),
-    timePart: timeFormatter.format(date),
-  };
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: use12HourFormat,
+      timeZoneName: 'short',
+    });
+
+    return {
+      datePart: dateFormatter.format(date),
+      timePart: timeFormatter.format(date),
+    };
+  } catch (error) {
+    // Handle invalid timezone by falling back to UTC
+    console.warn(
+      `Invalid timezone "${timezone}" provided, falling back to UTC. Error:`,
+      error instanceof Error ? error.message : error,
+    );
+
+    const dateFormatter = new Intl.DateTimeFormat(locale, {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long',
+    });
+
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+      timeZone: 'UTC',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: use12HourFormat,
+      timeZoneName: 'short',
+    });
+
+    return {
+      datePart: dateFormatter.format(date),
+      timePart: timeFormatter.format(date),
+    };
+  }
 }
 
 /**
  * Formats a human-readable "time until appointment" string.
  *
- * Produces localized strings like "in 1 hour", "in 12 hours", "tomorrow"
+ * Uses minutes-based calculation for more accurate time representation.
+ * Produces localized strings like "in 1 hour", "in 12 hours", "tomorrow", "in 2 days"
  * based on the time remaining until the appointment.
  *
  * @param {Date} appointmentTime - The appointment start time
@@ -181,31 +247,57 @@ export function formatDateTime(
  */
 export function formatTimeUntilAppointment(appointmentTime: Date, locale: string): string {
   const now = new Date();
-  const hoursUntil = Math.round((appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+  const totalMinutes = (appointmentTime.getTime() - now.getTime()) / (1000 * 60);
 
   // Normalize locale for comparison
   const localeLower = (locale || 'en').toLowerCase();
 
-  // Handle past or immediate appointments (hoursUntil <= 0)
-  if (hoursUntil <= 0) {
+  // Handle past or immediate appointments
+  if (totalMinutes <= 0) {
     if (localeLower.startsWith('pt')) return 'agora';
     if (localeLower.startsWith('es')) return 'ahora';
     return 'now';
   }
 
-  if (localeLower.startsWith('pt')) {
-    if (hoursUntil <= 1) return 'em menos de 1 hora';
-    if (hoursUntil < 24) return `em ${hoursUntil} horas`;
-    return 'amanhã';
-  } else if (localeLower.startsWith('es')) {
-    if (hoursUntil <= 1) return 'en menos de 1 hora';
-    if (hoursUntil < 24) return `en ${hoursUntil} horas`;
-    return 'mañana';
-  } else {
-    if (hoursUntil <= 1) return 'in less than 1 hour';
-    if (hoursUntil < 24) return `in ${hoursUntil} hours`;
+  // Less than 60 minutes
+  if (totalMinutes < 60) {
+    if (localeLower.startsWith('pt')) return 'em menos de 1 hora';
+    if (localeLower.startsWith('es')) return 'en menos de 1 hora';
+    return 'in less than 1 hour';
+  }
+
+  // Calculate hours (floor to get complete hours)
+  const hours = Math.floor(totalMinutes / 60);
+
+  // Less than 24 hours - show hours
+  if (hours < 24) {
+    if (localeLower.startsWith('pt')) {
+      return hours === 1 ? 'em 1 hora' : `em ${hours} horas`;
+    }
+    if (localeLower.startsWith('es')) {
+      return hours === 1 ? 'en 1 hora' : `en ${hours} horas`;
+    }
+    return hours === 1 ? 'in 1 hour' : `in ${hours} hours`;
+  }
+
+  // Calculate days
+  const days = Math.floor(hours / 24);
+
+  // Tomorrow (1 day)
+  if (days === 1) {
+    if (localeLower.startsWith('pt')) return 'amanhã';
+    if (localeLower.startsWith('es')) return 'mañana';
     return 'tomorrow';
   }
+
+  // Multiple days
+  if (localeLower.startsWith('pt')) {
+    return `em ${days} dias`;
+  }
+  if (localeLower.startsWith('es')) {
+    return `en ${days} días`;
+  }
+  return `in ${days} days`;
 }
 
 /**

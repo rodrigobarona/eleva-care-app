@@ -131,11 +131,7 @@ import { defaultLocale } from '@/lib/i18n/routing';
 import { getMessages } from 'next-intl/server';
 import { cookies } from 'next/headers';
 
-export default async function PrivateLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function PrivateLayout({ children }: { children: React.ReactNode }) {
   // Get locale from cookie or use default
   const cookieStore = await cookies();
   const locale = cookieStore.get('ELEVA_LOCALE')?.value || defaultLocale;
@@ -155,6 +151,7 @@ export default async function PrivateLayout({
 ### Setting the Locale Cookie
 
 The locale cookie should be set when:
+
 - User changes language preference in settings
 - User logs in (sync with their profile preference)
 - User first visits (detect from browser or IP)
@@ -162,7 +159,10 @@ The locale cookie should be set when:
 ```typescript
 // Example: Setting locale in a Server Action
 'use server';
+
 import { cookies } from 'next/headers';
+
+// Example: Setting locale in a Server Action
 
 export async function setUserLocale(locale: string) {
   const cookieStore = await cookies();
@@ -175,7 +175,7 @@ export async function setUserLocale(locale: string) {
 
 ## Using with WorkOS Authentication
 
-The proxy (middleware) handles both internationalization and authentication:
+The proxy.ts (middleware) handles both internationalization and authentication:
 
 1. next-intl middleware processes locale routing for public pages
 2. WorkOS AuthKit handles authentication

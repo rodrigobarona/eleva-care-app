@@ -32,7 +32,6 @@ import { createUserNotification } from '@/lib/notifications/core';
 import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
-import { getTranslations } from 'next-intl/server';
 import Stripe from 'stripe';
 
 // Initialize Stripe
@@ -479,6 +478,19 @@ async function processPartialRefund(
 
 /**
  * Send conflict notification using branded refund email template with multilingual support
+ *
+ * @param guestEmail - Recipient email address
+ * @param guestName - Recipient name for personalization
+ * @param expertName - Name of the expert for the appointment
+ * @param startTime - Appointment start time (UTC)
+ * @param refundAmount - Refund amount in minor units (cents)
+ * @param originalAmount - Original payment amount in minor units (cents)
+ * @param locale - User's locale for email content
+ * @param conflictReason - Reason code for the conflict
+ * @param minimumNoticeHours - Optional minimum notice hours (for logging)
+ * @param paymentIntentId - Stripe payment intent ID for reference
+ * @param timezone - IANA timezone for formatting dates (e.g., 'Europe/Lisbon')
+ * @param currency - Currency code (e.g., 'eur', 'usd') - defaults to 'eur'
  */
 async function notifyAppointmentConflict(
   guestEmail: string,
@@ -491,6 +503,8 @@ async function notifyAppointmentConflict(
   conflictReason: string,
   minimumNoticeHours?: number,
   paymentIntentId?: string,
+  timezone: string = 'Europe/Lisbon',
+  currency: string = 'eur',
 ) {
   try {
     console.log(
@@ -501,9 +515,10 @@ async function notifyAppointmentConflict(
     const refundAmountFormatted = (refundAmount / 100).toFixed(2);
     const originalAmountFormatted = (originalAmount / 100).toFixed(2);
 
-    // Format date and time for the email
-    const appointmentDate = format(startTime, 'PPPP');
-    const appointmentTime = format(startTime, 'p');
+    // Format date and time in the user's timezone
+    const zonedTime = toZonedTime(startTime, timezone);
+    const appointmentDate = format(zonedTime, 'PPPP', { timeZone: timezone });
+    const appointmentTime = format(zonedTime, 'p', { timeZone: timezone });
 
     // Determine SupportedLocale type
     const localeLower = (locale || 'en').toLowerCase();
@@ -512,6 +527,9 @@ async function notifyAppointmentConflict(
       : localeLower.startsWith('es')
         ? 'es'
         : 'en';
+
+    // Normalize currency to uppercase for display
+    const currencyDisplay = (currency || 'EUR').toUpperCase();
 
     // Render branded refund notification email
     const emailHtml = await render(
@@ -523,7 +541,7 @@ async function notifyAppointmentConflict(
         appointmentTime,
         originalAmount: originalAmountFormatted,
         refundAmount: refundAmountFormatted,
-        currency: 'EUR',
+        currency: currencyDisplay,
         refundReason: conflictReason,
         transactionId: paymentIntentId,
         locale: supportedLocale,
@@ -701,6 +719,15 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   ? `${expertProfile.firstName} ${expertProfile.lastName}`.trim()
                   : 'Expert';
 
+                // Get meeting timezone for proper date formatting in notification
+                const meetingRecord = meetingData.id
+                  ? await db.query.MeetingsTable.findFirst({
+                      where: eq(MeetingsTable.id, meetingData.id),
+                      columns: { timezone: true },
+                    })
+                  : null;
+                const meetingTimezone = meetingRecord?.timezone || 'Europe/Lisbon';
+
                 // Notify all parties about the conflict
                 await notifyAppointmentConflict(
                   meetingData.guest,
@@ -713,6 +740,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   conflictResult.reason || 'unknown_conflict',
                   conflictResult.minimumNoticeHours,
                   paymentIntent.id,
+                  meetingTimezone,
+                  paymentIntent.currency,
                 );
 
                 console.log(
@@ -804,17 +833,29 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                     timezone: meeting.timezone,
                   });
 
-                  const calendarEvent = await createCalendarEvent({
-                    workosUserId: meeting.workosUserId,
-                    guestName: meeting.guestName,
-                    guestEmail: meeting.guestEmail,
-                    startTime: meeting.startTime,
-                    guestNotes: meeting.guestNotes || undefined,
-                    durationInMinutes: event.durationInMinutes,
-                    eventName: event.name,
-                    timezone: meeting.timezone,
-                    locale: extractLocaleFromPaymentIntent(paymentIntent),
+                  // Timeout helper to prevent calendar creation from hanging
+                  const CALENDAR_CREATION_TIMEOUT_MS = 25000; // 25 seconds
+                  const timeoutPromise = new Promise<never>((_, reject) => {
+                    setTimeout(() => {
+                      reject(new Error('Calendar creation timeout after 25 seconds'));
+                    }, CALENDAR_CREATION_TIMEOUT_MS);
                   });
+
+                  // Race between calendar creation and timeout
+                  const calendarEvent = await Promise.race([
+                    createCalendarEvent({
+                      workosUserId: meeting.workosUserId,
+                      guestName: meeting.guestName,
+                      guestEmail: meeting.guestEmail,
+                      startTime: meeting.startTime,
+                      guestNotes: meeting.guestNotes || undefined,
+                      durationInMinutes: event.durationInMinutes,
+                      eventName: event.name,
+                      timezone: meeting.timezone,
+                      locale: extractLocaleFromPaymentIntent(paymentIntent),
+                    }),
+                    timeoutPromise,
+                  ]);
 
                   const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
 

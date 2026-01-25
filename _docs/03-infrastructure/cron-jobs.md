@@ -173,9 +173,16 @@ await triggerWorkflow({
   workflowId: 'appointment-universal',
   to: { subscriberId: expertWorkosId },
   payload: { ... },
-  transactionId: `24h-expert-${appointment.id}-${Date.now()}`,
+  // Use deterministic ID based on appointment and reminder window
+  // This ensures retries produce the same transactionId
+  transactionId: `24h-expert-${appointment.id}`,
 });
 ```
+
+**Important:** The `transactionId` must be deterministic (stable across retries). Do NOT use `Date.now()` or other non-deterministic values, as this defeats the idempotency purpose. Use a combination of:
+- Reminder window identifier (`24h`, `1hr`)
+- Recipient type (`expert`, `patient`)
+- Appointment ID
 
 This prevents duplicate notifications if the cron job retries.
 
@@ -236,9 +243,52 @@ Functions → Select cron route → View logs
 ```
 
 ### Test locally
+
+The cron endpoints use `verifySignatureAppRouter(handler)` which requires valid QStash signatures. Here are three approaches to test locally:
+
+**Option A: Environment-based conditional export (recommended)**
+
+Modify your route file to bypass verification in development:
+
+```typescript
+// At the end of your route.ts file
+export const POST = process.env.NODE_ENV === 'development'
+  ? handler
+  : verifySignatureAppRouter(handler);
+```
+
+Then test with:
 ```bash
-# Bypass QStash verification for local testing
 curl -X POST http://localhost:3000/api/cron/appointment-reminders
+```
+
+**Option B: Use QStash test headers**
+
+Get test headers from the QStash dashboard (Publish → Test Headers) and include them:
+
+```bash
+curl -X POST http://localhost:3000/api/cron/appointment-reminders \
+  -H "Upstash-Signature: YOUR_TEST_SIGNATURE" \
+  -H "Upstash-Message-Id: test-123"
+```
+
+**Option C: Add a development-only GET route**
+
+Add a separate route for local testing:
+
+```typescript
+// Only available in development
+export async function GET() {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+  return handler();
+}
+```
+
+Then test with:
+```bash
+curl http://localhost:3000/api/cron/appointment-reminders
 ```
 
 ## Related Files

@@ -18,6 +18,23 @@
  */
 
 /**
+ * Generate a unique session ID for telemetry correlation.
+ * Uses crypto.randomUUID if available, falls back to timestamp-based ID.
+ */
+const generateSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+/** Unique session ID for correlating telemetry events within a session */
+const SESSION_ID = generateSessionId();
+
+/** Timeout in milliseconds for telemetry fetch requests */
+const TELEMETRY_TIMEOUT_MS = 5000;
+
+/**
  * Environment flag to enable debug telemetry.
  * Set DEBUG_TELEMETRY=true or NODE_ENV=development to enable.
  */
@@ -26,18 +43,26 @@ const isDebugTelemetryEnabled = (): boolean => {
 };
 
 /**
- * Telemetry endpoint - defaults to local agent ingest.
- * Can be overridden via DEBUG_TELEMETRY_ENDPOINT env var.
+ * Telemetry endpoint - MUST be configured via DEBUG_TELEMETRY_ENDPOINT env var.
+ * Returns null if not configured, which will cause telemetry to be skipped.
  */
-const getTelemetryEndpoint = (): string => {
-  return (
-    process.env.DEBUG_TELEMETRY_ENDPOINT ||
-    'http://127.0.0.1:7245/ingest/5ec49622-4f23-4e7d-b9b7-b1ff787148b0'
-  );
+const getTelemetryEndpoint = (): string | null => {
+  const endpoint = process.env.DEBUG_TELEMETRY_ENDPOINT;
+  if (!endpoint) {
+    // Only warn once per session in development
+    if (process.env.NODE_ENV === 'development') {
+      console.debug(
+        '[Telemetry] DEBUG_TELEMETRY_ENDPOINT not configured, telemetry disabled',
+      );
+    }
+    return null;
+  }
+  return endpoint;
 };
 
 /**
- * Patterns for sensitive field names that should be redacted
+ * Patterns for sensitive field names that should be redacted.
+ * Includes PII patterns for phone, address, SSN, credit card, etc.
  */
 const SENSITIVE_PATTERNS = [
   /^user.?id$/i,
@@ -50,7 +75,23 @@ const SENSITIVE_PATTERNS = [
   /secret$/i,
   /api.?key$/i,
   /session.?id$/i,
-  /^id$/i,
+  /^(entity|record|document|object)?.?id$/i, // More specific than just /^id$/i
+  // Additional PII patterns
+  /phone/i,
+  /address/i,
+  /street/i,
+  /city/i,
+  /zip.?code/i,
+  /postal.?code/i,
+  /ssn/i,
+  /social.?security/i,
+  /credit.?card/i,
+  /card.?number/i,
+  /cvv/i,
+  /expir(y|ation)/i,
+  /ip.?address/i,
+  /birth.?date/i,
+  /dob$/i,
 ];
 
 /**
@@ -73,16 +114,26 @@ const PRESENCE_ONLY_FIELDS = [
  * Converts sensitive IDs to boolean presence indicators.
  *
  * @param data - The data object to redact
- * @returns A redacted copy of the data
+ * @returns A redacted copy of the data, or the original value if not an object
  */
-export function redactSensitiveData(data: Record<string, unknown>): Record<string, unknown> {
+export function redactSensitiveData(data: unknown): unknown {
   if (!data || typeof data !== 'object') {
     return data;
   }
 
+  if (Array.isArray(data)) {
+    return data.map((item) => redactSensitiveData(item));
+  }
+
   const redacted: Record<string, unknown> = {};
 
-  for (const [key, value] of Object.entries(data)) {
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    // FIRST: Remove stack traces (check before pattern-based redaction)
+    if (key === 'errorStack' || key === 'stack') {
+      redacted[key] = value ? '[STACK_REDACTED]' : null;
+      continue;
+    }
+
     // Check if this is a presence-only field
     if (PRESENCE_ONLY_FIELDS.some((field) => key.toLowerCase().includes(field.toLowerCase()))) {
       redacted[`has${key.charAt(0).toUpperCase()}${key.slice(1)}`] = !!value;
@@ -95,25 +146,9 @@ export function redactSensitiveData(data: Record<string, unknown>): Record<strin
       continue;
     }
 
-    // Recursively redact nested objects
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      redacted[key] = redactSensitiveData(value as Record<string, unknown>);
-      continue;
-    }
-
-    // Redact arrays of objects
-    if (Array.isArray(value)) {
-      redacted[key] = value.map((item) =>
-        typeof item === 'object' && item !== null
-          ? redactSensitiveData(item as Record<string, unknown>)
-          : item,
-      );
-      continue;
-    }
-
-    // Remove stack traces
-    if (key === 'errorStack' || key === 'stack') {
-      redacted[key] = value ? '[STACK_REDACTED]' : null;
+    // Recursively redact nested objects and arrays
+    if (value && typeof value === 'object') {
+      redacted[key] = redactSensitiveData(value);
       continue;
     }
 
@@ -126,9 +161,17 @@ export function redactSensitiveData(data: Record<string, unknown>): Record<strin
 
 /**
  * Redacts a full response payload, keeping only safe diagnostic info.
+ * Only reports boolean presence indicators, not field names (to prevent schema leakage).
  *
  * @param payload - The full response payload
- * @returns A safe diagnostic summary
+ * @returns A safe diagnostic summary with presence indicators only
+ *
+ * @example
+ * ```typescript
+ * const response = { user: { id: '123', email: 'test@example.com' }, customer: { id: 'cus_123' } };
+ * const safe = redactResponsePayload(response);
+ * // Returns: { hasUser: true, hasCustomer: true, hasAccountStatus: false, ... }
+ * ```
  */
 export function redactResponsePayload(payload: Record<string, unknown>): Record<string, unknown> {
   return {
@@ -136,8 +179,9 @@ export function redactResponsePayload(payload: Record<string, unknown>): Record<
     hasCustomer: !!payload?.customer,
     hasAccountStatus: !!payload?.accountStatus,
     hasDefaultPaymentMethod: !!(payload?.customer as Record<string, unknown>)?.defaultPaymentMethod,
-    userKeys: payload?.user ? Object.keys(payload.user as object) : [],
-    customerKeys: payload?.customer ? Object.keys(payload.customer as object) : [],
+    // Report counts instead of field names to avoid schema leakage
+    userFieldCount: payload?.user ? Object.keys(payload.user as object).length : 0,
+    customerFieldCount: payload?.customer ? Object.keys(payload.customer as object).length : 0,
   };
 }
 
@@ -174,8 +218,16 @@ export async function sendDebugTelemetry(payload: DebugTelemetryPayload): Promis
     return;
   }
 
+  const endpoint = getTelemetryEndpoint();
+  if (!endpoint) {
+    return; // No endpoint configured, skip telemetry
+  }
+
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TELEMETRY_TIMEOUT_MS);
+
   try {
-    const endpoint = getTelemetryEndpoint();
     const redactedData = payload.data ? redactSensitiveData(payload.data) : {};
 
     await fetch(endpoint, {
@@ -186,18 +238,41 @@ export async function sendDebugTelemetry(payload: DebugTelemetryPayload): Promis
         message: payload.message,
         data: redactedData,
         timestamp: Date.now(),
-        sessionId: 'debug-session',
+        sessionId: SESSION_ID,
         hypothesisId: payload.hypothesisId,
       }),
+      signal: controller.signal,
     });
-  } catch {
-    // Silently fail - telemetry should never break the app
+  } catch (error) {
+    // Log errors in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.debug(`[Telemetry] Failed to send: ${errorMessage}`);
+    }
+    // Silently fail in production - telemetry should never break the app
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
 /**
  * Synchronous version for use in non-async contexts.
- * Fire-and-forget pattern.
+ * Fire-and-forget pattern - does not block and silently handles errors.
+ *
+ * @param payload - The telemetry payload to send
+ *
+ * @example
+ * ```typescript
+ * // Use in event handlers or synchronous code paths
+ * function handleClick() {
+ *   sendDebugTelemetrySync({
+ *     location: 'ui/button:click',
+ *     message: 'User clicked submit',
+ *     data: { formType: 'contact' },
+ *   });
+ *   // Continue with synchronous logic...
+ * }
+ * ```
  */
 export function sendDebugTelemetrySync(payload: DebugTelemetryPayload): void {
   sendDebugTelemetry(payload).catch(() => {});

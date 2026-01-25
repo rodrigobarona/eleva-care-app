@@ -1342,8 +1342,29 @@ export class ElevaEmailService {
   }
 
   /**
-   * 🆕 Render refund notification email using React Email template
-   * Used when appointments have conflicts and refunds are issued
+   * Render refund notification email using React Email template.
+   * Used when appointments have conflicts and refunds are issued.
+   *
+   * @param data - Email template data
+   * @param data.locale - Locale for i18n ('en' | 'pt' | 'es')
+   *
+   * @example
+   * ```typescript
+   * const emailService = new ElevaEmailService();
+   * const html = await emailService.renderRefundNotification({
+   *   customerName: 'Marta Silva',
+   *   expertName: 'Dr. Patricia Mota',
+   *   serviceName: 'Physical Therapy',
+   *   appointmentDate: 'January 25, 2026',
+   *   appointmentTime: '2:30 PM',
+   *   originalAmount: '70.00',
+   *   refundAmount: '70.00',
+   *   currency: 'EUR',
+   *   refundReason: 'time_range_overlap',
+   *   transactionId: 'pi_3abc123',
+   *   locale: 'pt',
+   * });
+   * ```
    */
   async renderRefundNotification(data: {
     customerName: string;
@@ -1376,8 +1397,28 @@ export class ElevaEmailService {
   }
 
   /**
-   * 🆕 Render expert new appointment notification email
-   * Sent to experts when they receive new bookings
+   * Render expert new appointment notification email.
+   * Sent to experts when they receive new bookings.
+   *
+   * @param data - Email template data
+   * @param data.locale - Locale for i18n ('en' | 'pt' | 'es')
+   *
+   * @example
+   * ```typescript
+   * const emailService = new ElevaEmailService();
+   * const html = await emailService.renderExpertNewAppointment({
+   *   expertName: 'Patricia Mota',
+   *   clientName: 'Marta Carvalho',
+   *   appointmentDate: 'Wednesday, January 21, 2026',
+   *   appointmentTime: '12:30 PM',
+   *   timezone: 'Europe/Lisbon',
+   *   appointmentDuration: '45 minutes',
+   *   eventTitle: 'Physical Therapy Appointment',
+   *   meetLink: 'https://meet.google.com/abc-defg-hij',
+   *   notes: 'First consultation',
+   *   locale: 'en',
+   * });
+   * ```
    */
   async renderExpertNewAppointment(data: {
     expertName: string;
@@ -1408,8 +1449,40 @@ export class ElevaEmailService {
   }
 
   /**
-   * 🆕 Render reservation expired notification email
-   * Sent when Multibanco reservations expire without payment
+   * Render reservation expired notification email.
+   * Sent when Multibanco reservations expire without payment.
+   *
+   * @param data - Email template data
+   * @param data.recipientType - 'patient' or 'expert' to determine email content
+   * @param data.locale - Locale for i18n ('en' | 'pt' | 'es')
+   *
+   * @example
+   * ```typescript
+   * const emailService = new ElevaEmailService();
+   *
+   * // For patient notification
+   * const patientHtml = await emailService.renderReservationExpired({
+   *   recipientName: 'João Silva',
+   *   recipientType: 'patient',
+   *   expertName: 'Dr. Maria Santos',
+   *   serviceName: 'Medical Consultation',
+   *   appointmentDate: 'Monday, February 19, 2024',
+   *   appointmentTime: '2:30 PM',
+   *   timezone: 'Europe/Lisbon',
+   *   locale: 'pt',
+   * });
+   *
+   * // For expert notification
+   * const expertHtml = await emailService.renderReservationExpired({
+   *   recipientName: 'Dr. Maria Santos',
+   *   recipientType: 'expert',
+   *   expertName: 'Dr. Maria Santos',
+   *   serviceName: 'Medical Consultation',
+   *   appointmentDate: 'Monday, February 19, 2024',
+   *   appointmentTime: '2:30 PM',
+   *   locale: 'en',
+   * });
+   * ```
    */
   async renderReservationExpired(data: {
     recipientName: string;

@@ -7,9 +7,12 @@
  *
  * Schedule: Every 15 minutes via QStash
  */
-import { formatDateTime, getUpcomingAppointments } from '@/lib/cron/appointment-utils';
+import {
+  formatDateTime,
+  getUpcomingAppointments,
+  normalizeLocale,
+} from '@/lib/cron/appointment-utils';
 import { triggerWorkflow } from '@/lib/integrations/novu';
-import type { SupportedLocale } from '@/emails/utils/i18n';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 
@@ -73,13 +76,8 @@ async function handler() {
           appointment.expertLocale,
         );
 
-        // Determine locale for expert email template (supports pt, es, en)
-        const expertLocaleLower = (appointment.expertLocale || 'en').toLowerCase();
-        const expertLocale: SupportedLocale = expertLocaleLower.startsWith('pt')
-          ? 'pt'
-          : expertLocaleLower.startsWith('es')
-            ? 'es'
-            : 'en';
+        // Normalize locale for expert email template (supports pt, es, en)
+        const expertLocale = normalizeLocale(appointment.expertLocale);
 
         const expertResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
@@ -99,7 +97,8 @@ async function handler() {
             userSegment: 'expert',
             locale: expertLocale,
           },
-          transactionId: `urgent-expert-${appointment.id}-${Date.now()}`,
+          // Deterministic transactionId for idempotency - no Date.now()
+          transactionId: `urgent-expert-${appointment.id}-1hr`,
         });
 
         if (expertResult) {
@@ -125,18 +124,14 @@ async function handler() {
           appointment.customerLocale,
         );
 
-        // Determine locale for patient email template
-        const patientLocaleLower = (appointment.customerLocale || 'en').toLowerCase();
-        const patientLocale: SupportedLocale = patientLocaleLower.startsWith('pt')
-          ? 'pt'
-          : patientLocaleLower.startsWith('es')
-            ? 'es'
-            : 'en';
+        // Normalize locale for patient email template
+        const patientLocale = normalizeLocale(appointment.customerLocale);
 
         // Use guestEmail as subscriberId - Novu will auto-create subscriber
-        const subscriberId = appointment.customerWorkosId !== 'guest'
-          ? appointment.customerWorkosId
-          : appointment.guestEmail;
+        const subscriberId =
+          appointment.customerWorkosId !== 'guest'
+            ? appointment.customerWorkosId
+            : appointment.guestEmail;
 
         const patientResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
@@ -157,7 +152,8 @@ async function handler() {
             userSegment: 'patient',
             locale: patientLocale,
           },
-          transactionId: `urgent-patient-${appointment.id}-${Date.now()}`,
+          // Deterministic transactionId for idempotency - no Date.now()
+          transactionId: `urgent-patient-${appointment.id}-1hr`,
         });
 
         if (patientResult) {
@@ -194,7 +190,10 @@ async function handler() {
     });
   } catch (error) {
     console.error('❌ Error in 1-hour appointment reminder cron job:', error);
-    return NextResponse.json({ error: 'Failed to process urgent reminders' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to process urgent reminders' },
+      { status: 500 },
+    );
   }
 }
 

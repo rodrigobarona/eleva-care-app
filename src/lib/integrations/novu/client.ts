@@ -71,7 +71,22 @@ export interface TriggerWorkflowOptions {
     subscriberId: string;
     data?: Record<string, string | number | boolean>;
   };
-  /** Unique transaction ID for idempotency - prevents duplicate notifications on retries */
+  /**
+   * Unique transaction ID for idempotency - prevents duplicate notifications on retries.
+   * MUST be deterministic (stable across retries) to work correctly.
+   *
+   * @example
+   * ```typescript
+   * // Good: Deterministic transactionId based on appointment and window
+   * transactionId: `24h-expert-${appointment.id}`
+   *
+   * // Good: Include recipient type for different notifications
+   * transactionId: `urgent-patient-${appointment.id}-1hr`
+   *
+   * // BAD: Non-deterministic - defeats idempotency purpose
+   * transactionId: `24h-expert-${appointment.id}-${Date.now()}`
+   * ```
+   */
   transactionId?: string;
 }
 

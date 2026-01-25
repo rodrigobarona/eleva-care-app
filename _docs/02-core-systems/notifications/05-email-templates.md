@@ -53,6 +53,7 @@ interface RefundNotificationTemplateProps {
 
 **Usage:**
 ```typescript
+import { render } from '@react-email/render';
 import { RefundNotificationTemplate } from '@/emails/payments';
 
 const html = await render(
@@ -113,6 +114,52 @@ All templates use the shared i18n utility:
 // src/emails/utils/i18n.ts
 export type SupportedLocale = 'en' | 'pt' | 'es';
 
+// Translation structure for email templates
+const translations = {
+  en: {
+    refund: {
+      title: 'Refund Processed',
+      body: (amount: string) => `Your refund of ${amount} has been processed.`,
+    },
+    appointment: {
+      confirmed: 'Appointment Confirmed',
+      reminder: 'Appointment Reminder',
+    },
+    common: {
+      greeting: (name: string) => `Hello ${name},`,
+      footer: 'Thank you for using Eleva Care',
+    },
+  },
+  pt: {
+    refund: {
+      title: 'Reembolso Processado',
+      body: (amount: string) => `O seu reembolso de ${amount} foi processado.`,
+    },
+    appointment: {
+      confirmed: 'Consulta Confirmada',
+      reminder: 'Lembrete de Consulta',
+    },
+    common: {
+      greeting: (name: string) => `Olá ${name},`,
+      footer: 'Obrigado por usar a Eleva Care',
+    },
+  },
+  es: {
+    refund: {
+      title: 'Reembolso Procesado',
+      body: (amount: string) => `Su reembolso de ${amount} ha sido procesado.`,
+    },
+    appointment: {
+      confirmed: 'Cita Confirmada',
+      reminder: 'Recordatorio de Cita',
+    },
+    common: {
+      greeting: (name: string) => `Hola ${name},`,
+      footer: 'Gracias por usar Eleva Care',
+    },
+  },
+} as const;
+
 export function getEmailTranslations(locale: SupportedLocale) {
   return translations[locale] ?? translations.en;
 }
@@ -131,7 +178,7 @@ export function RefundNotificationTemplate({
       <Head />
       <Body>
         <Text>{t.refund.title}</Text>
-        <Text>{t.refund.body.replace('{amount}', props.refundAmount)}</Text>
+        <Text>{t.refund.body(props.refundAmount)}</Text>
       </Body>
     </Html>
   );
@@ -144,6 +191,13 @@ Templates are rendered via the `ElevaEmailService`:
 
 ```typescript
 // src/lib/integrations/novu/email-service.ts
+import { render } from '@react-email/render';
+import {
+  RefundNotificationTemplate,
+  ReservationExpiredTemplate,
+} from '@/emails/payments';
+import { ExpertNewAppointmentTemplate } from '@/emails/experts';
+
 class ElevaEmailService {
   async renderRefundNotification(
     props: RefundNotificationTemplateProps

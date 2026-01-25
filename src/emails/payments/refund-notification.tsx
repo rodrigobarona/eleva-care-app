@@ -9,7 +9,11 @@ import {
 import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
-interface RefundNotificationEmailProps {
+/**
+ * Props for the RefundNotificationEmail component.
+ * Exported for type-safe usage in consumers.
+ */
+export interface RefundNotificationEmailProps {
   customerName?: string;
   expertName?: string;
   serviceName?: string;
@@ -21,6 +25,8 @@ interface RefundNotificationEmailProps {
   refundReason?: string;
   transactionId?: string;
   locale?: SupportedLocale;
+  /** Base URL for booking links. Defaults to NEXT_PUBLIC_APP_URL or 'https://eleva.care' */
+  bookingUrl?: string;
 }
 
 // Local divider style for Hr component
@@ -57,9 +63,10 @@ const DIVIDER_STYLE = {
  * ```
  */
 export const RefundNotificationEmail = ({
-  customerName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  serviceName = 'Consulta de Cardiologia',
+  // Default values aligned with English locale
+  customerName = 'John Smith',
+  expertName = 'Dr. Sarah Johnson',
+  serviceName = 'Medical Consultation',
   appointmentDate = 'Monday, February 19, 2024',
   appointmentTime = '2:30 PM',
   originalAmount = '70.00',
@@ -68,6 +75,7 @@ export const RefundNotificationEmail = ({
   refundReason = 'time_range_overlap',
   transactionId = 'pi_example123',
   locale = 'en',
+  bookingUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care',
 }: RefundNotificationEmailProps) => {
   // Internationalization support
   const translations = {
@@ -105,6 +113,12 @@ export const RefundNotificationEmail = ({
       needHelp: 'Need help?',
       supportText:
         "If you have any questions about your refund, please don't hesitate to contact our support team.",
+      // Appointment details labels
+      appointmentDetails: 'Appointment Details',
+      serviceLabel: 'Service',
+      expertLabel: 'Expert',
+      dateLabel: 'Date',
+      timeLabel: 'Time',
     },
     pt: {
       subject: `Conflito de Agendamento - Reembolso Total Processado`,
@@ -140,6 +154,12 @@ export const RefundNotificationEmail = ({
       needHelp: 'Precisa de ajuda?',
       supportText:
         'Se tiver alguma dúvida sobre o seu reembolso, não hesite em contactar a nossa equipa de suporte.',
+      // Appointment details labels
+      appointmentDetails: 'Detalhes da Consulta',
+      serviceLabel: 'Serviço',
+      expertLabel: 'Especialista',
+      dateLabel: 'Data',
+      timeLabel: 'Hora',
     },
     es: {
       subject: `Conflicto de Cita - Reembolso Total Procesado`,
@@ -175,14 +195,26 @@ export const RefundNotificationEmail = ({
       needHelp: '¿Necesita ayuda?',
       supportText:
         'Si tiene alguna pregunta sobre su reembolso, no dude en contactar a nuestro equipo de soporte.',
+      // Appointment details labels
+      appointmentDetails: 'Detalles de la Cita',
+      serviceLabel: 'Servicio',
+      expertLabel: 'Experto',
+      dateLabel: 'Fecha',
+      timeLabel: 'Hora',
     },
   };
 
-  // Type-safe locale lookup with fallback
-  const localeKey = locale as keyof typeof translations;
-  const t = translations[localeKey] ?? translations.en;
-  const reasonKey = refundReason as keyof typeof t.reasonExplanation;
-  const reasonText = t.reasonExplanation[reasonKey] || t.reasonExplanation.unknown_conflict;
+  // Runtime-validated locale lookup with fallback (no unsafe type assertions)
+  const t =
+    locale && locale in translations
+      ? translations[locale as keyof typeof translations]
+      : translations.en;
+
+  // Runtime-validated reason lookup with fallback
+  const reasonText =
+    refundReason && refundReason in t.reasonExplanation
+      ? t.reasonExplanation[refundReason as keyof typeof t.reasonExplanation]
+      : t.reasonExplanation.unknown_conflict;
 
   return (
     <EmailLayout
@@ -307,38 +339,25 @@ export const RefundNotificationEmail = ({
       {/* Appointment Details */}
       <Section style={{ ...ELEVA_CARD_STYLES.default, marginTop: '24px' }}>
         <Heading style={{ ...ELEVA_TEXT_STYLES.heading3, margin: '0 0 16px 0' }}>
-          📅{' '}
-          {locale === 'pt'
-            ? 'Detalhes da Consulta'
-            : locale === 'es'
-              ? 'Detalles de la Cita'
-              : 'Appointment Details'}
+          📅 {t.appointmentDetails}
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
-              <td style={createTableCellStyle(true)}>
-                {locale === 'pt' ? 'Serviço' : locale === 'es' ? 'Servicio' : 'Service'}
-              </td>
+              <td style={createTableCellStyle(true)}>{t.serviceLabel}</td>
               <td style={createTableCellStyle(false, 'right')}>{serviceName}</td>
             </tr>
             <tr>
-              <td style={createTableCellStyle(true)}>
-                {locale === 'pt' ? 'Especialista' : locale === 'es' ? 'Experto' : 'Expert'}
-              </td>
+              <td style={createTableCellStyle(true)}>{t.expertLabel}</td>
               <td style={createTableCellStyle(false, 'right')}>{expertName}</td>
             </tr>
             <tr>
-              <td style={createTableCellStyle(true)}>
-                {locale === 'pt' ? 'Data' : locale === 'es' ? 'Fecha' : 'Date'}
-              </td>
+              <td style={createTableCellStyle(true)}>{t.dateLabel}</td>
               <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
             </tr>
             <tr>
-              <td style={createTableCellStyle(true)}>
-                {locale === 'pt' ? 'Hora' : locale === 'es' ? 'Hora' : 'Time'}
-              </td>
+              <td style={createTableCellStyle(true)}>{t.timeLabel}</td>
               <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
             </tr>
           </tbody>
@@ -367,7 +386,7 @@ export const RefundNotificationEmail = ({
 
       {/* CTA Button */}
       <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-        <EmailButton href="https://eleva.care" variant="primary">
+        <EmailButton href={bookingUrl} variant="primary">
           {t.bookAgain}
         </EmailButton>
       </Section>

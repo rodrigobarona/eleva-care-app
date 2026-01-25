@@ -10,7 +10,11 @@ import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 import React from 'react';
 
-interface ExpertNewAppointmentProps {
+/**
+ * Props for the ExpertNewAppointmentTemplate email component.
+ * Exported for type-safe usage in consumers.
+ */
+export interface ExpertNewAppointmentProps {
   expertName?: string;
   clientName?: string;
   appointmentDate?: string;
@@ -21,6 +25,8 @@ interface ExpertNewAppointmentProps {
   meetLink?: string;
   notes?: string;
   locale?: SupportedLocale;
+  /** Base URL for dashboard links. Defaults to NEXT_PUBLIC_APP_URL or 'https://eleva.care' */
+  dashboardUrl?: string;
 }
 
 /**
@@ -58,6 +64,7 @@ export default function ExpertNewAppointmentTemplate({
   meetLink = 'https://meet.google.com/abc-defg-hij',
   notes = 'First consultation - health check',
   locale = 'en',
+  dashboardUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care',
 }: ExpertNewAppointmentProps) {
   const subject = `New Booking: ${eventTitle} with ${clientName}`;
   const previewText = `You have a new appointment with ${clientName} on ${appointmentDate} at ${appointmentTime}`;
@@ -255,7 +262,7 @@ export default function ExpertNewAppointmentTemplate({
         </Text>
 
         <Section style={{ textAlign: 'center' as const, margin: '20px 0' }}>
-          <EmailButton href="https://eleva.care/dashboard/appointments" variant="primary" size="lg">
+          <EmailButton href={`${dashboardUrl}/dashboard/appointments`} variant="primary" size="lg">
             View Dashboard
           </EmailButton>
         </Section>
@@ -287,7 +294,7 @@ export default function ExpertNewAppointmentTemplate({
   );
 }
 
-// Preview props for React Email
+// Preview props for React Email - aligned with component defaults
 ExpertNewAppointmentTemplate.PreviewProps = {
   expertName: 'Patricia Mota',
   clientName: 'Marta Carvalho',
@@ -296,7 +303,8 @@ ExpertNewAppointmentTemplate.PreviewProps = {
   timezone: 'Europe/Lisbon',
   appointmentDuration: '45 minutes',
   eventTitle: 'Physical Therapy Appointment',
-  meetLink: 'https://meet.google.com/qse-fcws-idk',
+  meetLink: 'https://meet.google.com/abc-defg-hij',
   notes: 'First consultation - health check',
   locale: 'en',
+  dashboardUrl: 'https://eleva.care',
 } as ExpertNewAppointmentProps;
