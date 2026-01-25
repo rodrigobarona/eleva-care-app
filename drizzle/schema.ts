@@ -436,6 +436,11 @@ export const ExpertApplicationsTable = pgTable(
  * Events Table - Bookable services offered by experts
  *
  * Now org-scoped: Each event belongs to an organization.
+ *
+ * MONETARY FIELDS NOTE:
+ * - price: Stored in MINOR CURRENCY UNITS (cents/centimos).
+ *   Example: 5000 = €50.00 or $50.00
+ *   Always divide by 100 for display.
  */
 export const EventsTable = pgTable(
   'events',
@@ -450,6 +455,7 @@ export const EventsTable = pgTable(
     durationInMinutes: integer('duration_in_minutes').notNull(),
     isActive: boolean('is_active').notNull().default(true),
     order: integer('order').notNull().default(0),
+    /** Price in minor currency units (cents). E.g., 5000 = €50.00 */
     price: integer('price').notNull().default(0),
     currency: text('currency').notNull().default('eur'),
     stripeProductId: text('stripe_product_id'),
@@ -509,6 +515,16 @@ export const ScheduleAvailabilitiesTable = pgTable(
 
 /**
  * Meetings Table - Booked appointments
+ *
+ * MONETARY FIELDS NOTE:
+ * - stripeAmount, stripeApplicationFeeAmount, stripeTransferAmount:
+ *   All stored in MINOR CURRENCY UNITS (cents/centimos).
+ *   Example: 5000 = €50.00 or $50.00
+ *   Always divide by 100 for display.
+ *
+ * SCHEMA DECISIONS:
+ * - stripeTransferStatus: Uses inline enum (text) instead of paymentTransferStatusEnum.
+ *   TODO: Consider migrating to use the shared enum for consistency.
  */
 export const MeetingsTable = pgTable(
   'meetings',
@@ -542,16 +558,28 @@ export const MeetingsTable = pgTable(
     stripePaymentStatus: text('stripe_payment_status', {
       enum: ['pending', 'processing', 'succeeded', 'failed', 'refunded'],
     }).default('pending'),
+    /** Amount in minor currency units (cents). E.g., 5000 = €50.00 */
     stripeAmount: integer('stripe_amount'),
+    /** Application fee in minor currency units (cents) */
     stripeApplicationFeeAmount: integer('stripe_application_fee_amount'),
 
     // Stripe Connect transfers (links to PaymentTransfersTable for payout tracking)
     stripeTransferId: text('stripe_transfer_id').unique(),
+    /** Transfer amount in minor currency units (cents) */
     stripeTransferAmount: integer('stripe_transfer_amount'),
+    // NOTE: Uses inline enum with Stripe's transfer status values (pending/processing/succeeded/failed)
+    // This differs from paymentTransferStatusEnum which tracks our internal transfer workflow states
+    // (PENDING/APPROVED/READY/COMPLETED/FAILED/REFUNDED/DISPUTED/PAID_OUT)
     stripeTransferStatus: text('stripe_transfer_status', {
       enum: ['pending', 'processing', 'succeeded', 'failed'],
     }).default('pending'),
     stripeTransferScheduledAt: timestamp('stripe_transfer_scheduled_at'),
+
+    // Stripe payout tracking
+    stripePayoutId: text('stripe_payout_id'),
+
+    // Calendar creation idempotency (prevents duplicate calendar events on webhook retries)
+    calendarCreationClaimed: boolean('calendar_creation_claimed').default(false).notNull(),
 
     createdAt,
     updatedAt,
@@ -563,6 +591,7 @@ export const MeetingsTable = pgTable(
     eventIdIndex: index('meetings_event_id_idx').on(table.eventId),
     paymentIntentIdIndex: index('meetings_payment_intent_id_idx').on(table.stripePaymentIntentId),
     transferIdIndex: index('meetings_transfer_id_idx').on(table.stripeTransferId),
+    payoutIdIndex: index('meetings_payout_id_idx').on(table.stripePayoutId),
   }),
 );
 
@@ -663,6 +692,19 @@ export const RecordsTable = pgTable(
 
 /**
  * Payment Transfers Table
+ *
+ * MONETARY FIELDS NOTE:
+ * - amount, platformFee: Stored in MINOR CURRENCY UNITS (cents/centimos).
+ *   Example: 5000 = €50.00 or $50.00
+ *   Always divide by 100 for display.
+ *
+ * MIGRATION NOTE:
+ * - expertClerkUserId: This column should be renamed to expertWorkosUserId
+ *   as part of the Clerk → WorkOS migration (Phase 5). This involves:
+ *   1. Creating a new column with the new name
+ *   2. Migrating data from the old column
+ *   3. Updating all 80+ code references
+ *   4. Dropping the old column
  */
 export const paymentTransferStatusEnum = pgEnum(
   'payment_transfer_status_enum',
@@ -679,10 +721,13 @@ export const PaymentTransfersTable = pgTable(
     checkoutSessionId: text('checkout_session_id').notNull(),
     eventId: text('event_id').notNull(),
     expertConnectAccountId: text('expert_connect_account_id').notNull(),
-    // TODO: Rename to workosUserId after Clerk → WorkOS migration complete (Phase 5)
+    // TODO: Rename to expertWorkosUserId after Clerk → WorkOS migration complete (Phase 5)
+    // This affects 80+ code references - coordinate carefully
     expertClerkUserId: text('expert_clerk_user_id').notNull(),
+    /** Amount in minor currency units (cents). E.g., 5000 = €50.00 */
     amount: integer('amount').notNull(),
     currency: text('currency').notNull().default('eur'),
+    /** Platform fee in minor currency units (cents) */
     platformFee: integer('platform_fee').notNull(),
     sessionStartTime: timestamp('session_start_time').notNull(),
     scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
@@ -1317,19 +1362,41 @@ export type AuditResourceType =
  *
  * Stores all PHI access and application events for HIPAA compliance.
  * Uses RLS to ensure org-scoped access.
+ *
+ * PII HANDLING CONSIDERATIONS:
+ * - ipAddress: Contains user IP addresses. Consider:
+ *   - Anonymization: Store only first 3 octets (e.g., 192.168.1.xxx) or hash
+ *   - Retention: Implement scheduled job to redact after N days
+ * - oldValues/newValues: May contain sensitive data. Consider:
+ *   - Redacting sensitive fields before storing
+ *   - Encryption at rest
+ *   - Access control policies
+ *
+ * FK CONSTRAINTS NOTE:
+ * - workosUserId intentionally does NOT have a FK to users table.
+ *   This allows audit logs to persist after user deletion for compliance.
+ *   The trade-off is referential integrity, which is acceptable for append-only audit data.
+ *
+ * RETENTION POLICY TODO:
+ * - Implement automated retention policy (e.g., 7 years for HIPAA)
+ * - Consider partitioning by created_at for efficient purging
  */
 export const AuditLogsTable = pgTable(
   'audit_logs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // NOTE: No FK to users table - allows audit logs to persist after user deletion
     workosUserId: text('workos_user_id').notNull(),
     // TODO (Phase 5): Make orgId .notNull() after migration complete
     orgId: uuid('org_id'), // Temporarily nullable during migration
     action: text('action').notNull().$type<AuditEventAction>(),
     resourceType: text('resource_type').notNull().$type<AuditResourceType>(),
     resourceId: text('resource_id'),
+    /** May contain PII - consider redaction strategy */
     oldValues: jsonb('old_values').$type<Record<string, unknown>>(),
+    /** May contain PII - consider redaction strategy */
     newValues: jsonb('new_values').$type<Record<string, unknown>>(),
+    /** Consider anonymization/hashing for GDPR compliance */
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),

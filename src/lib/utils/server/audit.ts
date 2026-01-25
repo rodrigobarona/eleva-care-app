@@ -60,6 +60,81 @@ async function getRequestContext(): Promise<{
 }
 
 /**
+ * Keys that contain PII and should be redacted from audit logs.
+ * These keys are matched case-insensitively as substrings.
+ */
+const SENSITIVE_AUDIT_KEYS = [
+  'email',
+  'guestEmail',
+  'expertEmail',
+  'guestNotes',
+  'vaultEncryptedContent',
+  'vaultEncryptedMetadata',
+  'password',
+  'phone',
+  'address',
+  'ssn',
+  'creditCard',
+];
+
+/**
+ * Redacts sensitive PII fields from audit log values.
+ * Replaces matching field values with '[REDACTED]' to prevent PII storage.
+ *
+ * @param values - Object containing potential PII fields
+ * @returns Redacted copy of the object, or null if input is null/undefined
+ *
+ * @example
+ * ```typescript
+ * redactSensitiveFields({ email: 'test@example.com', status: 'active' });
+ * // Returns: { email: '[REDACTED]', status: 'active' }
+ * ```
+ */
+export function redactSensitiveFields(
+  values: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!values) return null;
+  const redacted = { ...values };
+  for (const key of Object.keys(redacted)) {
+    if (SENSITIVE_AUDIT_KEYS.some((k) => key.toLowerCase().includes(k.toLowerCase()))) {
+      redacted[key] = '[REDACTED]';
+    }
+  }
+  return redacted;
+}
+
+/**
+ * Anonymizes an IP address for GDPR compliance.
+ * - IPv4: Zeros the last octet (192.168.1.100 → 192.168.1.0)
+ * - IPv6: Truncates to first 4 segments
+ *
+ * @param ip - The IP address to anonymize
+ * @returns Anonymized IP address
+ *
+ * @example
+ * ```typescript
+ * anonymizeIpAddress('192.168.1.100'); // '192.168.1.0'
+ * anonymizeIpAddress('2001:0db8:85a3:0000:0000:8a2e:0370:7334'); // '2001:0db8:85a3:0000::'
+ * ```
+ */
+export function anonymizeIpAddress(ip: string): string {
+  if (ip === 'unknown') return ip;
+  // IPv4: zero last octet (192.168.1.100 -> 192.168.1.0)
+  if (ip.includes('.')) {
+    const parts = ip.split('.');
+    if (parts.length === 4) {
+      parts[3] = '0';
+      return parts.join('.');
+    }
+  }
+  // IPv6: truncate to first 4 segments
+  if (ip.includes(':')) {
+    return ip.split(':').slice(0, 4).join(':') + '::';
+  }
+  return ip;
+}
+
+/**
  * Log audit event with automatic context extraction
  *
  * Automatically extracts from session/headers:
@@ -96,15 +171,16 @@ export async function logAuditEvent(
 
     // Insert audit log - RLS automatically scopes by org!
     // Note: orgId is temporarily nullable during Clerk → WorkOS migration (Phase 5)
+    // PII fields are redacted and IP addresses are anonymized for GDPR compliance
     await db.insert(AuditLogsTable).values({
       workosUserId: user.id,
       orgId: organizationId ?? null,
       action,
       resourceType,
       resourceId,
-      oldValues: changes?.oldValues || null,
-      newValues: changes?.newValues || null,
-      ipAddress,
+      oldValues: redactSensitiveFields(changes?.oldValues),
+      newValues: redactSensitiveFields(changes?.newValues),
+      ipAddress: anonymizeIpAddress(ipAddress),
       userAgent,
       metadata: metadata || null,
     });

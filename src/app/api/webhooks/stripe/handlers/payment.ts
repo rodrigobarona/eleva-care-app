@@ -12,6 +12,7 @@ import {
   UsersTable,
 } from '@/drizzle/schema';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
+import RefundNotificationTemplate from '@/emails/payments/refund-notification';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -31,7 +32,6 @@ import { createUserNotification } from '@/lib/notifications/core';
 import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
-import { getTranslations } from 'next-intl/server';
 import Stripe from 'stripe';
 
 // Initialize Stripe
@@ -135,6 +135,47 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
  */
 function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
   return start1 < end2 && start2 < end1;
+}
+
+/**
+ * Releases a calendar creation claim to allow webhook retries.
+ *
+ * Part of the calendar creation idempotency system. When a meeting is claimed
+ * for calendar creation (calendarCreationClaimed = true), but the creation fails,
+ * this function resets the claim so subsequent webhook retries can attempt again.
+ *
+ * @param meetingId - The UUID of the meeting to release the claim for
+ *
+ * @remarks
+ * This function is intentionally fire-and-forget with error logging.
+ * Even if claim release fails, it won't block the webhook response.
+ *
+ * @see {@link handlePaymentSucceeded} - Uses this for idempotent calendar creation
+ * @see {@link https://eleva.care/_docs/02-core-systems/payments/11-calendar-creation-idempotency.md}
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await createCalendarEvent(meeting);
+ * } catch (error) {
+ *   await releaseClaim(meeting.id); // Allow retry
+ *   throw error;
+ * }
+ * ```
+ */
+async function releaseClaim(meetingId: string): Promise<void> {
+  try {
+    await db
+      .update(MeetingsTable)
+      .set({
+        calendarCreationClaimed: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(MeetingsTable.id, meetingId));
+    console.log(`🔓 Released calendar creation claim for meeting ${meetingId}`);
+  } catch (releaseError) {
+    console.error(`❌ Failed to release claim for meeting ${meetingId}:`, releaseError);
+  }
 }
 
 /**
@@ -436,7 +477,20 @@ async function processPartialRefund(
 }
 
 /**
- * Send conflict notification using existing email system with multilingual support
+ * Send conflict notification using branded refund email template with multilingual support
+ *
+ * @param guestEmail - Recipient email address
+ * @param guestName - Recipient name for personalization
+ * @param expertName - Name of the expert for the appointment
+ * @param startTime - Appointment start time (UTC)
+ * @param refundAmount - Refund amount in minor units (cents)
+ * @param originalAmount - Original payment amount in minor units (cents)
+ * @param locale - User's locale for email content
+ * @param conflictReason - Reason code for the conflict
+ * @param minimumNoticeHours - Optional minimum notice hours (for logging)
+ * @param paymentIntentId - Stripe payment intent ID for reference
+ * @param timezone - IANA timezone for formatting dates (e.g., 'Europe/Lisbon')
+ * @param currency - Currency code (e.g., 'eur', 'usd') - defaults to 'eur'
  */
 async function notifyAppointmentConflict(
   guestEmail: string,
@@ -448,74 +502,67 @@ async function notifyAppointmentConflict(
   locale: string,
   conflictReason: string,
   minimumNoticeHours?: number,
+  paymentIntentId?: string,
+  timezone: string = 'Europe/Lisbon',
+  currency: string = 'eur',
 ) {
   try {
     console.log(
-      `📧 Sending conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
+      `📧 Sending branded conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
     );
-
-    // Load collision messages from internationalization files
-    // TypeScript doesn't infer types correctly for nested namespaces in webhooks
-    const t = (await getTranslations({ locale, namespace: 'Payments.collision' })) as any;
 
     // Format amounts for display
     const refundAmountFormatted = (refundAmount / 100).toFixed(2);
     const originalAmountFormatted = (originalAmount / 100).toFixed(2);
-    const processingFeeFormatted = ((originalAmount - refundAmount) / 100).toFixed(2);
-    const appointmentDateTime = format(startTime, 'PPP pp');
 
-    // Get base conflict message and append specific reason if applicable
-    let conflictMessage = t('conflictMessage', {
-      expertName,
-      appointmentDateTime,
-    });
+    // Format date and time in the user's timezone
+    const zonedTime = toZonedTime(startTime, timezone);
+    const appointmentDate = format(zonedTime, 'PPPP', { timeZone: timezone });
+    const appointmentTime = format(zonedTime, 'p', { timeZone: timezone });
 
-    // Add specific conflict reason context
-    if (conflictReason === 'minimum_notice_violation' && minimumNoticeHours) {
-      const minimumNoticeMessage = t('minimumNoticeViolation', {
-        minimumNoticeHours: minimumNoticeHours.toString(),
-      });
-      conflictMessage += ` ${minimumNoticeMessage}`;
-    }
+    // Determine SupportedLocale type
+    const localeLower = (locale || 'en').toLowerCase();
+    const supportedLocale = localeLower.startsWith('pt')
+      ? 'pt'
+      : localeLower.startsWith('es')
+        ? 'es'
+        : 'en';
 
-    // Build email content using translated messages
-    const emailTitle = t('title');
-    const emailSubject = t('subject');
-    const greeting = t('greeting', { clientName: guestName });
-    const latePaymentExplanation = t('latePaymentExplanation', {
-      refundAmount: refundAmountFormatted,
-    });
-    const apologyAndInvitation = t('apologyAndInvitation');
-    const signature = t('signature');
+    // Normalize currency to uppercase for display
+    const currencyDisplay = (currency || 'EUR').toUpperCase();
 
-    // Build refund details section
-    const refundDetailsHTML = `
-      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3>Refund Details</h3>
-        <p>${t('refundDetails.originalAmount', { amount: originalAmountFormatted })}</p>
-        <p>${t('refundDetails.refundAmount', { amount: refundAmountFormatted })}</p>
-        <p>${t('refundDetails.processingFee', { amount: processingFeeFormatted })}</p>
-      </div>
-    `;
+    // Render branded refund notification email
+    const emailHtml = await render(
+      RefundNotificationTemplate({
+        customerName: guestName,
+        expertName,
+        serviceName: 'Appointment', // Generic service name for conflict notifications
+        appointmentDate,
+        appointmentTime,
+        originalAmount: originalAmountFormatted,
+        refundAmount: refundAmountFormatted,
+        currency: currencyDisplay,
+        refundReason: conflictReason,
+        transactionId: paymentIntentId,
+        locale: supportedLocale,
+      }),
+    );
 
-    const htmlContent = `
-      <h2>${emailTitle}</h2>
-      <p>${greeting}</p>
-      <p>${conflictMessage}</p>
-      <p>${latePaymentExplanation}</p>
-      ${refundDetailsHTML}
-      <p>${apologyAndInvitation}</p>
-      <p>${signature.replace(/\\n/g, '<br>')}</p>
-    `;
+    // Determine subject based on locale
+    const subjects = {
+      en: 'Appointment Conflict - Full Refund Processed',
+      pt: 'Conflito de Agendamento - Reembolso Total Processado',
+      es: 'Conflicto de Cita - Reembolso Total Procesado',
+    };
 
     await sendEmail({
       to: guestEmail,
-      subject: emailSubject,
-      html: htmlContent,
+      subject: subjects[supportedLocale] || subjects.en,
+      html: emailHtml,
     });
 
     console.log(
-      `✅ Conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
+      `✅ Branded conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
     );
   } catch (error) {
     console.error('Error sending conflict notification:', error);
@@ -672,6 +719,15 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   ? `${expertProfile.firstName} ${expertProfile.lastName}`.trim()
                   : 'Expert';
 
+                // Get meeting timezone for proper date formatting in notification
+                const meetingRecord = meetingData.id
+                  ? await db.query.MeetingsTable.findFirst({
+                      where: eq(MeetingsTable.id, meetingData.id),
+                      columns: { timezone: true },
+                    })
+                  : null;
+                const meetingTimezone = meetingRecord?.timezone || 'Europe/Lisbon';
+
                 // Notify all parties about the conflict
                 await notifyAppointmentConflict(
                   meetingData.guest,
@@ -683,6 +739,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   extractLocaleFromPaymentIntent(paymentIntent),
                   conflictResult.reason || 'unknown_conflict',
                   conflictResult.minimumNoticeHours,
+                  paymentIntent.id,
+                  meetingTimezone,
+                  paymentIntent.currency,
                 );
 
                 console.log(
@@ -731,88 +790,133 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           );
 
           // If meeting doesn't have a meeting URL yet (was created with pending payment), create calendar event now
+          // Use idempotency via calendarCreationClaimed to prevent duplicate calendar events on webhook retries
           if (!meeting.meetingUrl) {
-            try {
-              console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
+            // Check if another process has already claimed this meeting for calendar creation
+            // This prevents race conditions when multiple webhook retries occur simultaneously
+            const claimResult = await db
+              .update(MeetingsTable)
+              .set({
+                calendarCreationClaimed: true,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(MeetingsTable.id, meeting.id),
+                  eq(MeetingsTable.calendarCreationClaimed, false),
+                ),
+              )
+              .returning({ id: MeetingsTable.id });
 
-              // Get the event details for calendar creation
-              const event = await db.query.EventsTable.findFirst({
-                where: eq(EventsTable.id, meeting.eventId),
-              });
-
-              if (event) {
-                // Dynamic import to avoid circular dependency with calendar service
-                // The calendar service depends on meeting types which depend on payment types
-                const { createCalendarEvent } = await import('@/server/googleCalendar');
-
-                console.log('🚀 Calling createCalendarEvent for deferred booking:', {
-                  meetingId: meeting.id,
-                  workosUserId: meeting.workosUserId,
-                  guestEmail: meeting.guestEmail,
-                  timezone: meeting.timezone,
-                });
-
-                const calendarEvent = await createCalendarEvent({
-                  workosUserId: meeting.workosUserId,
-                  guestName: meeting.guestName,
-                  guestEmail: meeting.guestEmail,
-                  startTime: meeting.startTime,
-                  guestNotes: meeting.guestNotes || undefined,
-                  durationInMinutes: event.durationInMinutes,
-                  eventName: event.name,
-                  timezone: meeting.timezone,
-                  locale: extractLocaleFromPaymentIntent(paymentIntent),
-                });
-
-                const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-
-                // Update meeting with the new URL
-                if (meetingUrl) {
-                  await db
-                    .update(MeetingsTable)
-                    .set({
-                      meetingUrl: meetingUrl,
-                      updatedAt: new Date(),
-                    })
-                    .where(eq(MeetingsTable.id, meeting.id));
-
-                  console.log(
-                    `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
-                  );
-                } else {
-                  console.warn(
-                    `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
-                  );
-                }
-
-                // Clean up slot reservation if it exists
-                try {
-                  await db
-                    .delete(SlotReservationsTable)
-                    .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
-                  console.log(
-                    `🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
-                  );
-                } catch (cleanupError) {
-                  console.error('❌ Failed to clean up slot reservation:', cleanupError);
-                  // Continue execution - this is not critical
-                }
-              } else {
-                console.error(
-                  `❌ Event ${meeting.eventId} not found for deferred calendar creation`,
-                );
-              }
-            } catch (calendarError) {
-              console.error(
-                `❌ Failed to create deferred calendar event for meeting ${meeting.id}:`,
-                {
-                  error: calendarError instanceof Error ? calendarError.message : calendarError,
-                  stack: calendarError instanceof Error ? calendarError.stack : undefined,
-                  meetingId: meeting.id,
-                  paymentIntentId: paymentIntent.id,
-                },
+            if (claimResult.length === 0) {
+              console.log(
+                `⏭️ Calendar creation already claimed for meeting ${meeting.id}, skipping (idempotency)`,
               );
-              // Don't fail the entire webhook for calendar errors - payment succeeded
+            } else {
+              try {
+                console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
+
+                // Get the event details for calendar creation
+                const event = await db.query.EventsTable.findFirst({
+                  where: eq(EventsTable.id, meeting.eventId),
+                });
+
+                if (event) {
+                  // Dynamic import to avoid circular dependency with calendar service
+                  // The calendar service depends on meeting types which depend on payment types
+                  const { createCalendarEvent } = await import('@/server/googleCalendar');
+
+                  console.log('🚀 Calling createCalendarEvent for deferred booking:', {
+                    meetingId: meeting.id,
+                    workosUserId: meeting.workosUserId,
+                    guestEmail: meeting.guestEmail,
+                    timezone: meeting.timezone,
+                  });
+
+                  // Timeout helper to prevent calendar creation from hanging
+                  const CALENDAR_CREATION_TIMEOUT_MS = 25000; // 25 seconds
+                  let timerId: ReturnType<typeof setTimeout> | undefined;
+                  const timeoutPromise = new Promise<never>((_, reject) => {
+                    timerId = setTimeout(() => {
+                      reject(new Error('Calendar creation timeout after 25 seconds'));
+                    }, CALENDAR_CREATION_TIMEOUT_MS);
+                  });
+
+                  try {
+                    // Race between calendar creation and timeout
+                    const calendarEvent = await Promise.race([
+                      createCalendarEvent({
+                        workosUserId: meeting.workosUserId,
+                        guestName: meeting.guestName,
+                        guestEmail: meeting.guestEmail,
+                        startTime: meeting.startTime,
+                        guestNotes: meeting.guestNotes || undefined,
+                        durationInMinutes: event.durationInMinutes,
+                        eventName: event.name,
+                        timezone: meeting.timezone,
+                        locale: extractLocaleFromPaymentIntent(paymentIntent),
+                      }),
+                      timeoutPromise,
+                    ]);
+
+                    const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+
+                    // Update meeting with the new URL
+                    if (meetingUrl) {
+                      await db
+                        .update(MeetingsTable)
+                        .set({
+                          meetingUrl: meetingUrl,
+                          updatedAt: new Date(),
+                        })
+                        .where(eq(MeetingsTable.id, meeting.id));
+
+                      console.log(
+                        `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
+                      );
+                    } else {
+                      console.warn(
+                        `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
+                      );
+                    }
+
+                    // Clean up slot reservation if it exists
+                    try {
+                      await db
+                        .delete(SlotReservationsTable)
+                        .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
+                      console.log(
+                        `🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
+                      );
+                    } catch (cleanupError) {
+                      console.error('❌ Failed to clean up slot reservation:', cleanupError);
+                      // Continue execution - this is not critical
+                    }
+                  } finally {
+                    // Always clean up the timeout to prevent memory leaks
+                    if (timerId) clearTimeout(timerId);
+                  }
+                } else {
+                  console.error(
+                    `❌ Event ${meeting.eventId} not found for deferred calendar creation`,
+                  );
+                  // Release the claim so retries can attempt again
+                  await releaseClaim(meeting.id);
+                }
+              } catch (calendarError) {
+                console.error(
+                  `❌ Failed to create deferred calendar event for meeting ${meeting.id}:`,
+                  {
+                    error: calendarError instanceof Error ? calendarError.message : calendarError,
+                    stack: calendarError instanceof Error ? calendarError.stack : undefined,
+                    meetingId: meeting.id,
+                    paymentIntentId: paymentIntent.id,
+                  },
+                );
+                // Release the claim so webhook retries can attempt again
+                await releaseClaim(meeting.id);
+                // Don't fail the entire webhook for calendar errors - payment succeeded
+              }
             }
           } else {
             console.log(
@@ -1133,7 +1237,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
           .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntent.id))
           .returning({
             id: MeetingsTable.id,
-            workosUserId: MeetingsTable.workosUserId, // expert's clerkId
+            workosUserId: MeetingsTable.workosUserId, // expert's WorkOS ID
             guestEmail: MeetingsTable.guestEmail,
             guestName: MeetingsTable.guestName,
             startTime: MeetingsTable.startTime,

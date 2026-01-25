@@ -134,6 +134,13 @@
       "when": 1765850563580,
       "tag": "0018_fine_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1769363584320,
+      "tag": "0019_calendar_creation_idempotency",
+      "breakpoints": true
     }
   ]
 }
