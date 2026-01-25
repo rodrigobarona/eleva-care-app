@@ -67,6 +67,8 @@ export interface TriggerWorkflowOptions {
     subscriberId: string;
     data?: Record<string, string | number | boolean>;
   };
+  /** Unique transaction ID for idempotency - prevents duplicate notifications on retries */
+  transactionId?: string;
 }
 
 /**
@@ -176,6 +178,7 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
       payload: options.payload || {},
       overrides: options.overrides,
       actor: options.actor,
+      ...(options.transactionId && { transactionId: options.transactionId }),
     });
 
     console.log(`[Novu Utils] ✅ Successfully triggered workflow: ${options.workflowId}`);
