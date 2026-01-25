@@ -139,12 +139,30 @@ function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boo
 }
 
 /**
- * Releases a calendar creation claim to allow retries.
+ * Releases a calendar creation claim to allow webhook retries.
  *
- * Called when calendar creation fails partway through, allowing
- * subsequent webhook retries to attempt creation again.
+ * Part of the calendar creation idempotency system. When a meeting is claimed
+ * for calendar creation (calendarCreationClaimed = true), but the creation fails,
+ * this function resets the claim so subsequent webhook retries can attempt again.
  *
- * @param meetingId - The meeting ID to release the claim for
+ * @param meetingId - The UUID of the meeting to release the claim for
+ *
+ * @remarks
+ * This function is intentionally fire-and-forget with error logging.
+ * Even if claim release fails, it won't block the webhook response.
+ *
+ * @see {@link handlePaymentSucceeded} - Uses this for idempotent calendar creation
+ * @see {@link https://eleva.care/_docs/02-core-systems/payments/11-calendar-creation-idempotency.md}
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await createCalendarEvent(meeting);
+ * } catch (error) {
+ *   await releaseClaim(meeting.id); // Allow retry
+ *   throw error;
+ * }
+ * ```
  */
 async function releaseClaim(meetingId: string): Promise<void> {
   try {
