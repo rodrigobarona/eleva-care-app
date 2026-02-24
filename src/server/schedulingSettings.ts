@@ -1,11 +1,11 @@
 /**
  * Scheduling Settings Service
  *
- * This service manages the buffer times, minimum notice periods, and time slot intervals
- * for calendar scheduling. Similar to Cal.com's approach, these settings help control
- * how bookings are made and ensure sufficient time between meetings.
+ * Manages buffer times, minimum notice periods, and time slot intervals
+ * for calendar scheduling.
  */
-import { db } from '@/drizzle/db';
+import * as Sentry from '@sentry/nextjs';
+import { db, invalidateCache } from '@/drizzle/db';
 import { SchedulingSettingsTable } from '@/drizzle/schema';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
@@ -18,24 +18,21 @@ import {
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
 
+const { logger } = Sentry;
+
 type SchedulingSettings = InferSelectModel<typeof SchedulingSettingsTable>;
 type NewSchedulingSettings = InferInsertModel<typeof SchedulingSettingsTable>;
 
-/**
- * Default scheduling settings values
- */
 const DEFAULT_SETTINGS: Omit<NewSchedulingSettings, 'workosUserId'> = DEFAULT_SCHEDULING_SETTINGS;
 
 /**
  * Get scheduling settings for a user
  *
- * @param userId - Clerk user ID
+ * @param userId - WorkOS user ID
  * @returns Scheduling settings for the user
  */
 export async function getUserSchedulingSettings(userId: string): Promise<SchedulingSettings> {
   try {
-    console.log(`Retrieving scheduling settings for user: ${userId}`);
-
     const settings = await db
       .select()
       .from(SchedulingSettingsTable)
@@ -43,18 +40,17 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
       .limit(1)
       .$withCache({ tag: `schedule-${userId}`, config: { ex: 60 } });
 
-    // Return existing settings or create default settings
     if (settings.length > 0) {
-      console.log(`Found existing scheduling settings for ${userId}:`, settings[0]);
       return settings[0];
     }
 
-    console.log(`No settings found for ${userId}, creating defaults`);
+    logger.debug(logger.fmt`No scheduling settings found for ${userId}, creating defaults`);
     return createDefaultSchedulingSettings(userId);
   } catch (error) {
-    console.error(`Failed to retrieve scheduling settings for ${userId}:`, error);
+    logger.error(logger.fmt`Failed to retrieve scheduling settings for ${userId}`, {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
-    // Return default settings as fallback to prevent booking flow failures
     const fallbackSettings: SchedulingSettings = {
       id: 0,
       workosUserId: userId,
@@ -68,7 +64,6 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
       updatedAt: new Date(),
     };
 
-    console.log(`Using fallback settings for ${userId}:`, fallbackSettings);
     return fallbackSettings;
   }
 }
@@ -76,7 +71,7 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
 /**
  * Create default scheduling settings for a user
  *
- * @param userId - Clerk user ID
+ * @param userId - WorkOS user ID
  * @returns Newly created scheduling settings
  */
 async function createDefaultSchedulingSettings(userId: string): Promise<SchedulingSettings> {
@@ -96,7 +91,7 @@ async function createDefaultSchedulingSettings(userId: string): Promise<Scheduli
 /**
  * Update scheduling settings for a user
  *
- * @param userId - Clerk user ID
+ * @param userId - WorkOS user ID
  * @param updates - Settings to update
  * @returns Updated scheduling settings
  */
@@ -104,10 +99,8 @@ export async function updateSchedulingSettings(
   userId: string,
   updates: Partial<Omit<NewSchedulingSettings, 'userId'>>,
 ): Promise<SchedulingSettings> {
-  // First ensure user has settings
   const settings = await getUserSchedulingSettings(userId);
 
-  // Apply updates
   const [updatedSettings] = await db
     .update(SchedulingSettingsTable)
     .set({
@@ -116,6 +109,8 @@ export async function updateSchedulingSettings(
     })
     .where(eq(SchedulingSettingsTable.id, settings.id))
     .returning();
+
+  await invalidateCache([`schedule-${userId}`]);
 
   return updatedSettings;
 }

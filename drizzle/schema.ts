@@ -698,13 +698,8 @@ export const RecordsTable = pgTable(
  *   Example: 5000 = €50.00 or $50.00
  *   Always divide by 100 for display.
  *
- * MIGRATION NOTE:
- * - expertClerkUserId: This column should be renamed to expertWorkosUserId
- *   as part of the Clerk → WorkOS migration (Phase 5). This involves:
- *   1. Creating a new column with the new name
- *   2. Migrating data from the old column
- *   3. Updating all 80+ code references
- *   4. Dropping the old column
+ * NOTE: The DB column is still named `expert_clerk_user_id` for backward compatibility.
+ * The Drizzle property is `expertWorkosUserId` to reflect the current auth provider.
  */
 export const paymentTransferStatusEnum = pgEnum(
   'payment_transfer_status_enum',
@@ -721,9 +716,7 @@ export const PaymentTransfersTable = pgTable(
     checkoutSessionId: text('checkout_session_id').notNull(),
     eventId: text('event_id').notNull(),
     expertConnectAccountId: text('expert_connect_account_id').notNull(),
-    // TODO: Rename to expertWorkosUserId after Clerk → WorkOS migration complete (Phase 5)
-    // This affects 80+ code references - coordinate carefully
-    expertClerkUserId: text('expert_clerk_user_id').notNull(),
+    expertWorkosUserId: text('expert_clerk_user_id').notNull(),
     /** Amount in minor currency units (cents). E.g., 5000 = €50.00 */
     amount: integer('amount').notNull(),
     currency: text('currency').notNull().default('eur'),

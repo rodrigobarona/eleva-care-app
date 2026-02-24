@@ -58,14 +58,6 @@ class Logger {
 
     // In production, use structured JSON for easy parsing
     console[level === 'debug' ? 'log' : level](JSON.stringify(entry));
-
-    // TODO: Send to monitoring service in production
-    // if (this.environment === 'production' && level === 'error') {
-    //   Sentry.captureMessage(message, {
-    //     level: 'error',
-    //     extra: context,
-    //   });
-    // }
   }
 
   /**

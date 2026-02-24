@@ -1,8 +1,11 @@
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { sendNovuEmailEnhanced } from '@/lib/integrations/novu/email-service';
 import { formatCurrency } from '@/lib/utils/formatters';
+import * as Sentry from '@sentry/nextjs';
 
 import { createUserNotification } from './core';
+
+const { logger } = Sentry;
 
 /**
  * Create a notification for an upcoming payout
@@ -67,7 +70,8 @@ export async function createUpcomingPayoutNotification({
       },
     });
   } catch (error) {
-    console.error('Failed to create upcoming payout notification:', error);
+    logger.error('Failed to create upcoming payout notification', { error });
+    Sentry.captureException(error);
     return null;
   }
 }
@@ -163,20 +167,22 @@ export async function createPayoutCompletedNotification({
           },
         });
 
-        console.log(`✉️ Payout email notification sent to ${expertEmail} for expert ${userId}`);
+        logger.info(logger.fmt`Payout email notification sent to ${expertEmail} for expert ${userId}`);
       } catch (emailError) {
-        console.error('❌ Failed to send payout email notification:', emailError);
+        logger.error('Failed to send payout email notification', { error: emailError });
+        Sentry.captureException(emailError);
         // Don't fail the entire function if email fails
       }
     } else {
-      console.warn(
-        `⚠️ No email address provided for expert ${userId}, skipping email notification`,
+      logger.warn(
+        logger.fmt`No email address provided for expert ${userId}, skipping email notification`,
       );
     }
 
     return notificationResult;
   } catch (error) {
-    console.error('Failed to create payout completed notification:', error);
+    logger.error('Failed to create payout completed notification', { error });
+    Sentry.captureException(error);
     return null;
   }
 }
@@ -214,7 +220,8 @@ export async function createPayoutFailedNotification({
       },
     });
   } catch (error) {
-    console.error('Failed to create payout failed notification:', error);
+    logger.error('Failed to create payout failed notification', { error });
+    Sentry.captureException(error);
     return null;
   }
 }

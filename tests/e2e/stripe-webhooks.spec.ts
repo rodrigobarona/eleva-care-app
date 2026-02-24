@@ -65,7 +65,7 @@ test.describe('Stripe Connect Webhook (/api/webhooks/stripe-connect)', () => {
           metadata: {
             processedAt: '2025-11-29T06:00:04.595Z',
             paymentTransferId: '26',
-            expertClerkUserId: 'user_test123',
+            expertWorkosUserId: 'user_test123',
             originalTransferAmount: '5950',
             source: 'database',
             eventId: 'test-event-id',
@@ -90,7 +90,7 @@ test.describe('Stripe Connect Webhook (/api/webhooks/stripe-connect)', () => {
       expect(payoutUpdatedPayload.data.object.amount).toBeGreaterThan(0);
       expect(payoutUpdatedPayload.data.object.currency).toBe('eur');
       expect(payoutUpdatedPayload.data.object.metadata).toBeDefined();
-      expect(payoutUpdatedPayload.data.object.metadata.expertClerkUserId).toBeDefined();
+      expect(payoutUpdatedPayload.data.object.metadata.expertWorkosUserId).toBeDefined();
     });
   });
 

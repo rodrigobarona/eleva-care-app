@@ -56,10 +56,10 @@ async function handler(request: Request) {
     for (const transfer of pendingTransfers) {
       try {
         // Get the expert's country to determine payout delay
-        const expert = await getUserByWorkosId(transfer.expertClerkUserId);
+        const expert = await getUserByWorkosId(transfer.expertWorkosUserId);
         if (!expert || !expert.country) {
           console.log(
-            `Expert ${transfer.expertClerkUserId} not found or has no country set, skipping notification`,
+            `Expert ${transfer.expertWorkosUserId} not found or has no country set, skipping notification`,
           );
           continue;
         }
@@ -77,7 +77,7 @@ async function handler(request: Request) {
 
           // Send notification
           await createUpcomingPayoutNotification({
-            userId: transfer.expertClerkUserId,
+            userId: transfer.expertWorkosUserId,
             amount: transfer.amount,
             currency: transfer.currency,
             payoutDate,
@@ -95,7 +95,7 @@ async function handler(request: Request) {
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
           console.log(
-            `Sent upcoming payout notification to expert ${transfer.expertClerkUserId} for payment transfer ${transfer.id}`,
+            `Sent upcoming payout notification to expert ${transfer.expertWorkosUserId} for payment transfer ${transfer.id}`,
           );
           results.notifications_sent++;
         }

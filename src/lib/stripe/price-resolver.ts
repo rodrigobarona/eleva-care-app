@@ -4,7 +4,10 @@
  * Dynamically resolves Stripe prices using lookup keys.
  * Caches results for performance.
  */
+import * as Sentry from '@sentry/nextjs';
 import { getServerStripe } from '@/lib/integrations/stripe';
+
+const { logger } = Sentry;
 import Stripe from 'stripe';
 
 /**
@@ -42,14 +45,14 @@ export async function resolvePriceByLookupKey(
   if (useCache) {
     const cached = priceCache.get(lookupKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION_MS) {
-      console.log(`[Price Resolver] Cache hit for ${lookupKey}`);
+      logger.debug(logger.fmt`Cache hit for ${lookupKey}`);
       return cached.price;
     }
   }
 
   try {
     const stripe = await getServerStripe();
-    console.log(`[Price Resolver] Fetching price for lookup key: ${lookupKey}`);
+    logger.debug(logger.fmt`Fetching price for lookup key: ${lookupKey}`);
 
     const prices = await stripe.prices.list({
       lookup_keys: [lookupKey],
@@ -59,7 +62,7 @@ export async function resolvePriceByLookupKey(
     });
 
     if (prices.data.length === 0) {
-      console.warn(`[Price Resolver] No active price found for lookup key: ${lookupKey}`);
+      logger.warn(logger.fmt`No active price found for lookup key: ${lookupKey}`);
       return null;
     }
 
@@ -73,7 +76,7 @@ export async function resolvePriceByLookupKey(
 
     return price;
   } catch (error) {
-    console.error(`[Price Resolver] Error fetching price for ${lookupKey}:`, error);
+    logger.error(logger.fmt`Error fetching price for ${lookupKey}`, { error });
     return null;
   }
 }
@@ -132,7 +135,7 @@ export async function getPriceIdByLookupKey(lookupKey: string): Promise<string |
  */
 export function clearPriceCache(): void {
   priceCache.clear();
-  console.log('[Price Resolver] Cache cleared');
+  logger.debug('Price cache cleared');
 }
 
 /**

@@ -1,5 +1,8 @@
+import * as Sentry from '@sentry/nextjs';
 import { isQStashAvailable, scheduleRecurringJob } from './client';
 import { getQStashConfigMessage, initQStashClient, validateQStashConfig } from './config';
+
+const { logger } = Sentry;
 
 // Get the base URL for the app
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
@@ -7,7 +10,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
 // Initialize QStash client with proper validation
 const qstashClient = initQStashClient();
 if (!qstashClient) {
-  console.error('Failed to initialize QStash client. Check your environment variables.');
+  logger.error('Failed to initialize QStash client. Check your environment variables.');
 }
 
 /**
@@ -21,17 +24,18 @@ async function cleanupExistingSchedules() {
   }
 
   try {
-    console.log('🧹 Cleaning up existing schedules...');
+    logger.info('Cleaning up existing schedules');
     const schedules = await qstashClient.schedules.list();
 
     for (const schedule of schedules) {
-      console.log(`Deleting schedule ${schedule.scheduleId}...`);
+      logger.debug(logger.fmt`Deleting schedule ${schedule.scheduleId}`);
       await qstashClient.schedules.delete(schedule.scheduleId);
     }
 
-    console.log(`✅ Deleted ${schedules.length} schedules`);
+    logger.info(logger.fmt`Deleted ${schedules.length} schedules`);
   } catch (error) {
-    console.error('Failed to cleanup schedules:', error);
+    logger.error('Failed to cleanup schedules', { error });
+    Sentry.captureException(error);
     throw error;
   }
 }
@@ -106,8 +110,9 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
   const results: ScheduleResult[] = [];
 
   if (!config.isValid) {
-    console.warn('QStash configuration is incomplete or invalid:');
-    console.warn(getQStashConfigMessage());
+    logger.warn('QStash configuration is incomplete or invalid', {
+      message: getQStashConfigMessage(),
+    });
 
     // Return empty results with error
     return SCHEDULE_CONFIGS.map((config) => ({
@@ -121,7 +126,7 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
 
   // Ensure QStash client is available
   if (!isQStashAvailable()) {
-    console.error('QStash client is not available. Cannot set up schedules.');
+    logger.error('QStash client is not available. Cannot set up schedules.');
 
     return SCHEDULE_CONFIGS.map((config) => ({
       name: config.name,
@@ -137,8 +142,9 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
   try {
     await cleanupExistingSchedules();
   } catch (error) {
-    console.error('Failed to cleanup existing schedules:', error);
-    console.log('Proceeding with schedule creation despite cleanup failure...');
+    logger.error('Failed to cleanup existing schedules', { error });
+    Sentry.captureException(error);
+    logger.info('Proceeding with schedule creation despite cleanup failure');
     // We continue with schedule creation because:
     // 1. QStash handles duplicate schedules gracefully
     // 2. Better to have duplicate schedules than no schedules
@@ -151,7 +157,7 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
       // Construct the full URL for the target endpoint
       const destinationUrl = `${BASE_URL}${config.endpoint}`;
 
-      console.log(`Setting up QStash schedule for ${config.name} at endpoint ${destinationUrl}`);
+      logger.info(logger.fmt`Setting up QStash schedule for ${config.name} at endpoint ${destinationUrl}`);
 
       // Schedule the job with correct parameter order and types
       const scheduleId = await scheduleRecurringJob(
@@ -178,7 +184,7 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
         success: true,
       });
 
-      console.log(`Successfully scheduled ${config.name} job`, {
+      logger.info(logger.fmt`Successfully scheduled ${config.name} job`, {
         scheduleId,
         endpoint: config.endpoint,
         schedule: config.schedule,
@@ -195,7 +201,8 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
         error: errorMessage,
       });
 
-      console.error(`Failed to schedule ${config.name} job:`, error);
+      logger.error(logger.fmt`Failed to schedule ${config.name} job`, { error });
+      Sentry.captureException(error, { extra: { jobName: config.name } });
     }
   }
 

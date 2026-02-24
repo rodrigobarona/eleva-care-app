@@ -1,9 +1,12 @@
 import type { AuditEventAction, AuditResourceType } from '@/drizzle/schema';
 import { AuditLogsTable } from '@/drizzle/schema';
 import { getOrgScopedDb } from '@/lib/integrations/neon/rls-client';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { headers } from 'next/headers';
+
+const { logger } = Sentry;
 
 /**
  * Unified Audit Logging System
@@ -170,7 +173,7 @@ export async function logAuditEvent(
     const db = await getOrgScopedDb();
 
     // Insert audit log - RLS automatically scopes by org!
-    // Note: orgId is temporarily nullable during Clerk → WorkOS migration (Phase 5)
+    // orgId is nullable for actions performed outside an organization context
     // PII fields are redacted and IP addresses are anonymized for GDPR compliance
     await db.insert(AuditLogsTable).values({
       workosUserId: user.id,
@@ -186,23 +189,20 @@ export async function logAuditEvent(
     });
   } catch (error) {
     // 🚨 CRITICAL: Audit log failures must be captured but not block user actions
-    console.error(
-      '[AUDIT FAILURE - CRITICAL]',
-      JSON.stringify(
-        {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-          auditData: {
-            action,
-            resourceType,
-            resourceId,
-            timestamp: new Date().toISOString(),
-          },
-        },
-        null,
-        2,
-      ),
-    );
+    logger.error('AUDIT FAILURE - CRITICAL', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      auditData: {
+        action,
+        resourceType,
+        resourceId,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    Sentry.captureException(error, {
+      tags: { context: 'audit-log' },
+      extra: { action, resourceType, resourceId },
+    });
 
     // DO NOT throw - never block user actions due to audit failures
   }

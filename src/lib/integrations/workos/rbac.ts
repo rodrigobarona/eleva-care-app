@@ -14,8 +14,11 @@
  */
 import type { WorkOSPermission, WorkOSRole, WorkOSUserWithRBAC } from '@/types/workos-rbac';
 import { WORKOS_PERMISSIONS, WORKOS_ROLE_HIERARCHY, WORKOS_ROLES } from '@/types/workos-rbac';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { cache } from 'react';
+
+const { logger } = Sentry;
 
 // ============================================================================
 // CORE USER FUNCTIONS
@@ -40,12 +43,11 @@ import { cache } from 'react';
  */
 export const getCurrentUser = cache(async (): Promise<WorkOSUserWithRBAC | null> => {
   try {
-    const { user } = await withAuth();
+    const auth = await withAuth();
 
-    if (!user) return null;
+    if (!auth.user) return null;
 
-    // Type assertion: AuthKit user includes RBAC claims in JWT
-    const authkitUser = user as any;
+    const { user, role, permissions, organizationId } = auth;
 
     return {
       id: user.id,
@@ -53,15 +55,15 @@ export const getCurrentUser = cache(async (): Promise<WorkOSUserWithRBAC | null>
       firstName: user.firstName ?? undefined,
       lastName: user.lastName ?? undefined,
       profilePictureUrl: user.profilePictureUrl ?? undefined,
-      // RBAC claims from JWT
-      role: authkitUser.role as WorkOSRole | undefined,
-      permissions: authkitUser.permissions as WorkOSPermission[] | undefined,
+      // RBAC claims from JWT (UserInfo from withAuth)
+      role: role as WorkOSRole | undefined,
+      permissions: permissions as WorkOSPermission[] | undefined,
       // Organization context
-      organizationId: authkitUser.organizationId,
-      organizationSlug: authkitUser.organizationSlug,
+      organizationId,
+      organizationSlug: undefined, // UserInfo does not include organizationSlug
     };
   } catch (error) {
-    console.error('[RBAC] Error getting current user:', error);
+    logger.error('RBAC error getting current user', { error });
     return null;
   }
 });

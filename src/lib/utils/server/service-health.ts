@@ -224,14 +224,6 @@ export async function checkWorkOS(): Promise<ServiceHealthResult> {
 }
 
 /**
- * Check Clerk API connectivity (deprecated - use checkWorkOS instead)
- * @deprecated Use checkWorkOS() instead
- */
-export async function checkClerk(): Promise<ServiceHealthResult> {
-  return checkWorkOS();
-}
-
-/**
  * Check Upstash Redis connectivity
  */
 export async function checkRedis(): Promise<ServiceHealthResult> {

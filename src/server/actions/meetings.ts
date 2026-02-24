@@ -60,13 +60,7 @@ import type { z } from 'zod';
  * @throws Will not throw errors directly, but returns error information in the result object
  */
 export async function createMeeting(unsafeData: z.infer<typeof meetingActionSchema>) {
-  // NOTE: BotID protection is NOT needed here because this function is called by:
-  // 1. Stripe webhooks (server-to-server, would be flagged as bot)
-  // 2. Internal server actions (after payment is verified)
-  // BotID protection is applied at the payment intent creation level instead
-  // where actual user interaction happens (create-payment-intent route)
-
-  // Step 1: Validate the incoming data against our schema
+  return Sentry.withServerActionInstrumentation('createMeeting', { recordResponse: true }, async () => {
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) {
     Sentry.logger.warn('Meeting creation validation failed', {
@@ -76,7 +70,6 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     return { error: true, code: 'VALIDATION_ERROR' };
   }
 
-  // Wrap the entire meeting creation in a Sentry span for performance tracking
   return Sentry.startSpan(
     {
       name: 'meeting.create',
@@ -606,4 +599,5 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
   }
     },
   );
+  });
 }

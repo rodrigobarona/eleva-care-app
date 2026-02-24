@@ -41,7 +41,7 @@ type PaymentTransfer = {
   checkoutSessionId: string;
   eventId: string;
   expertConnectAccountId: string;
-  expertClerkUserId: string;
+  expertWorkosUserId: string;
   amount: number;
   platformFee: number;
   currency: string;
@@ -304,7 +304,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
               data.data.map((transfer) => (
                 <TableRow key={transfer.id}>
                   <TableCell className="font-medium">{transfer.id}</TableCell>
-                  <TableCell className="font-mono text-xs">{transfer.expertClerkUserId}</TableCell>
+                  <TableCell className="font-mono text-xs">{transfer.expertWorkosUserId}</TableCell>
                   <TableCell>{formatCurrency(transfer.amount, transfer.currency)}</TableCell>
                   <TableCell>{formatDate(transfer.sessionStartTime)}</TableCell>
                   <TableCell>{formatDate(transfer.scheduledTransferTime)}</TableCell>

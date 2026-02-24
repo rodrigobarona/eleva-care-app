@@ -1,19 +1,23 @@
 import * as dotenv from 'dotenv';
 import { qstash } from '@/config/qstash';
 import { Client } from '@upstash/qstash';
+import * as Sentry from '@sentry/nextjs';
 import { isValidCron } from 'cron-validator';
 
 import { validateQStashConfig } from './config';
+
+const { logger } = Sentry;
 
 // Ensure environment variables are loaded
 dotenv.config();
 
 // Debug loaded environment variables
 if (process.env.NODE_ENV !== 'production') {
-  console.log('QStash environment variables:');
-  console.log(`QSTASH_TOKEN exists: ${!!process.env.QSTASH_TOKEN}`);
-  console.log(`QSTASH_CURRENT_SIGNING_KEY exists: ${!!process.env.QSTASH_CURRENT_SIGNING_KEY}`);
-  console.log(`QSTASH_NEXT_SIGNING_KEY exists: ${!!process.env.QSTASH_NEXT_SIGNING_KEY}`);
+  logger.debug('QStash environment variables', {
+    qstashTokenExists: !!process.env.QSTASH_TOKEN,
+    qstashCurrentSigningKeyExists: !!process.env.QSTASH_CURRENT_SIGNING_KEY,
+    qstashNextSigningKeyExists: !!process.env.QSTASH_NEXT_SIGNING_KEY,
+  });
 }
 
 // Initialize QStash client
@@ -27,13 +31,15 @@ try {
     qstashClient = new Client({
       token: process.env.QSTASH_TOKEN || '',
     });
-    console.log('✅ QStash client initialized successfully');
+    logger.info('QStash client initialized successfully');
   } else {
-    console.warn('⚠️ QStash is not properly configured. Some features may not work correctly.');
-    console.warn(config.message);
+    logger.warn('QStash is not properly configured. Some features may not work correctly.', {
+      message: config.message,
+    });
   }
 } catch (error) {
-  console.error('❌ Failed to initialize QStash client:', error);
+  logger.error('Failed to initialize QStash client', { error });
+  Sentry.captureException(error);
 }
 
 /**
@@ -42,19 +48,19 @@ try {
  */
 const noopClient = {
   publishJSON: async () => {
-    console.warn('QStash operation skipped: publishJSON (client not initialized)');
+    logger.warn('QStash operation skipped: publishJSON (client not initialized)');
     return { messageId: 'noop-message-id' };
   },
   schedules: {
     create: async () => {
-      console.warn('QStash operation skipped: schedules.create (client not initialized)');
+      logger.warn('QStash operation skipped: schedules.create (client not initialized)');
       return { scheduleId: 'noop-schedule-id' };
     },
     delete: async () => {
-      console.warn('QStash operation skipped: schedules.delete (client not initialized)');
+      logger.warn('QStash operation skipped: schedules.delete (client not initialized)');
     },
     list: async () => {
-      console.warn('QStash operation skipped: schedules.list (client not initialized)');
+      logger.warn('QStash operation skipped: schedules.list (client not initialized)');
       return [];
     },
   },
@@ -63,7 +69,7 @@ const noopClient = {
 // Helper to ensure client exists before use
 function getClient(): Client {
   if (!qstashClient) {
-    console.warn('⚠️ QStash client is not initialized. Using no-op client as fallback.');
+    logger.warn('QStash client is not initialized. Using no-op client as fallback.');
     return noopClient;
   }
   return qstashClient;
@@ -154,7 +160,7 @@ export async function scheduleRecurringJob(
     cron: options.cron,
   };
 
-  console.log(`🕐 Creating schedule for ${destination}`, {
+  logger.info(logger.fmt`Creating schedule for ${destination}`, {
     cron: options.cron,
     retries: scheduleConfig.retries,
     hasCustomHeaders: Object.keys(headers).length > 0,
@@ -163,7 +169,7 @@ export async function scheduleRecurringJob(
   // Create the schedule using schedules.create
   const response = await client.schedules.create(scheduleConfig);
 
-  console.log(`✅ Created schedule: ${response.scheduleId} for ${destination}`);
+  logger.info(logger.fmt`Created schedule: ${response.scheduleId} for ${destination}`);
 
   return response.scheduleId;
 }
@@ -175,52 +181,58 @@ export async function scheduleRecurringJob(
 export async function scheduleAllConfiguredJobs(): Promise<
   Array<{ name: string; scheduleId: string; endpoint: string }>
 > {
-  // 🔍 Pre-flight checks: Ensure QStash client and configuration are available
+  // Pre-flight checks: Ensure QStash client and configuration are available
   if (!qstashClient) {
-    console.error('❌ QStash client is not initialized. Cannot schedule jobs.');
-    console.error('   💡 Check QSTASH_TOKEN environment variable and QStash configuration.');
+    logger.error('QStash client is not initialized. Cannot schedule jobs.', {
+      hint: 'Check QSTASH_TOKEN environment variable and QStash configuration.',
+    });
     return [];
   }
 
   if (!qstash || typeof qstash !== 'object') {
-    console.error('❌ QStash configuration object is not available. Cannot schedule jobs.');
-    console.error('   💡 Check qstash configuration import and initialization.');
+    logger.error('QStash configuration object is not available. Cannot schedule jobs.', {
+      hint: 'Check qstash configuration import and initialization.',
+    });
     return [];
   }
 
   if (!qstash.schedules || typeof qstash.schedules !== 'object') {
-    console.error('❌ QStash schedules configuration is not available. Cannot schedule jobs.');
-    console.error('   💡 Check qstash.schedules configuration in qstash config file.');
+    logger.error('QStash schedules configuration is not available. Cannot schedule jobs.', {
+      hint: 'Check qstash.schedules configuration in qstash config file.',
+    });
     return [];
   }
 
   if (!qstash.baseUrl || typeof qstash.baseUrl !== 'string') {
-    console.error('❌ QStash baseUrl is not configured. Cannot schedule jobs.');
-    console.error('   💡 Check qstash.baseUrl configuration in qstash config file.');
+    logger.error('QStash baseUrl is not configured. Cannot schedule jobs.', {
+      hint: 'Check qstash.baseUrl configuration in qstash config file.',
+    });
     return [];
   }
 
   const scheduleCount = Object.keys(qstash.schedules).length;
   if (scheduleCount === 0) {
-    console.warn('⚠️ No cron jobs configured for scheduling.');
+    logger.warn('No cron jobs configured for scheduling.');
     return [];
   }
 
-  console.log('📅 Scheduling all configured cron jobs...');
-  console.log(`   🔧 QStash client: ${qstashClient ? '✅ Available' : '❌ Not available'}`);
-  console.log(`   📋 Jobs to schedule: ${scheduleCount}`);
-  console.log(`   🌐 Base URL: ${qstash.baseUrl}`);
+  logger.info('Scheduling all configured cron jobs', {
+    qstashClientAvailable: !!qstashClient,
+    jobsToSchedule: scheduleCount,
+    baseUrl: qstash.baseUrl,
+  });
 
   const results: Array<{ name: string; scheduleId: string; endpoint: string }> = [];
   const schedules = qstash.schedules;
 
   for (const [jobName, config] of Object.entries(schedules)) {
     try {
-      console.log(`\n🔄 Scheduling ${jobName}...`);
-      console.log(`   📍 Endpoint: ${config.endpoint}`);
-      console.log(`   ⏰ Cron: ${config.cron}`);
-      console.log(`   📝 Description: ${config.description}`);
-      console.log(`   🎯 Priority: ${config.priority}`);
+      logger.debug(logger.fmt`Scheduling ${jobName}`, {
+        endpoint: config.endpoint,
+        cron: config.cron,
+        description: config.description,
+        priority: config.priority,
+      });
 
       const destination = `${qstash.baseUrl}${config.endpoint}`;
 
@@ -240,14 +252,15 @@ export async function scheduleAllConfiguredJobs(): Promise<
         endpoint: config.endpoint,
       });
 
-      console.log(`   ✅ Successfully scheduled ${jobName} (ID: ${scheduleId})`);
+      logger.info(logger.fmt`Successfully scheduled ${jobName}`, { scheduleId });
     } catch (error) {
-      console.error(`   ❌ Failed to schedule ${jobName}:`, error);
+      logger.error(logger.fmt`Failed to schedule ${jobName}`, { error });
+      Sentry.captureException(error, { extra: { jobName } });
       // Continue with other jobs even if one fails
     }
   }
 
-  console.log(`\n🎉 Scheduling complete! Created ${results.length} schedules.`);
+  logger.info(logger.fmt`Scheduling complete! Created ${results.length} schedules.`);
   return results;
 }
 
@@ -258,14 +271,14 @@ export async function scheduleAllConfiguredJobs(): Promise<
 export async function deleteSchedule(scheduleId: string): Promise<void> {
   const client = getClient();
   await client.schedules.delete(scheduleId);
-  console.log(`🗑️ Deleted schedule ${scheduleId}`);
+  logger.info(logger.fmt`Deleted schedule ${scheduleId}`);
 }
 
 /**
  * Delete all schedules (useful for cleanup/reset)
  */
 export async function deleteAllSchedules(): Promise<void> {
-  console.log('🧹 Deleting all QStash schedules...');
+  logger.info('Deleting all QStash schedules');
 
   const client = getClient();
   const schedules = await client.schedules.list();
@@ -273,13 +286,14 @@ export async function deleteAllSchedules(): Promise<void> {
   for (const schedule of schedules) {
     try {
       await client.schedules.delete(schedule.scheduleId);
-      console.log(`🗑️ Deleted schedule: ${schedule.scheduleId}`);
+      logger.info(logger.fmt`Deleted schedule: ${schedule.scheduleId}`);
     } catch (error) {
-      console.error(`❌ Failed to delete schedule ${schedule.scheduleId}:`, error);
+      logger.error(logger.fmt`Failed to delete schedule ${schedule.scheduleId}`, { error });
+      Sentry.captureException(error, { extra: { scheduleId: schedule.scheduleId } });
     }
   }
 
-  console.log('✅ All schedules deleted');
+  logger.info('All schedules deleted');
 }
 
 /**
@@ -289,16 +303,15 @@ export async function listSchedulesWithDetails() {
   const client = getClient();
   const schedules = await client.schedules.list();
 
-  console.log(`📋 Found ${schedules.length} scheduled jobs:`);
+  logger.info(logger.fmt`Found ${schedules.length} scheduled jobs`);
 
   schedules.forEach((schedule, index) => {
-    console.log(`\n${index + 1}. Schedule ID: ${schedule.scheduleId}`);
-    console.log(`   🎯 Destination: ${schedule.destination}`);
-    console.log(`   ⏰ Cron: ${schedule.cron}`);
-    console.log(`   🔄 Retries: ${schedule.retries || 'default'}`);
-    console.log(
-      `   📅 Created: ${schedule.createdAt ? new Date(schedule.createdAt).toLocaleString() : 'unknown'}`,
-    );
+    logger.debug(logger.fmt`Schedule ${index + 1}: ${schedule.scheduleId}`, {
+      destination: schedule.destination,
+      cron: schedule.cron,
+      retries: schedule.retries || 'default',
+      createdAt: schedule.createdAt ? new Date(schedule.createdAt).toLocaleString() : 'unknown',
+    });
   });
 
   return schedules;
@@ -321,7 +334,8 @@ export async function getScheduleStats() {
       priorities: qstash.priorities,
     };
   } catch (error) {
-    console.error('Failed to get schedule stats:', error);
+    logger.error('Failed to get schedule stats', { error });
+    Sentry.captureException(error);
     return {
       totalScheduled: 0,
       totalConfigured: Object.keys(qstash.schedules).length,

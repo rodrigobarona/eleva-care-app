@@ -6,6 +6,9 @@ import {
   NOTIFICATION_TYPE_VERIFICATION_HELP,
   type NotificationType,
 } from '@/lib/constants/notifications';
+import * as Sentry from '@sentry/nextjs';
+
+const { logger } = Sentry;
 
 export interface CreateNotificationParams {
   userId: string;
@@ -95,14 +98,15 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       default:
-        console.warn(`No workflow mapping for notification type: ${type}. Notification not sent.`);
+        logger.warn(logger.fmt`No workflow mapping for notification type: ${type}. Notification not sent.`);
         return false;
     }
 
-    console.log(`Novu workflow triggered successfully for type: ${type}, user: ${userId}`);
+    logger.info(logger.fmt`Novu workflow triggered successfully for type: ${type}, user: ${userId}`);
     return true;
   } catch (novuError) {
-    console.error('Error triggering notification workflow:', novuError);
+    logger.error('Error triggering notification workflow', { error: novuError });
+    Sentry.captureException(novuError);
     return false;
   }
 }

@@ -108,19 +108,19 @@ async function handler(_request: Request) {
       try {
         // Get expert user to determine their country and payout delay
         const expertUser = await db.query.UsersTable.findFirst({
-          where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
+          where: eq(UsersTable.workosUserId, transfer.expertWorkosUserId),
         });
 
         if (!expertUser) {
           console.error(
-            `Could not find expert user ${transfer.expertClerkUserId} for transfer ${transfer.id}`,
+            `Could not find expert user ${transfer.expertWorkosUserId} for transfer ${transfer.id}`,
           );
           continue;
         }
 
         if (!expertUser.stripeConnectAccountId) {
           console.error(
-            `Expert user ${transfer.expertClerkUserId} has no Connect account for transfer ${transfer.id}`,
+            `Expert user ${transfer.expertWorkosUserId} has no Connect account for transfer ${transfer.id}`,
           );
           continue;
         }
@@ -425,7 +425,7 @@ async function createPayoutForTransfer(
         metadata: {
           paymentTransferId: transfer.id?.toString() || 'stripe_fallback',
           eventId: transfer.eventId || 'unknown',
-          expertClerkUserId: transfer.expertClerkUserId || expertUser.workosUserId,
+          expertWorkosUserId: transfer.expertWorkosUserId || expertUser.workosUserId,
           originalTransferAmount: transfer.amount?.toString() || payoutAmount.toString(),
           source,
           processedAt: new Date().toISOString(),
@@ -550,7 +550,7 @@ async function checkConnectAccountForOverdueBalance(
         metadata: {
           source: 'stripe_fallback',
           reason: 'legal_compliance_verification',
-          expertClerkUserId: expertUser.workosUserId,
+          expertWorkosUserId: expertUser.workosUserId,
           processedAt: new Date().toISOString(),
           automaticComplianceCheck: 'true',
         },
@@ -625,7 +625,7 @@ async function sendPayoutNotification(
     });
 
     await createPayoutCompletedNotification({
-      userId: transfer.expertClerkUserId,
+      userId: transfer.expertWorkosUserId,
       expertName: expertUser.username || expertUser.email,
       clientName,
       serviceName,
@@ -638,7 +638,7 @@ async function sendPayoutNotification(
       eventId: transfer.eventId,
     });
 
-    console.log(`📧 Payout notification sent to expert ${transfer.expertClerkUserId}`);
+    console.log(`📧 Payout notification sent to expert ${transfer.expertWorkosUserId}`);
   } catch (notificationError) {
     console.error('Error sending payout notification:', notificationError);
     // Continue processing even if notification fails

@@ -141,7 +141,7 @@ async function checkPaymentRateLimits(userIdentifier: string, clientIP: string) 
 // in webhook events via event.data.object.id and following Stripe best practices
 function createSharedMetadata({
   eventId,
-  expertClerkUserId,
+  expertWorkosUserId,
   guestEmail,
   guestName,
   startTime,
@@ -160,7 +160,7 @@ function createSharedMetadata({
   meetingData,
 }: {
   eventId: string;
-  expertClerkUserId: string;
+  expertWorkosUserId: string;
   guestEmail: string;
   guestName: string;
   startTime: string;
@@ -188,7 +188,7 @@ function createSharedMetadata({
   return {
     meeting: JSON.stringify({
       id: eventId,
-      expert: expertClerkUserId,
+      expert: expertWorkosUserId,
       guest: guestEmail,
       guestName: guestName,
       start: startTime,
@@ -696,7 +696,7 @@ export async function POST(request: NextRequest) {
     // Create metadata object once to avoid duplication
     const sharedMetadata = createSharedMetadata({
       eventId,
-      expertClerkUserId: event.workosUserId,
+      expertWorkosUserId: event.workosUserId,
       guestEmail: meetingData.guestEmail,
       guestName: meetingData.guestName,
       startTime: meetingData.startTime,

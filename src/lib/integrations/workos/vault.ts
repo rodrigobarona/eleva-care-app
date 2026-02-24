@@ -29,8 +29,11 @@
 
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { WorkOS } from '@workos-inc/node';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+
+const { logger } = Sentry;
 
 /**
  * WorkOS Vault Integration
@@ -283,7 +286,7 @@ export async function encryptForOrg(
       ciphertext,
       iv: iv.toString('hex'),
       authTag: authTag.toString('hex'),
-      encryptedKey: (dataKeyResponse as any).encryptedKeys, // This is what gets stored
+      encryptedKey: dataKeyResponse.encryptedKeys, // This is what gets stored
       metadata: {
         algorithm: ALGORITHM,
         encryptedAt: new Date().toISOString(),
@@ -294,7 +297,7 @@ export async function encryptForOrg(
     const duration = performance.now() - startTime;
 
     // Log metrics for monitoring
-    console.log('[Vault] ✅ Encrypted data', {
+    logger.info('Vault encrypted data', {
       orgId,
       dataType: context.dataType,
       duration: `${duration.toFixed(2)}ms`,
@@ -304,7 +307,7 @@ export async function encryptForOrg(
     // Return as JSON string for database storage
     return JSON.stringify(encryptedData);
   } catch (error) {
-    console.error('[Vault] ❌ Encryption failed', {
+    logger.error('Vault encryption failed', {
       orgId,
       dataType: context.dataType,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -363,10 +366,10 @@ export async function decryptForOrg(
 
     // Step 2: Decrypt the DEK using WorkOS Vault
     const decryptedKeyResponse = await workos.vault.decryptDataKey({
-      encryptedKeys: encryptedData.encryptedKey,
-    } as any); // Type workaround for WorkOS SDK
+      keys: encryptedData.encryptedKey,
+    });
 
-    const dekBuffer = Buffer.from((decryptedKeyResponse as any).plaintextKey, 'base64');
+    const dekBuffer = Buffer.from(decryptedKeyResponse.key, 'base64');
 
     // Step 3: Decrypt data locally using the DEK
     const decipher = createDecipheriv(ALGORITHM, dekBuffer, Buffer.from(encryptedData.iv, 'hex'));
@@ -379,7 +382,7 @@ export async function decryptForOrg(
     const duration = performance.now() - startTime;
 
     // Log metrics
-    console.log('[Vault] ✅ Decrypted data', {
+    logger.info('Vault decrypted data', {
       orgId,
       dataType: context.dataType,
       duration: `${duration.toFixed(2)}ms`,
@@ -388,7 +391,7 @@ export async function decryptForOrg(
 
     return plaintext;
   } catch (error) {
-    console.error('[Vault] ❌ Decryption failed', {
+    logger.error('Vault decryption failed', {
       orgId,
       dataType: context.dataType,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -423,7 +426,7 @@ export async function testVaultConnection(orgId: string): Promise<boolean> {
 
     return decrypted === testData;
   } catch (error) {
-    console.error('[Vault] Connection test failed:', error);
+    logger.error('Vault connection test failed', { error });
     return false;
   }
 }

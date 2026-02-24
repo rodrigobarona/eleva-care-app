@@ -1,13 +1,16 @@
 import { ENV_CONFIG } from '@/config/env';
+import * as Sentry from '@sentry/nextjs';
 import { Novu } from '@novu/api';
+
+const { logger } = Sentry;
 
 // Initialize Novu client following latest best practices
 let novu: Novu | null = null;
 let initializationError: string | null = null;
 
 try {
-  console.log('[Novu] Initializing client...');
-  console.log('[Novu] Environment check:', {
+  logger.debug('Initializing Novu client');
+  logger.debug('Novu environment check', {
     hasSecretKey: !!ENV_CONFIG.NOVU_SECRET_KEY,
     hasAppId: !!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
     baseUrl: ENV_CONFIG.NOVU_BASE_URL || 'default',
@@ -27,23 +30,25 @@ try {
       // Use EU region if configured, defaults to US
       ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
-    console.log('[Novu] ✅ Client initialized successfully');
+    logger.info('Novu client initialized successfully');
   } else if (ENV_CONFIG.NOVU_API_KEY) {
     // Legacy fallback for older API key format
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_API_KEY,
       ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
-    console.log('[Novu] ✅ Client initialized with legacy API key');
+    logger.info('Novu client initialized with legacy API key');
   } else {
     initializationError = 'Missing NOVU_SECRET_KEY or NOVU_API_KEY environment variable';
-    console.error(`[Novu] ❌ ${initializationError}`);
-    console.error('[Novu] 🔧 To fix: Set NOVU_SECRET_KEY in your environment variables');
-    console.error('[Novu] 📚 See: docs/vercel-env-setup.md for setup instructions');
+    logger.error('Novu initialization failed', {
+      error: initializationError,
+      fix: 'Set NOVU_SECRET_KEY in your environment variables',
+      docs: 'docs/vercel-env-setup.md',
+    });
   }
 } catch (error) {
   initializationError = `Initialization failed: ${error}`;
-  console.error('[Novu] ❌ Failed to initialize:', error);
+  logger.error('Novu failed to initialize', { error });
 }
 
 // Modern interface following latest documentation patterns
@@ -96,16 +101,15 @@ export interface TriggerWorkflowOptions {
  */
 export async function triggerWorkflow(options: TriggerWorkflowOptions) {
   if (!novu) {
-    const errorMsg = `[Novu] Cannot trigger workflow ${options.workflowId}: ${initializationError || 'client not initialized'}`;
-    console.error(errorMsg);
-    console.error(
-      '[Novu] 🔧 Check environment variables: NOVU_SECRET_KEY, NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER',
-    );
+    logger.error(logger.fmt`Cannot trigger workflow ${options.workflowId}: ${initializationError || 'client not initialized'}`, {
+      workflowId: options.workflowId,
+      fix: 'Check environment variables: NOVU_SECRET_KEY, NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER',
+    });
     return null;
   }
 
   try {
-    console.log(`[Novu] Triggering workflow: ${options.workflowId}`, {
+    logger.debug(logger.fmt`Triggering workflow: ${options.workflowId}`, {
       subscriberId: options.to.subscriberId,
       hasPayload: !!options.payload,
       payloadKeys: options.payload ? Object.keys(options.payload) : [],
@@ -120,21 +124,18 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
       ...(options.transactionId && { transactionId: options.transactionId }),
     });
 
-    console.log(`[Novu] ✅ Successfully triggered workflow: ${options.workflowId}`);
+    logger.info(logger.fmt`Successfully triggered workflow: ${options.workflowId}`);
     return result;
   } catch (error) {
-    console.error(`[Novu] ❌ Failed to trigger workflow ${options.workflowId}:`, error);
-
-    // Provide specific error guidance
-    if (error && typeof error === 'object' && 'statusCode' in error) {
-      const errorWithStatus = error as { statusCode: number };
-      if (errorWithStatus.statusCode === 401) {
-        console.error(
-          '[Novu] 🔑 Authentication error - check NOVU_SECRET_KEY environment variable',
-        );
-        console.error('[Novu] 📚 Setup guide: docs/vercel-env-setup.md');
-      }
-    }
+    const errorWithStatus = error && typeof error === 'object' && 'statusCode' in error ? (error as { statusCode: number }) : null;
+    logger.error(logger.fmt`Failed to trigger workflow ${options.workflowId}`, {
+      error,
+      workflowId: options.workflowId,
+      ...(errorWithStatus?.statusCode === 401 && {
+        fix: 'Authentication error - check NOVU_SECRET_KEY environment variable',
+        docs: 'docs/vercel-env-setup.md',
+      }),
+    });
 
     return null;
   }
@@ -146,7 +147,7 @@ export async function triggerWorkflow(options: TriggerWorkflowOptions) {
  */
 export async function updateSubscriber(subscriber: TriggerWorkflowOptions['to']) {
   if (!novu || !ENV_CONFIG.NOVU_SECRET_KEY) {
-    console.warn('[Novu] Cannot update subscriber: not initialized');
+    logger.warn('Cannot update subscriber: not initialized');
     return null;
   }
 
@@ -161,10 +162,10 @@ export async function updateSubscriber(subscriber: TriggerWorkflowOptions['to'])
       data: subscriber.data,
     });
 
-    console.log(`[Novu] Subscriber updated: ${subscriber.subscriberId}`);
+    logger.info(logger.fmt`Subscriber updated: ${subscriber.subscriberId}`);
     return result;
   } catch (error) {
-    console.error('[Novu] Error updating subscriber:', error);
+    logger.error('Error updating subscriber', { error, subscriberId: subscriber.subscriberId });
     return null;
   }
 }
@@ -195,7 +196,7 @@ export function getNovuStatus() {
  * Use this function to diagnose Novu configuration issues
  */
 export async function runNovuDiagnostics() {
-  console.log('\n🔍 Starting Novu Comprehensive Diagnostics...\n');
+  logger.info('Starting Novu comprehensive diagnostics');
 
   const diagnostics = {
     client: getNovuStatus(),
@@ -210,17 +211,17 @@ export async function runNovuDiagnostics() {
   };
 
   // 1. Test client initialization
-  console.log('1️⃣ Testing Client Initialization');
+  logger.debug('Testing client initialization');
   if (!diagnostics.client.initialized) {
     diagnostics.errors.push(`Client not initialized: ${diagnostics.client.initializationError}`);
     diagnostics.recommendations.push('Check NOVU_SECRET_KEY environment variable');
     diagnostics.summary.criticalErrors++;
   } else {
-    console.log('   ✅ Client initialized successfully');
+    logger.debug('Client initialized successfully');
   }
 
   // 2. Test workflow trigger capability
-  console.log('\n2️⃣ Testing Workflow Trigger Capability');
+  logger.debug('Testing workflow trigger capability');
   const testWorkflowId = 'system-health';
   const testSubscriber = {
     subscriberId: ENV_CONFIG.NOVU_ADMIN_SUBSCRIBER_ID || 'test-admin',
@@ -251,25 +252,25 @@ export async function runNovuDiagnostics() {
     });
 
     if (result) {
-      console.log('   ✅ Test workflow trigger succeeded');
+      logger.debug('Test workflow trigger succeeded');
       diagnostics.workflows.push({
         id: testWorkflowId,
         status: 'success',
         timestamp: new Date().toISOString(),
       });
     } else {
-      console.log('   ❌ Test workflow trigger failed');
+      logger.warn('Test workflow trigger failed');
       diagnostics.errors.push('Test workflow trigger returned null');
       diagnostics.summary.criticalErrors++;
     }
   } catch (error) {
-    console.log('   ❌ Test workflow trigger threw error:', error);
+    logger.error('Test workflow trigger threw error', { error });
     diagnostics.errors.push(`Test workflow error: ${error}`);
     diagnostics.summary.criticalErrors++;
   }
 
   // 3. Environment variable validation
-  console.log('\n3️⃣ Environment Variable Validation');
+  logger.debug('Environment variable validation');
   const envChecks = [
     { name: 'NOVU_SECRET_KEY', value: !!ENV_CONFIG.NOVU_SECRET_KEY, critical: true },
     {
@@ -287,9 +288,9 @@ export async function runNovuDiagnostics() {
 
   envChecks.forEach((check) => {
     if (check.value) {
-      console.log(`   ✅ ${check.name} is set`);
+      logger.debug(logger.fmt`${check.name} is set`);
     } else {
-      console.log(`   ${check.critical ? '❌' : '⚠️'} ${check.name} is missing`);
+      logger.debug(logger.fmt`${check.name} is missing`, { critical: check.critical });
       if (check.critical) {
         diagnostics.errors.push(`Missing critical environment variable: ${check.name}`);
         diagnostics.summary.criticalErrors++;
@@ -301,7 +302,7 @@ export async function runNovuDiagnostics() {
   });
 
   // 4. Bridge endpoint check
-  console.log('\n4️⃣ Bridge Endpoint Check');
+  logger.debug('Bridge endpoint check');
   try {
     const baseUrl = ENV_CONFIG.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const bridgeUrl = `${baseUrl}/api/novu`;
@@ -312,35 +313,28 @@ export async function runNovuDiagnostics() {
     });
 
     if (bridgeResponse.ok) {
-      console.log('   ✅ Bridge endpoint is accessible');
+      logger.debug('Bridge endpoint is accessible');
     } else {
-      console.log(`   ⚠️ Bridge endpoint returned ${bridgeResponse.status}`);
+      logger.warn(logger.fmt`Bridge endpoint returned ${bridgeResponse.status}`, {
+        status: bridgeResponse.status,
+      });
       diagnostics.recommendations.push('Check /api/novu bridge endpoint configuration');
       diagnostics.summary.warnings++;
     }
   } catch (error) {
-    console.log('   ❌ Bridge endpoint check failed:', error);
+    logger.error('Bridge endpoint check failed', { error });
     diagnostics.errors.push(`Bridge endpoint error: ${error}`);
     diagnostics.summary.criticalErrors++;
   }
 
   // 5. Summary and recommendations
-  console.log('\n📊 Diagnostics Summary');
-  console.log(
-    `   Status: ${diagnostics.summary.criticalErrors === 0 ? '✅ Healthy' : '❌ Issues Found'}`,
-  );
-  console.log(`   Critical Errors: ${diagnostics.summary.criticalErrors}`);
-  console.log(`   Warnings: ${diagnostics.summary.warnings}`);
-
-  if (diagnostics.errors.length > 0) {
-    console.log('\n🚨 Critical Issues:');
-    diagnostics.errors.forEach((error) => console.log(`   • ${error}`));
-  }
-
-  if (diagnostics.recommendations.length > 0) {
-    console.log('\n💡 Recommendations:');
-    diagnostics.recommendations.forEach((rec) => console.log(`   • ${rec}`));
-  }
+  logger.info('Novu diagnostics summary', {
+    healthy: diagnostics.summary.criticalErrors === 0,
+    criticalErrors: diagnostics.summary.criticalErrors,
+    warnings: diagnostics.summary.warnings,
+    errors: diagnostics.errors,
+    recommendations: diagnostics.recommendations,
+  });
 
   diagnostics.summary.healthy = diagnostics.summary.criticalErrors === 0;
   return diagnostics;

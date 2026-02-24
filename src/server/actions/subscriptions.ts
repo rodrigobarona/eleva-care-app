@@ -278,6 +278,7 @@ export async function getSubscriptionStatus(
         currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000);
       } catch (error) {
         logger.error('Error fetching Stripe subscription', { error });
+        Sentry.captureException(error);
       }
     }
 
@@ -297,6 +298,7 @@ export async function getSubscriptionStatus(
     };
   } catch (error) {
     logger.error('Error getting subscription status', { error });
+    Sentry.captureException(error);
     return null;
   }
   });
@@ -447,6 +449,7 @@ export async function createSubscription(
     };
   } catch (error) {
     logger.error('Error creating subscription', { error });
+    Sentry.captureException(error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create subscription',
@@ -516,6 +519,7 @@ export async function cancelSubscription(reason?: string): Promise<CreateSubscri
     return { success: true };
   } catch (error) {
     logger.error('Error canceling subscription', { error });
+    Sentry.captureException(error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to cancel subscription',
@@ -578,6 +582,7 @@ export async function reactivateSubscription(): Promise<CreateSubscriptionResult
     return { success: true };
   } catch (error) {
     logger.error('Error reactivating subscription', { error });
+    Sentry.captureException(error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to reactivate subscription',
@@ -609,6 +614,7 @@ export async function getCurrentCommissionRate(workosUserId: string): Promise<nu
     return subscription.commissionRate;
   } catch (error) {
     logger.error('Error getting commission rate', { error });
+    Sentry.captureException(error);
     // Return default commission rate on error
     return SUBSCRIPTION_PRICING.commission_based.community_expert.commissionRate;
   }

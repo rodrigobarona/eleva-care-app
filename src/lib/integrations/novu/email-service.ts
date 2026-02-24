@@ -1,5 +1,6 @@
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
 import { ExpertNewAppointmentTemplate } from '@/emails/experts';
+import * as Sentry from '@sentry/nextjs';
 import {
   ExpertPayoutNotificationTemplate,
   RefundNotificationTemplate,
@@ -14,6 +15,8 @@ import { render } from '@react-email/render';
 import React from 'react';
 
 import { novu } from './client';
+
+const { logger } = Sentry;
 
 // Re-export SupportedLocale for use in other modules
 export type { SupportedLocale };
@@ -319,21 +322,24 @@ export class TemplateSelectionService {
     // Navigate through the mapping structure
     const workflowMapping = this.templateMappings[workflowId];
     if (!workflowMapping) {
-      console.warn(`[TemplateSelector] No mapping found for workflow: ${workflowId}`);
+      logger.warn(logger.fmt`No mapping found for workflow: ${workflowId}`, { workflowId });
       return null;
     }
 
     const eventMapping = workflowMapping[eventType];
     if (!eventMapping) {
-      console.warn(
-        `[TemplateSelector] No mapping found for event: ${eventType} in workflow: ${workflowId}`,
-      );
+      logger.warn(logger.fmt`No mapping found for event: ${eventType} in workflow: ${workflowId}`, {
+        eventType,
+        workflowId,
+      });
       return null;
     }
 
     const segmentMapping = eventMapping[userSegment];
     if (!segmentMapping) {
-      console.warn(`[TemplateSelector] No mapping found for user segment: ${userSegment}`);
+      logger.warn(logger.fmt`No mapping found for user segment: ${userSegment}`, {
+        userSegment,
+      });
       // Fallback to patient if available
       const fallbackMapping = eventMapping['patient'];
       if (fallbackMapping) {
@@ -476,7 +482,7 @@ export async function sendNovuEmailEnhanced(options: EnhancedEmailOptions) {
       overrides: overrides ? { email: overrides } : undefined,
     });
 
-    console.log('Enhanced Novu email triggered successfully for workflow:', workflowId, {
+    logger.info(logger.fmt`Enhanced Novu email triggered successfully for workflow: ${workflowId}`, {
       userSegment,
       templateVariant,
       locale,
@@ -484,7 +490,7 @@ export async function sendNovuEmailEnhanced(options: EnhancedEmailOptions) {
 
     return result;
   } catch (error) {
-    console.error('Failed to send enhanced Novu email:', error);
+    logger.error('Failed to send enhanced Novu email', { error, workflowId });
     throw error;
   }
 }
@@ -508,11 +514,11 @@ export async function sendNovuEmail(options: NovuEmailOptions) {
       overrides: overrides ? { email: overrides } : undefined,
     });
 
-    console.log('Novu email triggered successfully for workflow:', workflowId);
+    logger.info(logger.fmt`Novu email triggered successfully for workflow: ${workflowId}`);
 
     return result;
   } catch (error) {
-    console.error('Failed to send Novu email:', error);
+    logger.error('Failed to send Novu email', { error, workflowId: options.workflowId });
     throw error;
   }
 }
@@ -539,10 +545,10 @@ export async function sendNovuEmailWithCustomTemplate(
       },
     });
 
-    console.log('Custom template email sent via Novu for workflow:', workflowId);
+    logger.info(logger.fmt`Custom template email sent via Novu for workflow: ${workflowId}`);
     return result;
   } catch (error) {
-    console.error('Failed to send custom template email:', error);
+    logger.error('Failed to send custom template email', { error, workflowId });
     throw error;
   }
 }
@@ -674,20 +680,21 @@ export async function getSubscriberForEmail(workosUserId: string) {
       // Add other subscriber fields as needed
     };
   } catch (error) {
-    console.error('Failed to get subscriber for email:', error);
+    logger.error('Failed to get subscriber for email', { error });
     return null;
   }
 }
 
 export async function triggerNovuWorkflow(workflowId: string, payload: TriggerWorkflowPayload) {
   if (!novu) {
-    const errorMsg = `[Novu Email Service] Cannot trigger workflow ${workflowId}: client not initialized`;
-    console.error(errorMsg);
+    logger.error(logger.fmt`Cannot trigger workflow ${workflowId}: client not initialized`, {
+      workflowId,
+    });
     throw new Error('Novu client not initialized');
   }
 
   try {
-    console.log('[Novu Email Service] 🔔 Triggering workflow:', {
+    logger.debug('Triggering Novu workflow', {
       workflowId,
       subscriberId: payload.subscriberId,
     });
@@ -698,10 +705,10 @@ export async function triggerNovuWorkflow(workflowId: string, payload: TriggerWo
       payload,
     });
 
-    console.log('[Novu Email Service] ✅ Successfully triggered workflow:', workflowId);
+    logger.info(logger.fmt`Successfully triggered workflow: ${workflowId}`);
     return result;
   } catch (error) {
-    console.error('[Novu Email Service] ❌ Failed to trigger workflow:', {
+    logger.error(logger.fmt`Failed to trigger workflow: ${workflowId}`, {
       workflowId,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -1158,7 +1165,10 @@ export class ElevaEmailService {
       const result = await this.renderEmailWithSelection(selector, data.templateData);
       return result.html;
     } catch (error) {
-      console.warn(`Failed to render enhanced template for ${data.templateName}:`, error);
+      logger.warn(logger.fmt`Failed to render enhanced template for ${data.templateName}`, {
+        error,
+        templateName: data.templateName,
+      });
 
       // Fallback to basic HTML template
       return `

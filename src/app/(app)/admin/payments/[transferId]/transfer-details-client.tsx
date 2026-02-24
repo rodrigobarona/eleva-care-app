@@ -44,7 +44,7 @@ type PaymentTransfer = {
   checkoutSessionId: string;
   eventId: string;
   expertConnectAccountId: string;
-  expertClerkUserId: string;
+  expertWorkosUserId: string;
   amount: number;
   platformFee: number;
   currency: string;
@@ -268,7 +268,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
               <div className="space-y-2">
                 <p>
                   <span className="font-medium">Expert ID:</span>{' '}
-                  <span className="font-mono text-xs">{transfer.expertClerkUserId}</span>
+                  <span className="font-mono text-xs">{transfer.expertWorkosUserId}</span>
                 </p>
                 <p>
                   <span className="font-medium">Connect Account:</span>{' '}
@@ -340,7 +340,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                       </li>
                       <li>
                         <span className="text-muted-foreground">Expert ID:</span>{' '}
-                        {transfer.expertClerkUserId}
+                        {transfer.expertWorkosUserId}
                       </li>
                       <li>
                         <span className="text-muted-foreground">Session Time:</span>{' '}

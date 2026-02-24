@@ -23,7 +23,7 @@ import Stripe from 'stripe';
  * 3. Checks if the account is fully set up (details submitted, payouts enabled, transfers active)
  * 4. Updates the user's onboarding status in the database if needed
  *
- * @param workosUserId - The Clerk user ID of the expert to verify
+ * @param workosUserId - The WorkOS user ID of the expert to verify
  * @returns An object containing:
  *   - error: boolean indicating if an error occurred
  *   - code?: error code if applicable
@@ -119,7 +119,7 @@ export async function verifyExpertConnectAccount(workosUserId: string) {
  * 2. Retrieves the account's payout schedule settings
  * 3. Returns the schedule details including interval, anchors, and delay days
  *
- * @param workosUserId - The Clerk user ID of the expert
+ * @param workosUserId - The WorkOS user ID of the expert
  * @returns An object containing:
  *   - error: boolean indicating if an error occurred
  *   - code?: error code if applicable
@@ -184,7 +184,7 @@ export async function getExpertPayoutSchedule(workosUserId: string) {
  *
  * The function:
  * 1. Looks up the expert by email in the database
- * 2. If found, calls verifyExpertConnectAccount with their Clerk user ID
+ * 2. If found, calls verifyExpertConnectAccount with their WorkOS user ID
  *
  * @param email - The email address of the expert to verify
  * @returns The same return type as verifyExpertConnectAccount

@@ -56,76 +56,67 @@ import type { z } from 'zod';
  * }
  */
 export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema>) {
-  // Get user authentication
-  const { user } = await withAuth();
-  const userId = user?.id;
+  return Sentry.withServerActionInstrumentation('saveSchedule', { recordResponse: true }, async () => {
+    const { user } = await withAuth();
+    const userId = user?.id;
 
-  // Validate the incoming data against the schema
-  const { success, data } = scheduleFormSchema.safeParse(unsafeData);
-  if (!success || userId == null) {
-    return { error: true };
-  }
-
-  // Separate availabilities from other schedule data
-  const { availabilities, ...scheduleData } = data;
-
-  // Fetch existing schedule for audit logging
-  const oldSchedule = await db.query.SchedulesTable.findFirst({
-    where: eq(SchedulesTable.workosUserId, userId),
-    with: {
-      availabilities: true,
-    },
-  });
-
-  // Upsert the schedule data (create new or update existing)
-  const [{ id: scheduleId }] = await db
-    .insert(SchedulesTable)
-    .values({ ...scheduleData, workosUserId: userId })
-    .onConflictDoUpdate({
-      target: SchedulesTable.workosUserId,
-      set: scheduleData,
-    })
-    .returning({ id: SchedulesTable.id });
-
-  // Prepare batch operations for availability updates
-  const statements: [BatchItem<'pg'>] = [
-    // First, delete all existing availabilities
-    db
-      .delete(ScheduleAvailabilitiesTable)
-      .where(eq(ScheduleAvailabilitiesTable.scheduleId, scheduleId)),
-  ];
-
-  // If new availabilities exist, prepare to insert them
-  if (availabilities.length > 0) {
-    statements.push(
-      db.insert(ScheduleAvailabilitiesTable).values(
-        availabilities.map((availability) => ({
-          ...availability,
-          scheduleId,
-        })),
-      ),
-    );
-  }
-
-  // Execute all database operations in a batch
-  await db.batch(statements);
-
-  // Log the schedule update for audit purposes (user context automatically extracted)
-  await logAuditEvent('PROFILE_UPDATED', 'profile', scheduleId, {
-    oldValues: oldSchedule ? (oldSchedule as unknown as Record<string, unknown>) : undefined,
-    newValues: { ...scheduleData, availabilities },
-  });
-
-  // If the expert has set up availability, mark the step as complete
-  if (availabilities.length > 0) {
-    try {
-      await markStepComplete('availability');
-    } catch (error) {
-      logger.error('Failed to mark availability step as complete', { error });
+    const { success, data } = scheduleFormSchema.safeParse(unsafeData);
+    if (!success || userId == null) {
+      return { error: true };
     }
-  }
 
-  await invalidateCache([`schedule-${userId}`]);
+    const { availabilities, ...scheduleData } = data;
 
-  return { success: true };
+    const oldSchedule = await db.query.SchedulesTable.findFirst({
+      where: eq(SchedulesTable.workosUserId, userId),
+      with: {
+        availabilities: true,
+      },
+    });
+
+    const [{ id: scheduleId }] = await db
+      .insert(SchedulesTable)
+      .values({ ...scheduleData, workosUserId: userId })
+      .onConflictDoUpdate({
+        target: SchedulesTable.workosUserId,
+        set: scheduleData,
+      })
+      .returning({ id: SchedulesTable.id });
+
+    const statements: [BatchItem<'pg'>] = [
+      db
+        .delete(ScheduleAvailabilitiesTable)
+        .where(eq(ScheduleAvailabilitiesTable.scheduleId, scheduleId)),
+    ];
+
+    if (availabilities.length > 0) {
+      statements.push(
+        db.insert(ScheduleAvailabilitiesTable).values(
+          availabilities.map((availability) => ({
+            ...availability,
+            scheduleId,
+          })),
+        ),
+      );
+    }
+
+    await db.batch(statements);
+
+    await logAuditEvent('PROFILE_UPDATED', 'profile', scheduleId, {
+      oldValues: oldSchedule ? (oldSchedule as unknown as Record<string, unknown>) : undefined,
+      newValues: { ...scheduleData, availabilities },
+    });
+
+    if (availabilities.length > 0) {
+      try {
+        await markStepComplete('availability');
+      } catch (error) {
+        logger.error('Failed to mark availability step as complete', { error });
+      }
+    }
+
+    await invalidateCache([`schedule-${userId}`]);
+
+    return { success: true };
+  });
 }

@@ -1,8 +1,11 @@
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { getTranslations } from 'next-intl/server';
 import type { CreateEmailOptions } from 'resend';
 import { Resend } from 'resend';
+
+const { logger } = Sentry;
 
 // Lazy initialization to avoid build-time errors
 let resendClient: Resend | null = null;
@@ -63,23 +66,22 @@ export async function sendEmail({
       throw new Error('Invalid recipient email address');
     }
 
-    // Construct the email options object, filtering out undefined values
-    const emailParams: Partial<CreateEmailOptions> = {
+    // Construct the email options object using proper Resend types
+    const emailPayload: CreateEmailOptions = {
       from: fromAddress,
       to,
       subject,
+      ...(html && { html }),
+      ...(text && { text }),
+      ...(replyTo && { replyTo }),
+      ...(cc && { cc }),
+      ...(bcc && { bcc }),
     };
 
-    if (html) emailParams.html = html;
-    if (text) emailParams.text = text;
-    if (replyTo) emailParams.replyTo = replyTo;
-    if (cc) emailParams.cc = cc;
-    if (bcc) emailParams.bcc = bcc;
-
-    const { data, error } = await getResendClient().emails.send(emailParams as CreateEmailOptions);
+    const { data, error } = await getResendClient().emails.send(emailPayload);
 
     if (error) {
-      console.error('Error sending email via Resend:', error);
+      logger.error('Error sending email via Resend', { error: error.message });
       return {
         success: false,
         error: error.message,
@@ -91,7 +93,7 @@ export async function sendEmail({
       messageId: data?.id,
     };
   } catch (error: unknown) {
-    console.error('Failed to send email', {
+    logger.error('Failed to send email', {
       err: error instanceof Error ? error.message : String(error),
     });
     return {

@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { Redis } from '@upstash/redis';
+
+const { logger } = Sentry;
 
 /**
  * Redis client for distributed caching
@@ -17,7 +20,7 @@ class RedisManager {
     try {
       // Allow disabling Redis via environment variable (useful for clearing cache)
       if (process.env.DISABLE_REDIS === 'true') {
-        console.warn('⚠️ Redis disabled via DISABLE_REDIS=true, using in-memory cache');
+        logger.warn('Redis disabled via DISABLE_REDIS=true, using in-memory cache');
         this.isRedisAvailable = false;
         return;
       }
@@ -32,15 +35,13 @@ class RedisManager {
           automaticDeserialization: false,
         });
         this.isRedisAvailable = true;
-        console.log('✅ Redis client initialized successfully');
+        logger.info('Redis client initialized successfully');
       } else {
-        console.warn(
-          '⚠️ Redis credentials not found, falling back to in-memory cache for development',
-        );
+        logger.warn('Redis credentials not found, falling back to in-memory cache for development');
         this.isRedisAvailable = false;
       }
     } catch (error) {
-      console.error('❌ Failed to initialize Redis client:', error);
+      logger.error('Failed to initialize Redis client', { error });
       this.isRedisAvailable = false;
     }
   }
@@ -58,7 +59,7 @@ class RedisManager {
         }
         return;
       } catch (error) {
-        console.error('Redis SET error:', error);
+        logger.error('Redis SET error', { error });
         // Fallback to in-memory cache
       }
     }
@@ -81,7 +82,7 @@ class RedisManager {
         const result = await this.redis.get<string>(key);
         return result ?? null;
       } catch (error) {
-        console.error('Redis GET error:', error);
+        logger.error('Redis GET error', { error });
       }
     }
 
@@ -109,7 +110,7 @@ class RedisManager {
         await this.redis.del(key);
         return;
       } catch (error) {
-        console.error('Redis DEL error:', error);
+        logger.error('Redis DEL error', { error });
         // Fallback to in-memory cache
       }
     }
@@ -127,7 +128,7 @@ class RedisManager {
         const result = await this.redis.exists(key);
         return result === 1;
       } catch (error) {
-        console.error('Redis EXISTS error:', error);
+        logger.error('Redis EXISTS error', { error });
         // Fallback to in-memory cache
       }
     }
@@ -146,7 +147,7 @@ class RedisManager {
       try {
         return await this.redis.incrby(key, increment);
       } catch (error) {
-        console.error('Redis INCR error:', error);
+        logger.error('Redis INCR error', { error });
         // Fallback to non-atomic in-memory increment
       }
     }
@@ -167,7 +168,7 @@ class RedisManager {
         const result = await this.redis.expire(key, seconds);
         return result === 1;
       } catch (error) {
-        console.error('Redis EXPIRE error:', error);
+        logger.error('Redis EXPIRE error', { error });
         // Fallback to in-memory cache
       }
     }
@@ -190,7 +191,7 @@ class RedisManager {
         const results = await this.redis.mget(...keys);
         return results as (string | null)[];
       } catch (error) {
-        console.error('Redis MGET error:', error);
+        logger.error('Redis MGET error', { error });
         // Fallback to individual gets
       }
     }
@@ -324,7 +325,7 @@ export const IdempotencyCache = {
       try {
         return JSON.parse(cached) as { url: string };
       } catch (error) {
-        console.error('Failed to parse cached idempotency result:', error);
+        logger.error('Failed to parse cached idempotency result', { error });
         // Clean up corrupted cache entry
         await redisManager.del(cacheKey);
       }
@@ -356,7 +357,7 @@ export const IdempotencyCache = {
   async cleanup(): Promise<void> {
     // Redis handles TTL automatically, so this is a no-op for Redis
     // For in-memory cache, cleanup happens automatically in get operations
-    console.log('Idempotency cache cleanup requested (automatic with Redis)');
+    logger.debug('Idempotency cache cleanup requested (automatic with Redis)');
   },
 };
 
@@ -388,14 +389,14 @@ export const FormCache = {
 
     // Validate formData structure before stringifying
     if (!formData || typeof formData !== 'object') {
-      console.error('Invalid formData provided to FormCache.set:', formData);
+      logger.error('Invalid formData provided to FormCache.set', { formData });
       return;
     }
 
     // Ensure all required fields are present
     const { eventId, guestEmail, startTime, status, timestamp } = formData;
     if (!eventId || !guestEmail || !startTime || !status || !timestamp) {
-      console.error('Missing required fields in formData:', formData);
+      logger.error('Missing required fields in formData', { formData });
       return;
     }
 
@@ -403,7 +404,7 @@ export const FormCache = {
       const value = JSON.stringify(formData);
       await redisManager.set(cacheKey, value, ttlSeconds);
     } catch (error) {
-      console.error('Failed to stringify formData for FormCache:', error, formData);
+      logger.error('Failed to stringify formData for FormCache', { error, formData });
     }
   },
 
@@ -424,8 +425,10 @@ export const FormCache = {
       try {
         // Check if cached value is already an object (should not happen)
         if (typeof cached === 'object' && cached !== null) {
-          console.warn('Cached value is already an object, converting to JSON:', cached);
-          console.warn('Cache key:', cacheKey, 'Type:', typeof cached);
+          logger.warn('Cached value is already an object, converting to JSON', {
+            cacheKey,
+            cachedType: typeof cached,
+          });
 
           const cachedObj = cached as Record<string, unknown>; // Use Record for object inspection
 
@@ -447,26 +450,26 @@ export const FormCache = {
 
           // Otherwise, try to extract from Redis cache wrapper
           if (cachedObj.value && typeof cachedObj.value === 'string') {
-            console.warn('Found wrapped cache value, extracting...', cachedObj.value);
+            logger.warn('Found wrapped cache value, extracting', { value: cachedObj.value });
             return JSON.parse(cachedObj.value);
           }
 
           // If it's some other object structure, clean it up
-          console.error('Unexpected cached object structure, cleaning up:', cached);
+          logger.error('Unexpected cached object structure, cleaning up', { cached });
           await redisManager.del(cacheKey);
           return null;
         }
 
         // Ensure cached value is a string
         if (typeof cached !== 'string') {
-          console.error('Cached value is not a string:', typeof cached, cached);
+          logger.error('Cached value is not a string', { cachedType: typeof cached, cached });
           await redisManager.del(cacheKey);
           return null;
         }
 
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached form data:', error, 'Raw cached value:', cached);
+        logger.error('Failed to parse cached form data', { error, cached });
         // Clean up corrupted cache entry
         await redisManager.del(cacheKey);
       }
@@ -495,7 +498,7 @@ export const FormCache = {
       const veryRecentlyCompleted = timeSinceCompletion < 3000; // Only 3 seconds
 
       if (veryRecentlyCompleted) {
-        console.log('🚫 Form submission very recently completed, blocking potential duplicate:', {
+        logger.debug('Form submission very recently completed, blocking potential duplicate', {
           key,
           timeSinceCompletion,
           status: cached.status,
@@ -518,10 +521,10 @@ export const FormCache = {
         cached.timestamp = Date.now();
         await FormCache.set(key, cached);
       } else {
-        console.warn('No cached data found to mark as completed for key:', key);
+        logger.warn('No cached data found to mark as completed for key', { key });
       }
     } catch (error) {
-      console.error('Error marking FormCache as completed:', error, 'Key:', key);
+      logger.error('Error marking FormCache as completed', { error, key });
     }
   },
 
@@ -536,10 +539,10 @@ export const FormCache = {
         cached.timestamp = Date.now();
         await FormCache.set(key, cached);
       } else {
-        console.warn('No cached data found to mark as failed for key:', key);
+        logger.warn('No cached data found to mark as failed for key', { key });
       }
     } catch (error) {
-      console.error('Error marking FormCache as failed:', error, 'Key:', key);
+      logger.error('Error marking FormCache as failed', { error, key });
     }
   },
 
@@ -623,7 +626,7 @@ export const CustomerCache = {
       try {
         return JSON.parse(cached) as CachedCustomerData;
       } catch (error) {
-        console.error('Failed to parse cached customer data:', error);
+        logger.error('Failed to parse cached customer data', { error });
         await redisManager.del(cacheKey);
       }
     }
@@ -695,7 +698,7 @@ export const CustomerCache = {
       try {
         return JSON.parse(cached) as CachedSubscriptionData;
       } catch (error) {
-        console.error('Failed to parse cached subscription data:', error);
+        logger.error('Failed to parse cached subscription data', { error });
         await redisManager.del(cacheKey);
       }
     }
@@ -815,19 +818,19 @@ export const NotificationQueueCache = {
           if (Array.isArray(parsed)) {
             queue = parsed;
           } else {
-            console.warn(
-              `Invalid notification queue cache data for key ${cacheKey}, resetting:`,
+            logger.warn('Invalid notification queue cache data, resetting', {
+              cacheKey,
               parsed,
-            );
+            });
             // Reset corrupted cache entry
             await redisManager.del(cacheKey);
             queue = [];
           }
         } catch (parseError) {
-          console.error(
-            `Failed to parse notification queue cache data for key ${cacheKey}:`,
-            parseError,
-          );
+          logger.error('Failed to parse notification queue cache data', {
+            cacheKey,
+            error: parseError,
+          });
           // Reset corrupted cache entry
           await redisManager.del(cacheKey);
           queue = [];
@@ -853,7 +856,7 @@ export const NotificationQueueCache = {
       const value = JSON.stringify(queue);
       await redisManager.set(cacheKey, value, NOTIFICATION_DEFAULT_TTL_SECONDS);
     } catch (error) {
-      console.error('Failed to queue notification:', error);
+      logger.error('Failed to queue notification', { error });
       throw error;
     }
   },
@@ -872,10 +875,10 @@ export const NotificationQueueCache = {
       const parsed = JSON.parse(cached);
       // Validate that parsed data is an array
       if (!Array.isArray(parsed)) {
-        console.warn(
-          `Invalid notification queue cache data for key ${cacheKey}, resetting:`,
+        logger.warn('Invalid notification queue cache data, resetting', {
+          cacheKey,
           parsed,
-        );
+        });
         // Reset corrupted cache entry
         await redisManager.del(cacheKey);
         return [];
@@ -886,7 +889,7 @@ export const NotificationQueueCache = {
       // Filter notifications that are ready to be sent
       return queue.filter((item) => item.scheduledFor <= now).slice(0, limit);
     } catch (error) {
-      console.error('Failed to get pending notifications:', error);
+      logger.error('Failed to get pending notifications', { error });
       return [];
     }
   },
@@ -904,10 +907,10 @@ export const NotificationQueueCache = {
       const parsed = JSON.parse(cached);
       // Validate that parsed data is an array
       if (!Array.isArray(parsed)) {
-        console.warn(
-          `Invalid notification queue cache data for key ${cacheKey}, resetting:`,
+        logger.warn('Invalid notification queue cache data, resetting', {
+          cacheKey,
           parsed,
-        );
+        });
         // Reset corrupted cache entry
         await redisManager.del(cacheKey);
         return;
@@ -925,7 +928,7 @@ export const NotificationQueueCache = {
         await redisManager.set(cacheKey, value, NOTIFICATION_DEFAULT_TTL_SECONDS);
       }
     } catch (error) {
-      console.error('Failed to remove processed notifications:', error);
+      logger.error('Failed to remove processed notifications', { error });
     }
   },
 
@@ -1017,7 +1020,7 @@ export const AnalyticsCache = {
 
       return newValue;
     } catch (error) {
-      console.error('Failed to increment metric:', error);
+      logger.error('Failed to increment metric', { error });
       return increment; // Return the increment as fallback
     }
   },
@@ -1156,7 +1159,7 @@ export const DatabaseCache = {
       try {
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached user data:', error);
+        logger.error('Failed to parse cached user data', { error });
         await redisManager.del(cacheKey);
       }
     }
@@ -1191,7 +1194,7 @@ export const DatabaseCache = {
       try {
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached profile data:', error);
+        logger.error('Failed to parse cached profile data', { error });
         await redisManager.del(cacheKey);
       }
     }
@@ -1226,7 +1229,7 @@ export const DatabaseCache = {
       try {
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached dashboard data:', error);
+        logger.error('Failed to parse cached dashboard data', { error });
         await redisManager.del(cacheKey);
       }
     }
@@ -1312,7 +1315,7 @@ export const TempDataCache = {
       try {
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached setup progress:', error);
+        logger.error('Failed to parse cached setup progress', { error });
         await redisManager.del(cacheKey);
       }
     }
@@ -1350,7 +1353,7 @@ export const TempDataCache = {
       try {
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached OAuth state:', error);
+        logger.error('Failed to parse cached OAuth state', { error });
       }
     }
 
@@ -1387,7 +1390,7 @@ export const TempDataCache = {
       try {
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached verification token:', error);
+        logger.error('Failed to parse cached verification token', { error });
       }
     }
 

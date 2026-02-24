@@ -8,6 +8,9 @@
  * - Reusable: Single source of truth for all heartbeat logic
  * - Type-safe: Full TypeScript support
  */
+import * as Sentry from '@sentry/nextjs';
+
+const { logger } = Sentry;
 
 interface HeartbeatOptions {
   /**
@@ -51,7 +54,7 @@ export async function sendHeartbeatSuccess(options: HeartbeatOptions): Promise<H
   const { url, jobName, timeout = 5000 } = options;
 
   if (!url) {
-    console.warn(`⚠️ [${jobName}] Heartbeat URL not configured - skipping heartbeat`);
+    logger.warn(logger.fmt`[${jobName}] Heartbeat URL not configured - skipping heartbeat`);
     return {
       success: false,
       message: 'Heartbeat URL not configured',
@@ -71,16 +74,14 @@ export async function sendHeartbeatSuccess(options: HeartbeatOptions): Promise<H
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      console.log(`✅ [${jobName}] Heartbeat sent successfully`);
+      logger.info(logger.fmt`[${jobName}] Heartbeat sent successfully`);
       return {
         success: true,
         message: 'Heartbeat sent successfully',
         timestamp: new Date().toISOString(),
       };
     } else {
-      console.error(
-        `❌ [${jobName}] Heartbeat failed with status ${response.status}: ${response.statusText}`,
-      );
+      logger.error(logger.fmt`[${jobName}] Heartbeat failed with status ${response.status}: ${response.statusText}`);
       return {
         success: false,
         message: `HTTP ${response.status}: ${response.statusText}`,
@@ -90,7 +91,7 @@ export async function sendHeartbeatSuccess(options: HeartbeatOptions): Promise<H
   } catch (error) {
     // Log error but don't throw - heartbeat failures shouldn't break the main job
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`❌ [${jobName}] Failed to send heartbeat: ${errorMessage}`);
+    logger.error(logger.fmt`[${jobName}] Failed to send heartbeat: ${errorMessage}`);
 
     return {
       success: false,
@@ -129,7 +130,7 @@ export async function sendHeartbeatFailure(
   const { url, jobName, timeout = 5000 } = options;
 
   if (!url) {
-    console.warn(`⚠️ [${jobName}] Heartbeat URL not configured - skipping failure notification`);
+    logger.warn(logger.fmt`[${jobName}] Heartbeat URL not configured - skipping failure notification`);
     return {
       success: false,
       message: 'Heartbeat URL not configured',
@@ -160,16 +161,14 @@ export async function sendHeartbeatFailure(
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      console.log(`🚨 [${jobName}] Failure heartbeat sent successfully`);
+      logger.info(logger.fmt`[${jobName}] Failure heartbeat sent successfully`);
       return {
         success: true,
         message: 'Failure heartbeat sent successfully',
         timestamp: new Date().toISOString(),
       };
     } else {
-      console.error(
-        `❌ [${jobName}] Failure heartbeat failed with status ${response.status}: ${response.statusText}`,
-      );
+      logger.error(logger.fmt`[${jobName}] Failure heartbeat failed with status ${response.status}: ${response.statusText}`);
       return {
         success: false,
         message: `HTTP ${response.status}: ${response.statusText}`,
@@ -180,7 +179,7 @@ export async function sendHeartbeatFailure(
     // Log error but don't throw - heartbeat failures shouldn't break the main job
     const heartbeatErrorMessage =
       heartbeatError instanceof Error ? heartbeatError.message : 'Unknown error';
-    console.error(`❌ [${jobName}] Failed to send failure heartbeat: ${heartbeatErrorMessage}`);
+    logger.error(logger.fmt`[${jobName}] Failed to send failure heartbeat: ${heartbeatErrorMessage}`);
 
     return {
       success: false,
@@ -217,7 +216,7 @@ export async function withHeartbeat<T>(
   const { jobName } = options;
 
   try {
-    console.log(`🚀 [${jobName}] Starting job...`);
+    logger.info(logger.fmt`[${jobName}] Starting job...`);
     const result = await job();
 
     // Job succeeded - send success heartbeat
@@ -226,7 +225,7 @@ export async function withHeartbeat<T>(
     return result;
   } catch (error) {
     // Job failed - send failure heartbeat
-    console.error(`💥 [${jobName}] Job failed:`, error);
+    logger.error(logger.fmt`[${jobName}] Job failed`, { error });
     await sendHeartbeatFailure(options, error);
 
     // Re-throw the error so the caller knows the job failed

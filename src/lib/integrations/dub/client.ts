@@ -1,6 +1,9 @@
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { Dub } from 'dub';
+
+const { logger } = Sentry;
 
 /**
  * Dub.co URL Shortening Service Integration
@@ -55,17 +58,17 @@ export async function createShortMeetLink(options: CreateShortLinkOptions): Prom
   try {
     const parsedUrl = new URL(url);
     if (!parsedUrl.hostname.endsWith('meet.google.com')) {
-      console.warn('Not a valid Google Meet URL:', url);
+      logger.warn('Not a valid Google Meet URL', { url });
       return url;
     }
   } catch {
-    console.warn('Invalid URL format:', url);
+    logger.warn('Invalid URL format', { url });
     return url;
   }
 
   const dub = getDubClient();
   if (!dub) {
-    console.warn('DUB_API_KEY not configured, returning original URL');
+    logger.warn('DUB_API_KEY not configured, returning original URL');
     return url;
   }
 
@@ -88,10 +91,10 @@ export async function createShortMeetLink(options: CreateShortLinkOptions): Prom
       ...(customSlug && { key: customSlug }),
     });
 
-    console.log('Successfully created short link:', result.shortLink);
+    logger.info('Successfully created short link', { shortLink: result.shortLink });
     return result.shortLink;
   } catch (error) {
-    console.error('Error creating short link with Dub.co:', error);
+    logger.error('Error creating short link with Dub.co', { error });
     return urlWithUtm.toString();
   }
 }

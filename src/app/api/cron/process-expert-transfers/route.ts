@@ -101,12 +101,12 @@ async function handler(request: Request) {
       try {
         // Get expert user to determine their country
         const expertUser = await db.query.UsersTable.findFirst({
-          where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
+          where: eq(UsersTable.workosUserId, transfer.expertWorkosUserId),
         });
 
         if (!expertUser) {
           console.error(
-            `Could not find expert user ${transfer.expertClerkUserId} for transfer ${transfer.id}`,
+            `Could not find expert user ${transfer.expertWorkosUserId} for transfer ${transfer.id}`,
           );
           continue;
         }
@@ -227,7 +227,7 @@ async function handler(request: Request) {
               metadata: {
                 paymentTransferId: transfer.id.toString(),
                 eventId: transfer.eventId,
-                expertClerkUserId: transfer.expertClerkUserId,
+                expertWorkosUserId: transfer.expertWorkosUserId,
                 sessionStartTime: transfer.sessionStartTime.toISOString(),
                 scheduledTransferTime: transfer.scheduledTransferTime.toISOString(),
               },
@@ -247,19 +247,19 @@ async function handler(request: Request) {
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
           console.log(
-            `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertClerkUserId}`,
+            `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertWorkosUserId}`,
           );
 
           // Send notification to the expert
           try {
             await createPayoutCompletedNotification({
-              userId: transfer.expertClerkUserId,
+              userId: transfer.expertWorkosUserId,
               amount: transfer.amount,
               currency: transfer.currency,
               eventId: transfer.eventId,
             });
             console.log(
-              `Payment completion notification sent to expert ${transfer.expertClerkUserId}`,
+              `Payment completion notification sent to expert ${transfer.expertWorkosUserId}`,
             );
           } catch (notificationError) {
             console.error('Error sending payment notification:', notificationError);
@@ -298,13 +298,13 @@ async function handler(request: Request) {
           if (newStatus === PAYMENT_TRANSFER_STATUS_FAILED) {
             try {
               await createPayoutFailedNotification({
-                userId: transfer.expertClerkUserId,
+                userId: transfer.expertWorkosUserId,
                 amount: transfer.amount,
                 currency: transfer.currency,
                 errorMessage: stripeError.message || 'Unknown payment processing error',
               });
               console.log(
-                `Payment failure notification sent to expert ${transfer.expertClerkUserId}`,
+                `Payment failure notification sent to expert ${transfer.expertWorkosUserId}`,
               );
             } catch (notificationError) {
               console.error('Error sending payment failure notification:', notificationError);

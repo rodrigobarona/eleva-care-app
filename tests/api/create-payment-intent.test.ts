@@ -221,7 +221,7 @@ describe('Payment Intent API - Core Functionality', () => {
     it('should create proper metadata structure for webhooks', () => {
       const meetingData = {
         eventId: 'event_123',
-        expertClerkUserId: 'user_123',
+        expertWorkosUserId: 'user_123',
         guestEmail: 'customer@example.com',
         guestName: 'Test Customer',
         startTime: '2024-05-01T10:00:00Z',
@@ -234,7 +234,7 @@ describe('Payment Intent API - Core Functionality', () => {
       const sharedMetadata = {
         meeting: JSON.stringify({
           id: meetingData.eventId,
-          expert: meetingData.expertClerkUserId,
+          expert: meetingData.expertWorkosUserId,
           guest: meetingData.guestEmail,
           guestName: meetingData.guestName,
           start: meetingData.startTime,

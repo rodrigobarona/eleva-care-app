@@ -210,6 +210,7 @@ export async function checkAnnualEligibility(workosUserId: string): Promise<Elig
     };
   } catch (error) {
     logger.error('Error checking eligibility', { error });
+    Sentry.captureException(error);
     throw error;
   }
   });
@@ -309,6 +310,7 @@ export async function updateEligibilityMetrics(workosUserId: string): Promise<bo
     return true;
   } catch (error) {
     logger.error('Error updating eligibility metrics', { error });
+    Sentry.captureException(error);
     return false;
   }
   });
@@ -368,6 +370,7 @@ export async function getEligibilityStatus(
       };
     } catch (error) {
       logger.error('Error getting eligibility status', { error });
+      Sentry.captureException(error);
       return null;
     }
   });

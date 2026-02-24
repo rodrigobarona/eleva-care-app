@@ -34,7 +34,7 @@ function extendedHash(str: string): string {
  * Generates a consistent, secure customer ID based on user ID and guest email
  * This function should be used anywhere customer IDs need to be generated or matched
  *
- * @param userId - The Clerk user ID of the expert/practitioner
+ * @param userId - The WorkOS user ID of the expert/practitioner
  * @param guestEmail - The email address of the guest/patient
  * @returns A secure, deterministic 12-character customer ID
  */
@@ -59,7 +59,7 @@ export function generateCustomerId(userId: string, guestEmail: string): string {
  * Finds the email address that corresponds to a given customer ID
  * This is the reverse operation of generateCustomerId
  *
- * @param userId - The Clerk user ID of the expert/practitioner
+ * @param userId - The WorkOS user ID of the expert/practitioner
  * @param customerId - The customer ID to find the email for
  * @param emailList - Array of email addresses to check against
  * @returns The email address that matches the customer ID, or null if not found

@@ -638,7 +638,7 @@ export async function getStripeConnectSetupOrLoginLink(accountId: string) {
  * Syncs a user's Stripe Identity verification to their Stripe Connect account
  * This helps streamline the verification process for expert accounts
  *
- * @param workosUserId The Clerk user ID of the expert
+ * @param workosUserId The WorkOS user ID of the expert
  * @returns A promise that resolves to a success status and optional error message
  */
 export async function syncIdentityVerificationToConnect(workosUserId: string) {

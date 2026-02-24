@@ -7,6 +7,9 @@
  */
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import * as Sentry from '@sentry/nextjs';
+
+const { logger } = Sentry;
 
 let redis: Redis | null = null;
 
@@ -88,7 +91,7 @@ export async function checkRateLimit(
       totalHits: limit - remaining,
     };
   } catch (error) {
-    console.error('Rate limit check failed:', error);
+    logger.error('Rate limit check failed', { error });
     // Fail open on errors
     return { allowed: true, remaining: maxAttempts - 1, resetTime: Date.now() + windowSeconds * 1000, totalHits: 0 };
   }
@@ -109,6 +112,7 @@ export async function resetRateLimit(
   try {
     await limiter.resetUsedTokens(identifier);
   } catch (error) {
-    console.error('Failed to reset rate limit:', error);
+    logger.error('Failed to reset rate limit', { error });
+    Sentry.captureException(error);
   }
 }

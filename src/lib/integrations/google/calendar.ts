@@ -16,11 +16,11 @@ import GoogleCalendarService from '@/server/googleCalendar';
 /**
  * Checks if a user has valid Google OAuth tokens
  *
- * Verifies that the specified Clerk user has connected their Google account
+ * Verifies that the specified WorkOS user has connected their Google account
  * and that valid OAuth tokens exist. This is useful for determining if a user
  * needs to be prompted to connect their Google account.
  *
- * @param userId - Clerk user ID to check
+ * @param userId - WorkOS user ID to check
  * @returns Promise that resolves to true if the user has valid tokens, false otherwise
  */
 export async function hasValidTokens(userId: string): Promise<boolean> {
@@ -34,7 +34,7 @@ export async function hasValidTokens(userId: string): Promise<boolean> {
  * the specified start and end times. Filters out cancelled events
  * and events marked as "free" (transparent).
  *
- * @param workosUserId - Clerk user ID to fetch calendar events for
+ * @param workosUserId - WorkOS user ID to fetch calendar events for
  * @param options - Object containing start and end dates for the time range
  * @param options.start - Start date of the time range
  * @param options.end - End date of the time range
@@ -59,7 +59,7 @@ export async function getCalendarEventTimes(
  * authentication behind the scenes.
  *
  * @param params - Event creation parameters
- * @param params.workosUserId - Clerk user ID of the calendar owner (expert)
+ * @param params.workosUserId - WorkOS user ID of the calendar owner (expert)
  * @param params.guestName - Name of the guest/client
  * @param params.guestEmail - Email of the guest/client
  * @param params.startTime - Start time of the appointment

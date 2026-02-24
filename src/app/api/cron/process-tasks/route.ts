@@ -118,7 +118,7 @@ async function handler(request: Request) {
               metadata: {
                 paymentTransferId: transfer.id.toString(),
                 eventId: transfer.eventId,
-                expertClerkUserId: transfer.expertClerkUserId,
+                expertWorkosUserId: transfer.expertWorkosUserId,
                 sessionStartTime: transfer.sessionStartTime.toISOString(),
                 scheduledTransferTime: transfer.scheduledTransferTime.toISOString(),
               },
@@ -138,7 +138,7 @@ async function handler(request: Request) {
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
           console.log(
-            `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertClerkUserId}`,
+            `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertWorkosUserId}`,
           );
           return {
             success: true,

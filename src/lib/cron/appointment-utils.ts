@@ -35,7 +35,10 @@ import {
   SchedulesTable,
   UsersTable,
 } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { and, between, eq } from 'drizzle-orm';
+
+const { logger } = Sentry;
 
 /**
  * Appointment data structure used by reminder cron jobs.
@@ -364,8 +367,8 @@ export async function getUpcomingAppointments(
         ),
       );
 
-    console.log(
-      `Found ${upcomingMeetings.length} appointments in window (${startOffsetMinutes}-${endOffsetMinutes} min)`,
+    logger.info(
+      logger.fmt`Found ${upcomingMeetings.length} appointments in window (${startOffsetMinutes}-${endOffsetMinutes} min)`,
     );
 
     // Transform the data to match the expected interface
@@ -397,7 +400,7 @@ export async function getUpcomingAppointments(
 
     return appointments;
   } catch (error) {
-    console.error('Error querying upcoming appointments:', error);
+    logger.error('Error querying upcoming appointments', { error });
     throw error;
   }
 }

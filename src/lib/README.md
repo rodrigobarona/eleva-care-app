@@ -15,10 +15,7 @@ lib/
 │   ├── roles.server.ts # Server-side role utilities
 │   └── admin-middleware.ts
 ├── cache/             # Caching utilities and strategies
-│   ├── index.ts       # Public interface
-│   ├── clerk-cache.ts
-│   ├── clerk-cache-utils.ts
-│   ├── clerk-cache-keys.ts
+│   ├── index.ts       # Public interface (if present)
 │   └── redis-error-boundary.ts
 ├── constants/         # Application constants
 │   ├── index.ts       # Public interface
@@ -44,9 +41,6 @@ lib/
 │   ├── betterstack/
 │   │   ├── index.ts
 │   │   └── heartbeat.ts
-│   ├── clerk/
-│   │   ├── index.ts
-│   │   └── security-utils.ts
 │   ├── dub/
 │   │   ├── index.ts
 │   │   └── client.ts
@@ -64,6 +58,7 @@ lib/
 │   │   ├── schedules.ts
 │   │   ├── signature-validator.ts
 │   │   └── utils.ts
+│   ├── workos/        # WorkOS authentication and RBAC
 │   └── stripe/
 │       ├── index.ts
 │       ├── client.ts
@@ -109,12 +104,12 @@ Always import from the module's index file, not from specific files:
 ```typescript
 // ✅ Good: Import from module interface
 import { checkUserRole, ROLES } from '@/lib/auth';
-import { CustomerCache, redisManager } from '@/lib/cache';
+import { CustomerCache, redisManager } from '@/lib/redis';
 import { qstashClient, setupSchedules } from '@/lib/integrations/qstash';
 
 // ❌ Bad: Import from specific files
 import { checkUserRole } from '@/lib/auth/roles.server';
-import { CustomerCache } from '@/lib/cache/clerk-cache';
+import { CustomerCache } from '@/lib/redis/manager';
 ```
 
 ### Module Organization Principles

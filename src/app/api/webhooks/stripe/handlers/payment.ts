@@ -51,9 +51,9 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
 /**
  * Notify expert about successful payment
  */
-async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
+async function notifyExpertOfPaymentSuccess(transfer: { expertWorkosUserId: string }) {
   await createUserNotification({
-    userId: transfer.expertClerkUserId,
+    userId: transfer.expertWorkosUserId,
     type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
     data: {
       userName: 'Expert',
@@ -68,7 +68,7 @@ async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: strin
  * Notify expert about failed payment
  */
 async function notifyExpertOfPaymentFailure(
-  transfer: { expertClerkUserId: string },
+  transfer: { expertWorkosUserId: string },
   paymentIntentId: string,
   lastPaymentError: string,
   meetingDetails?: {
@@ -84,7 +84,7 @@ async function notifyExpertOfPaymentFailure(
   }
 
   await createUserNotification({
-    userId: transfer.expertClerkUserId,
+    userId: transfer.expertWorkosUserId,
     type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
     data: {
       userName: 'Expert',
@@ -98,9 +98,9 @@ async function notifyExpertOfPaymentFailure(
 /**
  * Notify expert about payment refund
  */
-async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string }) {
+async function notifyExpertOfPaymentRefund(transfer: { expertWorkosUserId: string }) {
   await createUserNotification({
-    userId: transfer.expertClerkUserId,
+    userId: transfer.expertWorkosUserId,
     type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
     data: {
       userName: 'Expert',
@@ -114,9 +114,9 @@ async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string
 /**
  * Notify expert about payment dispute
  */
-async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: string }) {
+async function notifyExpertOfPaymentDispute(transfer: { expertWorkosUserId: string }) {
   await createUserNotification({
-    userId: transfer.expertClerkUserId,
+    userId: transfer.expertWorkosUserId,
     type: NOTIFICATION_TYPE_SECURITY_ALERT,
     data: {
       userName: 'Expert',
@@ -1014,7 +1014,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 checkoutSessionId: 'UNKNOWN', // Session ID not available in payment intent metadata per best practices
                 eventId: meeting.eventId,
                 expertConnectAccountId: transferData.account,
-                expertClerkUserId: meeting.workosUserId,
+                expertWorkosUserId: meeting.workosUserId,
                 amount: amount,
                 platformFee: fee,
                 currency: 'eur',
@@ -1053,7 +1053,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             // Also trigger Novu platform payments workflow for enhanced notifications
             try {
               const user = await db.query.UsersTable.findFirst({
-                where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
+                where: eq(UsersTable.workosUserId, transfer.expertWorkosUserId),
                 columns: { workosUserId: true, username: true, email: true },
               });
 

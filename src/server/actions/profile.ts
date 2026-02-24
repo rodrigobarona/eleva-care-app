@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
-import { db } from '@/drizzle/db';
+import { db, invalidateCache } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema';
 
 const { logger } = Sentry;
@@ -22,7 +22,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
  * 3. Normalizes social media links to full URLs
  * 4. Validates and saves the updated profile data
  *
- * @param userId - The Clerk user ID of the expert
+ * @param userId - The WorkOS user ID of the expert
  * @param data - The profile data to be updated, including:
  *   - firstName: Expert's first name
  *   - lastName: Expert's last name
@@ -74,8 +74,6 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
     const transformedData = {
       ...data,
       socialLinks: data.socialLinks.map((link) => {
-        logger.info('Raw input', { name: link.name, url: link.url });
-
         // Handle empty or undefined URLs
         if (!link.url?.trim()) {
           return { name: link.name, url: '' };
@@ -156,6 +154,8 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
         logger.error('Failed to mark profile step as complete', { error });
       }
     }
+
+    await invalidateCache([`expert-profile-${userId}`]);
 
     return { success: true };
   } catch (error) {

@@ -1,8 +1,8 @@
 /**
- * 🔗 Webhook Health Monitor
+ * Webhook Health Monitor
  *
  * Utilities to monitor and validate webhook endpoints
- * for Clerk, Stripe, and other integrations
+ * for WorkOS, Stripe, and other integrations
  */
 import { ENV_CONFIG } from '@/config/env';
 
@@ -11,7 +11,7 @@ export interface WebhookEndpoint {
   path: string;
   description: string;
   requiredEnvVars: string[];
-  provider: 'clerk' | 'stripe' | 'stripe-identity' | 'stripe-connect' | 'internal';
+  provider: 'workos' | 'stripe' | 'stripe-identity' | 'stripe-connect' | 'internal';
   authMethod: 'signature' | 'token' | 'none';
   expectedMethods: string[];
 }
@@ -33,17 +33,17 @@ export interface WebhookHealthResult {
  * All webhook endpoints in the application
  */
 export const WEBHOOK_ENDPOINTS: WebhookEndpoint[] = [
-  // Clerk Authentication Webhooks
+  // WorkOS Authentication Webhooks
   {
-    name: 'Clerk Webhooks',
-    path: '/api/webhooks/clerk',
+    name: 'WorkOS Webhooks',
+    path: '/api/webhooks/workos',
     description: 'Handle user authentication events (user.created, user.updated, session events)',
     requiredEnvVars: [
-      'CLERK_SECRET_KEY',
-      'CLERK_WEBHOOK_SIGNING_SECRET',
-      'NOVU_SECRET_KEY', // For notifications
+      'WORKOS_API_KEY',
+      'WORKOS_WEBHOOK_SECRET',
+      'NOVU_SECRET_KEY',
     ],
-    provider: 'clerk',
+    provider: 'workos',
     authMethod: 'signature',
     expectedMethods: ['POST'],
   },
@@ -185,7 +185,7 @@ export async function checkWebhookHealth(
   }
 
   // 4. Provider-specific checks
-  if (endpoint.provider === 'clerk' || endpoint.provider === 'stripe') {
+  if (endpoint.provider === 'workos' || endpoint.provider === 'stripe') {
     // Check if Novu is configured for notifications
     if (!ENV_CONFIG.NOVU_SECRET_KEY) {
       result.issues.push('Novu not configured - webhook notifications will not work');
@@ -288,8 +288,8 @@ export function generateWebhookHealthReport(results: WebhookHealthResult[]): {
  */
 export function getWebhookConfigStatus() {
   const configStatus = {
-    clerk: {
-      configured: !!(ENV_CONFIG.CLERK_SECRET_KEY && ENV_CONFIG.CLERK_WEBHOOK_SIGNING_SECRET),
+    workos: {
+      configured: !!(ENV_CONFIG.WORKOS_API_KEY && ENV_CONFIG.WORKOS_WEBHOOK_SECRET),
       missing: [] as string[],
     },
     stripe: {
@@ -310,10 +310,9 @@ export function getWebhookConfigStatus() {
     },
   };
 
-  // Identify missing configuration
-  if (!ENV_CONFIG.CLERK_SECRET_KEY) configStatus.clerk.missing.push('CLERK_SECRET_KEY');
-  if (!ENV_CONFIG.CLERK_WEBHOOK_SIGNING_SECRET)
-    configStatus.clerk.missing.push('CLERK_WEBHOOK_SIGNING_SECRET');
+  if (!ENV_CONFIG.WORKOS_API_KEY) configStatus.workos.missing.push('WORKOS_API_KEY');
+  if (!ENV_CONFIG.WORKOS_WEBHOOK_SECRET)
+    configStatus.workos.missing.push('WORKOS_WEBHOOK_SECRET');
 
   if (!ENV_CONFIG.STRIPE_SECRET_KEY) {
     configStatus.stripe.missing.push('STRIPE_SECRET_KEY');

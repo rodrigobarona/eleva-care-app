@@ -27,7 +27,7 @@ import {
  * @param params.description - Optional description of the product
  * @param params.price - The price in smallest currency unit (e.g., cents)
  * @param params.currency - The currency code (default: "eur")
- * @param params.workosUserId - The Clerk user ID of the expert
+ * @param params.workosUserId - The WorkOS user ID of the expert
  * @returns Object containing the created product and price IDs, or error details
  *
  * @example
@@ -58,72 +58,49 @@ export async function createStripeProduct({
   currency?: string;
   workosUserId: string;
 }) {
-  return Sentry.startSpan(
-    {
-      name: 'stripe.product.create',
-      op: 'stripe.api',
-      attributes: {
-        'stripe.product_name': name,
-        'stripe.price': price,
-        'stripe.currency': currency,
-        'stripe.workos_user_id': workosUserId,
-      },
-    },
-    async (span) => {
-      try {
-        Sentry.logger.info('Creating Stripe product', {
-          name,
-          price,
-          currency,
-          workosUserId,
-        });
+  return Sentry.withServerActionInstrumentation('createStripeProduct', { recordResponse: true }, async () => {
+    try {
+      Sentry.logger.info('Creating Stripe product', {
+        name,
+        price,
+        currency,
+        workosUserId,
+      });
 
-        // Initialize Stripe client
-        const stripe = await getServerStripe();
+      const stripe = await getServerStripe();
 
-        // Create the product first
-        const product = await stripe.products.create({
-          name,
-          description,
-          metadata: {
-            workosUserId, // Store the expert's ID for reference
-          },
-        });
+      const product = await stripe.products.create({
+        name,
+        description,
+        metadata: { workosUserId },
+      });
 
-        span.setAttribute('stripe.product_id', product.id);
+      const stripePrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: price,
+        currency,
+      });
 
-        // Create a price for the product
-        const stripePrice = await stripe.prices.create({
-          product: product.id,
-          unit_amount: price,
-          currency,
-        });
+      Sentry.logger.info('Stripe product created successfully', {
+        productId: product.id,
+        priceId: stripePrice.id,
+        workosUserId,
+      });
 
-        span.setAttribute('stripe.price_id', stripePrice.id);
-        span.setAttribute('stripe.success', true);
-
-        Sentry.logger.info('Stripe product created successfully', {
-          productId: product.id,
-          priceId: stripePrice.id,
-          workosUserId,
-        });
-
-        return {
-          productId: product.id,
-          priceId: stripePrice.id,
-        };
-      } catch (error) {
-        span.setAttribute('stripe.success', false);
-        Sentry.logger.error('Stripe product creation failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          name,
-          price,
-          workosUserId,
-        });
-        return { error: 'Failed to create Stripe product' };
-      }
-    },
-  );
+      return {
+        productId: product.id,
+        priceId: stripePrice.id,
+      };
+    } catch (error) {
+      Sentry.logger.error('Stripe product creation failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        name,
+        price,
+        workosUserId,
+      });
+      return { error: 'Failed to create Stripe product' };
+    }
+  });
 }
 
 /**
@@ -143,7 +120,7 @@ export async function createStripeProduct({
  * @param params.description - Optional new description
  * @param params.price - The new price in smallest currency unit
  * @param params.currency - The currency code (default: "eur")
- * @param params.workosUserId - The Clerk user ID of the expert
+ * @param params.workosUserId - The WorkOS user ID of the expert
  * @returns Object containing the product ID and new price ID, or error details
  *
  * @example
@@ -172,75 +149,52 @@ export async function updateStripeProduct({
   currency?: string;
   workosUserId: string;
 }) {
-  return Sentry.startSpan(
-    {
-      name: 'stripe.product.update',
-      op: 'stripe.api',
-      attributes: {
-        'stripe.product_id': stripeProductId,
-        'stripe.old_price_id': stripePriceId,
-        'stripe.new_price': price,
-        'stripe.currency': currency,
-        'stripe.workos_user_id': workosUserId,
-      },
-    },
-    async (span) => {
-      try {
-        Sentry.logger.info('Updating Stripe product', {
-          productId: stripeProductId,
-          oldPriceId: stripePriceId,
-          newPrice: price,
-          workosUserId,
-        });
+  return Sentry.withServerActionInstrumentation('updateStripeProduct', { recordResponse: true }, async () => {
+    try {
+      Sentry.logger.info('Updating Stripe product', {
+        productId: stripeProductId,
+        oldPriceId: stripePriceId,
+        newPrice: price,
+        workosUserId,
+      });
 
-        const stripe = await getServerStripe();
+      const stripe = await getServerStripe();
 
-        // Update the product details
-        await stripe.products.update(stripeProductId, {
-          name,
-          description,
-          metadata: {
-            workosUserId,
-          },
-        });
+      await stripe.products.update(stripeProductId, {
+        name,
+        description,
+        metadata: { workosUserId },
+      });
 
-        // Create a new price since Stripe doesn't allow updating prices
-        const newPrice = await stripe.prices.create({
-          product: stripeProductId,
-          unit_amount: price,
-          currency,
-        });
+      const newPrice = await stripe.prices.create({
+        product: stripeProductId,
+        unit_amount: price,
+        currency,
+      });
 
-        span.setAttribute('stripe.new_price_id', newPrice.id);
+      await stripe.prices.update(stripePriceId, {
+        active: false,
+      });
 
-        // Deactivate the old price to prevent future usage
-        await stripe.prices.update(stripePriceId, {
-          active: false,
-        });
+      Sentry.logger.info('Stripe product updated successfully', {
+        productId: stripeProductId,
+        newPriceId: newPrice.id,
+        workosUserId,
+      });
 
-        span.setAttribute('stripe.success', true);
-
-        Sentry.logger.info('Stripe product updated successfully', {
-          productId: stripeProductId,
-          newPriceId: newPrice.id,
-          workosUserId,
-        });
-
-        return {
-          productId: stripeProductId,
-          priceId: newPrice.id,
-        };
-      } catch (error) {
-        span.setAttribute('stripe.success', false);
-        Sentry.logger.error('Stripe product update failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          productId: stripeProductId,
-          workosUserId,
-        });
-        return { error: 'Failed to update Stripe product' };
-      }
-    },
-  );
+      return {
+        productId: stripeProductId,
+        priceId: newPrice.id,
+      };
+    } catch (error) {
+      Sentry.logger.error('Stripe product update failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        productId: stripeProductId,
+        workosUserId,
+      });
+      return { error: 'Failed to update Stripe product' };
+    }
+  });
 }
 
 /**
@@ -295,110 +249,73 @@ export async function createPaymentIntent(
   userId: string,
   email: string,
 ) {
-  return Sentry.startSpan(
-    {
-      name: 'stripe.payment_intent.create',
-      op: 'stripe.api',
-      attributes: {
-        'stripe.event_id': eventId,
-        'stripe.guest_email': meetingData.guestEmail,
-        'stripe.user_id': userId,
-      },
-    },
-    async (span) => {
-      try {
-        Sentry.logger.info('Creating payment intent', {
-          eventId,
-          guestEmail: meetingData.guestEmail,
-          userId,
-        });
+  return Sentry.withServerActionInstrumentation('createPaymentIntent', { recordResponse: true }, async () => {
+    try {
+      Sentry.logger.info('Creating payment intent', {
+        eventId,
+        guestEmail: meetingData.guestEmail,
+        userId,
+      });
 
-        const stripe = await getServerStripe();
+      const stripe = await getServerStripe();
 
-        // Get or create customer first
-        const stripeCustomerId = await Sentry.startSpan(
-          {
-            name: 'stripe.customer.get_or_create',
-            op: 'stripe.api',
-          },
-          async (customerSpan) => {
-            const customerId = await getOrCreateStripeCustomer(userId, email);
-            if (typeof customerId !== 'string') {
-              customerSpan.setAttribute('stripe.customer.success', false);
-              throw new Error('Failed to get or create Stripe customer');
-            }
-            customerSpan.setAttribute('stripe.customer.success', true);
-            customerSpan.setAttribute('stripe.customer_id', customerId);
-            return customerId;
-          },
-        );
-
-        span.setAttribute('stripe.customer_id', stripeCustomerId);
-
-        // Get the event and the expert's data
-        const event = await db.query.EventsTable.findFirst({
-          where: ({ id }, { eq }) => eq(id, eventId),
-          with: {
-            user: true, // Include the related user (expert) data
-          },
-        });
-
-        if (!event) {
-          Sentry.logger.error('Event not found for payment intent', { eventId });
-          throw new Error('Event not found');
-        }
-
-        if (!event.user?.stripeConnectAccountId) {
-          Sentry.logger.error('Expert Stripe Connect account not found', {
-            eventId,
-            expertId: event.workosUserId,
-          });
-          throw new Error("Expert's Stripe Connect account not found");
-        }
-
-        span.setAttribute('stripe.amount', event.price);
-        span.setAttribute('stripe.currency', event.currency || STRIPE_CONFIG.CURRENCY);
-        span.setAttribute('stripe.connect_account_id', event.user.stripeConnectAccountId);
-
-        // Create the payment intent with all necessary details
-        const paymentIntent = await stripe.paymentIntents.create({
-          customer: stripeCustomerId,
-          amount: event.price,
-          currency: event.currency || STRIPE_CONFIG.CURRENCY,
-          payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
-          automatic_payment_methods: {
-            enabled: true,
-          },
-          metadata: {
-            eventId: event.id,
-            meetingData: JSON.stringify(meetingData),
-            userId,
-            expertConnectAccountId: event.user.stripeConnectAccountId,
-          },
-        });
-
-        span.setAttribute('stripe.payment_intent_id', paymentIntent.id);
-        span.setAttribute('stripe.success', true);
-
-        // Sync customer data to KV after successful creation
-        await syncStripeDataToKV(stripeCustomerId);
-
-        Sentry.logger.info('Payment intent created successfully', {
-          paymentIntentId: paymentIntent.id,
-          eventId,
-          amount: event.price,
-        });
-
-        return { clientSecret: paymentIntent.client_secret };
-      } catch (error) {
-        span.setAttribute('stripe.success', false);
-        Sentry.logger.error('Payment intent creation failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          eventId,
-          userId,
-        });
-        return { error: 'Failed to create payment intent' };
+      const customerId = await getOrCreateStripeCustomer(userId, email);
+      if (typeof customerId !== 'string') {
+        throw new Error('Failed to get or create Stripe customer');
       }
-    },
-  );
+
+      const event = await db.query.EventsTable.findFirst({
+        where: ({ id }, { eq }) => eq(id, eventId),
+        with: {
+          user: true,
+        },
+      });
+
+      if (!event) {
+        Sentry.logger.error('Event not found for payment intent', { eventId });
+        throw new Error('Event not found');
+      }
+
+      if (!event.user?.stripeConnectAccountId) {
+        Sentry.logger.error('Expert Stripe Connect account not found', {
+          eventId,
+          expertId: event.workosUserId,
+        });
+        throw new Error("Expert's Stripe Connect account not found");
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        customer: customerId,
+        amount: event.price,
+        currency: event.currency || STRIPE_CONFIG.CURRENCY,
+        payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          eventId: event.id,
+          meetingData: JSON.stringify(meetingData),
+          userId,
+          expertConnectAccountId: event.user.stripeConnectAccountId,
+        },
+      });
+
+      await syncStripeDataToKV(customerId);
+
+      Sentry.logger.info('Payment intent created successfully', {
+        paymentIntentId: paymentIntent.id,
+        eventId,
+        amount: event.price,
+      });
+
+      return { clientSecret: paymentIntent.client_secret };
+    } catch (error) {
+      Sentry.logger.error('Payment intent creation failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        eventId,
+        userId,
+      });
+      return { error: 'Failed to create payment intent' };
+    }
+  });
 }

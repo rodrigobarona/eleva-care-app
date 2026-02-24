@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (filters.expertId) {
-      conditions.push(eq(PaymentTransfersTable.expertClerkUserId, filters.expertId));
+      conditions.push(eq(PaymentTransfersTable.expertWorkosUserId, filters.expertId));
     }
 
     if (filters.eventId) {

@@ -30,8 +30,11 @@
  *
  * @module GoogleCalendarService
  */
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
+
+const { logger } = Sentry;
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
 import { getGoogleOAuthClient } from '@/lib/integrations/google/oauth-tokens';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
@@ -60,7 +63,7 @@ function isValidTimezone(tz: string): boolean {
  * GoogleCalendarService - Singleton service for Google Calendar integration
  *
  * This class manages Google Calendar operations including:
- * - OAuth authentication with Clerk
+ * - OAuth authentication with WorkOS
  * - Fetching calendar events
  * - Creating new calendar events with Google Meet
  * - Sending email notifications for appointments
@@ -106,7 +109,7 @@ class GoogleCalendarService {
 
       return oAuthClient;
     } catch (error) {
-      console.error('[GoogleCalendarService] Error obtaining OAuth client:', error);
+      logger.error('Error obtaining OAuth client', { error });
       throw new Error(
         'Unable to obtain Google OAuth client. Please connect your Google Calendar in settings.',
       );
@@ -128,7 +131,7 @@ class GoogleCalendarService {
     // Get authenticated OAuth client
     const oAuthClient = await this.getOAuthClient(workosUserId);
 
-    console.log('Fetching calendar events:', {
+    logger.info('Fetching calendar events', {
       timeRange: { start: start.toISOString(), end: end.toISOString() },
       userId: workosUserId,
     });
@@ -145,7 +148,7 @@ class GoogleCalendarService {
       fields: 'items(id,status,summary,start,end,transparency,eventType)',
     });
 
-    console.log('Calendar response:', {
+    logger.debug('Calendar response', {
       totalEvents: events.data.items?.length || 0,
       events: events.data.items?.map((event) => ({
         summary: event.summary,
@@ -163,19 +166,19 @@ class GoogleCalendarService {
         ?.map((event) => {
           // Skip "free" events (marked as transparent)
           if (event.transparency === 'transparent') {
-            console.log('Skipping transparent event:', event.summary);
+            logger.debug('Skipping transparent event', { summary: event.summary });
             return null;
           }
 
           // Skip cancelled events
           if (event.status === 'cancelled') {
-            console.log('Skipping cancelled event:', event.summary);
+            logger.debug('Skipping cancelled event', { summary: event.summary });
             return null;
           }
 
           // Handle all-day events
           if (event.start?.date != null && event.end?.date != null) {
-            console.log('All-day event found:', {
+            logger.debug('All-day event found', {
               summary: event.summary,
               start: event.start.date,
               end: event.end.date,
@@ -188,7 +191,7 @@ class GoogleCalendarService {
 
           // Handle timed events
           if (event.start?.dateTime != null && event.end?.dateTime != null) {
-            console.log('Timed event found:', {
+            logger.debug('Timed event found', {
               summary: event.summary,
               start: event.start.dateTime,
               end: event.end.dateTime,
@@ -199,7 +202,7 @@ class GoogleCalendarService {
             };
           }
 
-          console.log('Event skipped due to invalid date format:', event);
+          logger.debug('Event skipped due to invalid date format', { event });
           return null;
         })
         .filter((date): date is { start: Date; end: Date } => date != null) || []
@@ -293,7 +296,7 @@ class GoogleCalendarService {
     if (providedTimezone && isValidTimezone(providedTimezone)) {
       timezone = providedTimezone;
     } else if (providedTimezone) {
-      console.warn(`Invalid timezone provided: ${providedTimezone}, falling back to defaults`);
+      logger.warn(logger.fmt`Invalid timezone provided: ${providedTimezone}, falling back to defaults`);
     }
 
     // If no valid timezone provided, try to get from other sources
@@ -309,21 +312,21 @@ class GoogleCalendarService {
         // We use the provided timezone parameter or fall back to detected timezone
         // For future enhancement, could query SchedulingSettingsTable for user's preferred timezone
       } catch (error) {
-        console.warn('Error getting timezone, using UTC:', error);
+        logger.warn('Error getting timezone, using UTC', { error });
       }
     }
 
-    console.log('Using validated timezone:', timezone);
+    logger.debug('Using validated timezone', { timezone });
 
     // Format for display with the validated timezone
     const appointmentDate = formatDate(startTime, timezone);
     const appointmentTime = formatTime(startTime, durationInMinutes, timezone);
     const formattedDuration = `${durationInMinutes} minutes`;
 
-    console.log('Creating calendar event with timezone:', {
+    logger.debug('Creating calendar event with timezone', {
       datetime: startTime.toISOString(),
       timezone,
-      localizedTime: formatInTimeZone(startTime, timezone, 'PPpp'), // Log the localized time for debugging
+      localizedTime: formatInTimeZone(startTime, timezone, 'PPpp'),
       formattedDate: appointmentDate,
       formattedTime: appointmentTime,
     });
@@ -401,7 +404,7 @@ class GoogleCalendarService {
             expertUsername: calendarUser.username || undefined,
           });
 
-          console.log('Generated short meet link:', shortMeetLink);
+          logger.info('Generated short meet link', { shortMeetLink });
 
           // Update the calendar event description to include the shortened link
           if (shortMeetLink && shortMeetLink !== meetLink) {
@@ -425,7 +428,7 @@ class GoogleCalendarService {
             calendarEvent.data.description = updatedDescription;
           }
         } catch (error) {
-          console.error('Error processing Meet link:', error);
+          logger.error('Error processing Meet link', { error });
           // Continue with the original Meet link if shortening fails
         }
       }
@@ -433,7 +436,7 @@ class GoogleCalendarService {
 
     try {
       // After creating the event, send an immediate email notification to the expert
-      console.log('📧 Event created, sending email notification to expert:', {
+      logger.info('Event created, sending email notification to expert', {
         expertEmail: userEmail,
         eventId: calendarEvent?.data?.id,
         eventSummary: eventSummary,
@@ -455,7 +458,7 @@ class GoogleCalendarService {
         locale,
       });
 
-      console.log('📝 Generated expert email content:', {
+      logger.debug('Generated expert email content', {
         subject: expertEmailContent.subject,
         hasHtml: !!expertEmailContent.html,
         hasText: !!expertEmailContent.text,
@@ -470,19 +473,19 @@ class GoogleCalendarService {
       });
 
       if (!expertEmailResult.success) {
-        console.error('❌ Failed to send expert notification email:', {
+        logger.error('Failed to send expert notification email', {
           error: expertEmailResult.error,
           to: userEmail,
         });
       } else {
-        console.log('✅ Expert notification email sent successfully:', {
+        logger.info('Expert notification email sent successfully', {
           messageId: expertEmailResult.messageId,
           to: userEmail,
         });
       }
 
       // Also send notification to the client
-      console.log('📧 Sending email notification to client:', {
+      logger.info('Sending email notification to client', {
         clientEmail: guestEmail,
         eventId: calendarEvent?.data?.id,
         eventSummary: eventSummary,
@@ -504,7 +507,7 @@ class GoogleCalendarService {
         locale,
       });
 
-      console.log('📝 Generated client email content:', {
+      logger.debug('Generated client email content', {
         subject: clientEmailContent.subject,
         hasHtml: !!clientEmailContent.html,
         hasText: !!clientEmailContent.text,
@@ -518,18 +521,18 @@ class GoogleCalendarService {
       });
 
       if (!clientEmailResult.success) {
-        console.error('❌ Failed to send client notification email:', {
+        logger.error('Failed to send client notification email', {
           error: clientEmailResult.error,
           to: guestEmail,
         });
       } else {
-        console.log('✅ Client notification email sent successfully:', {
+        logger.info('Client notification email sent successfully', {
           messageId: clientEmailResult.messageId,
           to: guestEmail,
         });
       }
     } catch (error) {
-      console.error('❌ Error sending notifications:', {
+      logger.error('Error sending notifications', {
         error: error instanceof Error ? error.message : error,
         stack: error instanceof Error ? error.stack : undefined,
       });
@@ -621,7 +624,7 @@ export async function getGoogleCalendarClient(workosUserId: string) {
       auth,
     });
   } catch (error) {
-    console.error('[getGoogleCalendarClient] Error:', error);
+    logger.error('Error obtaining Google Calendar client', { error });
     throw error;
   }
 }

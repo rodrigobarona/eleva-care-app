@@ -677,7 +677,7 @@ async function createPaymentTransferIfNotExists({
         checkoutSessionId: session.id,
         eventId: meetingData.id,
         expertConnectAccountId: transferData.account,
-        expertClerkUserId: meetingData.expert,
+        expertWorkosUserId: meetingData.expert,
         amount,
         platformFee,
         currency: session.currency || 'eur',

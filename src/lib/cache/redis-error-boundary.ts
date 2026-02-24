@@ -1,4 +1,7 @@
 import { redisManager } from '@/lib/redis/manager';
+import * as Sentry from '@sentry/nextjs';
+
+const { logger } = Sentry;
 
 /**
  * Error boundary for Redis operations
@@ -38,9 +41,9 @@ export class RedisErrorBoundary {
         attempt++;
 
         // Log the error with attempt count
-        console.error(
-          `Redis ${operationName} error (attempt ${attempt}/${retries}) for key "${key}":`,
-          error,
+        logger.error(
+          logger.fmt`Redis ${operationName} error (attempt ${attempt}/${retries}) for key "${key}"`,
+          { error },
         );
 
         // If we have more retries, wait before trying again
@@ -53,20 +56,20 @@ export class RedisErrorBoundary {
     // All retries failed, try fallback if provided
     if (fallback) {
       try {
-        console.log(`Using fallback for failed Redis ${operationName} on key "${key}"`);
+        logger.info(logger.fmt`Using fallback for failed Redis ${operationName} on key "${key}"`);
         return await fallback();
       } catch (fallbackError) {
-        console.error(
-          `Fallback also failed for Redis ${operationName} on key "${key}":`,
-          fallbackError,
+        logger.error(
+          logger.fmt`Fallback also failed for Redis ${operationName} on key "${key}"`,
+          { error: fallbackError },
         );
       }
     }
 
     // Log the final failure
-    console.error(
-      `Redis ${operationName} failed after ${retries} attempts for key "${key}". Last error:`,
-      lastError,
+    logger.error(
+      logger.fmt`Redis ${operationName} failed after ${retries} attempts for key "${key}"`,
+      { lastError },
     );
 
     return null;

@@ -1,5 +1,5 @@
 import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
-import { db } from '@/drizzle/db';
+import { db, invalidateCache } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import {
   createStripeConnectAccount,
@@ -87,7 +87,8 @@ export async function handleConnectStripe(workosUserId: string): Promise<string 
       })
       .where(eq(UsersTable.workosUserId, workosUserId));
 
-    // Generate the onboarding URL
+    await invalidateCache([`user-${workosUserId}`, `user-full-${workosUserId}`]);
+
     const url = await getStripeConnectSetupOrLoginLink(accountId);
     return url;
   } catch (error) {

@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Admin ${userId} approved transfer ${transferId}`, {
       transferAmount: transfer.amount,
-      expertId: transfer.expertClerkUserId,
+      expertId: transfer.expertWorkosUserId,
       eventId: transfer.eventId,
       timestamp: new Date().toISOString(),
     });
