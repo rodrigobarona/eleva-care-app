@@ -16,8 +16,13 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { updateEligibilityMetrics } from '@/server/actions/eligibility';
+import * as Sentry from '@sentry/nextjs';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { inArray } from 'drizzle-orm';
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // ============================================================================
 // GET Handler - Manual Trigger
@@ -32,16 +37,13 @@ export async function GET() {
 }
 
 // ============================================================================
-// POST Handler - Cron Execution
+// POST Handler - Cron Execution (QStash-verified)
 // ============================================================================
 
-export async function POST(_request: NextRequest) {
+async function handler(_request: NextRequest) {
   const startTime = Date.now();
 
-  console.log('🔍 Starting eligibility check cron job...');
-
-  // TODO: Add QStash signature verification for production
-  // For now, rely on Vercel Cron auth or add API key check
+  logger.info('Starting eligibility check cron job');
 
   try {
     // Get all active experts (community and top)
@@ -54,12 +56,10 @@ export async function POST(_request: NextRequest) {
       },
     });
 
-    console.log(`📊 Found ${experts.length} experts to process`);
+    logger.info(logger.fmt`Found ${experts.length} experts to process`);
 
-    // Update eligibility for each expert
     let successCount = 0;
     let failCount = 0;
-    const newlyEligible: string[] = [];
 
     for (const expert of experts) {
       try {
@@ -71,22 +71,22 @@ export async function POST(_request: NextRequest) {
           failCount++;
         }
       } catch (error) {
-        console.error(`Error processing expert ${expert.workosUserId}:`, error);
+        logger.error(logger.fmt`Error processing expert ${expert.workosUserId}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        Sentry.captureException(error, { extra: { expertId: expert.workosUserId } });
         failCount++;
       }
     }
 
     const duration = Date.now() - startTime;
 
-    console.log(`✅ Eligibility check complete:`, {
+    logger.info('Eligibility check complete', {
       total: experts.length,
       success: successCount,
       failed: failCount,
-      newlyEligible: newlyEligible.length,
       durationMs: duration,
     });
-
-    // TODO: Send notifications to newly eligible experts
 
     return NextResponse.json({
       success: true,
@@ -94,12 +94,14 @@ export async function POST(_request: NextRequest) {
         total: experts.length,
         processed: successCount,
         failed: failCount,
-        newlyEligible: newlyEligible.length,
         durationMs: duration,
       },
     });
   } catch (error) {
-    console.error('❌ Eligibility check cron failed:', error);
+    logger.error('Eligibility check cron failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    Sentry.captureException(error);
     return NextResponse.json(
       {
         success: false,
@@ -109,3 +111,5 @@ export async function POST(_request: NextRequest) {
     );
   }
 }
+
+export const POST = verifySignatureAppRouter(handler);

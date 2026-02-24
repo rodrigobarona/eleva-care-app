@@ -1,18 +1,26 @@
+import { hasRole } from '@/lib/auth/roles.server';
 import { listSchedules } from '@/lib/integrations/qstash/client';
 import { setupQStashSchedules } from '@/lib/integrations/qstash/schedules';
 import type { ApiResponse } from '@/types/api';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
-// Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 /**
  * GET: List all current QStash schedules
- *
- * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET() {
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isSuperAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const schedules = await listSchedules();
     return NextResponse.json({
@@ -34,10 +42,16 @@ export async function GET() {
 
 /**
  * POST: Setup or reset QStash schedules
- *
- * Note: Admin authorization is handled by the proxy middleware
  */
 export async function POST() {
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isSuperAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const results = await setupQStashSchedules();
 

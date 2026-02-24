@@ -1,9 +1,11 @@
 import { qstash } from '@/config/qstash';
+import { hasRole } from '@/lib/auth/roles.server';
 import { isQStashAvailable, qstashClient } from '@/lib/integrations/qstash/client';
 import { getQStashConfigMessage, validateQStashConfig } from '@/lib/integrations/qstash/config';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
-// Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
@@ -29,10 +31,16 @@ interface QStashStatus {
 /**
  * GET - Verify QStash configuration
  * This endpoint checks if QStash is properly configured
- *
- * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET() {
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isSuperAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   // Use our validation helper to check configuration
   const config = validateQStashConfig();
 
@@ -133,10 +141,16 @@ export async function GET() {
 /**
  * POST - Test QStash messaging
  * Sends a test message to the QStash API to verify functionality
- *
- * Note: Admin authorization is handled by the proxy middleware
  */
 export async function POST() {
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isSuperAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   // Check if QStash is available
   if (!isQStashAvailable() || !qstashClient) {
     return NextResponse.json(

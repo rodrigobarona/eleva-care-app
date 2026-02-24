@@ -1,9 +1,11 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
+import { hasRole } from '@/lib/auth/roles.server';
 import {
   PAYMENT_TRANSFER_STATUSES,
   type PaymentTransferStatus,
 } from '@/lib/constants/payment-transfers';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -32,15 +34,16 @@ type FilterParams = {
 /**
  * GET endpoint to list and filter payment transfers
  * This can only be used by administrators
- *
- * Note: Admin authorization is handled by the proxy middleware
  */
 export async function GET(request: NextRequest) {
   try {
-    // Defense-in-depth: verify authentication even though proxy handles authorization
     const { user } = await withAuth();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Parse query parameters
@@ -151,22 +154,18 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH endpoint to update a payment transfer
  * This can only be used by administrators
- *
- * Note: Admin authorization is handled by the proxy middleware
  */
 export async function PATCH(request: NextRequest) {
   try {
-    // Get userId for audit logging
     const { user } = await withAuth();
-    const userId = user?.id;
-
-    // Verify authenticated user exists before proceeding
-    if (!user || !userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized', message: 'Authentication required' },
-        { status: 401 },
-      );
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const userId = user.id;
 
     // Get transfer ID and update data from request body
     const body = await request.json();

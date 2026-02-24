@@ -1,4 +1,3 @@
-// Import centralized email generation functions
 import {
   generateAppointmentEmail,
   generateExpertNotificationEmail,
@@ -8,10 +7,14 @@ import {
   generateWelcomeEmail,
   sendEmail,
 } from '@/lib/integrations/novu/email';
+import { hasRole } from '@/lib/auth/roles.server';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/test-email - Send a test email using centralized React Email templates
+ * Restricted to superadmin users only.
  *
  * Query Parameters:
  * - to: Email address (default: 'delivered@resend.dev')
@@ -19,6 +22,14 @@ import { NextRequest, NextResponse } from 'next/server';
  * - type: Email type (welcome|expert|appointment|payment|multibanco-pending|multibanco-reminder|notification, default: 'welcome')
  */
 export async function GET(request: NextRequest) {
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(request.url);
 
@@ -199,6 +210,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/test-email - Send a custom test email
+ * Restricted to superadmin users only.
  *
  * Body Parameters:
  * - to: Email address
@@ -207,6 +219,14 @@ export async function GET(request: NextRequest) {
  * - locale: Language code
  */
 export async function POST(request: NextRequest) {
+  const { user } = await withAuth();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
   try {
     const body = await request.json();
     const { to, subject, content, locale = 'en' } = body;

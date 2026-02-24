@@ -10,21 +10,22 @@ import { NextResponse } from 'next/server';
  * This endpoint forces a verification status update for a user's Stripe Connect account.
  * It should only be used by administrators to fix accounts that are stuck in an inconsistent state.
  *
- * Required query parameters:
- * - workosUserId: The Clerk user ID of the user
- * - adminKey: A secret key to prevent unauthorized access (should match INTERNAL_ADMIN_KEY env var)
+ * Required:
+ * - Header: Authorization: Bearer <INTERNAL_ADMIN_KEY>
+ * - Query parameter: workosUserId - The WorkOS user ID of the user
  */
 export async function POST(request: Request) {
   try {
-    // Get the clerk user ID and admin key from the query parameters
-    const url = new URL(request.url);
-    const workosUserId = url.searchParams.get('workosUserId');
-    const adminKey = url.searchParams.get('adminKey');
-
-    // Validate admin key to prevent unauthorized access
-    if (!adminKey || adminKey !== process.env.INTERNAL_ADMIN_KEY) {
+    const authHeader = request.headers.get('authorization');
+    if (
+      !process.env.INTERNAL_ADMIN_KEY ||
+      authHeader !== `Bearer ${process.env.INTERNAL_ADMIN_KEY}`
+    ) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
+
+    const url = new URL(request.url);
+    const workosUserId = url.searchParams.get('workosUserId');
 
     if (!workosUserId) {
       return NextResponse.json({ error: 'Missing workosUserId parameter' }, { status: 400 });

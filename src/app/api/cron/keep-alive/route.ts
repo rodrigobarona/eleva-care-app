@@ -356,14 +356,14 @@ export async function GET(request: Request) {
     let hasMore = true;
 
     while (hasMore) {
-      const query = db
+      let query = db
         .select({ userId: ProfilesTable.workosUserId })
         .from(ProfilesTable)
         .limit(batchSize)
         .orderBy(ProfilesTable.workosUserId);
 
       if (lastUserId) {
-        query.where(gt(ProfilesTable.workosUserId, lastUserId));
+        query = query.where(gt(ProfilesTable.workosUserId, lastUserId));
       }
 
       const profiles = await query;
