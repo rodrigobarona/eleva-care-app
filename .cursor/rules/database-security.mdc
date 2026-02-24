@@ -1,6 +1,6 @@
 ---
 description: Database and Security Patterns
-globs: ['drizzle/**/*.ts', 'lib/auth/**/*.ts', 'lib/stripe/**/*.ts']
+globs: ['drizzle/**/*.ts', 'src/lib/auth/**/*.ts', 'src/lib/stripe/**/*.ts', 'src/server/**/*.ts', 'src/lib/redis/**/*.ts']
 ---
 
 # Database and Security Patterns
@@ -37,27 +37,48 @@ const [items, total] = await Promise.all([
 ]);
 ```
 
-## Auth (Clerk.com)
+### Row-Level Security (RLS)
+
+All health data queries MUST use org-scoped database connections:
 
 ```typescript
-import { auth } from '@clerk/nextjs/server';
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { getOrgScopedDb } from '@/lib/integrations/neon/rls-client';
 
-// ✅ Always use cached helpers
+// ALWAYS use org-scoped DB for health data
+const orgDb = await getOrgScopedDb(orgId);
+const records = await orgDb.select().from(healthRecords);
+
+// NEVER use raw db for health data
+// ❌ const records = await db.select().from(healthRecords);
+```
+
+## Auth (WorkOS AuthKit)
+
+```typescript
+import { authkit } from '@workos-inc/authkit-nextjs';
+import { withAuth } from '@workos-inc/authkit-nextjs';
+
+// Server Components: use authkit()
 export default async function Page() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-
-  // Use cache utilities - never direct API
-  const user = await getCachedUserById(userId);
-  if (!user) return notFound();
+  const { user, organizationId } = await authkit();
+  if (!user) redirect('/sign-in');
 
   return <ProfileView user={user} />;
 }
 
-// ❌ Never do this
-const clerk = createClerkClient({ ... });
-const user = await clerk.users.getUser(userId); // NEVER!
+// Server Actions: use withAuth() wrapper
+export async function updateProfile(data: FormData) {
+  'use server';
+  const { user } = await withAuth();
+  if (!user) throw new Error('Unauthorized');
+  // ...
+}
+
+// JWT-based RBAC (zero database queries)
+export default async function proxy(request: NextRequest) {
+  const { user, role, permissions } = await authkit();
+  // Check roles/permissions from JWT claims
+}
 ```
 
 ## Payments (Stripe)
@@ -65,30 +86,38 @@ const user = await clerk.users.getUser(userId); // NEVER!
 ```typescript
 import { stripe } from '@/lib/stripe';
 
-// Create payment intent
-export async function createPayment(amount: number) {
+// Create Checkout Session (preferred over PaymentIntent for most flows)
+export async function createCheckoutSession(priceId: string) {
   'use server';
+  const { user } = await withAuth();
+  if (!user) throw new Error('Unauthorized');
 
-  const { userId } = await auth();
-  if (!userId) throw new Error('Unauthorized');
-
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amount * 100,
-    currency: 'usd',
-    metadata: { userId },
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/cancel`,
+    metadata: { userId: user.id },
   });
 
-  return { clientSecret: paymentIntent.client_secret };
+  redirect(session.url!);
 }
 
-// Handle webhook
+// Handle webhook with signature verification
 export async function POST(req: Request) {
   const sig = req.headers.get('stripe-signature')!;
   const body = await req.text();
 
-  const event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  const event = stripe.webhooks.constructEvent(
+    body,
+    sig,
+    process.env.STRIPE_WEBHOOK_SECRET!
+  );
 
   switch (event.type) {
+    case 'checkout.session.completed':
+      await handleCheckoutComplete(event.data.object);
+      break;
     case 'payment_intent.succeeded':
       await handlePaymentSuccess(event.data.object);
       break;
@@ -135,6 +164,31 @@ const apiKey = 'sk_test_abc123';
 3. **Implement rate limiting** on API routes
 4. **Use HTTPS** for all external API calls
 5. **Sanitize user input** before rendering
+6. **Encrypt sensitive fields** with WorkOS Vault:
+
+```typescript
+import { encryptField, decryptField } from '@/lib/integrations/workos/vault';
+
+// Encrypt before storing
+const encrypted = await encryptField(sensitiveData);
+await db.insert(records).values({ data: encrypted });
+
+// Decrypt when reading
+const decrypted = await decryptField(record.data);
+```
+
+7. **Log all PHI access** via audit logging:
+
+```typescript
+import { logAuditEvent } from '@/lib/utils/server/audit';
+
+await logAuditEvent({
+  action: 'health_record.accessed',
+  actorId: user.id,
+  targetId: recordId,
+  metadata: { orgId },
+});
+```
 
 ## Two-Layer Caching
 
@@ -156,3 +210,14 @@ const _getDataImpl = async (id: string) => {
 
 export const getData = cache(_getDataImpl);
 ```
+
+## Related Agent Skills
+
+When working on database and security patterns, consider invoking these skills:
+- `workos` / `workos-authkit-nextjs` -- authentication and RBAC patterns
+- `neon-drizzle` / `neon-postgres` -- database schema, migrations, RLS
+- `stripe-integration` / `stripe-best-practices` -- payment flows, webhook handling
+- `redis-js` -- caching patterns with Upstash Redis
+- `security-review` -- security audit and vulnerability assessment
+- `hipaa-compliance-guard` -- HIPAA PHI handling requirements
+- `gdpr-dsgvo-expert` -- GDPR data protection requirements

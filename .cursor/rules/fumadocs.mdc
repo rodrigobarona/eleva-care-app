@@ -892,4 +892,9 @@ Before committing documentation changes:
 - [MDX Documentation](https://mdxjs.com)
 - [Lucide Icons](https://lucide.dev)
 - [Implementation Guide](_docs/09-integrations/FUMADOCS-IMPLEMENTATION.md)
+
+## Related Agent Skills
+
+When working on documentation, consider invoking these skills:
+- `seo` -- SEO optimization for documentation pages, meta tags, structured data
 ```

@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Eleva Care project uses **24 agent skills** (in `.agents/skills/`) and **8 cursor rules** (in `.cursor/rules/`) to guide AI-assisted development. This document maps every skill and rule to the codebase, explains when each is triggered, and identifies areas where guidance can improve the implementation.
+The Eleva Care project uses **32 agent skills** (in `.agents/skills/` and `.claude/skills/`) and **13 cursor rules** (in `.cursor/rules/`) to guide AI-assisted development. This document maps every skill and rule to the codebase, explains when each is triggered, and identifies areas where guidance can improve the implementation.
 
 Skills are installed via the Skills CLI (`bunx skills add <owner/repo@skill>`) and tracked in `skills-lock.json`.
 
@@ -64,6 +64,26 @@ These skills provide guidelines for code quality, performance, accessibility, an
 | `agent-browser` | vercel-labs/agent-browser | "open website", "fill form", "take screenshot", "test web app" | N/A (tooling) |
 | `find-skills` | vercel-labs/skills | "find a skill", "is there a skill for" | N/A (meta) |
 
+### Tier 5: Technical Skills (NEW)
+
+| Skill | Source | Trigger Phrases | App Files |
+| ----- | ------ | --------------- | --------- |
+| `next-intl-app-router` | liuchiawei/agent-skills | "i18n", "next-intl", "translations", "locale routing", "[locale]" | `src/lib/i18n/`, `src/messages/`, `src/proxy.ts` |
+| `upstash-qstash` | sickn33/antigravity-awesome-skills | "QStash", "cron job", "scheduled task", "background job" | `src/lib/integrations/qstash/`, `src/app/api/cron/` |
+| `tiptap` | jezweb/claude-skills | "rich text", "tiptap", "editor", "WYSIWYG", "markdown editor" | `src/components/shared/rich-text/` |
+
+### Tier 6: Healthcare Compliance Skills (NEW)
+
+These fill the critical gap of ZERO compliance-specific guidance for a platform that stores health records.
+
+| Skill | Source | Trigger Phrases | App Files |
+| ----- | ------ | --------------- | --------- |
+| `security-compliance` | davila7/claude-code-templates | "SOC 2", "security audit", "compliance evidence", "security controls" | All compliance-related code |
+| `gdpr-dsgvo-expert` | davila7/claude-code-templates | "GDPR", "data subject rights", "consent", "DPA", "data deletion" | `src/lib/integrations/workos/vault.ts`, `drizzle/schema.ts` |
+| `healthcare-compliance` | eddiebe147/claude-settings | "HIPAA", "healthcare compliance", "PHI", "medical records security" | `src/app/api/records/`, health data routes |
+| `hipaa-compliance-guard` | jorgealves/agent_skills | "HIPAA compliance", "PHI handling", "minimum necessary", "BAA" | Health data queries, audit logging |
+| `data-retention-archiving-planner` | patricio0312rev/skills | "data retention", "right to erasure", "archiving", "data lifecycle" | `drizzle/schema.ts`, data deletion flows |
+
 ---
 
 ## Detailed Skill-to-Codebase Mapping
@@ -86,17 +106,10 @@ These skills provide guidelines for code quality, performance, accessibility, an
 - `src/lib/integrations/workos/client.ts` -- WorkOS SDK instance
 - `src/lib/integrations/workos/rbac.ts` -- RBAC helpers using WorkOS roles
 - `src/lib/integrations/workos/sync.ts` -- User sync between WorkOS and DB
-- `src/lib/integrations/workos/guest-users.ts` -- Guest user creation
+- `src/lib/integrations/workos/vault.ts` -- WorkOS Vault for encrypted health data
 - `src/lib/auth/roles.ts`, `roles.server.ts` -- Role constants and server-side checks
 - `src/app/api/webhooks/workos/route.ts` -- WorkOS webhook processing
 - `drizzle/schema.ts` -- `organizations`, `users`, `roles`, `user_org_memberships` tables
-
-**Key guidance from the skills:**
-- Always return via `handleAuthkitHeaders()` in proxy to ensure `withAuth()` works in pages
-- For Next.js 16, file must be `proxy.ts` at root (not `middleware.ts`)
-- Use `workos-vault.md` reference for encrypted meeting records
-- Use `workos-rbac.md` for role management patterns
-- Use `workos-events.md` for webhook processing best practices
 
 ---
 
@@ -104,34 +117,14 @@ These skills provide guidelines for code quality, performance, accessibility, an
 
 **Skills:** `stripe-integration`, `stripe-best-practices`
 
-**What the skills provide:**
-- Payment flows: Checkout Sessions, Payment Intents, Setup Intents
-- Subscription management with Billing APIs
-- Webhook handling with signature verification and idempotency
-- Connect platform patterns (direct charges, destination charges)
-- Refund and dispute handling
-- SCA/3D Secure for European payments
-
 **How the app uses it:**
 - `src/lib/integrations/stripe/client.ts` -- Stripe SDK client
 - `src/lib/integrations/stripe/identity.ts` -- Stripe Identity for KYC
 - `src/lib/integrations/stripe/transfer-utils.ts` -- Connect transfer logic
 - `src/server/actions/stripe.ts` -- Server actions for Stripe operations
-- `src/server/actions/stripe-pricing.ts` -- Dynamic pricing resolution
-- `src/server/actions/billing.ts` -- Subscription billing actions
-- `app/api/create-payment-intent/route.ts` -- Payment Intent creation
 - `app/api/webhooks/stripe/route.ts` -- Main webhook (with handlers in `handlers/`)
 - `app/api/webhooks/stripe-connect/route.ts` -- Connect account events
-- `app/api/webhooks/stripe-identity/route.ts` -- Identity verification events
-- `app/api/webhooks/stripe-subscriptions/route.ts` -- Subscription lifecycle
 - `config/stripe.ts` -- Stripe configuration
-- `config/subscription-pricing.ts` -- Pricing tiers
-
-**Gap analysis -- things to audit:**
-- Best practices skill recommends **Checkout Sessions over Payment Intents** for most flows; the app uses `create-payment-intent` -- worth evaluating if Checkout Sessions would be simpler
-- Skill recommends **dynamic payment methods** (dashboard-configured) instead of hardcoded `payment_method_types` -- check if the app passes explicit types
-- Skill warns against the Charges API -- verify no legacy usage
-- Connect skill recommends using **controller properties** instead of the legacy Standard/Express/Custom terminology
 
 ---
 
@@ -139,84 +132,78 @@ These skills provide guidelines for code quality, performance, accessibility, an
 
 **Skills:** `neon-drizzle`, `neon-postgres`
 
-**What the skills provide:**
-- Drizzle ORM setup, schema creation, and migrations
-- Connection methods: HTTP vs WebSocket decision guide
-- Neon features: branching, autoscaling, scale-to-zero, read replicas
-- Connection pooling with PgBouncer
-- Neon CLI and Platform API automation
-
 **How the app uses it:**
-- `drizzle/schema.ts` -- 20+ tables including users, organizations, events, meetings, profiles, records, payments, subscriptions, audit logs
+- `drizzle/schema.ts` -- 20+ tables with RLS enforcement
 - `drizzle/db.ts` -- Neon serverless connection setup
-- `drizzle.config.ts` -- Migration configuration
-- `src/lib/integrations/neon/` -- Neon RLS client
-
-**Key guidance:**
-- Use `-pooler` hostnames in serverless environments (Vercel)
-- Neon branching can be used for preview deployment databases
-- Read replicas for analytics/reporting queries vs primary for writes
-- Scale-to-zero with ~300ms cold-start penalty -- acceptable for this app's use case
+- `src/lib/integrations/neon/rls-client.ts` -- Org-scoped DB for health data isolation
 
 ---
 
-### Email & Notifications: Novu + Resend + React Email
+### Email & Notifications: Novu + React Email
 
 **Skills:** `email-best-practices`, `react-email`
 
-**What the skills provide:**
-- `email-best-practices` -- Deliverability (SPF/DKIM/DMARC), compliance (CAN-SPAM, GDPR, CASL), webhook handling, list management, retry logic, transactional email catalog
-- `react-email` -- React Email component patterns, template structure, styling best practices
-
 **How the app uses it:**
-- `src/emails/` -- 15+ React Email templates organized by category:
-  - `users/` -- welcome, welcome-i18n
-  - `appointments/` -- confirmation, reminder
-  - `experts/` -- new-appointment, notification
-  - `payments/` -- confirmation, multibanco-pending, multibanco-reminder, reservation-expired, refund, expert-payout
-  - `notifications/` -- security-alert
-- `src/emails/utils/i18n.ts` -- Email internationalization
-- `src/lib/integrations/novu/email-service.ts` -- Novu email service wrapper
-- `src/lib/integrations/novu/email.ts` -- Email sending functions
-- `app/api/webhooks/novu/route.ts` -- Novu webhook processing
-
-**Key guidance:**
-- GDPR compliance is critical for EU/Portugal operations -- verify double opt-in for any marketing emails
-- Transactional emails (appointment confirmations, payment receipts) do not require opt-in but must not contain marketing content
-- SPF/DKIM/DMARC must be configured on the sending domain
-- Implement idempotent sending to prevent duplicate emails on webhook retries
+- `src/emails/` -- 14 React Email templates organized by category
+- `src/config/novu.ts` -- Novu workflow definitions (`@novu/framework`)
+- `src/lib/integrations/novu/client.ts` -- Novu API client (`@novu/api`)
+- `src/components/integrations/novu/` -- Novu Inbox component (`@novu/react`)
+- `src/app/api/novu/route.ts` -- Novu bridge endpoint
 
 ---
 
-### Caching: Upstash Redis
+### Internationalization: next-intl
 
-**Skill:** `redis-js`
-
-**What the skill provides:**
-- Official Upstash Redis patterns: get/set, pipeline, pub/sub
-- Best practices for serverless Redis usage
-- Connection configuration and error handling
+**Skill:** `next-intl-app-router` (NEW)
 
 **How the app uses it:**
-- `src/lib/redis/` -- Redis manager with cleanup utilities
-- `src/lib/cache/` -- Redis error boundary and cache patterns
-- `src/lib/utils/cache-keys.ts` -- Centralized cache key management
-- Two-layer caching: React `cache()` for per-request + Redis for cross-request
+- `src/lib/i18n/navigation.ts` -- `createNavigation(routing)` for locale-aware links
+- `src/lib/i18n/request.ts` -- `getRequestConfig()` with locale fallback
+- `src/lib/i18n/routing.ts` -- Locale configuration with `localePrefix: 'as-needed'`
+- `src/messages/*.json` -- Translation files (ICU syntax)
+- `src/proxy.ts` -- next-intl middleware integration
 
 ---
 
-### Analytics: PostHog
+### Cron Jobs: Upstash QStash
 
-**Skill:** `posthog-instrumentation`
-
-**What the skill provides:**
-- PostHog event tracking patterns
-- Feature flag integration
-- User identification and properties
+**Skill:** `upstash-qstash` (NEW)
 
 **How the app uses it:**
-- `src/app/providers.tsx` -- PostHog provider initialization
-- Client-side analytics tracking across the app
+- `src/lib/integrations/qstash/client.ts` -- QStash client with no-op fallback
+- `src/lib/integrations/qstash/signature-validator.ts` -- HMAC-SHA256 signature validation with key rotation
+- `src/lib/integrations/qstash/schedules.ts` -- Schedule management
+- `src/app/api/cron/` -- Cron job endpoints
+
+---
+
+### Rich Text: TipTap
+
+**Skill:** `tiptap` (NEW)
+
+**How the app uses it:**
+- `src/components/shared/rich-text/RichTextEditor.tsx` -- TipTap editor with Markdown support
+- Uses `immediatelyRender: false` for SSR safety (Next.js requirement)
+
+---
+
+### Healthcare Compliance
+
+**Skills:** `security-compliance`, `gdpr-dsgvo-expert`, `healthcare-compliance`, `hipaa-compliance-guard`, `data-retention-archiving-planner` (ALL NEW)
+
+**Existing compliance infrastructure:**
+- `drizzle/schema.ts` -- Row-Level Security (RLS) declarations
+- `src/lib/integrations/neon/rls-client.ts` -- Org-scoped database access (`getOrgScopedDb()`)
+- `src/lib/integrations/workos/vault.ts` -- WorkOS Vault encryption (DEK/KEK envelope)
+- `src/lib/utils/server/audit.ts` -- Audit event logging (`logAuditEvent()`)
+- `src/lib/constants/security.ts` -- Security error detection
+- `audit.config.ts` -- Audit log configuration
+- Immutable `AuditLogsTable` with RLS protection
+
+**Key regulations:**
+- **GDPR** (EU/Portugal): Data subject rights (Arts 15-22), explicit consent for health data, 72h breach notification to CNPD
+- **HIPAA** (US expansion): PHI handling, minimum necessary principle, 6-year retention, BAA requirements
+- **SOC 2**: Security, availability, confidentiality, processing integrity controls
 
 ---
 
@@ -224,18 +211,46 @@ These skills provide guidelines for code quality, performance, accessibility, an
 
 **Skills:** `sentry-fix-issues`, `sentry-setup-logging`
 
-**What the skills provide:**
-- `sentry-fix-issues` -- Production issue diagnosis, stacktrace analysis, fix recommendations
-- `sentry-setup-logging` -- Structured logging with `logger.fmt`, `consoleLoggingIntegration`, log levels
-
 **How the app uses it:**
 - `instrumentation-client.ts` -- Client SDK with Session Replay, User Feedback
 - `sentry.server.config.ts` -- Server SDK
 - `sentry.edge.config.ts` -- Edge runtime SDK
 - `src/instrumentation.ts` -- Next.js instrumentation hook
 - Tunnel route at `/monitoring` to bypass ad-blockers
+- Sentry MCP tools available for debugging (org: `elevacade`, project: `eleva-care`)
 
-**Note:** The `sentry.mdc` cursor rule already covers span instrumentation, logging, and error capture patterns. These skills complement the rule with diagnosis and setup automation.
+---
+
+### Analytics: PostHog
+
+**Skill:** `posthog-instrumentation`
+
+**How the app uses it:**
+- `src/app/providers.tsx` -- PostHog provider initialization
+- Client-side analytics tracking across the app
+
+---
+
+### Caching: Upstash Redis
+
+**Skill:** `redis-js`
+
+**How the app uses it:**
+- `src/lib/redis/` -- Redis manager with cleanup utilities
+- `src/lib/cache/` -- Redis error boundary and cache patterns
+- Two-layer caching: React `cache()` for per-request + Redis for cross-request
+
+---
+
+### UI & Design
+
+**Skills:** `frontend-design`, `web-design-guidelines`, `shadcn-ui`, `tailwind-theme-builder`, `tiptap`
+
+**How the app uses them:**
+- `src/components/ui/` -- 40+ Shadcn UI primitives
+- `src/app/globals.css` -- Tailwind v4 CSS-based theme with `@theme` block
+- `components.json` -- Shadcn configuration (base color: zinc)
+- `src/components/shared/rich-text/` -- TipTap editor
 
 ---
 
@@ -243,31 +258,7 @@ These skills provide guidelines for code quality, performance, accessibility, an
 
 **Skill:** `security-review`
 
-**What the skill provides:**
-- Code security review patterns from the Sentry team
-- Vulnerability detection in dependencies and code
-- Security best practices for web applications
-
 **Relevance:** As a digital health platform handling sensitive patient data, security reviews are critical. This skill should be used before major releases.
-
----
-
-### UI & Design
-
-**Skills:** `frontend-design`, `web-design-guidelines`, `shadcn-ui`, `tailwind-theme-builder`
-
-**How the app uses them:**
-- `src/components/ui/` -- 40+ Shadcn UI primitives (Button, Card, Dialog, etc.)
-- `src/app/globals.css` -- Tailwind v4 CSS-based theme with `@theme` block
-- `components.json` -- Shadcn configuration (base color: zinc)
-- `src/components/sections/` -- Marketing page sections (home, about, solutions)
-- `src/components/features/` -- Feature-specific components (booking, calendar, forms)
-
-**When to use which:**
-- `shadcn-ui` -- When adding or customizing Shadcn components
-- `tailwind-theme-builder` -- When modifying the design system (colors, spacing, typography)
-- `frontend-design` -- When building new marketing pages or distinctive UI
-- `web-design-guidelines` -- When auditing existing components for UX/a11y compliance
 
 ---
 
@@ -279,21 +270,12 @@ These skills provide guidelines for code quality, performance, accessibility, an
 
 | Category | Rule | Relevance |
 | -------- | ---- | --------- |
-| Waterfalls (CRITICAL) | `async-parallel` | Use `Promise.all()` for independent DB queries in server components |
-| Waterfalls (CRITICAL) | `async-suspense-boundaries` | Wrap slow data with `<Suspense>` in dashboard pages |
+| Waterfalls (CRITICAL) | `async-parallel` | Use `Promise.all()` for independent DB queries |
 | Bundle Size (CRITICAL) | `bundle-barrel-imports` | Audit `src/components/ui/` barrel exports |
-| Bundle Size (CRITICAL) | `bundle-dynamic-imports` | Use `next/dynamic` for Tiptap editor, heavy charts |
+| Bundle Size (CRITICAL) | `bundle-dynamic-imports` | Use `next/dynamic` for TipTap, heavy charts |
 | Bundle Size (CRITICAL) | `bundle-defer-third-party` | Defer PostHog, Novu inbox after hydration |
-| Server (HIGH) | `server-cache-react` | Use `React.cache()` for per-request dedup of DB calls |
+| Server (HIGH) | `server-cache-react` | Use `React.cache()` for per-request dedup |
 | Server (HIGH) | `server-after-nonblocking` | Use `after()` for audit logging, email sending |
-| Server (HIGH) | `server-serialization` | Minimize data passed from RSC to client components |
-| Re-renders (MEDIUM) | `rerender-derived-state` | Subscribe to derived booleans in booking/calendar state |
-
-**`performance`** (Addy Osmani) -- Run against Core Web Vitals issues, especially LCP on marketing pages and CLS in the booking flow.
-
-**`accessibility`** -- Critical for a health platform. Run against all patient-facing components in `src/components/features/booking/` and `src/app/(marketing)/`.
-
-**`seo`** -- Run against `src/app/(marketing)/[locale]/` pages and `src/lib/seo/metadata-utils.ts`.
 
 ---
 
@@ -306,26 +288,34 @@ These skills provide guidelines for code quality, performance, accessibility, an
 - `tests/` -- Test directory
 - `vitest` -- Unit/integration tests (covered by `testing.mdc` cursor rule)
 
-**When to use which:**
-- `playwright-e2e-testing` -- For writing structured E2E tests with Playwright patterns
-- `agent-browser` -- For ad-hoc browser automation and visual testing during development
-
 ---
 
 ## Cursor Rules Summary
 
 These are always-active or glob-matched rules in `.cursor/rules/`.
 
-| Rule | Applied | Scope | Key Patterns |
-| ---- | ------- | ----- | ------------ |
-| `nextjs-core.mdc` | Always | All `src/` TypeScript | Async params (`params: Promise<...>`), `'use cache'` directive, `proxy.ts` (not middleware), `updateTag`/`revalidateTag`/`refresh` cache invalidation, Server Components by default |
-| `sentry.mdc` | Always | All `src/` TypeScript | `Sentry.startSpan()` for custom spans, `logger.fmt` for structured logs, `Sentry.captureException()` with tags/extra, Session Replay config, tunnel route |
-| `ui-components.mdc` | Glob: `src/components/**`, `src/app/**` | TSX files | Component directories (ui/, features/, layout/, sections/), Shadcn + Tailwind patterns, react-hook-form + Zod forms, responsive design, accessibility |
-| `testing.mdc` | Glob: `tests/**`, `**/*.test.*` | Test files | Vitest + `vi.hoisted()` for mocks, Next.js 16 async API mocking, Playwright E2E patterns, Stripe mocking |
-| `fumadocs.mdc` | Glob: `src/content/**` | MDX/MD files | Fumadocs structure, `meta.json` ordering, MDX components (Tabs, Accordions, Steps, Callouts, Cards) |
-| `ers-content-compliance.mdc` | Glob: `src/content/**`, `src/messages/**`, `src/components/**`, `src/emails/**` | Content files | ERS Portugal rules: "digital health platform" (not "telemedicine"), platform vs expert responsibilities, credential language, Portuguese law disclaimers |
-| `bun-runtime.mdc` | Manual | Config files | Bun for local dev, Node.js for Vercel production, `Bun.CryptoHasher` for hashing, `bun run` for scripts |
-| `database-security.mdc` | Glob: `drizzle/**`, `lib/auth/**`, `lib/stripe/**` | DB/Auth/Payments | Drizzle + Neon patterns, Zod validation on all inputs, env var security, rate limiting, two-layer caching (React cache + Redis) |
+### Existing Rules (Enhanced)
+
+| Rule | Applied | Scope | Key Enhancements |
+| ---- | ------- | ----- | ---------------- |
+| `nextjs-core.mdc` | Always | All `src/` TypeScript | +i18n section (next-intl patterns), +WorkOS proxy example, +Related Agent Skills |
+| `sentry.mdc` | Always | All `src/` TypeScript | +Sentry MCP tools section, +Related Agent Skills |
+| `ui-components.mdc` | Glob: `src/components/**`, `src/app/**` | TSX files | +WCAG 2.1 AA patterns, +Tailwind v4 note, +TipTap reference, +Related Agent Skills |
+| `testing.mdc` | Glob: `tests/**`, `**/*.test.*` | Test files | Fixed `pnpm` → `bun run`, +Related Agent Skills |
+| `database-security.mdc` | Glob: `drizzle/**`, `src/lib/auth/**`, `src/lib/stripe/**`, `src/server/**`, `src/lib/redis/**` | DB/Auth/Payments | Fixed broken globs, replaced Clerk → WorkOS, +RLS patterns, +Vault encryption, +audit logging, +Related Agent Skills |
+| `fumadocs.mdc` | Glob: `src/content/**` | MDX/MD files | +Related Agent Skills (seo) |
+| `ers-content-compliance.mdc` | Glob: `src/content/**`, `src/messages/**`, `src/components/**`, `src/emails/**` | Content files | +Related Agent Skills (email-best-practices, react-email) |
+| `bun-runtime.mdc` | Manual | Config files | Unchanged |
+
+### New Rules
+
+| Rule | Applied | Scope | Content |
+| ---- | ------- | ----- | ------- |
+| `api-webhooks.mdc` | Glob: `src/app/api/**/*.ts` | 75 API route files | Webhook signature verification (Stripe, QStash, Novu), cron security, rate limiting, QStash no-op fallback |
+| `email-templates.mdc` | Glob: `src/emails/**/*.tsx` | 14 email templates | React Email patterns, brand constants, inline styles, i18n locale passing, `render()` function |
+| `server-actions.mdc` | Glob: `src/server/**/*.ts` | 19 server action files | `withAuth()` verification, Zod validation, cache invalidation patterns, RLS data access, error handling |
+| `novu-notifications.mdc` | Glob: Novu files | 55+ notification files | Workflow definitions, trigger patterns, Inbox HMAC, bridge endpoint, React Email rendering, Stripe bridging, i18n locale passing, Zod v4 workaround |
+| `health-compliance.mdc` | Description-only | Cross-cutting | GDPR (data subject rights, consent, DPIA, breach), HIPAA (PHI, BAAs, retention), SOC 2 controls, existing RLS/Vault/audit infrastructure patterns |
 
 ---
 
@@ -335,28 +325,34 @@ Which skills and rules apply to each part of the codebase:
 
 | Codebase Area | Skills | Rules |
 | ------------- | ------ | ----- |
-| **`src/proxy.ts`** | workos-authkit-nextjs | nextjs-core |
+| **`src/proxy.ts`** | workos-authkit-nextjs, next-intl-app-router | nextjs-core |
 | **`src/app/layout.tsx`** | workos-authkit-nextjs | nextjs-core, sentry |
 | **`src/app/(app)/`** (dashboard) | vercel-react-best-practices, accessibility | nextjs-core, sentry, ui-components |
-| **`src/app/(auth)/`** (login/register) | workos-authkit-nextjs, workos | nextjs-core, sentry |
-| **`src/app/(marketing)/`** (public pages) | frontend-design, seo, performance, accessibility | nextjs-core, sentry, ers-content-compliance |
-| **`src/app/api/webhooks/stripe*/`** | stripe-integration, stripe-best-practices | nextjs-core, sentry |
-| **`src/app/api/webhooks/workos/`** | workos | nextjs-core, sentry |
-| **`src/app/api/webhooks/novu/`** | email-best-practices | nextjs-core, sentry |
-| **`src/app/api/cron/`** | redis-js | nextjs-core, sentry |
+| **`src/app/(auth)/`** (login) | workos-authkit-nextjs, workos | nextjs-core, sentry |
+| **`src/app/(marketing)/`** (public) | frontend-design, seo, performance, accessibility | nextjs-core, sentry, ers-content-compliance |
+| **`src/app/api/webhooks/stripe*/`** | stripe-integration, stripe-best-practices | api-webhooks, sentry |
+| **`src/app/api/webhooks/workos/`** | workos | api-webhooks, sentry |
+| **`src/app/api/webhooks/novu/`** | email-best-practices | api-webhooks, novu-notifications, sentry |
+| **`src/app/api/cron/`** | upstash-qstash, redis-js | api-webhooks, sentry |
+| **`src/app/api/novu/`** | email-best-practices | novu-notifications, sentry |
+| **`src/app/api/records/`** | hipaa-compliance-guard, gdpr-dsgvo-expert | api-webhooks, health-compliance |
 | **`src/components/ui/`** | shadcn-ui, tailwind-theme-builder | ui-components |
-| **`src/components/features/forms/`** | shadcn-ui, vercel-react-best-practices | ui-components |
 | **`src/components/features/booking/`** | accessibility, vercel-react-best-practices | ui-components, sentry |
-| **`src/components/sections/`** | frontend-design, seo | ui-components, ers-content-compliance |
-| **`src/emails/`** | react-email, email-best-practices | ers-content-compliance |
+| **`src/components/integrations/novu/`** | email-best-practices | novu-notifications, ui-components |
+| **`src/components/shared/rich-text/`** | tiptap | ui-components |
+| **`src/emails/`** | react-email, email-best-practices | email-templates, ers-content-compliance |
+| **`src/config/novu*.ts`** | email-best-practices | novu-notifications |
 | **`src/lib/integrations/stripe/`** | stripe-integration, stripe-best-practices | database-security |
 | **`src/lib/integrations/workos/`** | workos | database-security |
-| **`src/lib/integrations/novu/`** | email-best-practices | sentry |
+| **`src/lib/integrations/novu/`** | email-best-practices | novu-notifications, sentry |
+| **`src/lib/integrations/qstash/`** | upstash-qstash | api-webhooks |
+| **`src/lib/integrations/neon/`** | neon-postgres | database-security, health-compliance |
+| **`src/lib/i18n/`** | next-intl-app-router | nextjs-core |
 | **`src/lib/redis/`** | redis-js | database-security |
-| **`src/server/actions/`** | stripe-integration, vercel-react-best-practices | nextjs-core, sentry, database-security |
+| **`src/server/actions/`** | stripe-integration, vercel-react-best-practices | server-actions, database-security, sentry |
+| **`src/messages/`** (i18n) | next-intl-app-router | ers-content-compliance |
 | **`src/content/`** (MDX) | seo | fumadocs, ers-content-compliance |
-| **`src/messages/`** (i18n) | -- | ers-content-compliance |
-| **`drizzle/`** | neon-drizzle, neon-postgres | database-security |
+| **`drizzle/`** | neon-drizzle, neon-postgres, hipaa-compliance-guard | database-security, health-compliance |
 | **`tests/`** | playwright-e2e-testing | testing |
 | **`sentry.*.config.ts`** | sentry-fix-issues, sentry-setup-logging | sentry |
 
@@ -364,33 +360,21 @@ Which skills and rules apply to each part of the codebase:
 
 ## Actionable Recommendations
 
-Based on the skill guidance, here are concrete improvements to audit:
-
 ### High Priority
 
-1. **Stripe: Checkout Sessions vs Payment Intents** -- The `stripe-best-practices` skill strongly recommends Checkout Sessions over Payment Intents for most flows. The app's `app/api/create-payment-intent/route.ts` uses Payment Intents directly. Evaluate if Checkout Sessions (with `ui_mode='custom'` for embedded forms) would reduce integration complexity.
-
-2. **Bundle Size: Barrel Imports** -- The `vercel-react-best-practices` skill flags barrel imports as CRITICAL for bundle size. Audit `src/components/ui/index.ts` and other barrel files. Import directly from component files instead.
-
-3. **Bundle Size: Defer Third-Party Scripts** -- PostHog and Novu Inbox should be loaded after hydration using `next/dynamic` with `{ ssr: false }` or the `after()` API.
-
-4. **Accessibility Audit** -- Run the `accessibility` skill against patient-facing booking flow components. As a health platform, WCAG 2.1 AA compliance is expected.
+1. **Stripe: Checkout Sessions vs Payment Intents** -- Evaluate if Checkout Sessions would reduce integration complexity.
+2. **Bundle Size: Barrel Imports** -- Audit `src/components/ui/index.ts` barrel exports. Import directly from component files.
+3. **Bundle Size: Defer Third-Party Scripts** -- Load PostHog and Novu Inbox after hydration with `next/dynamic({ ssr: false })`.
+4. **Accessibility Audit** -- Run against patient-facing booking flow. WCAG 2.1 AA is expected for a health platform.
+5. **GDPR Compliance** -- Implement data subject rights endpoints (access, erasure, portability).
+6. **HIPAA Readiness** -- Document BAA requirements for all third-party services handling PHI.
 
 ### Medium Priority
 
-5. **Server-Side Caching** -- Implement `React.cache()` for per-request deduplication of database calls in server components. Combine with existing Redis caching for cross-request patterns.
-
-6. **Non-Blocking Operations** -- Use Next.js `after()` API for audit logging, email sending, and webhook forwarding that don't need to block the response.
-
-7. **Email Deliverability** -- Verify SPF/DKIM/DMARC configuration on the sending domain. Run the `email-best-practices` skill's deliverability checklist.
-
-8. **SEO for Marketing Pages** -- Run the `seo` skill against `src/app/(marketing)/[locale]/` pages. Verify structured data, canonical URLs, and OpenGraph tags via `src/lib/seo/metadata-utils.ts`.
-
-### Low Priority
-
-9. **Neon Branching for Preview Deploys** -- Use Neon's instant branching to create isolated databases for Vercel preview deployments.
-
-10. **Security Review Before Releases** -- Run the `security-review` skill against the full codebase before major releases, focusing on auth flows, payment handling, and encrypted records.
+7. **Server-Side Caching** -- Implement `React.cache()` for per-request dedup of DB calls.
+8. **Non-Blocking Operations** -- Use `after()` API for audit logging, email sending.
+9. **Email Deliverability** -- Verify SPF/DKIM/DMARC on sending domain.
+10. **Data Retention Policies** -- Implement automated 6-year retention for HIPAA-covered records.
 
 ---
 
@@ -403,24 +387,17 @@ Skills are automatically activated when the AI detects relevant trigger phrases.
 ```
 "Use the stripe-best-practices skill to review my checkout flow"
 "Run the accessibility skill against src/components/features/booking/"
-"Apply vercel-react-best-practices to optimize this component"
+"Apply the health-compliance rule to audit this data access pattern"
 ```
 
 ### Finding New Skills
 
 ```bash
 bunx skills find "topic keyword"
-bunx skills add owner/repo@skill-name -y
+bunx skills add owner/repo@skill-name
 ```
 
 Browse available skills at [skills.sh](https://skills.sh/).
-
-### Updating Skills
-
-```bash
-bunx skills check    # Check for updates
-bunx skills update   # Update all installed skills
-```
 
 ---
 
@@ -452,3 +429,11 @@ bunx skills update   # Update all installed skills
 | 22 | `playwright-e2e-testing` | bobmatnyc/claude-mpm-skills | Testing |
 | 23 | `agent-browser` | Vercel (official) | Tooling |
 | 24 | `find-skills` | Vercel (official) | Tooling |
+| 25 | `next-intl-app-router` | liuchiawei/agent-skills | i18n (NEW) |
+| 26 | `upstash-qstash` | sickn33/antigravity-awesome-skills | Cron/Jobs (NEW) |
+| 27 | `tiptap` | jezweb/claude-skills | Rich Text (NEW) |
+| 28 | `security-compliance` | davila7/claude-code-templates | Compliance (NEW) |
+| 29 | `gdpr-dsgvo-expert` | davila7/claude-code-templates | Compliance (NEW) |
+| 30 | `healthcare-compliance` | eddiebe147/claude-settings | Compliance (NEW) |
+| 31 | `hipaa-compliance-guard` | jorgealves/agent_skills | Compliance (NEW) |
+| 32 | `data-retention-archiving-planner` | patricio0312rev/skills | Compliance (NEW) |

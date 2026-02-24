@@ -134,22 +134,24 @@ export async function markAsRead(id: string) {
 
 ```typescript
 // proxy.ts (root level, NOT middleware.ts)
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { authkit } from '@workos-inc/authkit-nextjs';
+import createMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
 
-// ✅ Next.js 16: Use 'proxy' export
+// ✅ Next.js 16: Use 'proxy' export + WorkOS AuthKit + next-intl
 export default async function proxy(request: NextRequest) {
-  const path = request.nextUrl.pathname;
+  const { user, role, permissions } = await authkit();
 
-  // Your routing logic here
-  if (path.startsWith('/admin')) {
-    // Check authentication, etc.
+  // JWT-based RBAC (zero database queries)
+  if (request.nextUrl.pathname.startsWith('/admin') && role !== 'admin') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next();
+  // i18n routing via next-intl
+  const intlMiddleware = createMiddleware(routing);
+  return intlMiddleware(request);
 }
 
-// Configure which paths the proxy runs on
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known).*)'],
 };
@@ -256,6 +258,39 @@ Before committing:
 - [ ] Added `'use client'` only when necessary
 - [ ] Using `proxy.ts` (NOT `middleware.ts`) with `export function proxy()`
 
+## Internationalization (next-intl)
+
+```typescript
+// ALWAYS import navigation from @/lib/i18n/navigation (NOT from next/link)
+import { Link, redirect, usePathname, useRouter } from '@/lib/i18n/navigation';
+
+// Route structure: app/[locale]/...
+// localePrefix: 'as-needed' (default locale has no prefix)
+
+// Server Component: use getTranslations
+import { getTranslations } from 'next-intl/server';
+
+export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'Common' });
+  return <h1>{t('title')}</h1>;
+}
+
+// Client Component: use useTranslations
+'use client';
+import { useTranslations } from 'next-intl';
+
+export function MyComponent() {
+  const t = useTranslations('Common');
+  return <p>{t('description')}</p>;
+}
+```
+
+**Key rules:**
+- Import `Link`, `redirect`, `usePathname` from `@/lib/i18n/navigation`, NEVER from `next/link` or `next/navigation`
+- Use ICU message syntax for plurals and variables in `src/messages/*.json`
+- The `[locale]` segment is handled by `next-intl` middleware in `proxy.ts`
+
 ## Common Mistakes
 
 **❌ Forgetting to await params**
@@ -319,3 +354,11 @@ export default function proxy(request: NextRequest) {
 3. **Performant:** Proper caching, streaming, parallel fetching
 4. **Secure:** Validate inputs, use Server Actions, handle errors
 5. **Documented:** JSDoc comments with examples
+
+## Related Agent Skills
+
+When working on Next.js core patterns, consider invoking these skills:
+- `vercel-react-best-practices` -- React performance patterns, composition, memoization
+- `workos-authkit-nextjs` -- WorkOS authentication integration patterns
+- `next-intl-app-router` -- i18n routing, translations, locale management
+- `posthog-instrumentation` -- analytics and feature flags integration

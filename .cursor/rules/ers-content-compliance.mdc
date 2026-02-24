@@ -234,3 +234,9 @@ For detailed guidance, see:
 - `_docs/ERS_portugal/alinhamento.md` - Alignment analysis
 - `_docs/ERS_portugal/ers-memo.md` - ERS explanatory memo template
 - `_docs/ERS_portugal/email-ers.md` - ERS official guidance email
+
+## Related Agent Skills
+
+When working on ERS-compliant content, consider invoking these skills:
+- `email-best-practices` -- email deliverability, compliance, content standards
+- `react-email` -- React Email template patterns for ERS-compliant emails

@@ -225,19 +225,19 @@ vi.mock('stripe', () => ({
 
 ```bash
 # Run all unit tests
-pnpm test
+bun run test
 
 # Run tests in watch mode
-pnpm test:watch
+bun run test:watch
 
 # Run with coverage
-pnpm test:coverage
+bun run test:coverage
 
 # Run E2E tests
-pnpm test:e2e
+bun run test:e2e
 
 # Run E2E with UI
-pnpm test:e2e:ui
+bun run test:e2e:ui
 ```
 
 ## Test File Organization
@@ -263,3 +263,9 @@ tests/
 ├── __mocks__/              # Mock modules
 └── setup.ts                # Vitest setup file
 ```
+
+## Related Agent Skills
+
+When working on tests, consider invoking these skills:
+- `playwright-e2e-testing` -- E2E test patterns, selectors, assertions, fixtures
+- `agent-browser` -- browser automation for interactive testing and debugging

@@ -59,7 +59,9 @@ interface UserProfileProps {
 }
 ````
 
-## Styling (TailwindCSS + Shadcn/ui)
+## Styling (TailwindCSS v4 + Shadcn/ui)
+
+> **Note:** This project uses Tailwind CSS v4 (`^4.1.18`). Use CSS-first configuration via `@theme` blocks in CSS files. The `tailwind.config.ts` file is only for backward compatibility.
 
 ```typescript
 import { cn } from '@/lib/utils';
@@ -130,7 +132,7 @@ export function UserForm() {
 ">
 ```
 
-## Accessibility
+## Accessibility (WCAG 2.1 AA)
 
 1. **Use semantic HTML:**
 
@@ -146,6 +148,11 @@ export function UserForm() {
 <button aria-label="Close modal">
   <X />
 </button>
+
+// Live regions for dynamic content
+<div aria-live="polite" role="status">
+  {statusMessage}
+</div>
 ```
 
 3. **Keyboard navigation:**
@@ -157,6 +164,22 @@ onKeyDown={(e) => {
   }
 }}
 ```
+
+4. **Focus management:**
+
+```tsx
+// Trap focus in modals, return focus on close
+// Use Radix UI Dialog/AlertDialog which handles this automatically
+import { Dialog } from '@/components/ui/dialog';
+```
+
+5. **Color contrast:** Minimum 4.5:1 for normal text, 3:1 for large text
+6. **Motion:** Respect `prefers-reduced-motion` for animations
+7. **Screen readers:** Test with VoiceOver (macOS) or NVDA (Windows)
+
+## Rich Text Editor (TipTap)
+
+When working with rich text editing, use TipTap with `immediatelyRender: false` for SSR safety. See the `tiptap` agent skill for detailed patterns.
 
 ## Performance
 
@@ -191,3 +214,14 @@ export function Welcome() {
   );
 }
 ```
+
+## Related Agent Skills
+
+When working on UI components, consider invoking these skills:
+- `shadcn-ui` -- Shadcn/ui component patterns and customization
+- `tailwind-theme-builder` -- Tailwind theme tokens and design system
+- `accessibility` -- WCAG compliance, screen readers, keyboard navigation
+- `frontend-design` -- high-quality UI design patterns
+- `web-design-guidelines` -- UX best practices audit
+- `performance` -- bundle size, lazy loading, image optimization
+- `tiptap` -- rich text editor integration (SSR-safe, Markdown, forms)

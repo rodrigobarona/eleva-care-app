@@ -194,3 +194,19 @@ SENTRY_AUTH_TOKEN="sntrys_..."
 # Optional - Server-side DSN (defaults to NEXT_PUBLIC_SENTRY_DSN)
 SENTRY_DSN="https://..."
 ```
+
+## Debugging with Sentry MCP Tools
+
+When investigating production errors, use the Sentry MCP tools available in this workspace:
+- `search_issues` -- find issues by description or impact
+- `get_issue_details` -- get full stacktrace and context for a specific issue
+- `analyze_issue_with_seer` -- AI-powered root cause analysis with code fix suggestions
+- `search_events` -- count errors, aggregate data, find specific events
+
+Organization slug: `elevacade`, Project: `eleva-care`
+
+## Related Agent Skills
+
+When working on error monitoring and debugging, consider invoking these skills:
+- `sentry-fix-issues` -- patterns for fixing Sentry-reported errors
+- `sentry-setup-logging` -- structured logging setup with Sentry SDK
