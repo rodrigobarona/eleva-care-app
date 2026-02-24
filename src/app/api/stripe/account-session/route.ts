@@ -51,6 +51,24 @@ export async function POST() {
         },
         notification_banner: { enabled: true },
         documents: { enabled: true },
+        payments: {
+          enabled: true,
+          features: {
+            refund_management: true,
+            dispute_management: true,
+            capture_payments: true,
+            destination_on_behalf_of_charge_management: false,
+          },
+        },
+        balances: {
+          enabled: true,
+          features: {
+            instant_payouts: true,
+            standard_payouts: true,
+            edit_payout_schedule: true,
+          },
+        },
+        payouts_list: { enabled: true },
       },
     });
 
