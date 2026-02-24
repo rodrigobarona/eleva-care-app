@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  BarChart3,
   Building2,
+  ChartColumnIncreasing,
   DollarSign,
   Headphones,
   Shield,
@@ -28,7 +28,7 @@ const iconMap: Record<IconName, React.ElementType> = {
   zap: Zap,
   trending: TrendingUp,
   shield: Shield,
-  chart: BarChart3,
+  chart: ChartColumnIncreasing,
   headphones: Headphones,
 };
 
