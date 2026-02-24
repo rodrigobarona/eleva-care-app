@@ -104,6 +104,20 @@ deleteEvent(id: string): Promise<EventResult>
 updateEventOrder(updates: OrderUpdate[]): Promise<void>
 ```
 
+### Dashboard Data (`dashboard.ts`)
+
+Provides data for the role-aware dashboard. All functions are wrapped in `Sentry.withServerActionInstrumentation` and return safe defaults on error.
+
+```typescript
+getUpcomingMeetings(workosUserId: string, role: 'patient' | 'expert', limit?: number): Promise<DashboardMeeting[]>
+getRecentMeetings(workosUserId: string, role: 'patient' | 'expert', limit?: number): Promise<DashboardMeeting[]>
+getPatientStats(workosUserId: string): Promise<PatientStats>
+getExpertStats(workosUserId: string): Promise<ExpertStats>
+getExpertEarnings(workosUserId: string): Promise<ExpertEarnings>
+```
+
+Queries join `MeetingsTable`, `EventsTable`, `ProfilesTable`, and `TransactionCommissionsTable`. See [Dashboard Redesign](../ui-ux/06-dashboard-redesign.md) for full architecture.
+
 ## Usage Guidelines
 
 ### Error Handling
@@ -127,8 +141,9 @@ type ActionResult<T> = {
 ### Security
 
 - All actions use server-side validation
-- Authentication checks via Clerk
+- Authentication checks via WorkOS AuthKit (`withAuth`)
 - Proper permission checks for protected operations
+- All actions instrumented with Sentry (see [Sentry Observability](./08-sentry-observability.md))
 
 ### Audit Logging
 
@@ -148,13 +163,17 @@ Most operations are logged for audit purposes, including:
    const validatedData = await schema.parseAsync(unsafeData);
    ```
 
-2. **Include proper error handling**
+2. **Include proper error handling with Sentry**
 
    ```typescript
+   import * as Sentry from '@sentry/nextjs';
+   const { logger } = Sentry;
+
    try {
      // Operation
    } catch (error) {
-     console.error('Operation failed:', error);
+     Sentry.captureException(error);
+     logger.error('Operation failed', { error });
      return { error: true, message: 'Friendly error message' };
    }
    ```

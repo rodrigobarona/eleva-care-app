@@ -27,7 +27,9 @@ Code standards, conventions, and best practices.
 - [Server Actions](./standards/03-server-actions.md)
 - [Bundle Optimization](./standards/04-bundle-optimization-report.md)
 - [Build Optimization](./standards/05-build-optimization-guide.md)
-- [Core Web Vitals Optimization](./standards/06-core-web-vitals-optimization.md) ⭐ **NEW**
+- [Core Web Vitals Optimization](./standards/06-core-web-vitals-optimization.md)
+- [Server Audit Feb 2026](./standards/07-server-audit-feb2026.md) -- Admin auth, user refactor, dependency cleanup
+- [Sentry Observability](./standards/08-sentry-observability.md) -- API route instrumentation pattern
 
 ---
 
@@ -83,6 +85,7 @@ User interface and user experience patterns.
 - [TipTap Editor Fixes](./ui-ux/03-tiptap-editor-fixes.md)
 - [OG Image System](./ui-ux/04-og-image-system.md)
 - [TipTap Markdown Implementation](./ui-ux/05-tiptap-markdown-implementation.md)
+- [Dashboard Redesign](./ui-ux/06-dashboard-redesign.md) -- Role-aware dashboards with Stripe embedded components
 
 ---
 

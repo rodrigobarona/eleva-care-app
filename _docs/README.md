@@ -2,7 +2,7 @@
 
 **Complete technical documentation for the Eleva Care platform**
 
-**Last Updated:** December 16, 2025  
+**Last Updated:** February 24, 2026  
 **Status:** ✅ Active & Maintained
 
 ---
@@ -331,6 +331,9 @@ This documentation follows the **[Diátaxis Framework](https://diataxis.fr/)** -
 
 ### Recently Updated
 
+- ✅ Dashboard Redesign (Feb 2026) - Role-aware dashboards with Stripe embedded components
+- ✅ Server Audit (Feb 2026) - Admin auth hardening, dependency cleanup, config centralization
+- ✅ Sentry Observability (Feb 2026) - 64 API routes instrumented with structured logging
 - ✅ WorkOS Migration (Feb 2025) - Complete
 - ✅ Subscription System (Feb 2025) - Reference complete
 - ✅ Core Systems README (Feb 2025) - Updated for WorkOS
@@ -465,7 +468,7 @@ Where to go from here
 
 **Total Documents:** 150+  
 **Total Sections:** 9  
-**Last Major Update:** February 6, 2025  
+**Last Major Update:** February 24, 2026  
 **Documentation Coverage:** 85%
 
 **Most Viewed:**
@@ -478,7 +481,7 @@ Where to go from here
 ---
 
 **Maintained By:** Engineering Team  
-**Last Updated:** February 6, 2025  
+**Last Updated:** February 24, 2026  
 **Status:** ✅ Active & Well-Maintained
 
 ---
