@@ -1,12 +1,15 @@
 /**
  * User Database Queries
  *
- * Server-side database queries for user data.
+ * Canonical location for all user lookups by WorkOS ID, username, etc.
  * Uses Drizzle ORM with Neon Postgres.
  */
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { eq, isNull } from 'drizzle-orm';
+
+const { logger } = Sentry;
 
 /**
  * Minimal user type for public profiles
@@ -24,20 +27,6 @@ export type MinimalUser = {
   role: string;
 };
 
-/**
- * Get user by username (for /[username] routes)
- *
- * @param username - The username to look up
- * @returns User data or null if not found
- *
- * @example
- * ```typescript
- * const user = await getUserByUsername('dr-maria');
- * if (user) {
- *   console.log(user.email);
- * }
- * ```
- */
 export async function getUserByUsername(username: string): Promise<MinimalUser | null> {
   try {
     const user = await db.query.UsersTable.findFirst({
@@ -54,13 +43,13 @@ export async function getUserByUsername(username: string): Promise<MinimalUser |
 
     return user || null;
   } catch (error) {
-    console.error('Error fetching user by username:', error);
+    logger.error('Error fetching user by username', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
 
 /**
- * Get user by WorkOS user ID (minimal columns for public profiles)
+ * Minimal user lookup by WorkOS ID (selected columns only).
  */
 export async function getUserByWorkosId(workosUserId: string): Promise<MinimalUser | null> {
   try {
@@ -78,14 +67,13 @@ export async function getUserByWorkosId(workosUserId: string): Promise<MinimalUs
 
     return user || null;
   } catch (error) {
-    console.error('Error fetching user by WorkOS ID:', error);
+    logger.error('Error fetching user by WorkOS ID', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
 
 /**
- * Get full user record by WorkOS user ID (all columns).
- * Canonical function -- replaces duplicates in user-sync.ts and lib/utils/server/users.ts.
+ * Full user record by WorkOS ID (all columns).
  */
 export async function getFullUserByWorkosId(workosUserId: string) {
   if (!workosUserId) return null;
@@ -97,17 +85,11 @@ export async function getFullUserByWorkosId(workosUserId: string) {
 
     return user ?? null;
   } catch (error) {
-    console.error('Error fetching full user by WorkOS ID:', error);
+    logger.error('Error fetching full user by WorkOS ID', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
 
-/**
- * Check if a username is available
- *
- * @param username - The username to check
- * @returns True if available, false if taken
- */
 export async function isUsernameAvailable(username: string): Promise<boolean> {
   try {
     const existing = await db.query.UsersTable.findFirst({
@@ -117,18 +99,11 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
 
     return !existing;
   } catch (error) {
-    console.error('Error checking username availability:', error);
+    logger.error('Error checking username availability', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
 
-/**
- * Update user's username
- *
- * @param workosUserId - The WorkOS user ID
- * @param username - The new username
- * @returns True if successful, false otherwise
- */
 export async function updateUsername(workosUserId: string, username: string): Promise<boolean> {
   try {
     await db
@@ -141,17 +116,11 @@ export async function updateUsername(workosUserId: string, username: string): Pr
 
     return true;
   } catch (error) {
-    console.error('Error updating username:', error);
+    logger.error('Error updating username', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
 
-/**
- * Get users without usernames (for migration/backfill)
- *
- * @param limit - Maximum number of users to return
- * @returns Array of users without usernames
- */
 export async function getUsersWithoutUsernames(limit: number = 100): Promise<MinimalUser[]> {
   try {
     const users = await db.query.UsersTable.findMany({
@@ -169,7 +138,7 @@ export async function getUsersWithoutUsernames(limit: number = 100): Promise<Min
 
     return users as MinimalUser[];
   } catch (error) {
-    console.error('Error fetching users without usernames:', error);
+    logger.error('Error fetching users without usernames', { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }
