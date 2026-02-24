@@ -273,8 +273,8 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Handle cron jobs - delegate to route handlers for proper signature validation
-  // The middleware only performs basic checks; full QStash signature verification
-  // happens in the route handlers via isVerifiedQStashRequest()
+  // The proxy only performs basic checks; full QStash signature verification
+  // happens in the route handlers via verifySignatureAppRouter()
   if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
     if (path.startsWith('/api/cron/')) {
       // Check for presence of authentication headers (actual verification happens in route handlers)

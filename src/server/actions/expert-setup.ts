@@ -19,7 +19,7 @@ import type { SetupStats, SetupStatus, SetupStepType } from '@/types/expert-setu
 import { SetupStep } from '@/types/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { count, eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 
 /**
  * Expert Setup Server Actions (WorkOS)
@@ -140,7 +140,6 @@ export async function checkExpertSetupStatus(): Promise<{
  *
  * export async function completeProfileSetup() {
  *   await markStepComplete('profile');
- *   revalidatePath('/setup');
  * }
  * ```
  */
@@ -203,9 +202,8 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
     }
   }
 
-  // Revalidate setup page
-  revalidatePath('/setup');
-  revalidatePath('/dashboard');
+  updateTag('expert-setup');
+  updateTag(`expert-setup-${user.id}`);
 }
 
 /**
@@ -237,8 +235,8 @@ export async function markStepIncomplete(step: SetupStepType): Promise<void> {
     })
     .where(eq(ExpertSetupTable.workosUserId, user.id));
 
-  revalidatePath('/setup');
-  revalidatePath('/dashboard');
+  updateTag('expert-setup');
+  updateTag(`expert-setup-${user.id}`);
 }
 
 /**
@@ -274,8 +272,8 @@ export async function resetSetup(workosUserId?: string): Promise<void> {
     })
     .where(eq(ExpertSetupTable.workosUserId, targetUserId));
 
-  revalidatePath('/setup');
-  revalidatePath('/dashboard');
+  updateTag('expert-setup');
+  updateTag(`expert-setup-${targetUserId}`);
 }
 
 /**

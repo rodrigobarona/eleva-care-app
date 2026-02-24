@@ -148,7 +148,7 @@ These fill the critical gap of ZERO compliance-specific guidance for a platform 
 - `src/config/novu.ts` -- Novu workflow definitions (`@novu/framework`)
 - `src/lib/integrations/novu/client.ts` -- Novu API client (`@novu/api`)
 - `src/components/integrations/novu/` -- Novu Inbox component (`@novu/react`)
-- `src/app/api/novu/route.ts` -- Novu bridge endpoint
+- `src/app/api/novu/subscriber-hash/route.ts` -- HMAC subscriber hash endpoint (bridge endpoint not yet created)
 
 ---
 
@@ -375,6 +375,60 @@ Which skills and rules apply to each part of the codebase:
 8. **Non-Blocking Operations** -- Use `after()` API for audit logging, email sending.
 9. **Email Deliverability** -- Verify SPF/DKIM/DMARC on sending domain.
 10. **Data Retention Policies** -- Implement automated 6-year retention for HIPAA-covered records.
+
+---
+
+## MCP Server Inventory
+
+Active MCP servers configured in `~/.cursor/mcp.json`:
+
+| MCP Server | Type | Purpose |
+| ---------- | ---- | ------- |
+| `context7` | URL (HTTP) | Up-to-date library documentation and code examples |
+| `Stripe` | CLI (`npx`) | Stripe API operations (products, prices, subscriptions) |
+| `Linear` | URL (SSE) | Issue tracking and project management |
+| `novu` | URL (EU) | Notification workflow management |
+| `vercel` | URL | Deployment, domains, environment variables |
+| `shadcn` | CLI (`npx`) | Component registry browsing and installation |
+| `Neon` | URL (MCP) | Database management, branching, connection pooling |
+| `Playwright` | CLI (`npx`) | Browser automation and E2E testing |
+| `Figma Desktop` | Local | Design file inspection and code generation |
+| `PostHog` | CLI (`npx`) | Analytics, feature flags, error tracking (NEW) |
+| `Upstash` | CLI (`npx`) | Redis management, database queries, performance metrics (NEW) |
+| `Sentry` | URL (MCP) | Error monitoring, issue analysis, trace inspection |
+
+**Removed:** Sanity (unused), Commerce Layer Core/Metrics/Provisioning/Rules Engine (unused -- 4 servers)
+
+---
+
+## Recent Changes (February 2026)
+
+### Cache Migration: `revalidatePath` to `updateTag`
+
+All 5 server action files have been migrated from path-based to tag-based cache invalidation:
+
+| File | Old Pattern | New Tags |
+| ---- | ----------- | -------- |
+| `expert-profile.ts` | 5x `revalidatePath` | `experts`, `expert-{userId}` |
+| `expert-setup.ts` | `revalidatePath('/setup', '/dashboard')` | `expert-setup`, `expert-setup-{userId}` |
+| `events.ts` | 4x `revalidatePath` | `events`, `event-{id}`, `user-events-{userId}` |
+| `blocked-dates.ts` | 3x `revalidatePath('/booking/schedule')` | `schedules`, `user-schedule-{userId}` |
+| `stripe-pricing.ts` | 4x `revalidatePath('/admin/subscriptions')` | `subscriptions`, `pricing` |
+
+### next-intl 4.8 Precompilation
+
+- Migrated `t.raw()` in `Services.tsx` and `ApproachSection.tsx` to indexed message keys
+- Restructured `services.items` and `approach.items` from arrays to indexed objects in all 4 locale files
+- Enabled `experimental.messages.precompile: true` in `next.config.ts`
+
+### Rule Fixes
+
+- `database-security.mdc`: Fixed `getOrgScopedDb(orgId)` to `getOrgScopedDb()` (no args)
+- `api-webhooks.mdc`: Documented all 3 actual QStash patterns (`verifySignatureAppRouter`, `isVerifiedQStashRequest`, `CRON_SECRET` Bearer)
+- `novu-notifications.mdc`: Removed non-existent bridge endpoint, fixed `securityWorkflow` to `securityAuthWorkflow`
+- `fumadocs.mdc`: Added YAML frontmatter with globs
+- `nextjs-core.mdc`: Replaced `'use cache'` examples with `unstable_cache` + tags, extended globs
+- `server-actions.mdc`: Tag-based invalidation as primary pattern with naming convention
 
 ---
 

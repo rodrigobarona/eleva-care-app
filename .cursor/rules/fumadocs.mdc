@@ -1,6 +1,9 @@
-# Fumadocs Documentation Best Practices
+---
+description: Fumadocs Documentation Best Practices
+globs: ['src/content/**/*.mdx', 'src/content/**/meta.json']
+---
 
-**Applies to:** `src/content/**/*.mdx`, `src/content/**/*.md`, `src/content/**/meta.json`
+# Fumadocs Documentation Best Practices
 
 This rule ensures consistent, high-quality documentation using Fumadocs framework across all Eleva Care documentation portals.
 

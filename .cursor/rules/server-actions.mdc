@@ -58,17 +58,32 @@ export async function updateProfile(data: FormData) {
 
 ## Cache Invalidation
 
-Choose the correct invalidation strategy:
+Use tag-based invalidation with `updateTag` / `revalidateTag`. These work with `unstable_cache` tags today and will work with `cacheTag` when `cacheComponents` is enabled (blocked on next-intl [#1493](https://github.com/amannn/next-intl/issues/1493)).
+
+### Tag Naming Convention
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Entity (collection) | `'{entity}'` | `'experts'`, `'events'`, `'subscriptions'` |
+| Instance | `'{entity}-{id}'` | `'expert-abc123'`, `'event-xyz'` |
+| User-scoped | `'user-{entity}-{userId}'` | `'user-events-abc123'`, `'user-schedule-abc123'` |
+| Composite | `'{domain}-{scope}'` | `'expert-setup'`, `'expert-profile'` |
+
+### Invalidation Strategies
 
 ```typescript
 import { updateTag, revalidateTag, refresh } from 'next/cache';
 
-// updateTag() -- Immediate (user sees changes right away)
-export async function createPost(data: FormData) {
-  const post = await db.insert(posts).values(validated);
-  updateTag('posts');
-  updateTag(`post-${post.id}`);
-  redirect(`/posts/${post.id}`);
+// updateTag() -- Immediate (read-your-own-writes)
+export async function createEvent(data: FormData) {
+  const { user } = await withAuth();
+  if (!user) throw new Error('Unauthorized');
+
+  const event = await db.insert(events).values(validated);
+  updateTag('events');
+  updateTag(`event-${event.id}`);
+  updateTag(`user-events-${user.id}`);
+  redirect(`/events/${event.slug}`);
 }
 
 // revalidateTag() -- Background (stale-while-revalidate)
@@ -83,6 +98,24 @@ export async function markAsRead(id: string) {
   refresh();
 }
 ```
+
+### Data Fetching Side (tags must match)
+
+For tag-based invalidation to work, queries must be wrapped in `unstable_cache` with matching tags:
+
+```typescript
+import { unstable_cache } from 'next/cache';
+
+async function getExpertEvents(userId: string) {
+  return unstable_cache(
+    async () => db.select().from(events).where(eq(events.userId, userId)),
+    [`user-events-${userId}`],
+    { revalidate: 300, tags: ['events', `user-events-${userId}`] }
+  )();
+}
+```
+
+**Legacy pattern:** `revalidatePath('/path')` still works for path-level invalidation but is less granular. Prefer tag-based invalidation for new code.
 
 ## Error Handling
 
@@ -134,7 +167,7 @@ export async function getHealthRecords() {
   const { user, organizationId } = await withAuth();
   if (!user || !organizationId) throw new Error('Unauthorized');
 
-  const orgDb = await getOrgScopedDb(organizationId);
+  const orgDb = await getOrgScopedDb();
   return orgDb.select().from(healthRecords);
 }
 ```
@@ -190,7 +223,7 @@ Before committing server actions:
 
 - [ ] Authentication verified with `withAuth()`
 - [ ] Inputs validated with Zod schema
-- [ ] Correct cache invalidation (`updateTag` / `revalidateTag` / `refresh`)
+- [ ] Tag-based cache invalidation (`updateTag` / `revalidateTag` / `refresh`) with matching `unstable_cache` tags on the query side
 - [ ] Health data uses `getOrgScopedDb()` (not raw `db`)
 - [ ] PHI access logged via `logAuditEvent()`
 - [ ] Errors caught and reported to Sentry

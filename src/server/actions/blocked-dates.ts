@@ -6,7 +6,7 @@ import { BlockedDatesTable, SchedulesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 
 interface BlockedDateInput {
   date: Date;
@@ -46,7 +46,8 @@ export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> 
   });
 
   await db.insert(BlockedDatesTable).values(values);
-  revalidatePath('/booking/schedule');
+  updateTag('schedules');
+  updateTag(`user-schedule-${userId}`);
 }
 
 export async function removeBlockedDate(id: number): Promise<void> {
@@ -58,7 +59,8 @@ export async function removeBlockedDate(id: number): Promise<void> {
     .delete(BlockedDatesTable)
     .where(and(eq(BlockedDatesTable.id, id), eq(BlockedDatesTable.workosUserId, userId)));
 
-  revalidatePath('/booking/schedule');
+  updateTag('schedules');
+  updateTag(`user-schedule-${userId}`);
 }
 
 export async function getBlockedDates(): Promise<BlockedDate[]> {
@@ -144,8 +146,8 @@ export async function updateBlockedDate(
     throw new Error('Blocked date not found or you do not have permission to update it');
   }
 
-  // Revalidate the schedule page
-  revalidatePath('/booking/schedule');
+  updateTag('schedules');
+  updateTag(`user-schedule-${userId}`);
 
   // Convert the date string back to Date object (consistent with existing functions)
   const dateStr = `${updatedRecord.date}T00:00:00`;

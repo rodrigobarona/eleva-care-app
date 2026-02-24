@@ -15,8 +15,8 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
-import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { createPayoutCompletedNotification } from '@/lib/notifications/payment';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -82,36 +82,7 @@ type ExpertUserForPayout = {
  * Phase 1: Database-driven payouts (preferred method)
  * Phase 2: Stripe fallback for legal compliance verification
  */
-export async function GET(request: Request) {
-  console.log(
-    'Received request to process-pending-payouts with headers:',
-    Object.fromEntries(request.headers.entries()),
-  );
-
-  // Enhanced authentication with multiple fallbacks
-  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
-  const apiKey = request.headers.get('x-api-key');
-  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
-  const hasUpstashSignature =
-    request.headers.has('upstash-signature') || request.headers.has('x-upstash-signature');
-  const userAgent = request.headers.get('user-agent') || '';
-  const isUpstashUserAgent =
-    userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-  const isProduction = process.env.NODE_ENV === 'production';
-  const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
-
-  if (
-    verifiedQStash ||
-    isValidApiKey ||
-    (hasUpstashSignature && isUpstashUserAgent) ||
-    (isProduction && allowFallback && isUpstashUserAgent)
-  ) {
-    console.log('🔓 Authentication successful for process-pending-payouts');
-  } else {
-    console.error('❌ Unauthorized access attempt to process-pending-payouts');
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handler(_request: Request) {
   const now = new Date();
   let databaseResults: PayoutResult[] = [];
   let stripeResults: PayoutResult[] = [];
@@ -409,12 +380,7 @@ export async function GET(request: Request) {
   }
 }
 
-/**
- * Support for POST requests from QStash
- */
-export async function POST(request: Request) {
-  return GET(request);
-}
+export const POST = verifySignatureAppRouter(handler);
 
 /**
  * Create a payout for a specific transfer using Stripe Connect best practices

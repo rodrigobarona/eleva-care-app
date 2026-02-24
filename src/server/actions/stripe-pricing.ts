@@ -17,7 +17,7 @@ import {
   priceFilterSchema,
   updatePriceSchema,
 } from '@/lib/validations/stripe-pricing';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 import Stripe from 'stripe';
 
 /**
@@ -198,8 +198,8 @@ export async function createStripePrice(input: CreatePriceInput) {
 
     const price = await stripe.prices.create(priceParams);
 
-    // Revalidate admin pages
-    revalidatePath('/admin/subscriptions');
+    updateTag('subscriptions');
+    updateTag('pricing');
 
     return {
       success: true,
@@ -249,8 +249,8 @@ export async function updateStripePrice(input: UpdatePriceInput) {
 
     const price = await stripe.prices.update(validatedInput.priceId, updateParams);
 
-    // Revalidate admin pages
-    revalidatePath('/admin/subscriptions');
+    updateTag('subscriptions');
+    updateTag('pricing');
 
     return {
       success: true,
@@ -285,8 +285,8 @@ export async function archiveStripePrice(priceId: string) {
       active: false,
     });
 
-    // Revalidate admin pages
-    revalidatePath('/admin/subscriptions');
+    updateTag('subscriptions');
+    updateTag('pricing');
 
     return {
       success: true,
@@ -321,8 +321,8 @@ export async function activateStripePrice(priceId: string) {
       active: true,
     });
 
-    // Revalidate admin pages
-    revalidatePath('/admin/subscriptions');
+    updateTag('subscriptions');
+    updateTag('pricing');
 
     return {
       success: true,

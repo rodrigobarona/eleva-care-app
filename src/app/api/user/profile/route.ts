@@ -11,9 +11,8 @@ export const dynamic = 'force-dynamic';
  * Uses Next.js 16 unstable_cache with tag-based revalidation
  * 
  * NOTE: We use unstable_cache instead of 'use cache: remote' because
- * cacheComponents is disabled due to next-intl compatibility issues.
- * Once next-intl supports cacheComponents, we can migrate to 'use cache: remote'.
- * See docs/CACHE-MIGRATION-GUIDE.md for migration plan.
+ * cacheComponents is disabled (blocked on next/root-params for next-intl).
+ * Track: https://github.com/amannn/next-intl/issues/1493
  * 
  * Cache duration: 5 minutes (300 seconds)
  * Cache tags: 'user-profile', 'user-profile-{userId}'

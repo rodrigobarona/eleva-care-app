@@ -142,24 +142,26 @@ export function generateSubscriberHash(subscriberId: string): string {
 
 ## Bridge Endpoint
 
-The Novu bridge connects your local workflows to the Novu cloud:
+The Novu bridge connects your local workflows to the Novu cloud.
+
+**Status:** The bridge endpoint (`src/app/api/novu/route.ts`) is not yet created. Only `src/app/api/novu/subscriber-hash/route.ts` exists for HMAC hash generation. When creating the bridge, register all workflows from `src/config/novu.ts`:
 
 ```typescript
-// src/app/api/novu/route.ts
+// src/app/api/novu/route.ts (to be created)
 import { serve } from '@novu/framework/next';
 import {
   userLifecycleWorkflow,
-  appointmentWorkflow,
+  securityAuthWorkflow,
   paymentWorkflow,
-  securityWorkflow,
+  expertManagementWorkflow,
 } from '@/config/novu';
 
 export const { GET, POST, OPTIONS } = serve({
   workflows: [
     userLifecycleWorkflow,
-    appointmentWorkflow,
+    securityAuthWorkflow,
     paymentWorkflow,
-    securityWorkflow,
+    expertManagementWorkflow,
   ],
 });
 ```

@@ -17,7 +17,7 @@ type ServiceItem = {
   icon: string;
   title: string;
   description: string;
-  items: string[];
+  subitems: string[];
   image: string;
   cta: string;
 };
@@ -62,7 +62,17 @@ const ServiceSection: React.FC = () => {
           {t('description')}
         </p>
         <div className="mt-12 grid gap-2 md:grid-cols-2 md:gap-10 lg:grid-cols-2">
-          {t.raw('items').map((service: ServiceItem) => (
+          {Array.from({ length: parseInt(t('itemCount')) }, (_, i): ServiceItem => ({
+            icon: t(`item${i}.icon`),
+            title: t(`item${i}.title`),
+            description: t(`item${i}.description`),
+            subitems: Array.from(
+              { length: parseInt(t(`item${i}.subitemCount`)) },
+              (_, j) => t(`item${i}.subitem${j}`),
+            ),
+            image: t(`item${i}.image`),
+            cta: t(`item${i}.cta`),
+          })).map((service) => (
             <Card
               key={service.title}
               className="flex flex-col overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -94,7 +104,7 @@ const ServiceSection: React.FC = () => {
                         <AccordionTrigger>{service.cta}</AccordionTrigger>
                         <AccordionContent>
                           <ul className="mt-4 list-inside list-disc text-eleva-neutral-900">
-                            {service.items.map((item: string) => (
+                            {service.subitems.map((item: string) => (
                               <li key={item} className="flex items-start pb-2 text-base">
                                 <ChevronRight className="mr-2 mt-1 h-4 w-4 shrink-0" />
                                 <span className="flex-1">{parseBold(item)}</span>

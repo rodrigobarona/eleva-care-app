@@ -54,74 +54,67 @@
     "title": "How we support you",
     "subtitle": "Expert-led care, tailored to you",
     "description": "Access personalized care from top women’s health professionals. We connect you with the expertise you need—from online consultations to local resources—designed around your unique journey.",
-    "items": [
-      {
-        "icon": "Baby",
-        "title": "Pregnancy & Postpartum",
-        "description": "Compassionate, evidence-based support through pregnancy and early motherhood.",
-        "items": [
-          "**Physical Therapy:** Prepare for birth, manage pain, regain strength, address diastasis recti, and receive targeted pelvic floor interventions to prevent and treat dysfunction.",
-          "**OB/GYN Care:** Receive expert care throughout your pregnancy journey and postpartum recovery.",
-          "**Nutritional Guidance:** Optimize your diet for a healthy pregnancy and postpartum journey.",
-          "**Mental Health Support:** Navigate the emotional and mental challenges of motherhood with compassionate guidance.",
-          "**Exercise:** Explore the benefits of therapeutic exercise during pregnancy and postpartum, designed to support your changing body and promote a healthy recovery."
-        ],
-        "image": "/img/Pregnant-Woman-Flowers.jpg",
-        "cta": "Learn more"
-      },
-      {
-        "icon": "Droplets",
-        "title": "Pelvic Health",
-        "description": "Specialized care for pelvic floor health across every stage of life.",
-        "items": [
-          "**Pelvic Physical Therapy:** Specialized treatment for incontinence, pelvic organ prolapse, and pelvic pain, including pain during intercourse.",
-          "**Specialized OB/GYN Care:** Expert diagnosis and treatment for a range of pelvic health issues, including prolapse, endometriosis, and sexual dysfunction. ",
-          "**Mental Health Support:** Counseling and therapy to address the psychological aspects of pelvic health concerns."
-        ],
-        "image": "/img/Woman-Working-Out-Living-Room.jpg",
-        "cta": "Learn more"
-      },
-      {
-        "icon": "Flower2",
-        "title": "Through Every Stage",
-        "description": "Holistic support from adolescence through menopause—and beyond.",
-        "items": [
-          "**Teen Health:** Navigate puberty, menstruation, and early womanhood with confidence and support.",
-          "**Menopause Management:** Address hormonal changes, manage symptoms, and prioritize your well-being ",
-          "**Mental Wellness:** Access therapy and support to manage stress, anxiety, depression, and other mental health concerns.",
-          "**Fitness & Nutrition:** Discover personalized exercise plans and nutritional guidance tailored to your individual needs.",
-          "**Physical Therapy:** Manage pain, prevent injury, and optimize your physical performance, with specialized expertise in pelvic floor health for active women and female athletes."
-        ],
-        "image": "/img/Smiling-Women-Photo.jpg",
-        "cta": "Learn more"
-      },
-      {
-        "icon": "Ribbon",
-        "title": "Empowering Your Cancer Journey",
-        "description": "Specialized support for breast and gynecologic cancers—from diagnosis to survivorship.",
-        "items": [
-          "**Physical Therapy:** Optimize your recovery with pre-surgical preparation, post-treatment rehabilitation, lymphedema management, and targeted exercise programs designed for each phase of your cancer journey.",
-          "**Pain Management:** Access evidence-based techniques for managing treatment-related pain, including manual therapy, therapeutic exercise, and scar tissue management.",
-          "**Exercise Support:** Receive personalized exercise prescriptions that adapt to your treatment phase, helping maintain strength, manage fatigue, and support your recovery journey.",
-          "**Mental Health Care:** Navigate the emotional challenges of diagnosis and treatment with professional support focused on building resilience and managing anxiety.",
-          "**Lymphedema Care:** Benefit from specialized prevention strategies and treatment including manual lymphatic drainage, compression therapy, and self-management education.",
-          "**Collaborative Approach:** Our collaborative approach ensures coordinated care with your oncology team, supporting your physical and emotional well-being throughout treatment and recovery.",
-          "Our collaborative approach ensures coordinated care with your oncology team, supporting your physical and emotional well-being throughout treatment and recovery."
-        ],
-        "image": "/img/cancer-journey.jpg",
-        "cta": "Learn more"
-      }
-    ]
+    "itemCount": "4",
+    "item0": {
+      "icon": "Baby",
+      "title": "Pregnancy & Postpartum",
+      "description": "Compassionate, evidence-based support through pregnancy and early motherhood.",
+      "subitemCount": "5",
+      "subitem0": "**Physical Therapy:** Prepare for birth, manage pain, regain strength, address diastasis recti, and receive targeted pelvic floor interventions to prevent and treat dysfunction.",
+      "subitem1": "**OB/GYN Care:** Receive expert care throughout your pregnancy journey and postpartum recovery.",
+      "subitem2": "**Nutritional Guidance:** Optimize your diet for a healthy pregnancy and postpartum journey.",
+      "subitem3": "**Mental Health Support:** Navigate the emotional and mental challenges of motherhood with compassionate guidance.",
+      "subitem4": "**Exercise:** Explore the benefits of therapeutic exercise during pregnancy and postpartum, designed to support your changing body and promote a healthy recovery.",
+      "image": "/img/Pregnant-Woman-Flowers.jpg",
+      "cta": "Learn more"
+    },
+    "item1": {
+      "icon": "Droplets",
+      "title": "Pelvic Health",
+      "description": "Specialized care for pelvic floor health across every stage of life.",
+      "subitemCount": "3",
+      "subitem0": "**Pelvic Physical Therapy:** Specialized treatment for incontinence, pelvic organ prolapse, and pelvic pain, including pain during intercourse.",
+      "subitem1": "**Specialized OB/GYN Care:** Expert diagnosis and treatment for a range of pelvic health issues, including prolapse, endometriosis, and sexual dysfunction.",
+      "subitem2": "**Mental Health Support:** Counseling and therapy to address the psychological aspects of pelvic health concerns.",
+      "image": "/img/Woman-Working-Out-Living-Room.jpg",
+      "cta": "Learn more"
+    },
+    "item2": {
+      "icon": "Flower2",
+      "title": "Through Every Stage",
+      "description": "Holistic support from adolescence through menopause—and beyond.",
+      "subitemCount": "5",
+      "subitem0": "**Teen Health:** Navigate puberty, menstruation, and early womanhood with confidence and support.",
+      "subitem1": "**Menopause Management:** Address hormonal changes, manage symptoms, and prioritize your well-being.",
+      "subitem2": "**Mental Wellness:** Access therapy and support to manage stress, anxiety, depression, and other mental health concerns.",
+      "subitem3": "**Fitness & Nutrition:** Discover personalized exercise plans and nutritional guidance tailored to your individual needs.",
+      "subitem4": "**Physical Therapy:** Manage pain, prevent injury, and optimize your physical performance, with specialized expertise in pelvic floor health for active women and female athletes.",
+      "image": "/img/Smiling-Women-Photo.jpg",
+      "cta": "Learn more"
+    },
+    "item3": {
+      "icon": "Ribbon",
+      "title": "Empowering Your Cancer Journey",
+      "description": "Specialized support for breast and gynecologic cancers—from diagnosis to survivorship.",
+      "subitemCount": "6",
+      "subitem0": "**Physical Therapy:** Optimize your recovery with pre-surgical preparation, post-treatment rehabilitation, lymphedema management, and targeted exercise programs designed for each phase of your cancer journey.",
+      "subitem1": "**Pain Management:** Access evidence-based techniques for managing treatment-related pain, including manual therapy, therapeutic exercise, and scar tissue management.",
+      "subitem2": "**Exercise Support:** Receive personalized exercise prescriptions that adapt to your treatment phase, helping maintain strength, manage fatigue, and support your recovery journey.",
+      "subitem3": "**Mental Health Care:** Navigate the emotional challenges of diagnosis and treatment with professional support focused on building resilience and managing anxiety.",
+      "subitem4": "**Lymphedema Care:** Benefit from specialized prevention strategies and treatment including manual lymphatic drainage, compression therapy, and self-management education.",
+      "subitem5": "**Collaborative Approach:** Our collaborative approach ensures coordinated care with your oncology team, supporting your physical and emotional well-being throughout treatment and recovery.",
+      "image": "/img/cancer-journey.jpg",
+      "cta": "Learn more"
+    }
   },
   "approach": {
     "title": "At Eleva Care, we believe:",
-    "items": [
-      "Every woman deserves access to **quality healthcare**.",
-      "**Knowledge is power** in healthcare decisions.",
-      "**Collaboration** leads to better health outcomes.",
-      "Women's health is a lifelong, **evolving journey**.",
-      "**Pelvic health** is essential to overall well-being."
-    ],
+    "itemCount": "5",
+    "item0": "Every woman deserves access to **quality healthcare**.",
+    "item1": "**Knowledge is power** in healthcare decisions.",
+    "item2": "**Collaboration** leads to better health outcomes.",
+    "item3": "Women's health is a lifelong, **evolving journey**.",
+    "item4": "**Pelvic health** is essential to overall well-being.",
     "description": "At Eleva Care, we believe in a collaborative approach to care. Our team of experts work together to provide you with comprehensive and personalized support, ensuring that every aspect of your health is addressed.",
     "cta": "Our Mission"
   },

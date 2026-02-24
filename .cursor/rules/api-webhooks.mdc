@@ -37,31 +37,43 @@ export async function POST(req: Request) {
 
 ### QStash Cron Jobs (Upstash)
 
-Use the project's built-in validation utilities:
+All QStash-scheduled cron jobs use the official `verifySignatureAppRouter` wrapper from `@upstash/qstash/nextjs`. This performs cryptographic HMAC signature verification using `QSTASH_CURRENT_SIGNING_KEY` and `QSTASH_NEXT_SIGNING_KEY` (for key rotation).
+
+**Pattern: `verifySignatureAppRouter` wrapper (all QStash crons)**
+
+Used by: `appointment-reminders`, `appointment-reminders-1hr`, `cleanup-blocked-dates`, `process-tasks`, `send-payment-reminders`, `process-expert-transfers`, `cleanup-expired-reservations`, `check-upcoming-payouts`, `process-pending-payouts`.
 
 ```typescript
-import { validateQStashRequest, createQStashAuthResponse } from '@/lib/integrations/qstash/signature-validator';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
+import type { NextRequest } from 'next/server';
 
-export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const validation = await validateQStashRequest(request, body);
+async function handler(request: NextRequest) {
+  // Request is already verified at this point — signature checked by wrapper
+  // Business logic here
+  return Response.json({ success: true });
+}
 
-  const authError = createQStashAuthResponse(validation);
-  if (authError) return authError;
+export const POST = verifySignatureAppRouter(handler);
+```
+
+**Important:** QStash must call these endpoints directly (not via a proxy). The handler is a plain `async function` (not exported); only the wrapped `POST` is exported.
+
+### Vercel Native Cron (`CRON_SECRET` Bearer token)
+
+Used by `keep-alive` which is triggered by Vercel's built-in cron scheduler (not QStash):
+
+```typescript
+export async function GET(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
 
   // Process verified cron job
-  const data = JSON.parse(body);
-  // ...
-
-  return Response.json({ success: true });
 }
 ```
 
-**QStash validation hierarchy:**
-1. **Signature** (primary): HMAC-SHA256 with `QSTASH_CURRENT_SIGNING_KEY` / `QSTASH_NEXT_SIGNING_KEY` (supports key rotation)
-2. **Header fallback**: `x-qstash-request` header + Upstash user agent
-3. **API key fallback**: `CRON_API_KEY` for emergency access
-4. **User agent**: Development mode only
+**Note:** Vercel crons use GET and the `CRON_SECRET` env var is set automatically by Vercel. Do not mix this pattern with QStash crons.
 
 ### QStash Schedule Management
 
@@ -124,21 +136,6 @@ export async function GET() {
 }
 ```
 
-## Cron Job Security Headers
-
-Cron endpoints should verify request origin:
-
-```typescript
-export async function POST(request: NextRequest) {
-  // Verify this is a legitimate cron request
-  const cronJobName = request.headers.get('x-cron-job-name');
-  const cronPriority = request.headers.get('x-cron-priority');
-
-  // Always validate signature first (see QStash section above)
-  // ...
-}
-```
-
 ## Rate Limiting
 
 Apply rate limiting to public-facing API routes:
@@ -170,11 +167,13 @@ export async function POST(request: NextRequest) {
 # Stripe
 STRIPE_WEBHOOK_SECRET="whsec_..."
 
-# QStash (Upstash)
+# QStash (Upstash) — used by verifySignatureAppRouter
 QSTASH_TOKEN="..."
 QSTASH_CURRENT_SIGNING_KEY="sig_..."
 QSTASH_NEXT_SIGNING_KEY="sig_..."
-CRON_API_KEY="..."
+
+# Vercel Cron — auto-set by Vercel, used by keep-alive
+CRON_SECRET="..."
 
 # Novu
 NOVU_SECRET_KEY="..."

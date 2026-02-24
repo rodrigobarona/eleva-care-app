@@ -9,7 +9,7 @@ import { getRequestMetadata } from '@/lib/utils/server/server-utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 
 /**
  * Toggles the publication status of an expert profile.
@@ -147,12 +147,8 @@ export async function toggleProfilePublication() {
       console.error('Failed to log audit event for profile publication:', auditError);
     }
 
-    // Revalidate paths where profile data might be displayed
-    revalidatePath('/');
-    revalidatePath('/experts');
-    revalidatePath('/booking/expert/[username]');
-    revalidatePath('/account');
-    revalidatePath('/booking/expert');
+    updateTag('experts');
+    updateTag(`expert-${userId}`);
 
     return {
       success: true,

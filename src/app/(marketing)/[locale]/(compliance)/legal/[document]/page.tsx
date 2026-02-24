@@ -6,8 +6,8 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
 // Static content - cache for 24 hours
-// TODO: Migrate to cacheLife('days') when next-intl supports cacheComponents
-// Tracking: https://github.com/amannn/next-intl/issues/1493
+// TODO: Migrate to 'use cache' + cacheLife('days') when next/root-params ships
+// and next-intl enables cacheComponents: https://github.com/amannn/next-intl/issues/1493
 export const revalidate = 86400;
 
 interface PageProps {

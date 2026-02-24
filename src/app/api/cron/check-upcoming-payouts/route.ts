@@ -6,8 +6,8 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
-import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { createUpcomingPayoutNotification } from '@/lib/notifications/payment';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { getUserByWorkosId } from '@/lib/utils/server/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -27,61 +27,7 @@ export const maxDuration = 60;
 
 // This CRON job runs daily and checks for payments that will be eligible for payout soon
 // It sends notifications to experts about upcoming payouts
-export async function GET(request: Request) {
-  // Log all headers for debugging
-  console.log(
-    'Received request to check-upcoming-payouts with headers:',
-    Object.fromEntries(request.headers.entries()),
-  );
-
-  // Enhanced authentication with multiple fallbacks
-  // First try QStash verification
-  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
-
-  // Check for API key as a fallback
-  const apiKey = request.headers.get('x-api-key');
-  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
-
-  // Check for Upstash signatures directly
-  const hasUpstashSignature =
-    request.headers.has('upstash-signature') || request.headers.has('x-upstash-signature');
-
-  // Check for Upstash user agent
-  const userAgent = request.headers.get('user-agent') || '';
-  const isUpstashUserAgent =
-    userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-
-  // Check for legacy cron secret
-  const cronSecret = request.headers.get('x-cron-secret');
-  const isValidCronSecret = cronSecret && cronSecret === process.env.CRON_SECRET;
-
-  // If in production, we can use a fallback mode for emergencies
-  const isProduction = process.env.NODE_ENV === 'production';
-  const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
-
-  // Allow the request if any authentication method succeeds
-  if (
-    verifiedQStash ||
-    isValidApiKey ||
-    isValidCronSecret ||
-    (hasUpstashSignature && isUpstashUserAgent) ||
-    (isProduction && allowFallback && isUpstashUserAgent)
-  ) {
-    console.log('🔓 Authentication successful for check-upcoming-payouts');
-  } else {
-    console.error('❌ Unauthorized access attempt to check-upcoming-payouts');
-    console.error('Authentication details:', {
-      verifiedQStash,
-      isValidApiKey,
-      isValidCronSecret,
-      hasUpstashSignature,
-      isUpstashUserAgent,
-      isProduction,
-      allowFallback,
-    });
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handler(request: Request) {
   console.log('Starting check for upcoming payouts...');
 
   try {
@@ -187,11 +133,4 @@ export async function GET(request: Request) {
   }
 }
 
-/**
- * Support for POST requests from QStash
- * This allows the endpoint to be called via QStash's HTTP POST mechanism
- */
-export async function POST(request: Request) {
-  // Call the GET handler to process upcoming payouts
-  return GET(request);
-}
+export const POST = verifySignatureAppRouter(handler);

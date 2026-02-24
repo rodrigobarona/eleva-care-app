@@ -9,7 +9,7 @@ import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/exper
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { and, count, eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { z } from 'zod';
 
@@ -230,7 +230,8 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
       { reason: 'User requested deletion' },
     );
 
-    revalidatePath('/booking/events');
+    updateTag('events');
+    updateTag(`user-events-${userId}`);
 
     // After deletion, check and update the expert setup status
     await checkExpertSetupStatus();
@@ -260,8 +261,7 @@ export async function updateEventOrder(updates: { id: string; order: number }[])
       await db.update(EventsTable).set({ order }).where(eq(EventsTable.id, id));
     }
 
-    // Revalidate the events page to reflect the new order
-    revalidatePath('/booking/events');
+    updateTag('events');
     return { success: true };
   } catch (error) {
     console.error('Failed to update event order:', error);
@@ -324,11 +324,9 @@ export async function updateEventActiveState(
       }
     }
 
-    // Revalidate various paths to update UI
-    revalidatePath('/booking/events');
-    revalidatePath(`/events/${event.slug}`);
-    revalidatePath('/');
-    revalidatePath(`/${event.slug}`);
+    updateTag('events');
+    updateTag(`event-${id}`);
+    updateTag(`user-events-${userId}`);
 
     return { error: false };
   } catch (error) {

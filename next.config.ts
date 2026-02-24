@@ -33,7 +33,17 @@ const withMDX = createMDX({
  * Internationalization plugin
  * Enables i18n features through next-intl
  */
-const withNextIntl = createNextIntlPlugin('./src/lib/i18n/request.ts');
+const withNextIntl = createNextIntlPlugin({
+  requestConfig: './src/lib/i18n/request.ts',
+  experimental: {
+    messages: {
+      path: './src/messages',
+      locales: 'infer',
+      format: 'json',
+      precompile: true,
+    },
+  },
+});
 
 const config: NextConfig = {
   // Environment variables to be injected at build time
@@ -41,11 +51,9 @@ const config: NextConfig = {
     BUILD_DATE: new Date().toISOString(),
   },
 
-  // Cache Components disabled - waiting for next-intl support
-  // next-intl requires next/root-params (currently experimental) for cacheComponents compatibility
-  // The library maintainer confirmed cacheComponents is not yet supported: https://github.com/amannn/next-intl/issues/1493
-  // TODO: Re-enable after next-intl adds cacheComponents support (expected in Next.js 16.x minor release)
-  // For now, using traditional revalidate pattern for static content caching
+  // cacheComponents disabled -- next-intl 4.8.3 still requires next/root-params
+  // which hasn't shipped yet. Track: https://github.com/amannn/next-intl/issues/1493
+  // Using unstable_cache + tags as the bridge pattern (see server-actions.mdc)
   // cacheComponents: true,
 
   // Enable React Compiler for automatic memoization

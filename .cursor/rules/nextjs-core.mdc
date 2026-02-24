@@ -1,6 +1,6 @@
 ---
 description: Next.js 16 Core Development Rules
-globs: ['src/app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}', 'src/lib/**/*.ts']
+globs: ['src/app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}', 'src/hooks/**/*.{ts,tsx}', 'src/types/**/*.ts', 'src/config/**/*.ts', 'src/proxy.ts', 'src/instrumentation.ts']
 alwaysApply: true
 ---
 
@@ -61,40 +61,54 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
 ## Caching Patterns
 
+**NOTE:** `cacheComponents` is disabled because next-intl does not yet support it
+(blocked on `next/root-params` -- tracking: https://github.com/amannn/next-intl/issues/1493).
+Use `unstable_cache` with tags as the bridge pattern until `cacheComponents` is available.
+
+### Current Pattern (working today)
+
 ```typescript
-import { cacheLife, cacheTag } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 
-// Static data
-async function getStaticData(id: string) {
-  'use cache';
-  cacheLife({ expire: 3600 }); // 1 hour
-  cacheTag('static-data', `data-${id}`);
-
-  return await db.query();
+// Tag-based caching with unstable_cache
+async function getExpertProfile(userId: string) {
+  return unstable_cache(
+    async () => {
+      return db.select().from(profiles).where(eq(profiles.userId, userId));
+    },
+    [`expert-profile-${userId}`],
+    { revalidate: 300, tags: ['experts', `expert-${userId}`] }
+  )();
 }
 
-// Shared runtime data
-async function getSharedData() {
-  'use cache: remote';
-  cacheLife({ expire: 300 }); // 5 minutes
-  cacheTag('shared');
-
-  return await db.query();
-}
-
-// User-specific data
-async function getUserData() {
-  'use cache: private';
-  cacheLife({ expire: 60 });
-
-  const sessionId = (await cookies()).get('session-id')?.value;
-  return await db.query({ sessionId });
+// User-scoped data
+async function getUserSchedule(userId: string) {
+  return unstable_cache(
+    async () => {
+      return db.select().from(schedules).where(eq(schedules.userId, userId));
+    },
+    [`user-schedule-${userId}`],
+    { revalidate: 60, tags: ['schedules', `user-schedule-${userId}`] }
+  )();
 }
 
 // Fetch with caching
 const staticData = await fetch('https://...', { cache: 'force-cache' });
 const dynamicData = await fetch('https://...', { cache: 'no-store' });
 const revalidated = await fetch('https://...', { next: { revalidate: 60 } });
+```
+
+### Future Pattern (when cacheComponents is enabled)
+
+```typescript
+import { cacheLife, cacheTag } from 'next/cache';
+
+async function getExpertProfile(userId: string) {
+  'use cache';
+  cacheLife({ expire: 300 });
+  cacheTag('experts', `expert-${userId}`);
+  return db.select().from(profiles).where(eq(profiles.userId, userId));
+}
 ```
 
 ## Server Actions
@@ -249,8 +263,7 @@ export const fetchCache = 'force-cache'; // or 'force-no-store'
 Before committing:
 
 - [ ] Using async params (`params: Promise<...>`)
-- [ ] Added `'use cache'` to cacheable functions
-- [ ] Used `cacheTag()` for selective invalidation
+- [ ] Used `unstable_cache` with tags for cacheable queries (future: `'use cache'` + `cacheTag`)
 - [ ] Chose correct cache invalidation (`updateTag` / `revalidateTag` / `refresh`)
 - [ ] Implemented Suspense for slow operations
 - [ ] Used parallel fetching with `Promise.all()`
@@ -344,7 +357,7 @@ export default function proxy(request: NextRequest) {
 - **Database:** Neon.tech (Postgres) + Drizzle ORM
 - **Auth:** WorkOS AuthKit
 - **Payments:** Stripe
-- **Caching:** Next.js 16 'use cache' + Redis
+- **Caching:** Next.js 16 `unstable_cache` with tags + Redis (future: `'use cache'` when next-intl supports `cacheComponents`)
 - **Package Manager:** Bun (never npm/yarn/pnpm)
 
 ## Key Principles

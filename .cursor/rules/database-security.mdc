@@ -45,7 +45,8 @@ All health data queries MUST use org-scoped database connections:
 import { getOrgScopedDb } from '@/lib/integrations/neon/rls-client';
 
 // ALWAYS use org-scoped DB for health data
-const orgDb = await getOrgScopedDb(orgId);
+// getOrgScopedDb() takes no arguments -- it calls withAuth() internally
+const orgDb = await getOrgScopedDb();
 const records = await orgDb.select().from(healthRecords);
 
 // NEVER use raw db for health data

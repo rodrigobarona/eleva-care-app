@@ -56,16 +56,16 @@ const ApproachSection: React.FC = () => {
               </h2>
             </div>
             <ol className="mx-auto mt-6 list-none text-eleva-neutral-100 marker:text-[#40514e] lg:mt-8">
-              {t.raw('items').map((item: string, index: number) => (
+              {Array.from({ length: parseInt(t('itemCount')) }, (_, i) => (
                 <li
-                  key={item}
+                  key={i}
                   className="flex flex-row items-start pr-4 sm:text-balance lg:items-center lg:pr-0"
                 >
                   <span className="flex w-5 pt-2 text-right font-serif text-xl italic lg:w-8 lg:pt-0 lg:text-5xl">
-                    {index + 1}
+                    {i + 1}
                   </span>
                   <span className="ml-1 block py-2 text-base lg:ml-6 lg:py-6 lg:text-2xl">
-                    {parseBold(item)}
+                    {parseBold(t(`item${i}`))}
                   </span>
                 </li>
               ))}

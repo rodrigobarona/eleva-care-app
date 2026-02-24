@@ -47,73 +47,67 @@
     "title": "Como a apoiamos",
     "subtitle": "Cuidado liderado por especialistas, feito para si",
     "description": "Aceda a cuidados personalizados com profissionais em saúde feminina. Ligamo-la à experiência de que precisa—de consultas online a recursos locais—adaptada à sua própria jornada.",
-    "items": [
-      {
-        "icon": "Baby",
-        "title": "Gravidez e Pós-Parto",
-        "description": "Acompanhamento próximo e baseado em evidência durante a gravidez e o pós‑parto.",
-        "items": [
-          "**Fisioterapia:** Prepare-se para o parto, controle a dor, recupere a força, trate a diástase abdominal e intervenções focadas no pavimento pélvico para prevenir e tratar disfunções.",
-          "**Cuidados Obstétricos e Ginecológicos:** Tratamento especializado durante a gravidez e recuperação pós-parto.",
-          "**Orientação Nutricional:** Otimize a sua alimentação para uma gravidez e pós-parto saudáveis.",
-          "**Apoio em Saúde Mental:** Apoio emocional para os desafios da maternidade.",
-          "**Exercício:** Benefícios do exercício terapêutico para gravidez e pós-parto, adaptado às mudanças do corpo e recuperação saudável."
-        ],
-        "image": "/img/Pregnant-Woman-Flowers.jpg",
-        "cta": "Saber mais"
-      },
-      {
-        "icon": "Droplets",
-        "title": "Saúde Pélvica",
-        "description": "Cuidado especializado do pavimento pélvico em todas as fases da vida.",
-        "items": [
-          "**Fisioterapia Pélvica:** Tratamento especializado para incontinência, prolapso de órgãos pélvicos e dor pélvica, incluindo dor durante o sexo.",
-          "**Cuidados Obstétricos e Ginecológicos Especializados:** Diagnóstico e tratamento para uma gama de problemas de saúde pélvica como prolapso, endometriose e disfunção sexual.",
-          "**Apoio em Saúde Mental:** Consultoria e terapia para enfrentar os aspetos psicológicos de preocupações com a saúde pélvica."
-        ],
-        "image": "/img/Woman-Working-Out-Living-Room.jpg",
-        "cta": "Saber mais"
-      },
-      {
-        "icon": "Flower2",
-        "title": "Em Todas as Fases",
-        "description": "Apoio holístico da adolescência à menopausa—e além.",
-        "items": [
-          "**Saúde Adolescente:** Enfrente a puberdade, menstruação e primeiros anos da vida adulta feminina com confiança e apoio.",
-          "**Gestão da Menopausa:** Acompanhe as mudanças hormonais, controle sintomas e priorize o seu bem-estar.",
-          "**Bem-Estar Mental:** Acesso a terapia para gerir o stress, ansiedade, depressão e outras preocupações de saúde mental.",
-          "**Exercício e Nutrição:** Descubra planos de exercício e guias nutricionais personalizados.",
-          "**Fisioterapia:** Gestão de dor, prevenção de lesões e otimização do desempenho físico, com especialização em saúde do pavimento pélvico para atletas e mulheres ativas."
-        ],
-        "image": "/img/Smiling-Women-Photo.jpg",
-        "cta": "Saber mais"
-      },
-      {
-        "icon": "Ribbon",
-        "title": "Empoderando a sua Jornada Contra o Cancro",
-        "description": "Apoio especializado em cancro da mama e ginecológico—do diagnóstico à sobrevivência.",
-        "items": [
-          "**Fisioterapia:** Otimize a sua recuperação com preparação pré-cirúrgica, reabilitação pós-tratamento, gestão do linfedema e programas de exercícios específicos concebidos para cada fase da sua jornada contra o cancro.",
-          "**Gestão da Dor:** Aceda a técnicas baseadas em evidências para gerir a dor relacionada com o tratamento, incluindo terapia manual, exercício terapêutico e gestão do tecido cicatricial.",
-          "**Apoio ao Exercício:** Receba prescrições de exercícios personalizados que se adaptam à sua fase de tratamento, ajudando a manter a força, gerir a fadiga e apoiar o seu processo de recuperação.",
-          "**Cuidados de Saúde Mental:** Navegue pelos desafios emocionais do diagnóstico e tratamento com apoio profissional focado no desenvolvimento de resiliência e gestão da ansiedade.",
-          "**Cuidados do Linfedema:** Beneficie de estratégias especializadas de prevenção e tratamento, incluindo drenagem linfática manual, terapia de compressão e educação para autogestão.",
-          "**Abordagem Colaborativa:** A nossa abordagem colaborativa assegura cuidados coordenados com a sua equipa de oncologia, apoiando o seu bem-estar físico e emocional durante o tratamento e recuperação."
-        ],
-        "image": "/img/cancer-journey.jpg",
-        "cta": "Saber mais"
-      }
-    ]
+    "itemCount": "4",
+    "item0": {
+      "icon": "Baby",
+      "title": "Gravidez e Pós-Parto",
+      "description": "Acompanhamento próximo e baseado em evidência durante a gravidez e o pós‑parto.",
+      "subitemCount": "5",
+      "subitem0": "**Fisioterapia:** Prepare-se para o parto, controle a dor, recupere a força, trate a diástase abdominal e intervenções focadas no pavimento pélvico para prevenir e tratar disfunções.",
+      "subitem1": "**Cuidados Obstétricos e Ginecológicos:** Tratamento especializado durante a gravidez e recuperação pós-parto.",
+      "subitem2": "**Orientação Nutricional:** Otimize a sua alimentação para uma gravidez e pós-parto saudáveis.",
+      "subitem3": "**Apoio em Saúde Mental:** Apoio emocional para os desafios da maternidade.",
+      "subitem4": "**Exercício:** Benefícios do exercício terapêutico para gravidez e pós-parto, adaptado às mudanças do corpo e recuperação saudável.",
+      "image": "/img/Pregnant-Woman-Flowers.jpg",
+      "cta": "Saber mais"
+    },
+    "item1": {
+      "icon": "Droplets",
+      "title": "Saúde Pélvica",
+      "description": "Cuidado especializado do pavimento pélvico em todas as fases da vida.",
+      "subitemCount": "3",
+      "subitem0": "**Fisioterapia Pélvica:** Tratamento especializado para incontinência, prolapso de órgãos pélvicos e dor pélvica, incluindo dor durante o sexo.",
+      "subitem1": "**Cuidados Obstétricos e Ginecológicos Especializados:** Diagnóstico e tratamento para uma gama de problemas de saúde pélvica como prolapso, endometriose e disfunção sexual.",
+      "subitem2": "**Apoio em Saúde Mental:** Consultoria e terapia para enfrentar os aspetos psicológicos de preocupações com a saúde pélvica.",
+      "image": "/img/Woman-Working-Out-Living-Room.jpg",
+      "cta": "Saber mais"
+    },
+    "item2": {
+      "icon": "Flower2",
+      "title": "Em Todas as Fases",
+      "description": "Apoio holístico da adolescência à menopausa—e além.",
+      "subitemCount": "5",
+      "subitem0": "**Saúde Adolescente:** Enfrente a puberdade, menstruação e primeiros anos da vida adulta feminina com confiança e apoio.",
+      "subitem1": "**Gestão da Menopausa:** Acompanhe as mudanças hormonais, controle sintomas e priorize o seu bem-estar.",
+      "subitem2": "**Bem-Estar Mental:** Acesso a terapia para gerir o stress, ansiedade, depressão e outras preocupações de saúde mental.",
+      "subitem3": "**Exercício e Nutrição:** Descubra planos de exercício e guias nutricionais personalizados.",
+      "subitem4": "**Fisioterapia:** Gestão de dor, prevenção de lesões e otimização do desempenho físico, com especialização em saúde do pavimento pélvico para atletas e mulheres ativas.",
+      "image": "/img/Smiling-Women-Photo.jpg",
+      "cta": "Saber mais"
+    },
+    "item3": {
+      "icon": "Ribbon",
+      "title": "Empoderando a sua Jornada Contra o Cancro",
+      "description": "Apoio especializado em cancro da mama e ginecológico—do diagnóstico à sobrevivência.",
+      "subitemCount": "6",
+      "subitem0": "**Fisioterapia:** Otimize a sua recuperação com preparação pré-cirúrgica, reabilitação pós-tratamento, gestão do linfedema e programas de exercícios específicos concebidos para cada fase da sua jornada contra o cancro.",
+      "subitem1": "**Gestão da Dor:** Aceda a técnicas baseadas em evidências para gerir a dor relacionada com o tratamento, incluindo terapia manual, exercício terapêutico e gestão do tecido cicatricial.",
+      "subitem2": "**Apoio ao Exercício:** Receba prescrições de exercícios personalizados que se adaptam à sua fase de tratamento, ajudando a manter a força, gerir a fadiga e apoiar o seu processo de recuperação.",
+      "subitem3": "**Cuidados de Saúde Mental:** Navegue pelos desafios emocionais do diagnóstico e tratamento com apoio profissional focado no desenvolvimento de resiliência e gestão da ansiedade.",
+      "subitem4": "**Cuidados do Linfedema:** Beneficie de estratégias especializadas de prevenção e tratamento, incluindo drenagem linfática manual, terapia de compressão e educação para autogestão.",
+      "subitem5": "**Abordagem Colaborativa:** A nossa abordagem colaborativa assegura cuidados coordenados com a sua equipa de oncologia, apoiando o seu bem-estar físico e emocional durante o tratamento e recuperação.",
+      "image": "/img/cancer-journey.jpg",
+      "cta": "Saber mais"
+    }
   },
   "approach": {
     "title": "Na Eleva Care, acreditamos que:",
-    "items": [
-      "Toda mulher merece acesso a **cuidados de saúde de qualidade**.",
-      "**O conhecimento é poder** nas decisões sobre a saúde.",
-      "**A colaboração** traz melhores resultados de saúde.",
-      "A saúde feminina é uma **jornada em constante evolução**.",
-      "**A saúde pélvica** é fundamental para o bem-estar geral."
-    ],
+    "itemCount": "5",
+    "item0": "Toda mulher merece acesso a **cuidados de saúde de qualidade**.",
+    "item1": "**O conhecimento é poder** nas decisões sobre a saúde.",
+    "item2": "**A colaboração** traz melhores resultados de saúde.",
+    "item3": "A saúde feminina é uma **jornada em constante evolução**.",
+    "item4": "**A saúde pélvica** é fundamental para o bem-estar geral.",
     "description": "Na Eleva Care, acreditamos em uma abordagem colaborativa. O nosso time de especialistas trabalha em conjunto para oferecer um apoio abrangente e personalizado, garantindo que todos os aspetos da sua saúde sejam atendidos.",
     "cta": "Saiba mais"
   },

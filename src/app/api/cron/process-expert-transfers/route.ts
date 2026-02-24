@@ -12,8 +12,8 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
-import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import {
   createPayoutCompletedNotification,
   createPayoutFailedNotification,
@@ -66,51 +66,7 @@ type TransferResult = SuccessResult | ErrorResult;
  * Processes pending expert transfers
  * This endpoint is called by QStash every 2 hours
  */
-export async function GET(request: Request) {
-  // Log minimal request info without exposing sensitive headers
-  console.log('Received request to process-expert-transfers', {
-    ua: request.headers.get('user-agent') || 'unknown',
-    time: new Date().toISOString(),
-  });
-
-  // Enhanced authentication with multiple fallbacks
-  // First try QStash verification
-  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
-
-  // Check for API key as a fallback
-  const apiKey = request.headers.get('x-api-key');
-  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
-
-  // Check for Upstash user agent (used for fallback token validation)
-  const userAgent = request.headers.get('user-agent') || '';
-  const isUpstashUserAgent =
-    userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-
-  // If in production, we can use a fallback mode for emergencies
-  const isProduction = process.env.NODE_ENV === 'production';
-  const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
-
-  // Allow the request if any authentication method succeeds
-  // Fallback requires a secret token, not just user-agent (which is spoofable)
-  const hasFallbackToken =
-    allowFallback &&
-    isUpstashUserAgent &&
-    apiKey === process.env.CRON_FALLBACK_TOKEN &&
-    process.env.CRON_FALLBACK_TOKEN;
-
-  if (verifiedQStash || isValidApiKey || (isProduction && hasFallbackToken)) {
-    console.log('🔓 Authentication successful for process-expert-transfers');
-  } else {
-    console.error('❌ Unauthorized access attempt to process-expert-transfers');
-    console.error('Authentication details:', {
-      verifiedQStash,
-      isValidApiKey,
-      isProduction,
-      allowFallback,
-    });
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+async function handler(request: Request) {
   try {
     // Find all pending transfers that are due (scheduled time ≤ now or manually approved)
     // AND have met the payment aging requirements
@@ -419,11 +375,4 @@ export async function GET(request: Request) {
   }
 }
 
-/**
- * Support for POST requests from QStash
- * This allows the endpoint to be called via QStash's HTTP POST mechanism
- */
-export async function POST(request: Request) {
-  // Call the GET handler to process transfers
-  return GET(request);
-}
+export const POST = verifySignatureAppRouter(handler);
