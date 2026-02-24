@@ -1,7 +1,10 @@
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
-import { db } from '@/drizzle/db';
+
+const { logger } = Sentry;
+import { db, invalidateCache } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
 import { logAuditEvent } from '@/lib/utils/server/audit';
@@ -16,6 +19,7 @@ import { updateTag } from 'next/cache';
  * When publishing for the first time, verifies that all expert setup steps are complete.
  */
 export async function toggleProfilePublication() {
+  return Sentry.withServerActionInstrumentation('toggleProfilePublication', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
 
@@ -88,6 +92,8 @@ export async function toggleProfilePublication() {
     // Update the published status (and agreement data if first time publishing)
     await db.update(ProfilesTable).set(updateData).where(eq(ProfilesTable.workosUserId, userId));
 
+    await invalidateCache([`expert-profile-${userId}`]);
+
     // Log to audit database (user context automatically extracted)
     try {
       if (targetPublishedStatus === true) {
@@ -144,7 +150,7 @@ export async function toggleProfilePublication() {
       }
     } catch (auditError) {
       // Log error but don't fail the operation
-      console.error('Failed to log audit event for profile publication:', auditError);
+      logger.error('Failed to log audit event for profile publication', { error: auditError });
     }
 
     updateTag('experts');
@@ -156,11 +162,12 @@ export async function toggleProfilePublication() {
       isPublished: targetPublishedStatus,
     };
   } catch (error) {
-    console.error('Error toggling profile publication:', error);
+    logger.error('Error toggling profile publication', { error });
     return {
       success: false,
       message: 'Failed to update profile publication status',
       isPublished: false,
     };
   }
+  });
 }

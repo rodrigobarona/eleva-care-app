@@ -4,6 +4,7 @@ import {
   getMinimumPayoutDelay,
   STRIPE_CONFIG,
 } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable, SlotReservationsTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
@@ -15,11 +16,6 @@ import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-
-// Initialize Stripe client
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 // Payment rate limiting configuration (stricter than identity verification)
 const PAYMENT_RATE_LIMITS = {
@@ -448,6 +444,8 @@ export async function POST(request: NextRequest) {
     }
 
     const expertStripeAccountId = event.user.stripeConnectAccountId;
+
+    const stripe = await getServerStripe();
 
     // Prepare meeting metadata
     const meetingMetadata = {

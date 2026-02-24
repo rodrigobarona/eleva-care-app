@@ -1,0 +1,34 @@
+'use client';
+
+import { loadConnectAndInitialize } from '@stripe/connect-js';
+import { ConnectComponentsProvider } from '@stripe/react-connect-js';
+import { useState } from 'react';
+
+export function StripeConnectProvider({ children }: { children: React.ReactNode }) {
+  const [stripeConnectInstance] = useState(() =>
+    loadConnectAndInitialize({
+      publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+      fetchClientSecret: async () => {
+        const response = await fetch('/api/stripe/account-session', { method: 'POST' });
+        if (!response.ok) {
+          const { error } = await response.json();
+          throw new Error(error || 'Failed to fetch client secret');
+        }
+        const { client_secret } = await response.json();
+        return client_secret;
+      },
+      appearance: {
+        overlays: 'dialog',
+        variables: {
+          colorPrimary: '#6366f1',
+        },
+      },
+    }),
+  );
+
+  return (
+    <ConnectComponentsProvider connectInstance={stripeConnectInstance}>
+      {children}
+    </ConnectComponentsProvider>
+  );
+}

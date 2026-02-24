@@ -1,8 +1,16 @@
-import { db } from '@/drizzle/db';
+'use server';
+
+import { db, invalidateCache } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
-import { getOrCreateStripeCustomer, syncStripeDataToKV } from '@/lib/integrations/stripe';
+import {
+  getOrCreateStripeCustomer,
+  getServerStripe,
+  syncStripeDataToKV,
+} from '@/lib/integrations/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
-import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 /**
  * Service to handle all user synchronization between WorkOS, database, and Stripe
@@ -15,29 +23,30 @@ import Stripe from 'stripe';
  * - Stripe customer created lazily when needed
  */
 
+import { getFullUserByWorkosId } from '@/server/db/users';
+
 /**
- * Get a user by their WorkOS user ID from the database
+ * @deprecated Use `getFullUserByWorkosId` from `@/server/db/users` instead.
  */
 export async function getUserByWorkOsId(workosUserId: string) {
-  return db.query.UsersTable.findFirst({
-    where: eq(UsersTable.workosUserId, workosUserId),
-  });
+  return getFullUserByWorkosId(workosUserId);
 }
 
 /**
  * Ensure user has a Stripe customer ID and it's properly synced
  */
 export async function ensureUserStripeCustomer(user: typeof UsersTable.$inferSelect) {
+  return Sentry.withServerActionInstrumentation('ensureUserStripeCustomer', { recordResponse: true }, async () => {
   // Already has a Stripe customer ID
   if (user.stripeCustomerId) {
-    console.log('User already has Stripe customer ID:', user.stripeCustomerId);
+    logger.info('User already has Stripe customer ID', { stripeCustomerId: user.stripeCustomerId });
     // Make sure it's synced to Redis
     await syncStripeDataToKV(user.stripeCustomerId);
     return user.stripeCustomerId;
   }
 
   // Create a new Stripe customer or find existing
-  console.log('Creating or fetching Stripe customer for user:', {
+  logger.info('Creating or fetching Stripe customer for user', {
     userId: user.id,
     email: user.email,
   });
@@ -55,27 +64,33 @@ export async function ensureUserStripeCustomer(user: typeof UsersTable.$inferSel
     })
     .where(eq(UsersTable.id, user.id));
 
-  console.log('Updated user with Stripe customer ID:', {
+  const workosUserId = user.workosUserId;
+  if (workosUserId) {
+    await invalidateCache([`user-${workosUserId}`, `user-full-${workosUserId}`]);
+  }
+
+  logger.info('Updated user with Stripe customer ID', {
     userId: user.id,
     customerId,
   });
 
   return customerId;
+  });
 }
 
 /**
  * Update Stripe customer email to match user email
  */
 export async function updateStripeCustomerEmail(customerId: string, email: string) {
+  return Sentry.withServerActionInstrumentation('updateStripeCustomerEmail', { recordResponse: true }, async () => {
   try {
-    // Get Stripe instance
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '');
+    const stripe = await getServerStripe();
 
     // Check if the customer exists and has the right email
     const customer = await stripe.customers.retrieve(customerId);
 
     if ('deleted' in customer && customer.deleted) {
-      console.error('Tried to update deleted customer:', customerId);
+      logger.error('Tried to update deleted customer', { customerId });
       return null;
     }
 
@@ -85,7 +100,7 @@ export async function updateStripeCustomerEmail(customerId: string, email: strin
     }
 
     // Update the email
-    console.log('Updating Stripe customer email:', {
+    logger.info('Updating Stripe customer email', {
       customerId,
       oldEmail: customer.email,
       newEmail: email,
@@ -97,9 +112,10 @@ export async function updateStripeCustomerEmail(customerId: string, email: strin
 
     return updatedCustomer;
   } catch (error) {
-    console.error('Error updating Stripe customer email:', error);
+    logger.error('Error updating Stripe customer email', { error });
     return null;
   }
+  });
 }
 
 /**
@@ -107,24 +123,25 @@ export async function updateStripeCustomerEmail(customerId: string, email: strin
  * Call this function at critical points in the application
  */
 export async function ensureFullUserSynchronization(workosUserId: string) {
+  return Sentry.withServerActionInstrumentation('ensureFullUserSynchronization', { recordResponse: true }, async () => {
   // Step 1: Get the user from our database
-  const dbUser = await getUserByWorkOsId(workosUserId);
+  const dbUser = await getFullUserByWorkosId(workosUserId);
   if (!dbUser) {
-    console.error('User not found in database:', workosUserId);
+    logger.error('User not found in database', { workosUserId });
     return null;
   }
 
   // Step 2: Ensure user has a valid Stripe customer ID
   if (dbUser.stripeCustomerId) {
-    console.log('User already has Stripe customer ID:', dbUser.stripeCustomerId);
+    logger.info('User already has Stripe customer ID', { stripeCustomerId: dbUser.stripeCustomerId });
 
     // Check if the customer still exists in Stripe
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '');
+      const stripe = await getServerStripe();
       const customer = await stripe.customers.retrieve(dbUser.stripeCustomerId);
 
       if ('deleted' in customer && customer.deleted) {
-        console.log('Customer was deleted, creating a new one');
+        logger.info('Customer was deleted, creating a new one');
         // Customer was deleted, create a new one
         const newCustomerId = await ensureUserStripeCustomer({
           ...dbUser,
@@ -141,26 +158,27 @@ export async function ensureFullUserSynchronization(workosUserId: string) {
             })
             .where(eq(UsersTable.id, dbUser.id));
 
+          await invalidateCache([`user-${workosUserId}`, `user-full-${workosUserId}`]);
+
           // Update our local copy of the user
           dbUser.stripeCustomerId = newCustomerId;
         }
-      } else if (dbUser.email) {
-        // Customer exists, make sure email is up to date
-        await updateStripeCustomerEmail(dbUser.stripeCustomerId, dbUser.email);
+      } else {
+        if (dbUser.email) {
+          await updateStripeCustomerEmail(dbUser.stripeCustomerId, dbUser.email);
+        }
+        await syncStripeDataToKV(dbUser.stripeCustomerId);
       }
     } catch (error) {
-      // If we can't retrieve the customer, it's likely deleted or invalid
-      console.error('Error retrieving Stripe customer:', error);
+      logger.error('Error retrieving Stripe customer', { error });
 
-      // Create a new customer
       if (dbUser.email) {
         const newCustomerId = await ensureUserStripeCustomer({
           ...dbUser,
-          stripeCustomerId: null, // Force creation of a new customer
+          stripeCustomerId: null,
         });
 
         if (newCustomerId) {
-          // Update the user record with the new customer ID
           await db
             .update(UsersTable)
             .set({
@@ -169,13 +187,13 @@ export async function ensureFullUserSynchronization(workosUserId: string) {
             })
             .where(eq(UsersTable.id, dbUser.id));
 
-          // Update our local copy of the user
+          await invalidateCache([`user-${workosUserId}`, `user-full-${workosUserId}`]);
+
           dbUser.stripeCustomerId = newCustomerId;
         }
       }
     }
   } else if (dbUser.email) {
-    // No customer ID yet, create one
     const customerId = await ensureUserStripeCustomer(dbUser);
     if (customerId) {
       dbUser.stripeCustomerId = customerId;
@@ -184,6 +202,7 @@ export async function ensureFullUserSynchronization(workosUserId: string) {
 
   // Return the fully synchronized user
   return dbUser;
+  });
 }
 
 /**
@@ -202,19 +221,20 @@ export async function ensureFullUserSynchronization(workosUserId: string) {
  * ```
  */
 export async function syncWorkOSProfileToDatabase(workosUserId: string): Promise<boolean> {
+  return Sentry.withServerActionInstrumentation('syncWorkOSProfileToDatabase', { recordResponse: true }, async () => {
   try {
     // Import here to avoid circular dependencies
     const { getWorkOSUserById, syncUserProfileData } = await import(
       '@/lib/integrations/workos/sync'
     );
 
-    console.log(`🔄 Syncing profile data from WorkOS: ${workosUserId}`);
+    logger.info(`🔄 Syncing profile data from WorkOS: ${workosUserId}`);
 
     // Fetch user from WorkOS (source of truth)
     const workosUser = await getWorkOSUserById(workosUserId);
 
     if (!workosUser) {
-      console.error(`❌ User not found in WorkOS: ${workosUserId}`);
+      logger.error(`❌ User not found in WorkOS: ${workosUserId}`);
       return false;
     }
 
@@ -228,10 +248,11 @@ export async function syncWorkOSProfileToDatabase(workosUserId: string): Promise
       profilePictureUrl: workosUser.profilePictureUrl,
     });
 
-    console.log(`✅ Profile data synced for: ${workosUser.email}`);
+    logger.info(`✅ Profile data synced for: ${workosUser.email}`);
     return true;
   } catch (error) {
-    console.error(`❌ Error syncing profile data:`, error);
+    logger.error('❌ Error syncing profile data', { error });
     return false;
   }
+  });
 }

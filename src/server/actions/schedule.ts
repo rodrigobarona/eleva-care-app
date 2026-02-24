@@ -1,7 +1,10 @@
 'use server';
 
-import { db } from '@/drizzle/db';
+import * as Sentry from '@sentry/nextjs';
+import { db, invalidateCache } from '@/drizzle/db';
 import { ScheduleAvailabilitiesTable, SchedulesTable } from '@/drizzle/schema';
+
+const { logger } = Sentry;
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { markStepComplete } from '@/server/actions/expert-setup';
@@ -118,9 +121,11 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
     try {
       await markStepComplete('availability');
     } catch (error) {
-      console.error('Failed to mark availability step as complete:', error);
+      logger.error('Failed to mark availability step as complete', { error });
     }
   }
+
+  await invalidateCache([`schedule-${userId}`]);
 
   return { success: true };
 }

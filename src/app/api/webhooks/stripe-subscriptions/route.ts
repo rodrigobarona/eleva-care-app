@@ -15,7 +15,7 @@
  * 3. Update database (SubscriptionPlansTable, SubscriptionEventsTable)
  * 4. Log audit trail
  */
-import { STRIPE_CONFIG } from '@/config/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
 import { db } from '@/drizzle/db';
 import {
@@ -24,15 +24,13 @@ import {
   SubscriptionPlansTable,
   UsersTable,
 } from '@/drizzle/schema';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
-
+const { logger } = Sentry;
 const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET!;
 
 // ============================================================================
@@ -62,25 +60,28 @@ export async function POST(request: NextRequest) {
   const signature = (await headers()).get('stripe-signature');
 
   if (!signature) {
-    console.error('❌ Missing Stripe signature header');
+    logger.error('❌ Missing Stripe signature header');
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
   }
 
   if (!webhookSecret) {
-    console.error('❌ Missing STRIPE_SUBSCRIPTION_WEBHOOK_SECRET');
+    logger.error('❌ Missing STRIPE_SUBSCRIPTION_WEBHOOK_SECRET');
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
+  const stripe = await getServerStripe();
   let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err);
+    logger.error('❌ Webhook signature verification failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  console.log(`✅ Webhook received: ${event.type} (${event.id})`);
+  logger.info(`✅ Webhook received: ${event.type} (${event.id})`);
 
   try {
     switch (event.type) {
@@ -122,12 +123,14 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.info(`Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('❌ Error processing webhook:', error);
+    logger.error('❌ Error processing webhook', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
@@ -145,24 +148,24 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const priceId = session.metadata?.priceId;
 
   if (!workosUserId || !tierLevel || !priceId) {
-    console.error('Missing metadata in checkout session:', session.id);
+    logger.error('Missing metadata in checkout session', { sessionId: session.id });
     return;
   }
 
-  console.log(`✅ Checkout completed for user ${workosUserId}, tier: ${tierLevel}`);
+  logger.info(`✅ Checkout completed for user ${workosUserId}, tier: ${tierLevel}`);
 
   // Get subscription ID from session
   const subscriptionId =
     typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
 
   if (!subscriptionId) {
-    console.error('No subscription ID in checkout session:', session.id);
+    logger.error('No subscription ID in checkout session', { sessionId: session.id });
     return;
   }
 
   // Subscription will be created/updated by the subscription.created event
   // Just log the checkout completion
-  console.log(`Subscription ${subscriptionId} will be processed by subscription.created event`);
+  logger.info(`Subscription ${subscriptionId} will be processed by subscription.created event`);
 }
 
 /**
@@ -177,7 +180,7 @@ async function handleSubscriptionUpdate(
   const billingInterval = (subscription.metadata.billingInterval as 'month' | 'year') || 'year';
 
   if (!workosUserId) {
-    console.error('Missing workosUserId in subscription metadata:', subscription.id);
+    logger.error('Missing workosUserId in subscription metadata', { subscriptionId: subscription.id });
     return;
   }
 
@@ -192,7 +195,7 @@ async function handleSubscriptionUpdate(
   });
 
   if (!user) {
-    console.error('User not found for workosUserId:', workosUserId);
+    logger.error('User not found for workosUserId', { workosUserId });
     return;
   }
 
@@ -259,7 +262,7 @@ async function handleSubscriptionUpdate(
       })
       .where(eq(SubscriptionPlansTable.id, existingPlan.id));
 
-    console.log(`✅ Updated subscription plan: ${existingPlan.id}`);
+    logger.info(`✅ Updated subscription plan: ${existingPlan.id}`);
 
     // Log event
     await db.insert(SubscriptionEventsTable).values({
@@ -285,7 +288,7 @@ async function handleSubscriptionUpdate(
       })
       .returning();
 
-    console.log(`✅ Created subscription plan: ${newPlan.id}`);
+    logger.info(`✅ Created subscription plan: ${newPlan.id}`);
 
     // Log event
     await db.insert(SubscriptionEventsTable).values({
@@ -309,7 +312,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const workosUserId = subscription.metadata.workosUserId;
 
   if (!workosUserId) {
-    console.error('Missing workosUserId in subscription metadata:', subscription.id);
+    logger.error('Missing workosUserId in subscription metadata', { subscriptionId: subscription.id });
     return;
   }
 
@@ -319,7 +322,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   });
 
   if (!plan) {
-    console.error('Subscription plan not found for Stripe subscription:', subscription.id);
+    logger.error('Subscription plan not found for Stripe subscription', { subscriptionId: subscription.id });
     return;
   }
 
@@ -346,7 +349,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     reason: 'subscription_canceled',
   });
 
-  console.log(`✅ Subscription canceled: ${plan.id}`);
+  logger.info(`✅ Subscription canceled: ${plan.id}`);
 
   // TODO: Revert user to commission-based plan
   // This could be handled by the application logic when checking subscription status
@@ -369,7 +372,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   });
 
   if (!plan) {
-    console.error('Subscription plan not found for invoice:', invoice.id);
+    logger.error('Subscription plan not found for invoice', { invoiceId: invoice.id });
     return;
   }
 
@@ -398,7 +401,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     },
   });
 
-  console.log(`✅ Payment succeeded for subscription: ${plan.id}`);
+  logger.info(`✅ Payment succeeded for subscription: ${plan.id}`);
 }
 
 /**
@@ -418,7 +421,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   });
 
   if (!plan) {
-    console.error('Subscription plan not found for invoice:', invoice.id);
+    logger.error('Subscription plan not found for invoice', { invoiceId: invoice.id });
     return;
   }
 
@@ -442,7 +445,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     reason: 'invoice_payment_failed',
   });
 
-  console.log(`❌ Payment failed for subscription: ${plan.id}`);
+  logger.info(`❌ Payment failed for subscription: ${plan.id}`);
 
   // TODO: Send notification to user about failed payment
   // TODO: Implement dunning management (retry logic, grace period)

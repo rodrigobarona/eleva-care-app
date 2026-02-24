@@ -37,7 +37,7 @@ export default async function EventsPage() {
   const username = dbUser?.username || user.id;
 
   // Check if the expert has at least one published event
-  if (events.some((event) => event.isActive)) {
+  if (events.some((event: { isActive: boolean }) => event.isActive)) {
     // Mark events step as complete (non-blocking)
     try {
       await markStepComplete('events');

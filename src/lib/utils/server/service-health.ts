@@ -7,10 +7,10 @@
 import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { redisManager } from '@/lib/redis/manager';
 import { sql } from 'drizzle-orm';
-import Stripe from 'stripe';
 
 export interface ServiceHealthResult {
   service: string;
@@ -136,9 +136,7 @@ export async function checkStripe(): Promise<ServiceHealthResult> {
   }
 
   try {
-    const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
-      apiVersion: ENV_CONFIG.STRIPE_API_VERSION as Stripe.LatestApiVersion,
-    });
+    const stripe = await getServerStripe();
 
     // Lightweight API call to check connectivity
     await stripe.balance.retrieve();

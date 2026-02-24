@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { triggerWorkflow } from '@/lib/integrations/novu/client';
+
+const { logger } = Sentry;
 import { db } from '@/drizzle/db';
 import { ProfilesTable, UsersTable } from '@/drizzle/schema';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
@@ -25,7 +28,7 @@ export function getAccountUpdateMessage(account: Stripe.Account): string {
  * Implements retry logic for critical operations to ensure robustness
  */
 export async function handleAccountUpdated(account: Stripe.Account) {
-  console.log('Connect account updated:', account.id);
+  logger.info('Connect account updated', { accountId: account.id });
 
   // Find the user associated with this account
   let user = await db.query.UsersTable.findFirst({
@@ -33,10 +36,10 @@ export async function handleAccountUpdated(account: Stripe.Account) {
   });
 
   if (!user) {
-    // Try additional lookup methods if available
-    if (account.metadata?.user_id) {
+    // Try metadata lookup: Connect account creation sets workosUserId (camelCase)
+    if (account.metadata?.workosUserId) {
       user = await db.query.UsersTable.findFirst({
-        where: eq(UsersTable.id, account.metadata.user_id),
+        where: eq(UsersTable.workosUserId, account.metadata.workosUserId),
       });
     }
 
@@ -48,7 +51,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
     }
 
     if (!user) {
-      console.error('User not found for Connect account:', {
+      logger.error('User not found for Connect account:', {
         accountId: account.id,
         metadata: account.metadata,
         email: account.email,
@@ -87,7 +90,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
           if (account.charges_enabled && account.payouts_enabled) {
             // Note: markStepComplete now gets user from auth context
             // For webhooks, we need to ensure we're in the right context
-            console.log('Payment setup completed for user:', user.workosUserId);
+            logger.info('Payment setup completed for user', { workosUserId: user.workosUserId });
             // TODO: Implement webhook-specific step completion that doesn't require auth context
           }
 
@@ -143,9 +146,11 @@ export async function handleAccountUpdated(account: Stripe.Account) {
                   },
                 },
               });
-              console.log('✅ Novu workflow triggered for Connect account update');
+              logger.info('✅ Novu workflow triggered for Connect account update');
             } catch (novuError) {
-              console.error('❌ Failed to trigger Novu workflow:', novuError);
+              logger.error('❌ Failed to trigger Novu workflow', {
+                error: novuError instanceof Error ? novuError.message : String(novuError),
+              });
               // Don't fail the entire webhook for Novu errors
             }
           }
@@ -155,7 +160,9 @@ export async function handleAccountUpdated(account: Stripe.Account) {
       1000,
     ); // Retry up to 3 times with 1s initial delay (doubles each retry)
   } catch (error) {
-    console.error('Error updating Connect account status after retries:', error);
+    logger.error('Error updating Connect account status after retries', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Store the failed operation for manual recovery
     // This could be logged to a database table or monitoring system
@@ -173,7 +180,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
     };
 
     // Log to a persistent store for administrative review
-    console.error('Critical operation failed, needs manual intervention:', operationDetails);
+    logger.error('Critical operation failed, needs manual intervention', operationDetails as Record<string, unknown>);
 
     // In a production environment, you might want to:
     // 1. Log to error tracking system (Sentry, Datadog, etc.)

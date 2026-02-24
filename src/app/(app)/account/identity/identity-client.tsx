@@ -4,10 +4,31 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@/lib/i18n/navigation';
+import { loadStripe } from '@stripe/stripe-js';
 import { AlertTriangle, BadgeCheck, Clock, Fingerprint, Info, Shield } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import React, { Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+type ApiStatus = 'not_started' | 'requires_input' | 'processing' | 'verified' | 'canceled' | 'failed';
+type DisplayStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
+
+function mapApiStatusToDisplay(status: ApiStatus): DisplayStatus {
+  switch (status) {
+    case 'verified':
+      return 'verified';
+    case 'processing':
+      return 'pending';
+    case 'canceled':
+    case 'failed':
+      return 'rejected';
+    default:
+      return 'unverified';
+  }
+}
 
 interface IdentityPageClientProps {
   dbUser: {
@@ -15,33 +36,78 @@ interface IdentityPageClientProps {
     stripeIdentityVerificationId: string | null;
   };
   verificationStatus: {
-    status: 'unverified' | 'pending' | 'verified' | 'rejected';
+    status: DisplayStatus;
     lastUpdated: string | null;
     details?: string;
   } | null;
 }
 
-function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
+function IdentityPageContent({ verificationStatus: initialStatus }: IdentityPageClientProps) {
   const t = useTranslations('account.identity');
-  const [isStartingVerification, setIsStartingVerification] = React.useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
+  const router = useRouter();
+  const [status, setStatus] = useState<DisplayStatus>(initialStatus?.status ?? 'unverified');
+  const [lastUpdated, setLastUpdated] = useState<string | null>(initialStatus?.lastUpdated ?? null);
+  const [isStartingVerification, setIsStartingVerification] = useState(false);
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/stripe/identity/verification/status');
+      const data = await response.json();
+      const displayStatus = mapApiStatusToDisplay((data.status as ApiStatus) ?? 'not_started');
+      setStatus(displayStatus);
+      setLastUpdated(data.lastUpdated ?? null);
+      return displayStatus;
+    } catch (error) {
+      console.error('Error fetching verification status:', error);
+      return status;
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (initialStatus) {
+      setStatus(initialStatus.status);
+      setLastUpdated(initialStatus.lastUpdated ?? null);
+    }
+  }, [initialStatus?.status, initialStatus?.lastUpdated]);
 
   const handleStartVerification = async () => {
     try {
       setIsStartingVerification(true);
-      const response = await fetch('/api/stripe/identity/start-verification', {
-        method: 'POST',
-      });
-
+      const response = await fetch('/api/stripe/identity/verification', { method: 'POST' });
       const data = await response.json();
 
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        toast.error(data.error ?? 'Failed to start identity verification. Please try again.');
+        return;
       }
 
-      if (data.url) {
-        // For external Stripe URLs, we need to use window.location
-        window.location.href = data.url;
+      if (data.success && data.status === 'verified') {
+        setStatus('verified');
+        toast.success('Already verified', {
+          description: 'Your identity has already been verified.',
+        });
+        return;
+      }
+
+      if (!data.clientSecret) {
+        toast.error(data.error ?? 'Failed to start verification process');
+        return;
+      }
+
+      const stripe = await stripePromise;
+      if (!stripe) {
+        toast.error('Stripe could not be loaded. Please refresh the page.');
+        return;
+      }
+
+      const { error } = await stripe.verifyIdentity(data.clientSecret);
+
+      if (error) {
+        toast.error('Verification failed', { description: error.message ?? 'Please try again.' });
+      } else {
+        toast.success('Verification submitted!', { description: 'Checking status...' });
+        await refreshStatus();
+        router.refresh();
       }
     } catch {
       toast.error('Failed to start identity verification. Please try again.');
@@ -50,58 +116,32 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
     }
   };
 
-  const handleCheckStatus = async () => {
-    try {
-      setIsCheckingStatus(true);
-      const response = await fetch('/api/stripe/identity/check-status', {
-        method: 'POST',
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      toast.success('Verification status updated successfully');
-
-      // Refresh the page to show updated status
-      window.location.reload();
-    } catch {
-      toast.error('Failed to check status. Please try again.');
-    } finally {
-      setIsCheckingStatus(false);
-    }
-  };
-
   const renderStatusBadge = () => {
-    if (!verificationStatus) return null;
-
-    switch (verificationStatus.status) {
+    switch (status) {
       case 'verified':
         return (
-          <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm text-green-700">
+          <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm text-green-700 dark:bg-green-950/30 dark:text-green-200">
             <BadgeCheck className="h-4 w-4" />
             <span>{t('status.verified')}</span>
           </div>
         );
       case 'pending':
         return (
-          <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-700">
+          <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
             <Clock className="h-4 w-4" />
             <span>{t('status.pending')}</span>
           </div>
         );
       case 'rejected':
         return (
-          <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm text-red-700">
+          <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-200">
             <AlertTriangle className="h-4 w-4" />
             <span>{t('status.rejected')}</span>
           </div>
         );
       default:
         return (
-          <div className="flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-700">
+          <div className="flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-300">
             <Fingerprint className="h-4 w-4" />
             <span>{t('status.unverified')}</span>
           </div>
@@ -124,11 +164,12 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Privacy & Data Processing Notice */}
-          <Alert className="border-blue-200 bg-blue-50">
+          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
             <Shield className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="text-blue-900">Privacy & Data Protection</AlertTitle>
-            <AlertDescription className="space-y-2 text-blue-800">
+            <AlertTitle className="text-blue-900 dark:text-blue-100">
+              Privacy & Data Protection
+            </AlertTitle>
+            <AlertDescription className="space-y-2 text-blue-800 dark:text-blue-200">
               <p>
                 {t('privacyNotice')}{' '}
                 <Link href="/legal/privacy" className="font-medium underline hover:text-blue-900">
@@ -144,7 +185,6 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
             </AlertDescription>
           </Alert>
 
-          {/* Data Usage Information */}
           <Alert>
             <Info className="h-4 w-4" />
             <AlertTitle>How We Use Your Identity Data</AlertTitle>
@@ -158,7 +198,8 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
               </ul>
             </AlertDescription>
           </Alert>
-          {!verificationStatus || verificationStatus.status === 'unverified' ? (
+
+          {status === 'unverified' || status === 'rejected' ? (
             <div>
               <p className="mb-4">
                 Please complete identity verification to ensure security and compliance. This is a
@@ -172,54 +213,49 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 {isStartingVerification ? t('buttons.starting') : t('buttons.start')}
               </Button>
             </div>
-          ) : verificationStatus.status === 'pending' ? (
+          ) : status === 'pending' ? (
             <div>
               <p className="mb-4">
                 Your identity verification is currently under review. This process typically takes
                 1-2 business days. You&apos;ll be notified once the review is complete.
               </p>
               <div className="flex gap-4">
-                <Button onClick={handleCheckStatus} disabled={isCheckingStatus} variant="outline">
-                  {isCheckingStatus ? t('buttons.checking') : t('buttons.checkStatus')}
+                <Button
+                  onClick={async () => {
+                    await refreshStatus();
+                    router.refresh();
+                    toast.success('Status updated');
+                  }}
+                  variant="outline"
+                >
+                  {t('buttons.checkStatus')}
                 </Button>
                 <Button onClick={handleStartVerification} disabled={isStartingVerification}>
                   {isStartingVerification ? t('buttons.starting') : t('buttons.resume')}
                 </Button>
               </div>
-              {verificationStatus.lastUpdated && (
+              {lastUpdated && (
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Last updated: {new Date(verificationStatus.lastUpdated).toLocaleString()}
+                  Last updated: {new Date(lastUpdated).toLocaleString()}
                 </p>
               )}
             </div>
-          ) : verificationStatus.status === 'verified' ? (
+          ) : status === 'verified' ? (
             <div>
-              <p className="mb-4 text-green-700">
+              <p className="mb-4 text-green-700 dark:text-green-300">
                 Your identity has been successfully verified. Thank you for completing this
                 important security step.
               </p>
-              {verificationStatus.lastUpdated && (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Verified on: {new Date(verificationStatus.lastUpdated).toLocaleString()}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div>
-              <p className="mb-4 text-red-700">
-                Your verification was not successful.{' '}
-                {verificationStatus.details || 'Please try again.'}
-              </p>
-              <Button onClick={handleStartVerification} disabled={isStartingVerification}>
-                {isStartingVerification ? t('buttons.starting') : t('buttons.tryAgain')}
+              <Button asChild>
+                <Link href={'/account/billing' as any}>Continue to Payment Setup</Link>
               </Button>
-              {verificationStatus.lastUpdated && (
+              {lastUpdated && (
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Last attempted: {new Date(verificationStatus.lastUpdated).toLocaleString()}
+                  Verified on: {new Date(lastUpdated).toLocaleString()}
                 </p>
               )}
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>

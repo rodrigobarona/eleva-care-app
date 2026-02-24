@@ -4,14 +4,8 @@
  * Dynamically resolves Stripe prices using lookup keys.
  * Caches results for performance.
  */
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import Stripe from 'stripe';
-
-// Initialize Stripe client with centralized API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-  typescript: true,
-});
 
 /**
  * In-memory cache for price lookups
@@ -54,6 +48,7 @@ export async function resolvePriceByLookupKey(
   }
 
   try {
+    const stripe = await getServerStripe();
     console.log(`[Price Resolver] Fetching price for lookup key: ${lookupKey}`);
 
     const prices = await stripe.prices.list({

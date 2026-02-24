@@ -1,7 +1,10 @@
 'use server';
 
-import { db } from '@/drizzle/db';
+import { db, invalidateCache } from '@/drizzle/db';
+import * as Sentry from '@sentry/nextjs';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema';
+
+const { logger } = Sentry;
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { eventFormSchema } from '@/schema/events';
@@ -33,6 +36,7 @@ import type { z } from 'zod';
 export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean; message?: string } | undefined> {
+  return Sentry.withServerActionInstrumentation('createEvent', { recordResponse: true }, async () => {
   // 🛡️ BotID Protection: Check for bot traffic before creating events
   const botVerification = (await checkBotId({
     advancedOptions: {
@@ -41,7 +45,7 @@ export async function createEvent(
   })) as import('@/types/botid').BotIdVerificationResult;
 
   if (botVerification.isBot) {
-    console.warn('🚫 Bot detected in event creation:', {
+    logger.warn('🚫 Bot detected in event creation', {
       isVerifiedBot: botVerification.isVerifiedBot,
       verifiedBotName: botVerification.verifiedBotName,
     });
@@ -82,16 +86,19 @@ export async function createEvent(
       try {
         await markStepComplete('events');
       } catch (error) {
-        console.error('Failed to mark events step as complete:', error);
+        logger.error('Failed to mark events step as complete', { error });
       }
     }
+
+    await invalidateCache([`expert-events-${userId}`]);
 
     // Return success instead of redirecting
     return { error: false };
   } catch (error) {
-    console.error('Create event error:', error);
+    logger.error('Create event error', { error });
     return { error: true, message: 'Database error occurred' };
   }
+  });
 }
 
 /**
@@ -112,6 +119,7 @@ export async function updateEvent(
   id: string,
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean } | undefined> {
+  return Sentry.withServerActionInstrumentation('updateEvent', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
 
@@ -154,14 +162,17 @@ export async function updateEvent(
     try {
       await markStepComplete('events');
     } catch (error) {
-      console.error('Failed to mark events step as complete:', error);
+      logger.error('Failed to mark events step as complete', { error });
     }
   }
 
   // After update, refresh the expert setup status
   await checkExpertSetupStatus();
 
+  await invalidateCache([`expert-events-${userId}`]);
+
   redirect('/booking/events');
+  });
 }
 
 /**
@@ -177,6 +188,7 @@ export async function updateEvent(
  * }
  */
 export async function deleteEvent(id: string): Promise<{ error: boolean } | undefined> {
+  return Sentry.withServerActionInstrumentation('deleteEvent', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
 
@@ -204,7 +216,7 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
           active: false,
         });
       } catch (stripeError) {
-        console.error('Failed to archive Stripe product:', stripeError);
+        logger.error('Failed to archive Stripe product', { error: stripeError });
         // Continue with event deletion even if Stripe archival fails
       }
     }
@@ -233,14 +245,17 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
     updateTag('events');
     updateTag(`user-events-${userId}`);
 
+    await invalidateCache([`expert-events-${userId}`]);
+
     // After deletion, check and update the expert setup status
     await checkExpertSetupStatus();
 
     return { error: false };
   } catch (error) {
-    console.error('Delete event error:', error);
+    logger.error('Delete event error', { error });
     return { error: true };
   }
+  });
 }
 
 /**
@@ -255,6 +270,7 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
  * ]);
  */
 export async function updateEventOrder(updates: { id: string; order: number }[]) {
+  return Sentry.withServerActionInstrumentation('updateEventOrder', { recordResponse: true }, async () => {
   try {
     // Update each record individually since we can't use transactions
     for (const { id, order } of updates) {
@@ -264,9 +280,10 @@ export async function updateEventOrder(updates: { id: string; order: number }[])
     updateTag('events');
     return { success: true };
   } catch (error) {
-    console.error('Failed to update event order:', error);
+    logger.error('Failed to update event order', { error });
     return { error: 'Failed to update event order' };
   }
+  });
 }
 
 /**
@@ -286,6 +303,7 @@ export async function updateEventActiveState(
   id: string,
   isActive: boolean,
 ): Promise<{ error: boolean } | undefined> {
+  return Sentry.withServerActionInstrumentation('updateEventActiveState', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
 
@@ -320,7 +338,7 @@ export async function updateEventActiveState(
       try {
         await markStepComplete('events');
       } catch (error) {
-        console.error('Failed to mark events step as complete:', error);
+        logger.error('Failed to mark events step as complete', { error });
       }
     }
 
@@ -328,18 +346,23 @@ export async function updateEventActiveState(
     updateTag(`event-${id}`);
     updateTag(`user-events-${userId}`);
 
+    await invalidateCache([`expert-events-${userId}`]);
+
     return { error: false };
   } catch (error) {
-    console.error('Update event active state error:', error);
+    logger.error('Update event active state error', { error });
     return { error: true };
   }
+  });
 }
 
 export async function getEventMeetingsCount(eventId: string): Promise<number> {
+  return Sentry.withServerActionInstrumentation('getEventMeetingsCount', { recordResponse: true }, async () => {
   const result = await db
     .select({ count: count() })
     .from(MeetingsTable)
     .where(eq(MeetingsTable.eventId, eventId));
 
   return result[0]?.count ?? 0;
+  });
 }

@@ -1,5 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
-import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
+import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventsTable, PaymentTransfersTable, UsersTable } from '@/drizzle/schema';
 import {
@@ -12,6 +12,7 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import {
@@ -33,14 +34,6 @@ import Stripe from 'stripe';
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
-
-// Initialize Stripe
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 // Maximum number of retries for failed transfers
 const MAX_RETRY_COUNT = 3;
@@ -67,6 +60,8 @@ type TransferResult = SuccessResult | ErrorResult;
  * This endpoint is called by QStash every 2 hours
  */
 async function handler(request: Request) {
+  const stripe = await getServerStripe();
+
   try {
     // Find all pending transfers that are due (scheduled time ≤ now or manually approved)
     // AND have met the payment aging requirements

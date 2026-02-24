@@ -191,14 +191,42 @@ await logAuditEvent({
 });
 ```
 
-## Two-Layer Caching
+## Drizzle Query Cache (Upstash Redis)
+
+Strategy: **Explicit** (`global: false`). Only queries with `.$withCache()` are cached.
+
+```typescript
+// READ: Add .$withCache() to high-value, read-heavy queries
+const user = await db.query.UsersTable.findFirst({
+  where: eq(UsersTable.workosUserId, workosUserId),
+}).$withCache({ tag: `user-${workosUserId}`, config: { ex: 300 } });
+
+// INVALIDATE: After mutations, bust relevant cache tags
+import { invalidateCache } from '@/drizzle/db';
+await invalidateCache([`user-${workosUserId}`, `user-full-${workosUserId}`]);
+```
+
+**DO cache** (high read frequency, low mutation rate):
+- User lookups (`user-{id}`, 5 min TTL)
+- Expert profiles (`expert-profile-{id}`, 2 min TTL)
+- Categories (`categories`, 1 hour TTL)
+- Scheduling settings (`schedule-{id}`, 1 min TTL)
+
+**DO NOT cache** (must stay real-time):
+- Anything inside `getOrgScopedDb()` transactions (RLS context)
+- Webhook handlers
+- Cron jobs
+- Payment intent creation
+- Admin panel queries
+
+## Application-Level Caching (Redis)
 
 ```typescript
 import { redisManager } from '@/lib/redis';
 import { cache } from 'react';
 
 // Layer 1: React cache (request-level)
-// Layer 2: Redis (distributed)
+// Layer 2: Redis (distributed) -- for non-DB data (form state, idempotency, rate limiting)
 const _getDataImpl = async (id: string) => {
   const cached = await redisManager.get(`data:${id}`);
   if (cached) return JSON.parse(cached);

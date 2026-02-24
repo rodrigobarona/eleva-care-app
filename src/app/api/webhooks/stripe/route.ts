@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nextjs';
-import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable, SlotReservationsTable } from '@/drizzle/schema';
 import {
@@ -17,6 +16,7 @@ import {
   getWorkflowFromStripeEvent,
   triggerNovuWorkflow,
 } from '@/lib/integrations/novu/utils';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
@@ -39,10 +39,7 @@ import {
 } from './handlers/payment';
 import { handlePayoutFailed, handlePayoutPaid } from './handlers/payout';
 
-// Initialize Stripe
-const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
-  apiVersion: ENV_CONFIG.STRIPE_API_VERSION as Stripe.LatestApiVersion,
-});
+const { logger } = Sentry;
 
 /**
  * Zod schema for meeting metadata validation
@@ -166,7 +163,7 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
  */
 function parseMetadata<T>(json: string | undefined, fallback: T, type?: string): T {
   if (!json) {
-    console.warn('Empty metadata received:', {
+    logger.warn('Empty metadata received:', {
       type,
       fallbackUsed: fallback,
     });
@@ -177,7 +174,7 @@ function parseMetadata<T>(json: string | undefined, fallback: T, type?: string):
     return JSON.parse(json) as T;
   } catch (error) {
     // Log detailed error information for debugging
-    console.error('Failed to parse metadata:', {
+    logger.error('Failed to parse metadata:', {
       type,
       json: json.length > 500 ? `${json.slice(0, 500)}... (truncated)` : json,
       error:
@@ -193,10 +190,10 @@ function parseMetadata<T>(json: string | undefined, fallback: T, type?: string):
 
     // Log warning if JSON looks malformed
     if (json.includes('\n') || json.includes('\r')) {
-      console.warn('Metadata contains newlines which may indicate formatting issues');
+      logger.warn('Metadata contains newlines which may indicate formatting issues');
     }
     if (!json.startsWith('{') && !json.startsWith('[')) {
-      console.warn('Metadata does not start with { or [ which may indicate invalid JSON');
+      logger.warn('Metadata does not start with { or [ which may indicate invalid JSON');
     }
 
     return fallback;
@@ -248,7 +245,7 @@ function validateMeetingMetadata(
   if (typeof metadata.dur !== 'number' || metadata.dur <= 0) missingFields.push('duration');
 
   if (missingFields.length > 0) {
-    console.error('Critical meeting metadata missing or invalid:', {
+    logger.error('Critical meeting metadata missing or invalid:', {
       sessionId,
       missingFields,
       metadata,
@@ -283,7 +280,7 @@ function validateTransferMetadata(
   }
 
   if (missingFields.length > 0) {
-    console.error('Critical transfer metadata missing or invalid:', {
+    logger.error('Critical transfer metadata missing or invalid:', {
       sessionId,
       missingFields,
       metadata,
@@ -305,7 +302,7 @@ function validateMetadataString(
   sessionId: string,
 ): void {
   if (!metadata?.trim()) {
-    console.error(`Missing or empty ${type} metadata in checkout session:`, {
+    logger.error(`Missing or empty ${type} metadata in checkout session:`, {
       sessionId,
       metadata,
     });
@@ -315,7 +312,7 @@ function validateMetadataString(
   try {
     JSON.parse(metadata);
   } catch (error) {
-    console.error(`Invalid JSON in ${type} metadata:`, {
+    logger.error(`Invalid JSON in ${type} metadata:`, {
       sessionId,
       metadata,
       error,
@@ -345,7 +342,7 @@ function validateAndParseMetadata<T>(
     return schema.parse(rawData);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error(`Invalid ${type} metadata structure:`, {
+      logger.error(`Invalid ${type} metadata structure:`, {
         sessionId,
         errors: error.issues,
         rawData,
@@ -569,6 +566,7 @@ async function handleDoubleBookingRefund(paymentIntentId: string) {
       },
     },
     async (span) => {
+      const stripe = await getServerStripe();
       // Check if a refund already exists
       const existing = await stripe.refunds.list({
         payment_intent: paymentIntentId,
@@ -743,11 +741,12 @@ const mapPaymentStatus = (stripeStatus: string, sessionId?: string): PaymentStat
  */
 async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
   try {
+    const stripe = await getServerStripe();
     // Check if we have a workflow mapped for this event
     const workflowId = getWorkflowFromStripeEvent(event.type);
 
     if (!workflowId) {
-      console.log(`🔕 No Novu workflow mapped for Stripe event: ${event.type}`);
+      logger.info(`No Novu workflow mapped for Stripe event: ${event.type}`);
       return;
     }
 
@@ -777,14 +776,14 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
       try {
         customer = (await stripe.customers.retrieve(customerId)) as Stripe.Customer;
       } catch (error) {
-        console.warn(`Could not retrieve customer ${customerId} for Novu notification:`, error);
+        logger.warn(`Could not retrieve customer ${customerId} for Novu notification:`, { error } as Record<string, unknown>);
       }
     }
 
     // If we don't have customer data, skip the notification
     if (!customer || !customerId) {
-      console.log(
-        `🔕 No customer data available for Stripe event: ${event.type}, skipping Novu notification`,
+      logger.info(
+        `No customer data available for Stripe event: ${event.type}, skipping Novu notification`,
       );
       return;
     }
@@ -804,16 +803,16 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
     };
 
     // Trigger the Novu workflow
-    console.log(`🔔 Triggering Novu workflow '${workflowId}' for Stripe event '${event.type}'`);
+    logger.info(`Triggering Novu workflow '${workflowId}' for Stripe event '${event.type}'`);
     const result = await triggerNovuWorkflow(workflowId, subscriber, payload);
 
     if (result.success) {
-      console.log(`✅ Successfully triggered Novu workflow for Stripe event: ${event.type}`);
+      logger.info(`Successfully triggered Novu workflow for Stripe event: ${event.type}`);
     } else {
-      console.error(`❌ Failed to trigger Novu workflow for Stripe event:`, result.error);
+      logger.error(`Failed to trigger Novu workflow for Stripe event:`, { error: result.error } as Record<string, unknown>);
     }
   } catch (error) {
-    console.error('Error triggering Novu notification from Stripe event:', error);
+    logger.error('Error triggering Novu notification from Stripe event:', { error } as Record<string, unknown>);
     // Don't throw - we don't want Novu failures to break webhook processing
   }
 }
@@ -838,6 +837,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
+  const stripe = await getServerStripe();
   let event: Stripe.Event;
 
   try {

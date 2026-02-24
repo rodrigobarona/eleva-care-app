@@ -1,6 +1,6 @@
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
 import { formatDateTime } from '@/lib/utils/formatters';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
@@ -8,7 +8,6 @@ import { getTranslations } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
-import Stripe from 'stripe';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 // Removed: export const revalidate = 0 (default behavior)
@@ -292,9 +291,7 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
       return notFound();
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-    });
+    const stripe = await getServerStripe();
 
     // IMPORTANT: Use ProfilesTable for expert display name (professional name)
     if (!expertProfile) {

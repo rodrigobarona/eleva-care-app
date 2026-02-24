@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { ProfilesTable, UsersTable } from '@/drizzle/schema';
 import {
@@ -11,6 +12,8 @@ import { createUserNotification } from '@/lib/notifications/core';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 
+const { logger } = Sentry;
+
 /**
  * Handles updates to a user's identity verification status
  * Implements retry logic for critical operations to ensure robustness
@@ -18,7 +21,7 @@ import type { Stripe } from 'stripe';
 export async function handleIdentityVerificationUpdated(
   verificationSession: Stripe.Identity.VerificationSession,
 ) {
-  console.log('Identity verification updated:', verificationSession.id);
+  logger.info('Identity verification updated:', { verificationSessionId: verificationSession.id });
 
   // Find the user associated with this verification - in Stripe Identity API
   // the verification session contains a 'client_reference_id' which could be
@@ -39,15 +42,21 @@ export async function handleIdentityVerificationUpdated(
     }
   }
 
-  // If we still don't have a user, check if there's an account ID in metadata
-  if (!user && verificationSession.metadata?.user_id) {
+  // Try metadata lookup: createIdentityVerification sets userId (camelCase) and workosUserId
+  if (!user && verificationSession.metadata?.workosUserId) {
     user = await db.query.UsersTable.findFirst({
-      where: eq(UsersTable.id, verificationSession.metadata.user_id),
+      where: eq(UsersTable.workosUserId, verificationSession.metadata.workosUserId),
+    });
+  }
+
+  if (!user && verificationSession.metadata?.userId) {
+    user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.id, verificationSession.metadata.userId),
     });
   }
 
   if (!user) {
-    console.error('User not found for verification session:', {
+    logger.error('User not found for verification session:', {
       sessionId: verificationSession.id,
       clientReference: verificationSession.client_reference_id,
       metadata: verificationSession.metadata,
@@ -79,7 +88,7 @@ export async function handleIdentityVerificationUpdated(
           if (verificationSession.status === 'verified') {
             // Note: markStepComplete now gets user from auth context
             // For webhooks, we need to ensure we're in the right context
-            console.log('Identity verification completed for user:', user.workosUserId);
+            logger.info('Identity verification completed for user:', { workosUserId: user.workosUserId });
             // TODO: Implement webhook-specific step completion that doesn't require auth context
             await createUserNotification({
               userId: user.id,
@@ -110,7 +119,9 @@ export async function handleIdentityVerificationUpdated(
       1000,
     ); // Retry up to 3 times with 1s initial delay (doubles each retry)
   } catch (error) {
-    console.error('Error handling identity verification update after retries:', error);
+    logger.error('Error handling identity verification update after retries', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Store the failed operation for manual recovery
     // This could be logged to a database table or monitoring system
@@ -124,7 +135,7 @@ export async function handleIdentityVerificationUpdated(
     };
 
     // Log to a persistent store for administrative review
-    console.error('Critical operation failed, needs manual intervention:', operationDetails);
+    logger.error('Critical operation failed, needs manual intervention', operationDetails as Record<string, unknown>);
 
     // In a production environment, you might want to:
     // 1. Log to error tracking system (Sentry, Datadog, etc.)

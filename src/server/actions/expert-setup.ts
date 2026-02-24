@@ -14,6 +14,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
+import * as Sentry from '@sentry/nextjs';
 import { ExpertSetupTable } from '@/drizzle/schema';
 import type { SetupStats, SetupStatus, SetupStepType } from '@/types/expert-setup';
 import { SetupStep } from '@/types/expert-setup';
@@ -83,6 +84,7 @@ export async function checkExpertSetupStatus(): Promise<{
   isSetupComplete: boolean;
   setupCompletedAt: Date | null;
 }> {
+  return Sentry.withServerActionInstrumentation('checkExpertSetupStatus', { recordResponse: true }, async () => {
   const { user } = await withAuth({ ensureSignedIn: true });
 
   // Try to fetch existing setup record
@@ -124,6 +126,7 @@ export async function checkExpertSetupStatus(): Promise<{
     isSetupComplete: setup.setupComplete,
     setupCompletedAt: setup.setupCompletedAt,
   };
+  });
 }
 
 /**
@@ -144,6 +147,7 @@ export async function checkExpertSetupStatus(): Promise<{
  * ```
  */
 export async function markStepComplete(step: SetupStepType): Promise<void> {
+  return Sentry.withServerActionInstrumentation('markStepComplete', { recordResponse: true }, async () => {
   // Validate step name
   const validatedStep = SetupStep.parse(step);
 
@@ -204,6 +208,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
 
   updateTag('expert-setup');
   updateTag(`expert-setup-${user.id}`);
+  });
 }
 
 /**
@@ -212,6 +217,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
  * @param step - Setup step to mark incomplete
  */
 export async function markStepIncomplete(step: SetupStepType): Promise<void> {
+  return Sentry.withServerActionInstrumentation('markStepIncomplete', { recordResponse: true }, async () => {
   const validatedStep = SetupStep.parse(step);
   const { user } = await withAuth({ ensureSignedIn: true });
 
@@ -237,6 +243,7 @@ export async function markStepIncomplete(step: SetupStepType): Promise<void> {
 
   updateTag('expert-setup');
   updateTag(`expert-setup-${user.id}`);
+  });
 }
 
 /**
@@ -248,6 +255,7 @@ export async function markStepIncomplete(step: SetupStepType): Promise<void> {
  * @param workosUserId - User ID to reset (optional, defaults to current user)
  */
 export async function resetSetup(workosUserId?: string): Promise<void> {
+  return Sentry.withServerActionInstrumentation('resetSetup', { recordResponse: true }, async () => {
   const { user } = await withAuth({ ensureSignedIn: true });
 
   // TODO: Add admin permission check
@@ -274,6 +282,7 @@ export async function resetSetup(workosUserId?: string): Promise<void> {
 
   updateTag('expert-setup');
   updateTag(`expert-setup-${targetUserId}`);
+  });
 }
 
 /**
@@ -290,6 +299,7 @@ export async function getIncompleteExperts(): Promise<
     createdAt: Date;
   }>
 > {
+  return Sentry.withServerActionInstrumentation('getIncompleteExperts', { recordResponse: true }, async () => {
   // TODO: Add authentication and admin permission check
   // const session = await requireAuth();
   // const isAdmin = await isUserAdmin(session.userId);
@@ -315,6 +325,7 @@ export async function getIncompleteExperts(): Promise<
     },
     createdAt: setup.createdAt,
   }));
+  });
 }
 
 /**
@@ -325,6 +336,7 @@ export async function getIncompleteExperts(): Promise<
  * @returns Setup statistics
  */
 export async function getSetupStats(): Promise<SetupStats> {
+  return Sentry.withServerActionInstrumentation('getSetupStats', { recordResponse: true }, async () => {
   // TODO: Add authentication and admin permission check
   // const session = await requireAuth();
   // const isAdmin = await isUserAdmin(session.userId);
@@ -379,4 +391,5 @@ export async function getSetupStats(): Promise<SetupStats> {
     completionRate: Math.round(completionRate * 10) / 10, // Round to 1 decimal
     averageStepsCompleted: Math.round(averageStepsCompleted * 10) / 10,
   };
+  });
 }

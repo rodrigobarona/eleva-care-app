@@ -1,5 +1,8 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema';
+
+const { logger } = Sentry;
 import { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { del } from '@vercel/blob';
@@ -47,8 +50,8 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
  * }
  */
 export async function updateProfile(userId: string, data: ProfileFormValues) {
+  return Sentry.withServerActionInstrumentation('updateProfile', { recordResponse: true }, async () => {
   try {
-    // Retrieve existing profile to handle profile picture updates
     const existingProfile = await db.query.ProfilesTable.findFirst({
       where: (profile, { eq }) => eq(profile.workosUserId, userId),
     });
@@ -62,7 +65,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
         // Delete old profile picture from blob storage
         await del(existingProfile.profilePicture);
       } catch (error) {
-        console.error('Failed to delete old profile picture:', error);
+        logger.error('Failed to delete old profile picture', { error });
         // Continue execution even if deletion fails
       }
     }
@@ -71,7 +74,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
     const transformedData = {
       ...data,
       socialLinks: data.socialLinks.map((link) => {
-        console.log('Raw input:', { name: link.name, url: link.url });
+        logger.info('Raw input', { name: link.name, url: link.url });
 
         // Handle empty or undefined URLs
         if (!link.url?.trim()) {
@@ -150,13 +153,14 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
       try {
         await markStepComplete('profile');
       } catch (error) {
-        console.error('Failed to mark profile step as complete:', error);
+        logger.error('Failed to mark profile step as complete', { error });
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Profile update error:', error);
+    logger.error('Profile update error', { error });
     return { error: 'Failed to update profile' };
   }
+  });
 }

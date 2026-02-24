@@ -15,18 +15,20 @@
 
 'use server';
 
-import { STRIPE_CONFIG } from '@/config/stripe';
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
-import { db } from '@/drizzle/db';
+import { db, invalidateCache } from '@/drizzle/db';
 import {
   SubscriptionEventsTable,
   SubscriptionPlansTable,
   UserOrgMembershipsTable,
   UsersTable,
 } from '@/drizzle/schema';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
-import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 /**
  * Subscription Management Server Actions
@@ -132,10 +134,6 @@ import Stripe from 'stripe';
  * - Database (SubscriptionPlansTable)
  * - Audit logging
  */
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 // ============================================================================
 // Types
@@ -208,6 +206,7 @@ async function getUserOrgId(workosUserId: string): Promise<string | null> {
 export async function getSubscriptionStatus(
   workosUserId?: string,
 ): Promise<SubscriptionInfo | null> {
+  return Sentry.withServerActionInstrumentation('getSubscriptionStatus', { recordResponse: true }, async () => {
   try {
     let userId = workosUserId;
 
@@ -220,7 +219,7 @@ export async function getSubscriptionStatus(
     const orgId = await getUserOrgId(userId);
 
     if (!orgId) {
-      console.warn(`[getSubscriptionStatus] No organization found for user ${userId}`);
+      logger.warn('[getSubscriptionStatus] No organization found for user', { userId });
       return null;
     }
 
@@ -249,8 +248,8 @@ export async function getSubscriptionStatus(
 
       return {
         id: 'default',
-        planType: 'commission',
-        tierLevel,
+        planType: 'commission' as const,
+        tierLevel: tierLevel as 'community' | 'top',
         billingInterval: null,
         status: null,
         currentPeriodStart: null,
@@ -270,6 +269,7 @@ export async function getSubscriptionStatus(
 
     if (subscription.stripeSubscriptionId && subscription.planType === 'annual') {
       try {
+        const stripe = await getServerStripe();
         const stripeSubscription = await stripe.subscriptions.retrieve(
           subscription.stripeSubscriptionId,
         );
@@ -277,7 +277,7 @@ export async function getSubscriptionStatus(
         currentPeriodStart = new Date(stripeSubscription.current_period_start * 1000);
         currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000);
       } catch (error) {
-        console.error('Error fetching Stripe subscription:', error);
+        logger.error('Error fetching Stripe subscription', { error });
       }
     }
 
@@ -296,9 +296,10 @@ export async function getSubscriptionStatus(
       commissionRate: subscription.commissionRate ? subscription.commissionRate / 10000 : 0,
     };
   } catch (error) {
-    console.error('Error getting subscription status:', error);
+    logger.error('Error getting subscription status', { error });
     return null;
   }
+  });
 }
 
 // ============================================================================
@@ -319,7 +320,9 @@ export async function createSubscription(
   tierLevel: 'community' | 'top',
   billingInterval: 'month' | 'year' = 'year', // Default to annual for backward compatibility
 ): Promise<CreateSubscriptionResult> {
+  return Sentry.withServerActionInstrumentation('createSubscription', { recordResponse: true }, async () => {
   try {
+    const stripe = await getServerStripe();
     const { user } = await withAuth({ ensureSignedIn: true });
 
     // Get user's Stripe customer ID
@@ -436,17 +439,20 @@ export async function createSubscription(
       },
     });
 
+    await invalidateCache([`subscription-${user.id}`]);
+
     return {
       success: true,
       checkoutUrl: session.url || undefined,
     };
   } catch (error) {
-    console.error('Error creating subscription:', error);
+    logger.error('Error creating subscription', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create subscription',
     };
   }
+  });
 }
 
 // ============================================================================
@@ -463,7 +469,9 @@ export async function createSubscription(
  * @returns Success status
  */
 export async function cancelSubscription(reason?: string): Promise<CreateSubscriptionResult> {
+  return Sentry.withServerActionInstrumentation('cancelSubscription', { recordResponse: true }, async () => {
   try {
+    const stripe = await getServerStripe();
     const { user } = await withAuth({ ensureSignedIn: true });
 
     // ✅ Get user's organization ID
@@ -503,14 +511,17 @@ export async function cancelSubscription(reason?: string): Promise<CreateSubscri
       reason: reason || 'user_requested',
     });
 
+    await invalidateCache([`subscription-${user.id}`]);
+
     return { success: true };
   } catch (error) {
-    console.error('Error canceling subscription:', error);
+    logger.error('Error canceling subscription', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to cancel subscription',
     };
   }
+  });
 }
 
 // ============================================================================
@@ -524,7 +535,9 @@ export async function cancelSubscription(reason?: string): Promise<CreateSubscri
  * Reactivates the organization's subscription if it was set to cancel.
  */
 export async function reactivateSubscription(): Promise<CreateSubscriptionResult> {
+  return Sentry.withServerActionInstrumentation('reactivateSubscription', { recordResponse: true }, async () => {
   try {
+    const stripe = await getServerStripe();
     const { user } = await withAuth({ ensureSignedIn: true });
 
     // ✅ Get user's organization ID
@@ -560,14 +573,17 @@ export async function reactivateSubscription(): Promise<CreateSubscriptionResult
       reason: 'user_reactivated',
     });
 
+    await invalidateCache([`subscription-${user.id}`]);
+
     return { success: true };
   } catch (error) {
-    console.error('Error reactivating subscription:', error);
+    logger.error('Error reactivating subscription', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to reactivate subscription',
     };
   }
+  });
 }
 
 // ============================================================================
@@ -581,6 +597,7 @@ export async function reactivateSubscription(): Promise<CreateSubscriptionResult
  * @returns Commission rate as a decimal (e.g., 0.20 for 20%)
  */
 export async function getCurrentCommissionRate(workosUserId: string): Promise<number> {
+  return Sentry.withServerActionInstrumentation('getCurrentCommissionRate', { recordResponse: true }, async () => {
   try {
     const subscription = await getSubscriptionStatus(workosUserId);
 
@@ -591,8 +608,9 @@ export async function getCurrentCommissionRate(workosUserId: string): Promise<nu
 
     return subscription.commissionRate;
   } catch (error) {
-    console.error('Error getting commission rate:', error);
+    logger.error('Error getting commission rate', { error });
     // Return default commission rate on error
     return SUBSCRIPTION_PRICING.commission_based.community_expert.commissionRate;
   }
+  });
 }

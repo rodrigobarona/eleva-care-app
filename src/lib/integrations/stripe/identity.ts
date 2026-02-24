@@ -1,10 +1,18 @@
 import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
 
 import { getBaseUrl, getServerStripe } from './client';
+
+const { logger } = Sentry;
+
+export type CreateIdentityVerificationOptions = {
+  /** When true, returns clientSecret for modal flow (no redirect). When false, returns redirectUrl for hosted flow. */
+  useModal?: boolean;
+};
 
 /**
  * Creates a Stripe Identity verification session
@@ -17,18 +25,21 @@ import { getBaseUrl, getServerStripe } from './client';
  * @param userId - Database user ID
  * @param workosUserId - WorkOS user ID for authentication
  * @param email - User's email address
+ * @param options - useModal: when true, returns clientSecret for stripe.verifyIdentity() modal; when false, returns redirectUrl for hosted redirect
  * @returns Response object with success status and session details or error information
  */
 export async function createIdentityVerification(
   userId: string,
   workosUserId: string,
   email: string,
+  options?: CreateIdentityVerificationOptions,
 ): Promise<
   | {
       success: true;
       status: string;
       verificationId: string;
       redirectUrl: string | null;
+      clientSecret: string | null;
       message: string;
     }
   | {
@@ -57,24 +68,31 @@ export async function createIdentityVerification(
           status: verificationStatus.status,
           verificationId: user.stripeIdentityVerificationId,
           redirectUrl: null,
+          clientSecret: null,
           message: 'Identity already verified',
         };
       }
     }
 
+    const useModal = options?.useModal ?? true;
+
     // Create a new verification session
     // Note: Additional verification types like 'id_document_and_selfie' are available
     // for stronger verification if required by compliance needs
-    const verificationSession = await stripe.identity.verificationSessions.create({
-      type: 'document',
-      metadata: {
-        userId,
-        workosUserId,
-        email,
-        created_at: new Date().toISOString(),
+    const verificationSession = await stripe.identity.verificationSessions.create(
+      {
+        type: 'document',
+        metadata: {
+          userId,
+          workosUserId,
+          email,
+          created_at: new Date().toISOString(),
+        },
+        // For modal flow, no return_url; for redirect flow, use callback URL
+        ...(useModal ? {} : { return_url: `${baseUrl}/account/identity/callback` }),
       },
-      return_url: `${baseUrl}/account/identity/callback`,
-    });
+      { idempotencyKey: `create-verification-${workosUserId}` },
+    );
 
     // Store the verification session ID in the database
     await db
@@ -91,13 +109,14 @@ export async function createIdentityVerification(
       success: true,
       status: verificationSession.status,
       verificationId: verificationSession.id,
-      redirectUrl: verificationSession.url,
+      redirectUrl: useModal ? null : verificationSession.url,
+      clientSecret: verificationSession.client_secret ?? null,
       message: 'Identity verification created successfully',
     };
   } catch (error) {
     // Log error with masked sensitive details in production
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Error creating identity verification:', maskSensitiveData(errorMessage));
+    logger.error('Error creating identity verification:', { maskedError: maskSensitiveData(errorMessage) });
 
     return {
       success: false,
@@ -155,7 +174,9 @@ export async function getIdentityVerificationStatus(verificationId: string): Pro
       errorCode: stripeSession.last_error?.code,
     };
   } catch (error) {
-    console.error('Error retrieving verification status:', maskSensitiveData(error));
+    logger.error('Error retrieving verification status', {
+      error: maskSensitiveData(error),
+    });
     throw error;
   }
 }
@@ -290,30 +311,33 @@ export async function createConnectAccountWithVerifiedIdentity(
     // Step 2: Create the Connect account using the verified identity
     let account: Stripe.Account;
     try {
-      account = await stripe.accounts.create({
-        type: 'express',
-        country: countryCode,
-        email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        business_type: 'individual',
-        settings: {
-          payouts: {
-            schedule: {
-              interval: 'daily',
-              delay_days: getMinimumPayoutDelay(countryCode),
+      account = await stripe.accounts.create(
+        {
+          type: 'express',
+          country: countryCode,
+          email,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          business_type: 'individual',
+          settings: {
+            payouts: {
+              schedule: {
+                interval: 'daily',
+                delay_days: getMinimumPayoutDelay(countryCode),
+              },
             },
           },
+          metadata: {
+            workosUserId,
+            identity_verified: 'true',
+            identity_verified_at: new Date().toISOString(),
+            identity_verification_id: user.stripeIdentityVerificationId,
+          },
         },
-        metadata: {
-          workosUserId,
-          identity_verified: 'true',
-          identity_verified_at: new Date().toISOString(),
-          identity_verification_id: user.stripeIdentityVerificationId,
-        },
-      });
+        { idempotencyKey: `create-connect-verified-${workosUserId}` },
+      );
     } catch (error) {
       logError('Failed to create Stripe Connect account', { workosUserId, email, country, error });
       throw error;
@@ -416,19 +440,13 @@ export async function createConnectAccountWithVerifiedIdentity(
 
 /**
  * Central logging function for Stripe operations
- * This can be replaced with your preferred logging solution
  */
 function logError(message: string, context: Record<string, unknown>): void {
-  // Mask sensitive data in context before logging
   const maskedContext = maskSensitiveData(context);
-
-  // Log to console for now, but could be replaced with a more sophisticated logging solution
-  console.error(`[STRIPE ERROR] ${message}:`, maskedContext);
-
-  // TODO: Integrate with monitoring services like Sentry, DataDog, etc.
-  // if (process.env.NODE_ENV === 'production') {
-  //   // Example: Sentry.captureException(new Error(message), { extra: context });
-  // }
+  logger.error(`[STRIPE] ${message}`, maskedContext as Record<string, unknown>);
+  if (context.error instanceof Error) {
+    Sentry.captureException(context.error, { extra: maskedContext as Record<string, unknown> });
+  }
 }
 
 /**

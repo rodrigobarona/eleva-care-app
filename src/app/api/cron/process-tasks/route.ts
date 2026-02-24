@@ -1,4 +1,4 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
@@ -18,14 +18,6 @@ import Stripe from 'stripe';
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
-
-// Initialize Stripe
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 // Maximum number of retries for failed transfers
 const MAX_RETRY_COUNT = 3;
@@ -52,6 +44,8 @@ type TransferResult = SuccessResult | ErrorResult;
  * This endpoint is called by QStash daily at 4 AM
  */
 async function handler(request: Request) {
+  const stripe = await getServerStripe();
+
   try {
     // 1. Process expert transfers
     const now = new Date();

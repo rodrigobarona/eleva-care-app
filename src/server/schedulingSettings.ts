@@ -40,7 +40,8 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
       .select()
       .from(SchedulingSettingsTable)
       .where(eq(SchedulingSettingsTable.workosUserId, userId))
-      .limit(1);
+      .limit(1)
+      .$withCache({ tag: `schedule-${userId}`, config: { ex: 60 } });
 
     // Return existing settings or create default settings
     if (settings.length > 0) {

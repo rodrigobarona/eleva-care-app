@@ -1,5 +1,4 @@
 import { ENV_CONFIG } from '@/config/env';
-import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
   EventsTable,
@@ -15,6 +14,7 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { createPayoutCompletedNotification } from '@/lib/notifications/payment';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
@@ -31,11 +31,6 @@ import Stripe from 'stripe';
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 300; // Increased to 5 minutes for comprehensive checks
-
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 // Legal requirements based on Stripe Connect best practices
 const APPOINTMENT_COMPLAINT_WINDOW_HOURS = 24; // Post-appointment dispute window (Airbnb-style)
@@ -86,6 +81,7 @@ async function handler(_request: Request) {
   const now = new Date();
   let databaseResults: PayoutResult[] = [];
   let stripeResults: PayoutResult[] = [];
+  const stripe = await getServerStripe();
 
   try {
     console.log('🚀 Starting Enhanced Payout Processing at:', now.toISOString());
@@ -258,7 +254,7 @@ async function handler(_request: Request) {
         const expertUser = expertUsers.find((user) => user.stripeConnectAccountId === accountId)!;
 
         try {
-          return await checkConnectAccountForOverdueBalance(accountId, expertUser);
+          return await checkConnectAccountForOverdueBalance(stripe, accountId, expertUser);
         } catch (error) {
           console.error(`Error checking Connect account ${accountId}:`, error);
           return {
@@ -391,6 +387,7 @@ async function createPayoutForTransfer(
   source: 'database' | 'stripe_fallback',
 ): Promise<PayoutResult> {
   try {
+    const stripe = await getServerStripe();
     // Get the Connect account balance to determine payout amount
     const balance = await stripe.balance.retrieve(
       {},
@@ -471,6 +468,7 @@ async function createPayoutForTransfer(
  * Based on Stripe Connect best practices for legal compliance
  */
 async function checkConnectAccountForOverdueBalance(
+  stripe: Stripe,
   accountId: string,
   expertUser: ExpertUserForPayout,
 ): Promise<PayoutResult> {

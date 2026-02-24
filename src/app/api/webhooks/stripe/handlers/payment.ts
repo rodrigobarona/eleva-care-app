@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nextjs';
-import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
   BlockedDatesTable,
@@ -27,17 +26,14 @@ import {
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
-import { withRetry } from '@/lib/integrations/stripe';
+import { getServerStripe, withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
 import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
+const { logger } = Sentry;
 
 // Helper function to parse metadata safely
 function parseMetadata<T>(json: string | undefined, fallback: T): T {
@@ -45,7 +41,9 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
   try {
     return JSON.parse(json) as T;
   } catch (error) {
-    console.error('Failed to parse metadata:', error);
+    logger.error('Failed to parse metadata', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return fallback;
   }
 }
@@ -172,9 +170,11 @@ async function releaseClaim(meetingId: string): Promise<void> {
         updatedAt: new Date(),
       })
       .where(eq(MeetingsTable.id, meetingId));
-    console.log(`🔓 Released calendar creation claim for meeting ${meetingId}`);
+    logger.info(`Released calendar creation claim for meeting ${meetingId}`);
   } catch (releaseError) {
-    console.error(`❌ Failed to release claim for meeting ${meetingId}:`, releaseError);
+    logger.error(`Failed to release claim for meeting ${meetingId}`, {
+      error: releaseError instanceof Error ? releaseError.message : String(releaseError),
+    });
   }
 }
 
@@ -237,15 +237,15 @@ async function checkAppointmentConflict(
         });
 
         if (!event) {
-          console.error(`❌ Event not found: ${eventId}`);
+          logger.error(`Event not found: ${eventId}`);
           return { hasConflict: true, reason: 'event_not_found' };
         }
 
         // Calculate the end time of the new appointment
         const endTime = new Date(startTime.getTime() + event.durationInMinutes * 60 * 1000);
 
-        console.log(
-          `📅 New appointment: ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)`,
+        logger.info(
+          `New appointment: ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)`,
         );
 
         // 🆕 PRIORITY 1: Check for BLOCKED DATES (Expert's responsibility - 100% refund)
@@ -255,7 +255,7 @@ async function checkAppointmentConflict(
           where: eq(BlockedDatesTable.workosUserId, expertId),
         });
 
-        console.log(`🗓️  Checking ${blockedDates.length} blocked dates for expert ${expertId}`);
+        logger.info(`Checking ${blockedDates.length} blocked dates for expert ${expertId}`);
 
         // Check if appointment falls on any blocked date in that date's specific timezone
         for (const blockedDate of blockedDates) {
@@ -279,18 +279,16 @@ async function checkAppointmentConflict(
             (startDateMatches || endDateMatches);
 
           if (startDateMatches || endDateMatches || spansBlockedDate) {
-            console.log(
-              `🚫 BLOCKED DATE CONFLICT DETECTED!`,
-              `\n  - Appointment time (UTC): ${startTime.toISOString()} - ${endTime.toISOString()}`,
-              `\n  - Appointment start date in blocked timezone: ${appointmentDateInBlockedTz}`,
-              `\n  - Appointment end date in blocked timezone: ${appointmentEndDateInBlockedTz}`,
-              `\n  - Blocked date: ${blockedDate.date}`,
-              `\n  - Blocked date timezone: ${blockedDate.timezone}`,
-              `\n  - Expert: ${expertId}`,
-              `\n  - Reason: ${blockedDate.reason || 'Not specified'}`,
-              `\n  - Blocked ID: ${blockedDate.id}`,
-              `\n  - ⚠️  This warrants 100% refund - expert blocked after booking`,
-            );
+            logger.info('Blocked date conflict detected', {
+              appointmentTimeUtc: `${startTime.toISOString()} - ${endTime.toISOString()}`,
+              appointmentStartDateInBlockedTz: appointmentDateInBlockedTz,
+              appointmentEndDateInBlockedTz: appointmentEndDateInBlockedTz,
+              blockedDate: blockedDate.date,
+              blockedDateTimezone: blockedDate.timezone,
+              expertId,
+              reason: blockedDate.reason || 'Not specified',
+              blockedId: blockedDate.id,
+            });
             return {
               hasConflict: true,
               reason: 'expert_blocked_date',
@@ -299,9 +297,7 @@ async function checkAppointmentConflict(
           }
         }
 
-        console.log(
-          `✅ No blocked date conflicts found (checked ${blockedDates.length} blocked dates)`,
-        );
+        logger.info(`No blocked date conflicts found (checked ${blockedDates.length} blocked dates)`);
 
         // PRIORITY 2: Check for existing confirmed meetings with TIME RANGE OVERLAP
         const conflictingMeetings = await db.query.MeetingsTable.findMany({
@@ -324,17 +320,20 @@ async function checkAppointmentConflict(
 
           // Use helper for overlap check
           if (hasTimeOverlap(startTime, endTime, existingMeeting.startTime, existingEndTime)) {
-            console.log(
-              `⚠️ TIME RANGE OVERLAP detected!
-          📅 Existing: ${existingMeeting.startTime.toISOString()} - ${existingEndTime.toISOString()} (${existingMeeting.event.durationInMinutes} min)
-          📅 New:      ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)
-          🔴 Meeting ID: ${existingMeeting.id}`,
-            );
+            logger.info('Time range overlap detected', {
+              existingStart: existingMeeting.startTime.toISOString(),
+              existingEnd: existingEndTime.toISOString(),
+              existingDuration: existingMeeting.event.durationInMinutes,
+              newStart: startTime.toISOString(),
+              newEnd: endTime.toISOString(),
+              newDuration: event.durationInMinutes,
+              meetingId: existingMeeting.id,
+            });
             return { hasConflict: true, reason: 'time_range_overlap' };
           }
         }
 
-        console.log('✅ No time range conflicts found');
+        logger.info('No time range conflicts found');
 
         // PRIORITY 3: Check minimum notice period requirements from expert's settings
         const expertSchedulingSettings = await db.query.SchedulingSettingsTable.findFirst({
@@ -347,16 +346,16 @@ async function checkAppointmentConflict(
         const millisecondsUntilAppointment = startTime.getTime() - currentTime.getTime();
         const minutesUntilAppointment = millisecondsUntilAppointment / (1000 * 60);
 
-        console.log(
-          `📋 Expert ${expertId} minimum notice: ${minimumNoticeMinutes} minutes, appointment in ${minutesUntilAppointment.toFixed(1)} minutes`,
+        logger.info(
+          `Expert ${expertId} minimum notice: ${minimumNoticeMinutes} minutes, appointment in ${minutesUntilAppointment.toFixed(1)} minutes`,
         );
 
         if (minutesUntilAppointment < minimumNoticeMinutes) {
           const minimumNoticeHours = Math.ceil(minimumNoticeMinutes / 60);
           const availableHours = Math.floor(minutesUntilAppointment / 60);
 
-          console.log(
-            `⚠️ Minimum notice violation: appointment at ${startTime.toISOString()} requires ${minimumNoticeHours}h notice, but only ${availableHours}h available`,
+          logger.info(
+            `Minimum notice violation: appointment at ${startTime.toISOString()} requires ${minimumNoticeHours}h notice, but only ${availableHours}h available`,
           );
 
           return {
@@ -422,6 +421,7 @@ async function processPartialRefund(
     },
     async (span) => {
       try {
+        const stripe = await getServerStripe();
         const originalAmount = paymentIntent.amount;
 
         // 🆕 CUSTOMER-FIRST POLICY (v3.0): Always 100% refund for any conflict
@@ -507,8 +507,8 @@ async function notifyAppointmentConflict(
   currency: string = 'eur',
 ) {
   try {
-    console.log(
-      `📧 Sending branded conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
+    logger.info(
+      `Sending branded conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
     );
 
     // Format amounts for display
@@ -561,11 +561,13 @@ async function notifyAppointmentConflict(
       html: emailHtml,
     });
 
-    console.log(
-      `✅ Branded conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
+    logger.info(
+      `Branded conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
     );
   } catch (error) {
-    console.error('Error sending conflict notification:', error);
+    logger.error('Error sending conflict notification', {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -612,8 +614,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           // 🛡️ VALIDATION: Ensure meetingData.dur is a finite number before date calculations
           // This prevents NaN from breaking date math and transfer scheduling
           if (!Number.isFinite(meetingData.dur) || meetingData.dur <= 0) {
-            console.warn(
-              '⚠️ MULTIBANCO TRANSFER RECALCULATION ABORTED: Invalid duration in payment metadata',
+            logger.warn(
+              'Multibanco transfer recalculation aborted: Invalid duration in payment metadata',
               {
                 paymentIntentId: paymentIntent.id,
                 meetingId: meetingData.id || 'unknown',
@@ -654,7 +656,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             );
             recalculatedTransferTime.setHours(4, 0, 0, 0);
 
-            console.log('🔄 Recalculated Multibanco transfer schedule:', {
+            logger.info('🔄 Recalculated Multibanco transfer schedule:', {
               paymentTime: paymentTime.toISOString(),
               appointmentStart: appointmentStart.toISOString(),
               appointmentEnd: appointmentEnd.toISOString(),
@@ -679,7 +681,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             );
 
             if (conflictResult.hasConflict) {
-              console.log(
+              logger.info(
                 `🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`,
               );
 
@@ -744,7 +746,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   paymentIntent.currency,
                 );
 
-                console.log(
+                logger.info(
                   `✅ Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
                 );
 
@@ -760,7 +762,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 return; // Exit early - don't create calendar event or proceed with normal flow
               }
             } else {
-              console.log(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
+              logger.info(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
             }
           } // End of valid duration check
         } // End of Multibanco payment check
@@ -777,7 +779,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           .returning();
 
         if (updatedMeeting.length === 0) {
-          console.warn(
+          logger.warn(
             `No meeting found with paymentIntentId ${paymentIntent.id} to update status to succeeded.`,
           );
           // It's possible the meeting is created via a different flow or checkout session ID only
@@ -785,7 +787,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           // For now, we proceed to update the transfer record if it exists.
         } else {
           const meeting = updatedMeeting[0];
-          console.log(
+          logger.info(
             `Meeting ${meeting.id} status updated to succeeded for paymentIntentId ${paymentIntent.id}`,
           );
 
@@ -809,12 +811,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               .returning({ id: MeetingsTable.id });
 
             if (claimResult.length === 0) {
-              console.log(
+              logger.info(
                 `⏭️ Calendar creation already claimed for meeting ${meeting.id}, skipping (idempotency)`,
               );
             } else {
               try {
-                console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
+                logger.info(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
 
                 // Get the event details for calendar creation
                 const event = await db.query.EventsTable.findFirst({
@@ -826,7 +828,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   // The calendar service depends on meeting types which depend on payment types
                   const { createCalendarEvent } = await import('@/server/googleCalendar');
 
-                  console.log('🚀 Calling createCalendarEvent for deferred booking:', {
+                  logger.info('🚀 Calling createCalendarEvent for deferred booking:', {
                     meetingId: meeting.id,
                     workosUserId: meeting.workosUserId,
                     guestEmail: meeting.guestEmail,
@@ -871,11 +873,11 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                         })
                         .where(eq(MeetingsTable.id, meeting.id));
 
-                      console.log(
+                      logger.info(
                         `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
                       );
                     } else {
-                      console.warn(
+                      logger.warn(
                         `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
                       );
                     }
@@ -885,11 +887,13 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                       await db
                         .delete(SlotReservationsTable)
                         .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
-                      console.log(
+                      logger.info(
                         `🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
                       );
                     } catch (cleanupError) {
-                      console.error('❌ Failed to clean up slot reservation:', cleanupError);
+                      logger.error('❌ Failed to clean up slot reservation', {
+                        error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+                      });
                       // Continue execution - this is not critical
                     }
                   } finally {
@@ -897,14 +901,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                     if (timerId) clearTimeout(timerId);
                   }
                 } else {
-                  console.error(
+                  logger.error(
                     `❌ Event ${meeting.eventId} not found for deferred calendar creation`,
                   );
                   // Release the claim so retries can attempt again
                   await releaseClaim(meeting.id);
                 }
               } catch (calendarError) {
-                console.error(
+                logger.error(
                   `❌ Failed to create deferred calendar event for meeting ${meeting.id}:`,
                   {
                     error: calendarError instanceof Error ? calendarError.message : calendarError,
@@ -919,7 +923,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               }
             }
           } else {
-            console.log(
+            logger.info(
               `✅ Meeting ${meeting.id} already has a meeting URL: ${meeting.meetingUrl}`,
             );
           }
@@ -950,14 +954,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             if (transferData && paymentData && meeting) {
               // Validate transfer data
               if (!transferData.account) {
-                console.error(
+                logger.error(
                   `Missing expert connect account ID in transfer metadata for PI ${paymentIntent.id}`,
                 );
                 return;
               }
 
               if (!transferData.scheduled) {
-                console.error(
+                logger.error(
                   `Missing scheduled transfer time in transfer metadata for PI ${paymentIntent.id}`,
                 );
                 return;
@@ -968,14 +972,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               const fee = Number.parseInt(paymentData.fee, 10);
 
               if (Number.isNaN(amount) || amount <= 0) {
-                console.error(
+                logger.error(
                   `Invalid expert payment amount in metadata for PI ${paymentIntent.id}: ${paymentData.expert}`,
                 );
                 return;
               }
 
               if (Number.isNaN(fee) || fee < 0) {
-                console.error(
+                logger.error(
                   `Invalid platform fee in metadata for PI ${paymentIntent.id}: ${paymentData.fee}`,
                 );
                 return;
@@ -987,14 +991,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               const scheduledTime = recalculatedTransferTime || originalScheduledTime;
 
               if (Number.isNaN(scheduledTime.getTime())) {
-                console.error(
+                logger.error(
                   `Invalid scheduled transfer time in metadata for PI ${paymentIntent.id}: ${transferData.scheduled}`,
                 );
                 return;
               }
 
               if (recalculatedTransferTime) {
-                console.log(`✅ Using recalculated transfer time for Multibanco payment:`, {
+                logger.info(`✅ Using recalculated transfer time for Multibanco payment:`, {
                   original: originalScheduledTime.toISOString(),
                   recalculated: recalculatedTransferTime.toISOString(),
                   diffHours: Math.floor(
@@ -1020,9 +1024,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 created: new Date(),
                 updated: new Date(),
               });
-              console.log(`Created new transfer record for payment ${paymentIntent.id}`);
+              logger.info(`Created new transfer record for payment ${paymentIntent.id}`);
             } else {
-              console.error(
+              logger.error(
                 `Missing required metadata for creating transfer record for PI ${paymentIntent.id}. Transfer Data: ${!!transferData}, Payment Data: ${!!paymentData}, Meeting: ${!!meeting}`,
               );
             }
@@ -1041,7 +1045,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               3,
               1000,
             );
-            console.log(`Transfer record ${transfer.id} status updated to READY.`);
+            logger.info(`Transfer record ${transfer.id} status updated to READY.`);
 
             // Notify the expert about the successful payment
             await notifyExpertOfPaymentSuccess(transfer);
@@ -1087,14 +1091,16 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                     },
                   },
                 });
-                console.log('✅ Platform payment notification sent via Novu');
+                logger.info('✅ Platform payment notification sent via Novu');
               }
             } catch (novuError) {
-              console.error('❌ Failed to trigger platform payment notification:', novuError);
+              logger.error('❌ Failed to trigger platform payment notification', {
+                error: novuError instanceof Error ? novuError.message : String(novuError),
+              });
               // Don't fail the entire webhook for Novu errors
             }
           } else {
-            console.log(
+            logger.info(
               `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,
             );
           }
@@ -1153,7 +1159,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               const appointmentDuration = `${durationMinutes} minutes`;
 
               try {
-                console.log(`Attempting to send payment confirmation email to ${guestEmail}`);
+                logger.info(`Attempting to send payment confirmation email to ${guestEmail}`);
                 const { html, text, subject } = await generateAppointmentEmail({
                   expertName,
                   clientName: guestName,
@@ -1173,18 +1179,20 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   html,
                   text,
                 });
-                console.log(
+                logger.info(
                   `Payment confirmation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
                 );
               } catch (emailError) {
-                console.error(
-                  `Failed to send payment confirmation email to ${guestEmail} for PI ${paymentIntent.id}:`,
-                  emailError,
+                logger.error(
+                  `Failed to send payment confirmation email to ${guestEmail} for PI ${paymentIntent.id}`,
+                  {
+                    error: emailError instanceof Error ? emailError.message : String(emailError),
+                  },
                 );
                 // Do not fail the entire webhook for email error
               }
             } else {
-              console.warn(
+              logger.warn(
                 `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, Expert Profile: ${!!expertProfile}`,
               );
             }
@@ -1250,34 +1258,31 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         const meetingDetails = updatedMeetings.length > 0 ? updatedMeetings[0] : null;
 
         if (!meetingDetails) {
-          console.warn(
+          logger.warn(
             `No meeting found with paymentIntentId ${paymentIntent.id} to update status to failed. Proceeding with transfer update if applicable.`,
           );
         } else {
-          console.log(
+          logger.info(
             `Meeting ${meetingDetails.id} status updated to failed for paymentIntentId ${paymentIntent.id}`,
           );
 
           // Log Audit Event for meeting payment failure
           // Note: logAuditEvent requires user authentication context which is not available in webhooks
           // Webhook audit events are logged via console/Sentry for operational visibility
-          console.log(
-            '[AUDIT - WEBHOOK]',
-            JSON.stringify({
-              action: 'PAYMENT_FAILED',
-              resourceType: 'payment',
-              resourceId: meetingDetails.id,
-              details: {
-                meetingId: meetingDetails.id,
-                paymentIntentId: paymentIntent.id,
-                guestEmail: meetingDetails.guestEmail,
-                expertId: meetingDetails.workosUserId,
-                failureReason: lastPaymentError,
-              },
-              source: 'stripe_webhook',
-              timestamp: new Date().toISOString(),
-            }),
-          );
+          logger.info('[AUDIT - WEBHOOK]', {
+            action: 'PAYMENT_FAILED',
+            resourceType: 'payment',
+            resourceId: meetingDetails.id,
+            details: {
+              meetingId: meetingDetails.id,
+              paymentIntentId: paymentIntent.id,
+              guestEmail: meetingDetails.guestEmail,
+              expertId: meetingDetails.workosUserId,
+              failureReason: lastPaymentError,
+            },
+            source: 'stripe_webhook',
+            timestamp: new Date().toISOString(),
+          });
         }
 
         // Find the payment transfer record
@@ -1286,11 +1291,10 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         });
 
         if (!transfer) {
-          console.error(
-            'No transfer record found for failed payment:',
-            paymentIntent.id,
-            'This might be normal if the meeting was free or if transfer record creation failed earlier.',
-          );
+          logger.error('No transfer record found for failed payment', {
+            paymentIntentId: paymentIntent.id,
+            note: 'This might be normal if the meeting was free or if transfer record creation failed earlier.',
+          });
           // If meetingDetails exist, still try to notify guest
         } else if (
           transfer.status === PAYMENT_TRANSFER_STATUS_PENDING ||
@@ -1310,7 +1314,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
             3,
             1000,
           );
-          console.log(`Transfer record ${transfer.id} status updated to FAILED.`);
+          logger.info(`Transfer record ${transfer.id} status updated to FAILED.`);
 
           // Notify the expert about the failed payment
           await notifyExpertOfPaymentFailure(
@@ -1320,7 +1324,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
             meetingDetails || undefined,
           );
         } else if (transfer) {
-          console.log(
+          logger.info(
             `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to FAILED.`,
           );
         }
@@ -1362,7 +1366,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
             const appointmentDuration = `${durationMinutes} minutes`;
 
             try {
-              console.log(`Attempting to send payment failed/cancellation email to ${guestEmail}`);
+              logger.info(`Attempting to send payment failed/cancellation email to ${guestEmail}`);
               const { html, text, subject } = await generateAppointmentEmail({
                 expertName,
                 clientName: guestName,
@@ -1382,17 +1386,19 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
                 html,
                 text,
               });
-              console.log(
+              logger.info(
                 `Payment failed/cancellation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
               );
             } catch (emailError) {
-              console.error(
-                `Failed to send payment failed/cancellation email to ${guestEmail} for PI ${paymentIntent.id}:`,
-                emailError,
+              logger.error(
+                `Failed to send payment failed/cancellation email to ${guestEmail} for PI ${paymentIntent.id}`,
+                {
+                  error: emailError instanceof Error ? emailError.message : String(emailError),
+                },
               );
             }
           } else {
-            console.warn(
+            logger.warn(
               `Could not retrieve full event/expert details for meeting ${meetingDetails.id} to send guest cancellation email. Event: ${!!eventInfo}, Expert Profile: ${!!expertProfile}`,
             );
           }
@@ -1625,7 +1631,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
               paymentIntent.metadata;
 
             if (!eventId || !workosUserId || !selectedDate || !selectedTime) {
-              console.error('Missing required metadata for slot reservation');
+              logger.error('Missing required metadata for slot reservation');
               return;
             }
 
@@ -1639,7 +1645,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
               .limit(1);
 
             if (event.length === 0) {
-              console.error(`Event ${eventId} not found`);
+              logger.error(`Event ${eventId} not found`);
               return;
             }
 
@@ -1657,7 +1663,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
               stripePaymentIntentId: paymentIntent.id,
             });
 
-            console.log(`Slot reservation created for payment intent ${paymentIntent.id}`);
+            logger.info(`Slot reservation created for payment intent ${paymentIntent.id}`);
 
             // Send Multibanco booking confirmation email
             if (customerEmail && multibancoDetails) {
@@ -1670,7 +1676,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
                   .limit(1);
 
                 if (expert.length === 0) {
-                  console.error(`Expert ${workosUserId} not found`);
+                  logger.error(`Expert ${workosUserId} not found`);
                   return;
                 }
 

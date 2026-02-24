@@ -55,6 +55,7 @@
 
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import {
   MeetingsTable,
@@ -63,6 +64,8 @@ import {
   UsersTable,
 } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
+
+const { logger } = Sentry;
 
 import { getCurrentCommissionRate } from './subscriptions';
 
@@ -309,6 +312,7 @@ export async function recordCommission(
   stripePaymentIntentId: string,
   stripeTransferId?: string,
 ): Promise<CommissionTransaction | null> {
+  return Sentry.withServerActionInstrumentation('recordCommission', { recordResponse: true }, async () => {
   try {
     // Get meeting details
     const meeting = await db.query.MeetingsTable.findFirst({
@@ -322,18 +326,18 @@ export async function recordCommission(
     });
 
     if (!meeting) {
-      console.error('Meeting not found:', meetingId);
+      logger.error('Meeting not found', { meetingId });
       return null;
     }
 
     // Validate required fields
     if (!meeting.orgId) {
-      console.error('Meeting missing orgId:', meetingId);
+      logger.error('Meeting missing orgId', { meetingId });
       return null;
     }
 
     if (!stripePaymentIntentId) {
-      console.error('Missing stripePaymentIntentId for meeting:', meetingId);
+      logger.error('Missing stripePaymentIntentId for meeting', { meetingId });
       return null;
     }
 
@@ -343,7 +347,7 @@ export async function recordCommission(
     });
 
     if (existingCommission) {
-      console.log('Commission already recorded for meeting:', meetingId);
+      logger.info('Commission already recorded for meeting', { meetingId });
       return {
         id: existingCommission.id,
         workosUserId: existingCommission.workosUserId,
@@ -423,7 +427,7 @@ export async function recordCommission(
       })
       .returning();
 
-    console.log(`✅ Commission recorded: ${commission.id} (${commissionAmount} cents)`);
+    logger.info('Commission recorded', { commissionId: commission.id, commissionAmount });
 
     return {
       id: commission.id,
@@ -440,9 +444,10 @@ export async function recordCommission(
       createdAt: commission.createdAt,
     };
   } catch (error) {
-    console.error('Error recording commission:', error);
+    logger.error('Error recording commission', { error });
     return null;
   }
+  });
 }
 
 // ============================================================================
@@ -460,6 +465,7 @@ export async function getCommissionHistory(
   workosUserId: string,
   limit: number = 50,
 ): Promise<CommissionTransaction[]> {
+  return Sentry.withServerActionInstrumentation('getCommissionHistory', { recordResponse: true }, async () => {
   try {
     const commissions = await db.query.TransactionCommissionsTable.findMany({
       where: eq(TransactionCommissionsTable.workosUserId, workosUserId),
@@ -482,9 +488,10 @@ export async function getCommissionHistory(
       createdAt: c.createdAt,
     }));
   } catch (error) {
-    console.error('Error getting commission history:', error);
+    logger.error('Error getting commission history', { error });
     return [];
   }
+  });
 }
 
 // ============================================================================
@@ -509,6 +516,7 @@ export async function calculateTotalCommissions(
   totalNetRevenue: number;
   transactionCount: number;
 }> {
+  return Sentry.withServerActionInstrumentation('calculateTotalCommissions', { recordResponse: true }, async () => {
   try {
     // TODO: Add date filtering when needed (using _startDate and _endDate)
     const commissions = await db.query.TransactionCommissionsTable.findMany({
@@ -526,7 +534,7 @@ export async function calculateTotalCommissions(
       transactionCount: commissions.length,
     };
   } catch (error) {
-    console.error('Error calculating total commissions:', error);
+    logger.error('Error calculating total commissions', { error });
     return {
       totalCommissions: 0,
       totalGrossRevenue: 0,
@@ -534,6 +542,7 @@ export async function calculateTotalCommissions(
       transactionCount: 0,
     };
   }
+  });
 }
 
 // ============================================================================
@@ -547,29 +556,31 @@ export async function calculateTotalCommissions(
  * @returns Success status
  */
 export async function markCommissionRefunded(meetingId: string): Promise<boolean> {
-  try {
-    const commission = await db.query.TransactionCommissionsTable.findFirst({
-      where: eq(TransactionCommissionsTable.meetingId, meetingId),
-    });
+  return Sentry.withServerActionInstrumentation('markCommissionRefunded', { recordResponse: true }, async () => {
+    try {
+      const commission = await db.query.TransactionCommissionsTable.findFirst({
+        where: eq(TransactionCommissionsTable.meetingId, meetingId),
+      });
 
-    if (!commission) {
-      console.error('Commission not found for meeting:', meetingId);
+      if (!commission) {
+        logger.error('Commission not found for meeting', { meetingId });
+        return false;
+      }
+
+      await db
+        .update(TransactionCommissionsTable)
+        .set({
+          status: 'refunded',
+          refundedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(TransactionCommissionsTable.id, commission.id));
+
+      logger.info('Commission marked as refunded', { commissionId: commission.id });
+      return true;
+    } catch (error) {
+      logger.error('Error marking commission as refunded', { error });
       return false;
     }
-
-    await db
-      .update(TransactionCommissionsTable)
-      .set({
-        status: 'refunded',
-        refundedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(TransactionCommissionsTable.id, commission.id));
-
-    console.log(`✅ Commission marked as refunded: ${commission.id}`);
-    return true;
-  } catch (error) {
-    console.error('Error marking commission as refunded:', error);
-    return false;
-  }
+  });
 }

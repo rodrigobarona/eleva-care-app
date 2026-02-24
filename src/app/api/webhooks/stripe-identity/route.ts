@@ -1,10 +1,12 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
-import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 // Add route segment config
 export const preferredRegion = 'auto';
@@ -22,10 +24,10 @@ export async function POST(request: Request) {
 
   try {
     // Log the request info (useful for debugging)
-    console.log('Received webhook request to /api/webhooks/stripe-identity');
+    logger.info('Received webhook request to /api/webhooks/stripe-identity');
 
     if (!process.env.STRIPE_IDENTITY_WEBHOOK_SECRET) {
-      console.error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
+      logger.error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
       throw new Error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
     }
 
@@ -34,13 +36,11 @@ export async function POST(request: Request) {
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
-      console.error('Missing Stripe signature header');
+      logger.error('Missing Stripe signature header');
       return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-    });
+    const stripe = await getServerStripe();
 
     let event: Stripe.Event;
     try {
@@ -53,11 +53,11 @@ export async function POST(request: Request) {
       eventType = event.type;
       eventId = event.id;
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      logger.error('Webhook signature verification failed:', { error: err });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    console.log('Received Stripe Identity webhook event:', {
+    logger.info('Received Stripe Identity webhook event:', {
       type: event.type,
       id: event.id,
       timestamp: new Date().toISOString(),
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ received: true, status: 'success' });
   } catch (error) {
-    console.error('Error processing webhook:', {
+    logger.error('Error processing webhook:', {
       error,
       eventType,
       eventId,
@@ -88,7 +88,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     const session = event.data.object as Stripe.Identity.VerificationSession;
     const verificationId = session.id;
 
-    console.log('Processing verification session event:', {
+    logger.info('Processing verification session event:', {
       sessionId: verificationId,
       status: session.status,
       eventType: event.type,
@@ -104,7 +104,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     // If no user found by verification ID, check metadata for workosUserId
     if (!user && session.metadata && session.metadata.workosUserId) {
       const workosUserId = session.metadata.workosUserId as string;
-      console.log('Looking up user by WorkOS ID from metadata:', workosUserId);
+      logger.info('Looking up user by WorkOS ID from metadata:', { workosUserId });
 
       user = await db.query.UsersTable.findFirst({
         where: eq(UsersTable.workosUserId, workosUserId),
@@ -123,33 +123,30 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     }
 
     if (!user) {
-      console.error('No user found for verification session:', {
+      logger.error('No user found for verification session:', {
         verificationId,
         metadata: session.metadata,
       });
       return;
     }
 
-    // Get detailed status
-    const verificationStatus = await getIdentityVerificationStatus(verificationId);
+    // Use status from the webhook event directly instead of making a redundant API call
+    const isVerified = session.status === 'verified';
 
-    const isVerified = verificationStatus.status === 'verified';
-
-    // Update user verification status in database
     await db
       .update(UsersTable)
       .set({
         stripeIdentityVerified: isVerified,
-        stripeIdentityVerificationStatus: verificationStatus.status,
+        stripeIdentityVerificationStatus: session.status,
         stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(UsersTable.id, user.id));
 
-    console.log('Updated user verification status:', {
+    logger.info('Updated user verification status:', {
       userId: user.id,
       workosUserId: user.workosUserId,
-      status: verificationStatus.status,
+      status: session.status,
       lastChecked: new Date().toISOString(),
       verificationFlow: session.verification_flow || 'Standard flow',
     });
@@ -159,13 +156,13 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
       try {
         // Note: markStepComplete now gets user from auth context
         // For webhooks, expert setup completion should be tracked separately
-        console.log(`Identity verification completed for user ${user.workosUserId}`);
+        logger.info(`Identity verification completed for user ${user.workosUserId}`);
 
         // Now sync the identity verification to the Connect account if it exists
         try {
           // Check if user has a Connect account first
           if (!user.stripeConnectAccountId) {
-            console.log('User has no Connect account yet, skipping sync:', user.workosUserId);
+            logger.info('User has no Connect account yet, skipping sync:', { workosUserId: user.workosUserId });
             return;
           }
 
@@ -175,7 +172,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
 
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
-              console.log(
+              logger.info(
                 `Syncing identity verification attempt ${attempt} for user ${user.workosUserId}`,
               );
 
@@ -185,7 +182,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
               const result = await syncIdentityVerificationToConnect(user.workosUserId);
 
               if (result.success) {
-                console.log(
+                logger.info(
                   `Successfully synced identity verification to Connect account for user ${user.workosUserId}`,
                   {
                     attempt,
@@ -195,7 +192,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
                 syncSuccess = true;
                 break;
               } else {
-                console.log(`Sync attempt ${attempt} failed: ${result.message}`);
+                logger.info(`Sync attempt ${attempt} failed: ${result.message}`);
                 lastError = new Error(result.message);
 
                 // Wait before retrying (linear backoff)
@@ -205,7 +202,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
                 }
               }
             } catch (syncError) {
-              console.error(`Error in sync attempt ${attempt}:`, syncError);
+              logger.error(`Error in sync attempt ${attempt}:`, { error: syncError });
               lastError = syncError instanceof Error ? syncError : new Error('Unknown error');
 
               // Wait before retrying (linear backoff)
@@ -218,21 +215,21 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
 
           // Log outcome after all attempts
           if (!syncSuccess) {
-            console.error('All attempts to sync identity verification failed:', {
+            logger.error('All attempts to sync identity verification failed:', {
               userId: user.id,
               workosUserId: user.workosUserId,
               errorMessage: lastError?.message || 'Unknown error',
             });
           }
         } catch (syncError) {
-          console.error('Unhandled error in identity sync process:', syncError);
+          logger.error('Unhandled error in identity sync process:', { error: syncError });
         }
       } catch (error) {
-        console.error('Failed to mark identity step as complete:', error);
+        logger.error('Failed to mark identity step as complete:', { error });
       }
     }
   } catch (error) {
-    console.error('Error handling verification session event:', error);
+    logger.error('Error handling verification session event:', { error });
     throw error;
   }
 }

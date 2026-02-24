@@ -1,4 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
 import {
   EventsTable,
@@ -23,17 +24,6 @@ import Stripe from 'stripe';
 // Add route segment config
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
-
-// Initialize Stripe client with validation (fail-fast pattern)
-if (!ENV_CONFIG.STRIPE_SECRET_KEY) {
-  throw new Error(
-    '[CRON] STRIPE_SECRET_KEY is required for payment reminders. Please set it in your environment variables.',
-  );
-}
-
-const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
-  apiVersion: ENV_CONFIG.STRIPE_API_VERSION as Stripe.LatestApiVersion,
-});
 
 /**
  * Rate-limited Stripe API call helper
@@ -115,6 +105,8 @@ function parseCustomerName(
  */
 async function handler(request: NextRequest) {
   logger.info('Starting Multibanco payment reminders job...');
+
+  const stripe = await getServerStripe();
 
   try {
     const currentTime = new Date();

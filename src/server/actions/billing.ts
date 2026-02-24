@@ -1,19 +1,20 @@
 'use server';
 
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import {
   createStripeConnectAccount,
+  getServerStripe,
   getStripeConnectSetupOrLoginLink,
 } from '@/lib/integrations/stripe';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
-import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
+const { logger } = Sentry;
+import pRetry from 'p-retry';
+import Stripe from 'stripe';
 
 /**
  * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
@@ -44,6 +45,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * }
  */
 export async function handleConnectStripe(workosUserId: string): Promise<string | null> {
+  return Sentry.withServerActionInstrumentation('handleConnectStripe', { recordResponse: true }, async () => {
   if (!workosUserId) return null;
 
   try {
@@ -53,12 +55,12 @@ export async function handleConnectStripe(workosUserId: string): Promise<string 
     });
 
     if (!dbUser) {
-      console.error('User not found in database');
+      logger.error('User not found in database');
       return null;
     }
 
     if (!dbUser.email) {
-      console.error('User email not found');
+      logger.error('User email not found');
       return null;
     }
 
@@ -70,9 +72,8 @@ export async function handleConnectStripe(workosUserId: string): Promise<string 
 
     // Validate country is supported by Stripe Connect
     // See: https://stripe.com/global
-    const supportedCountries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'PT', 'IE']; // Add more as needed
-    if (!supportedCountries.includes(country)) {
-      console.error('Country not supported by Stripe Connect:', country);
+    if (!(STRIPE_CONNECT_SUPPORTED_COUNTRIES as readonly string[]).includes(country)) {
+      logger.error('Country not supported by Stripe Connect', { country });
       return null;
     }
 
@@ -93,9 +94,16 @@ export async function handleConnectStripe(workosUserId: string): Promise<string 
     const url = await getStripeConnectSetupOrLoginLink(accountId);
     return url;
   } catch (error) {
-    console.error('Failed to create Stripe Connect account:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'handleConnectStripe' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Failed to create Stripe Connect account', { error });
     return null;
   }
+  });
 }
 
 /**
@@ -117,6 +125,7 @@ export async function handleConnectStripe(workosUserId: string): Promise<string 
  * }
  */
 export async function getConnectLoginLink(stripeConnectAccountId: string) {
+  return Sentry.withServerActionInstrumentation('getConnectLoginLink', { recordResponse: true }, async () => {
   if (!stripeConnectAccountId) {
     throw new Error('Stripe Connect Account ID is required');
   }
@@ -124,9 +133,16 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
   try {
     return await getStripeConnectSetupOrLoginLink(stripeConnectAccountId);
   } catch (error) {
-    console.error('Failed to create Stripe Connect link:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'getConnectLoginLink' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Failed to create Stripe Connect link', { error });
     throw error;
   }
+  });
 }
 
 /**
@@ -137,6 +153,7 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
  * @returns An object with success status and a message
  */
 export async function syncIdentityToConnect() {
+  return Sentry.withServerActionInstrumentation('syncIdentityToConnect', { recordResponse: true }, async () => {
   try {
     const { user } = await withAuth();
     if (!user) {
@@ -144,76 +161,57 @@ export async function syncIdentityToConnect() {
     }
     const userId = user.id;
 
-    // Import the sync function
     const { syncIdentityVerificationToConnect } = await import('@/lib/integrations/stripe');
 
-    // Implement retry logic with exponential backoff
-    const maxRetries = 3;
-    let lastError = null;
+    const result = await pRetry(
+      async (attemptCount) => {
+        logger.info(`Syncing identity verification attempt ${attemptCount} for user ${userId}`);
+        const syncResult = await syncIdentityVerificationToConnect(userId);
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(
-          `Syncing identity verification attempt ${attempt}/${maxRetries} for user ${userId}`,
-        );
-        const result = await syncIdentityVerificationToConnect(userId);
+        if (!syncResult.success) {
+          throw new Error(syncResult.message || 'Sync failed with unknown reason');
+        }
 
-        if (result.success) {
-          console.log(`Successfully synced identity verification on attempt ${attempt}`, {
+        return syncResult;
+      },
+      {
+        retries: 3,
+        minTimeout: 1000,
+        factor: 2,
+        onFailedAttempt: (error) => {
+          const err = error as unknown as Error & { attemptNumber: number; retriesLeft: number };
+          logger.warn(`Sync attempt ${err.attemptNumber} failed: ${err.message}`, {
             userId,
-            verificationStatus: result.verificationStatus,
+            retriesLeft: err.retriesLeft,
           });
 
-          return {
-            success: true,
-            message: 'Identity verification successfully synced to Connect account',
-            attempt,
-          };
-        }
+          if (err instanceof Stripe.errors.StripeError) {
+            Sentry.captureException(err, {
+              tags: { stripeErrorType: err.type, operation: 'syncIdentityToConnect' },
+              extra: { code: err.code, param: err.param },
+            });
+          }
+        },
+      },
+    );
 
-        // Store the error and retry
-        lastError = new Error(result.message || 'Sync failed with unknown reason');
-        console.warn(`Sync attempt ${attempt} failed: ${result.message}`);
-
-        // If not the last attempt, wait before retrying (exponential backoff)
-        if (attempt < maxRetries) {
-          const delayMs = 2 ** attempt * 500; // 1s, 2s, 4s backoff
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-        }
-      } catch (error) {
-        lastError = error;
-        console.error(`Error during sync attempt ${attempt}:`, error);
-
-        // If not the last attempt, wait before retrying
-        if (attempt < maxRetries) {
-          const delayMs = 2 ** attempt * 500; // 1s, 2s, 4s backoff
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-        }
-      }
-    }
-
-    // If we get here, all attempts failed
-    console.error(`Failed to sync identity after ${maxRetries} attempts`, {
+    logger.info('Successfully synced identity verification', {
       userId,
-      lastError,
+      verificationStatus: result.verificationStatus,
     });
 
-    // Return the most recent error
     return {
-      success: false,
-      message:
-        lastError instanceof Error
-          ? lastError.message
-          : 'Failed to sync identity verification after multiple attempts',
-      attempts: maxRetries,
+      success: true,
+      message: 'Identity verification successfully synced to Connect account',
     };
   } catch (error) {
-    console.error('Error in syncIdentityToConnect:', error);
+    logger.error('Error in syncIdentityToConnect', { error });
     return {
       success: false,
       message: error instanceof Error ? error.message : 'An unknown error occurred',
     };
   }
+  });
 }
 
 /**
@@ -229,7 +227,9 @@ export async function createConnectRefund(
   amount?: number,
   reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer',
 ) {
+  return Sentry.withServerActionInstrumentation('createConnectRefund', { recordResponse: true }, async () => {
   try {
+    const stripe = await getServerStripe();
     const { user } = await withAuth();
     if (!user) {
       return { success: false, message: 'Not authenticated' };
@@ -258,7 +258,7 @@ export async function createConnectRefund(
       },
     );
 
-    console.log('Refund created successfully:', {
+    logger.info('Refund created successfully', {
       refundId: refund.id,
       chargeId,
       amount: refund.amount,
@@ -277,10 +277,17 @@ export async function createConnectRefund(
       },
     };
   } catch (error) {
-    console.error('Failed to create refund:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'createConnectRefund' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Failed to create refund', { error });
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to process refund',
     };
   }
+  });
 }

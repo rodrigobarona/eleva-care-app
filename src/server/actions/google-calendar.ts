@@ -15,12 +15,15 @@
 
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import {
   disconnectGoogleCalendar,
   hasGoogleCalendarConnected,
 } from '@/lib/integrations/google/oauth-tokens';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+
+const { logger } = Sentry;
 
 /**
  * Google Calendar Integration Server Actions
@@ -80,13 +83,14 @@ import { withAuth } from '@workos-inc/authkit-nextjs';
 export async function connectGoogleCalendar(): Promise<
   { success: true; authorizationUrl: string } | { success: false; error: string; message: string }
 > {
+  return Sentry.withServerActionInstrumentation('connectGoogleCalendar', { recordResponse: true }, async () => {
   try {
     // 1. Verify user authentication
     const { user } = await withAuth();
 
     if (!user) {
       return {
-        success: false,
+        success: false as const,
         error: 'unauthenticated',
         message: 'You must be signed in to connect Google Calendar',
       };
@@ -97,7 +101,7 @@ export async function connectGoogleCalendar(): Promise<
 
     if (isConnected) {
       return {
-        success: false,
+        success: false as const,
         error: 'already_connected',
         message: 'Google Calendar is already connected. Disconnect first to reconnect.',
       };
@@ -125,9 +129,9 @@ export async function connectGoogleCalendar(): Promise<
     const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/google/callback`;
     const stateParam = encodeURIComponent('/settings/integrations?tab=calendar');
 
-    console.warn(
+    logger.warn(
       '[Connect Google Calendar] TODO: Implement WorkOS OAuth URL generation',
-      'Using placeholder URL for development',
+      { note: 'Using placeholder URL for development' },
     );
 
     // Placeholder URL - replace with actual WorkOS OAuth URL
@@ -140,22 +144,20 @@ export async function connectGoogleCalendar(): Promise<
       },
     });
 
-    console.log('[Connect Google Calendar] ✅ Authorization URL generated for user:', user.id);
+    logger.info('[Connect Google Calendar] Authorization URL generated for user', { userId: user.id });
 
-    return {
-      success: true,
-      authorizationUrl,
-    };
+    return { success: true as const, authorizationUrl };
   } catch (error) {
-    console.error('[Connect Google Calendar] Error initiating connection:', error);
+    logger.error('[Connect Google Calendar] Error initiating connection', { error });
 
     return {
-      success: false,
+      success: false as const,
       error: 'internal_error',
       message:
         error instanceof Error ? error.message : 'Failed to initiate Google Calendar connection',
     };
   }
+  });
 }
 
 /**
@@ -177,54 +179,43 @@ export async function connectGoogleCalendar(): Promise<
 export async function disconnectGoogleCalendarAction(): Promise<
   { success: true; message: string } | { success: false; error: string; message: string }
 > {
-  try {
-    // 1. Verify user authentication
-    const { user } = await withAuth();
+  return Sentry.withServerActionInstrumentation('disconnectGoogleCalendarAction', { recordResponse: true }, async (): Promise<
+    { success: true; message: string } | { success: false; error: string; message: string }
+  > => {
+    try {
+      const { user } = await withAuth();
 
-    if (!user) {
+      if (!user) {
+        return { success: false as const, error: 'unauthenticated', message: 'You must be signed in to disconnect Google Calendar' };
+      }
+
+      const isConnected = await hasGoogleCalendarConnected(user.id);
+
+      if (!isConnected) {
+        return { success: false as const, error: 'not_connected', message: 'Google Calendar is not connected' };
+      }
+
+      await disconnectGoogleCalendar(user.id);
+
+      await logAuditEvent('google_calendar.disconnected', 'integration', 'google_calendar', {
+        newValues: {
+          userId: user.id,
+        },
+      });
+
+      logger.info('[Disconnect Google Calendar] Calendar disconnected for user', { userId: user.id });
+
+      return { success: true as const, message: 'Google Calendar disconnected successfully' };
+    } catch (error) {
+      logger.error('[Disconnect Google Calendar] Error disconnecting', { error });
+
       return {
-        success: false,
-        error: 'unauthenticated',
-        message: 'You must be signed in to disconnect Google Calendar',
+        success: false as const,
+        error: 'internal_error',
+        message: error instanceof Error ? error.message : 'Failed to disconnect Google Calendar',
       };
     }
-
-    // 2. Check if actually connected
-    const isConnected = await hasGoogleCalendarConnected(user.id);
-
-    if (!isConnected) {
-      return {
-        success: false,
-        error: 'not_connected',
-        message: 'Google Calendar is not connected',
-      };
-    }
-
-    // 3. Disconnect and remove encrypted tokens
-    await disconnectGoogleCalendar(user.id);
-
-    // 4. Log disconnection for audit
-    await logAuditEvent('google_calendar.disconnected', 'integration', 'google_calendar', {
-      newValues: {
-        userId: user.id,
-      },
-    });
-
-    console.log('[Disconnect Google Calendar] ✅ Calendar disconnected for user:', user.id);
-
-    return {
-      success: true,
-      message: 'Google Calendar disconnected successfully',
-    };
-  } catch (error) {
-    console.error('[Disconnect Google Calendar] Error disconnecting:', error);
-
-    return {
-      success: false,
-      error: 'internal_error',
-      message: error instanceof Error ? error.message : 'Failed to disconnect Google Calendar',
-    };
-  }
+  });
 }
 
 /**
@@ -235,14 +226,14 @@ export async function disconnectGoogleCalendarAction(): Promise<
 export async function checkGoogleCalendarConnection(): Promise<
   { success: true; isConnected: boolean; connectedAt?: Date } | { success: false; error: string }
 > {
+  return Sentry.withServerActionInstrumentation('checkGoogleCalendarConnection', { recordResponse: true }, async (): Promise<
+    { success: true; isConnected: boolean; connectedAt?: Date } | { success: false; error: string }
+  > => {
   try {
     const { user } = await withAuth();
 
     if (!user) {
-      return {
-        success: false,
-        error: 'unauthenticated',
-      };
+      return { success: false as const, error: 'unauthenticated' };
     }
 
     const isConnected = await hasGoogleCalendarConnected(user.id);
@@ -251,18 +242,16 @@ export async function checkGoogleCalendarConnection(): Promise<
     // This would require updating the hasGoogleCalendarConnected function
     // to return more details or creating a new function
 
-    return {
-      success: true,
-      isConnected,
-    };
+    return { success: true as const, isConnected };
   } catch (error) {
-    console.error('[Check Google Calendar Connection] Error:', error);
+    logger.error('[Check Google Calendar Connection] Error', { error });
 
     return {
-      success: false,
+      success: false as const,
       error: error instanceof Error ? error.message : 'Failed to check connection status',
     };
   }
+  });
 }
 
 /**

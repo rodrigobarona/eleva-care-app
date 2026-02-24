@@ -60,10 +60,7 @@ export async function getUserByUsername(username: string): Promise<MinimalUser |
 }
 
 /**
- * Get user by WorkOS user ID
- *
- * @param workosUserId - The WorkOS user ID
- * @returns User data or null if not found
+ * Get user by WorkOS user ID (minimal columns for public profiles)
  */
 export async function getUserByWorkosId(workosUserId: string): Promise<MinimalUser | null> {
   try {
@@ -82,6 +79,25 @@ export async function getUserByWorkosId(workosUserId: string): Promise<MinimalUs
     return user || null;
   } catch (error) {
     console.error('Error fetching user by WorkOS ID:', error);
+    return null;
+  }
+}
+
+/**
+ * Get full user record by WorkOS user ID (all columns).
+ * Canonical function -- replaces duplicates in user-sync.ts and lib/utils/server/users.ts.
+ */
+export async function getFullUserByWorkosId(workosUserId: string) {
+  if (!workosUserId) return null;
+
+  try {
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
+    });
+
+    return user ?? null;
+  } catch (error) {
+    console.error('Error fetching full user by WorkOS ID:', error);
     return null;
   }
 }

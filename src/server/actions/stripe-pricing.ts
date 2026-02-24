@@ -5,8 +5,11 @@
  */
 'use server';
 
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { isAdmin } from '@/lib/auth/roles.server';
+
+const { logger } = Sentry;
 import type {
   CreatePriceInput,
   PriceFilterInput,
@@ -21,39 +24,10 @@ import { updateTag } from 'next/cache';
 import Stripe from 'stripe';
 
 /**
- * Server Actions for Stripe Pricing Management
- *
- * Admin-only actions for managing Stripe products and prices
- */
-
-/**
- * Server Actions for Stripe Pricing Management
- *
- * Admin-only actions for managing Stripe products and prices
- */
-
-/**
- * Server Actions for Stripe Pricing Management
- *
- * Admin-only actions for managing Stripe products and prices
- */
-
-/**
- * Server Actions for Stripe Pricing Management
- *
- * Admin-only actions for managing Stripe products and prices
- */
-
-// Initialize Stripe client with centralized API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-  typescript: true,
-});
-
-/**
  * List all Stripe products
  */
 export async function listStripeProducts() {
+  return Sentry.withServerActionInstrumentation('listStripeProducts', { recordResponse: true }, async () => {
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
@@ -61,6 +35,7 @@ export async function listStripeProducts() {
   }
 
   try {
+    const stripe = await getServerStripe();
     const products = await stripe.products.list({
       limit: 100,
       active: true,
@@ -72,18 +47,20 @@ export async function listStripeProducts() {
       data: products.data,
     };
   } catch (error) {
-    console.error('Error listing Stripe products:', error);
+    logger.error('Error listing Stripe products', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to list products',
     };
   }
+  });
 }
 
 /**
  * List Stripe prices with filtering
  */
 export async function listStripePrices(filters?: PriceFilterInput) {
+  return Sentry.withServerActionInstrumentation('listStripePrices', { recordResponse: true }, async () => {
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
@@ -91,6 +68,7 @@ export async function listStripePrices(filters?: PriceFilterInput) {
   }
 
   try {
+    const stripe = await getServerStripe();
     // Validate filters
     const validatedFilters = filters ? priceFilterSchema.parse(filters) : { limit: 100 };
 
@@ -138,18 +116,20 @@ export async function listStripePrices(filters?: PriceFilterInput) {
       hasMore: prices.has_more,
     };
   } catch (error) {
-    console.error('Error listing Stripe prices:', error);
+    logger.error('Error listing Stripe prices', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to list prices',
     };
   }
+  });
 }
 
 /**
  * Create a new Stripe price
  */
 export async function createStripePrice(input: CreatePriceInput) {
+  return Sentry.withServerActionInstrumentation('createStripePrice', { recordResponse: true }, async () => {
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
@@ -157,6 +137,7 @@ export async function createStripePrice(input: CreatePriceInput) {
   }
 
   try {
+    const stripe = await getServerStripe();
     // Validate input
     const validatedInput = createPriceSchema.parse(input);
 
@@ -207,18 +188,22 @@ export async function createStripePrice(input: CreatePriceInput) {
       message: `Price created successfully: ${price.id}`,
     };
   } catch (error) {
-    console.error('Error creating Stripe price:', error);
+    logger.error('Error creating Stripe price', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create price',
     };
   }
+  });
 }
 
 /**
  * Update a Stripe price (limited fields)
  */
 export async function updateStripePrice(input: UpdatePriceInput) {
+  return Sentry.withServerActionInstrumentation('updateStripePrice', { recordResponse: true }, async () => {
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
@@ -226,6 +211,7 @@ export async function updateStripePrice(input: UpdatePriceInput) {
   }
 
   try {
+    const stripe = await getServerStripe();
     // Validate input
     const validatedInput = updatePriceSchema.parse(input);
 
@@ -258,18 +244,20 @@ export async function updateStripePrice(input: UpdatePriceInput) {
       message: `Price updated successfully: ${price.id}`,
     };
   } catch (error) {
-    console.error('Error updating Stripe price:', error);
+    logger.error('Error updating Stripe price', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update price',
     };
   }
+  });
 }
 
 /**
  * Archive a Stripe price (set active = false)
  */
 export async function archiveStripePrice(priceId: string) {
+  return Sentry.withServerActionInstrumentation('archiveStripePrice', { recordResponse: true }, async () => {
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
@@ -277,6 +265,7 @@ export async function archiveStripePrice(priceId: string) {
   }
 
   try {
+    const stripe = await getServerStripe();
     if (!priceId || !priceId.startsWith('price_')) {
       return { success: false, error: 'Invalid price ID' };
     }
@@ -294,18 +283,20 @@ export async function archiveStripePrice(priceId: string) {
       message: `Price archived successfully: ${priceId}`,
     };
   } catch (error) {
-    console.error('Error archiving Stripe price:', error);
+    logger.error('Error archiving Stripe price', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to archive price',
     };
   }
+  });
 }
 
 /**
  * Activate a Stripe price (set active = true)
  */
 export async function activateStripePrice(priceId: string) {
+  return Sentry.withServerActionInstrumentation('activateStripePrice', { recordResponse: true }, async () => {
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
@@ -313,6 +304,7 @@ export async function activateStripePrice(priceId: string) {
   }
 
   try {
+    const stripe = await getServerStripe();
     if (!priceId || !priceId.startsWith('price_')) {
       return { success: false, error: 'Invalid price ID' };
     }
@@ -330,10 +322,11 @@ export async function activateStripePrice(priceId: string) {
       message: `Price activated successfully: ${priceId}`,
     };
   } catch (error) {
-    console.error('Error activating Stripe price:', error);
+    logger.error('Error activating Stripe price', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to activate price',
     };
   }
+  });
 }

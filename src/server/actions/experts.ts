@@ -1,9 +1,12 @@
 'use server';
 
-import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
+
+const { logger } = Sentry;
 import Stripe from 'stripe';
 
 /**
@@ -12,10 +15,6 @@ import Stripe from 'stripe';
  * payout schedule management, and account status updates. It provides functionality for both
  * individual expert verification and admin-level expert management.
  */
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 /**
  * Verifies an expert's Stripe Connect account status and updates their onboarding status if necessary.
@@ -39,14 +38,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
  *     - accountId: the Stripe Connect account ID
  */
 export async function verifyExpertConnectAccount(workosUserId: string) {
+  return Sentry.withServerActionInstrumentation('verifyExpertConnectAccount', { recordResponse: true }, async () => {
   try {
+    const stripe = await getServerStripe();
     // Get the user's Stripe Connect account ID
     const user = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, workosUserId),
     });
     // Log the user's Stripe Connect account ID
     if (!user?.stripeConnectAccountId) {
-      console.error('No Stripe Connect account found for user:', {
+      logger.error('No Stripe Connect account found for user', {
         workosUserId,
         email: user?.email,
       });
@@ -75,7 +76,7 @@ export async function verifyExpertConnectAccount(workosUserId: string) {
         })
         .where(eq(UsersTable.workosUserId, workosUserId));
 
-      console.log('Updated Connect account status to complete:', {
+      logger.info('Updated Connect account status to complete', {
         workosUserId,
         email: user.email,
         accountId: user.stripeConnectAccountId,
@@ -93,7 +94,13 @@ export async function verifyExpertConnectAccount(workosUserId: string) {
       },
     };
   } catch (error) {
-    console.error('Error verifying Connect account:', {
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'verifyExpertConnectAccount' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error verifying Connect account', {
       error: error instanceof Error ? error.message : 'Unknown error',
       workosUserId,
     });
@@ -103,6 +110,7 @@ export async function verifyExpertConnectAccount(workosUserId: string) {
       message: 'Failed to verify Connect account status',
     };
   }
+  });
 }
 
 /**
@@ -125,7 +133,9 @@ export async function verifyExpertConnectAccount(workosUserId: string) {
  *     - delay_days: days to delay payouts
  */
 export async function getExpertPayoutSchedule(workosUserId: string) {
+  return Sentry.withServerActionInstrumentation('getExpertPayoutSchedule', { recordResponse: true }, async () => {
   try {
+    const stripe = await getServerStripe();
     const user = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, workosUserId),
     });
@@ -151,7 +161,13 @@ export async function getExpertPayoutSchedule(workosUserId: string) {
       },
     };
   } catch (error) {
-    console.error('Error getting payout schedule:', {
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'getExpertPayoutSchedule' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error getting payout schedule', {
       error: error instanceof Error ? error.message : 'Unknown error',
       workosUserId,
     });
@@ -161,6 +177,7 @@ export async function getExpertPayoutSchedule(workosUserId: string) {
       message: 'Failed to retrieve payout schedule',
     };
   }
+  });
 }
 
 /**
@@ -175,6 +192,7 @@ export async function getExpertPayoutSchedule(workosUserId: string) {
  * @returns The same return type as verifyExpertConnectAccount
  */
 export async function verifySpecificExpertAccount(email: string) {
+  return Sentry.withServerActionInstrumentation('verifySpecificExpertAccount', { recordResponse: true }, async () => {
   try {
     // Get the user by email
     const user = await db.query.UsersTable.findFirst({
@@ -182,7 +200,7 @@ export async function verifySpecificExpertAccount(email: string) {
     });
 
     if (!user) {
-      console.error('User not found:', { email });
+      logger.error('User not found', { email });
       return {
         error: true,
         code: 'USER_NOT_FOUND',
@@ -192,7 +210,13 @@ export async function verifySpecificExpertAccount(email: string) {
 
     return verifyExpertConnectAccount(user.workosUserId);
   } catch (error) {
-    console.error('Error verifying specific expert account:', {
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'verifySpecificExpertAccount' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error verifying specific expert account', {
       error: error instanceof Error ? error.message : 'Unknown error',
       email,
     });
@@ -202,6 +226,7 @@ export async function verifySpecificExpertAccount(email: string) {
       message: 'Failed to verify expert account',
     };
   }
+  });
 }
 
 /**
@@ -219,6 +244,7 @@ export async function verifySpecificExpertAccount(email: string) {
  *   - payoutSchedule: The expert's payout schedule if available
  */
 export async function verifyAndUpdateSpecificExpert(email: string) {
+  return Sentry.withServerActionInstrumentation('verifyAndUpdateSpecificExpert', { recordResponse: true }, async () => {
   try {
     const result = await verifySpecificExpertAccount(email);
 
@@ -226,15 +252,31 @@ export async function verifyAndUpdateSpecificExpert(email: string) {
       return result;
     }
 
-    // Get payout schedule
-    const scheduleResult = await getExpertPayoutSchedule(result.accountStatus.accountId);
+    // Look up workosUserId for payout schedule (getExpertPayoutSchedule expects
+    // a WorkOS user ID, not a Stripe account ID)
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.email, email),
+      columns: { workosUserId: true },
+    });
+
+    if (!user) {
+      return result;
+    }
+
+    const scheduleResult = await getExpertPayoutSchedule(user.workosUserId);
 
     return {
       ...result,
       payoutSchedule: scheduleResult.error ? null : scheduleResult.schedule,
     };
   } catch (error) {
-    console.error('Error in verifyAndUpdateSpecificExpert:', {
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'verifyAndUpdateSpecificExpert' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error in verifyAndUpdateSpecificExpert', {
       error: error instanceof Error ? error.message : 'Unknown error',
       email,
     });
@@ -244,4 +286,5 @@ export async function verifyAndUpdateSpecificExpert(email: string) {
       message: 'Failed to verify and update expert account',
     };
   }
+  });
 }

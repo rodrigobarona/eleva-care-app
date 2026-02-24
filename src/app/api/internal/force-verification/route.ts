@@ -1,9 +1,8 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 
 // Mark route as dynamic
 
@@ -56,10 +55,7 @@ export async function POST(request: Request) {
       identityVerificationId: user.stripeIdentityVerificationId,
     });
 
-    // Initialize Stripe
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-    });
+    const stripe = await getServerStripe();
 
     // Get the current account status
     const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);

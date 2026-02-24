@@ -2,27 +2,44 @@ import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventsTable, UsersTable } from '@/drizzle/schema';
 import { CustomerCache } from '@/lib/redis/manager';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-// Initialize Stripe with API version from config
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
+const { logger } = Sentry;
 
-// Enhanced type definitions for customer data (now using unified CustomerCache)
+let _stripe: Stripe | null = null;
+
+/**
+ * Lazy Stripe singleton with fail-fast validation, telemetry, and retry config.
+ * All server-side code should call this instead of `new Stripe(...)`.
+ */
+export async function getServerStripe(): Promise<Stripe> {
+  if (!_stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
+    _stripe = new Stripe(secretKey, {
+      apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+      maxNetworkRetries: 2,
+      appInfo: { name: 'Eleva Care', url: 'https://eleva.care' },
+    });
+  }
+  return _stripe;
+}
+
 interface StripeCustomerData {
   stripeCustomerId: string;
   email: string;
   userId?: string;
   name?: string | null;
-  subscriptions?: string[]; // Array of subscription IDs
+  subscriptions?: string[];
   defaultPaymentMethod?: string | null;
   created: number;
   updatedAt: number;
 }
 
-// Enhanced interface for subscription data
 interface StripeSubscriptionData {
   id: string;
   customerId: string;
@@ -35,14 +52,7 @@ interface StripeSubscriptionData {
   updatedAt: number;
 }
 
-// Platform fee percentage for revenue sharing
-// This fee is automatically handled by Stripe Connect and can be monitored
-// in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
-const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'); // Default 15% if not set
-
-export async function getServerStripe() {
-  return stripe;
-}
+const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15');
 
 /**
  * Synchronizes Stripe customer data to unified CustomerCache
@@ -52,7 +62,8 @@ export async function syncStripeDataToKV(
   stripeCustomerId: string,
 ): Promise<StripeCustomerData | null> {
   try {
-    console.log('Syncing Stripe customer data to unified cache...');
+    const stripe = await getServerStripe();
+    logger.info('Syncing Stripe customer data to unified cache...');
 
     // Expand to include subscriptions data
     const customer = await stripe.customers.retrieve(stripeCustomerId, {
@@ -60,7 +71,7 @@ export async function syncStripeDataToKV(
     });
 
     if (!customer || customer.deleted) {
-      console.error('Customer was deleted or not found');
+      logger.error('Customer was deleted or not found');
       return null;
     }
 
@@ -79,7 +90,7 @@ export async function syncStripeDataToKV(
       updatedAt: Date.now(),
     };
 
-    console.log('Preparing to store customer data in unified cache:', customerData);
+    logger.info('Preparing to store customer data in unified cache', customerData as unknown as Record<string, unknown>);
 
     // Store in unified CustomerCache with multiple access patterns
     const storeOperations = [
@@ -119,10 +130,18 @@ export async function syncStripeDataToKV(
     // Execute all cache operations
     await Promise.allSettled(storeOperations);
 
-    console.log('Successfully synced customer data to unified cache');
+    logger.info('Successfully synced customer data to unified cache');
     return customerData;
   } catch (error) {
-    console.error('Failed to sync Stripe data to unified cache:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'syncStripeDataToKV' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Failed to sync Stripe data to unified cache', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
@@ -142,13 +161,14 @@ export async function getOrCreateStripeCustomer(
   }
 
   try {
+    const stripe = await getServerStripe();
     // First try to find existing customer by userId (most reliable)
     if (userId) {
-      console.log('Looking up customer by userId:', userId);
+      logger.info('Looking up customer by userId', { userId });
       const existingCustomerId = await CustomerCache.getCustomerByUserId(userId);
 
       if (existingCustomerId) {
-        console.log('Found existing customer ID in unified cache by userId:', existingCustomerId);
+        logger.info('Found existing customer ID in unified cache by userId', { existingCustomerId });
 
         // Sync latest data from Stripe to ensure it's up to date
         await syncStripeDataToKV(existingCustomerId);
@@ -158,7 +178,7 @@ export async function getOrCreateStripeCustomer(
           try {
             const customer = await stripe.customers.retrieve(existingCustomerId);
             if (!('deleted' in customer) && customer.name !== name) {
-              console.log('Updating customer name:', {
+              logger.info('Updating customer name:', {
                 customerId: existingCustomerId,
                 oldName: customer.name,
                 newName: name,
@@ -176,7 +196,15 @@ export async function getOrCreateStripeCustomer(
               await syncStripeDataToKV(existingCustomerId);
             }
           } catch (error) {
-            console.error('Error updating customer name:', error);
+            if (error instanceof Stripe.errors.StripeError) {
+              Sentry.captureException(error, {
+                tags: { stripeErrorType: error.type, operation: 'getOrCreateStripeCustomer_updateName' },
+                extra: { code: error.code, param: error.param },
+              });
+            }
+            logger.error('Error updating customer name', {
+              error: error instanceof Error ? error.message : String(error),
+            });
           }
         }
 
@@ -186,11 +214,11 @@ export async function getOrCreateStripeCustomer(
 
     // If no customer found by userId, try by email
     if (email) {
-      console.log('Looking up customer by email:', email);
+      logger.info('Looking up customer by email', { email });
       const existingCustomerId = await CustomerCache.getCustomerByEmail(email);
 
       if (existingCustomerId) {
-        console.log('Found existing customer ID in unified cache by email:', existingCustomerId);
+        logger.info('Found existing customer ID in unified cache by email', { existingCustomerId });
 
         // If we have userId but it wasn't linked, update the link
         if (userId) {
@@ -226,7 +254,7 @@ export async function getOrCreateStripeCustomer(
 
       // If still not found in unified cache, search directly in Stripe as fallback
       // This handles case where unified cache might have lost data
-      console.log('No customer found in unified cache, searching Stripe directly by email');
+      logger.info('No customer found in unified cache, searching Stripe directly by email');
       const existingCustomers = await stripe.customers.list({
         email,
         limit: 1,
@@ -234,7 +262,7 @@ export async function getOrCreateStripeCustomer(
 
       if (existingCustomers.data.length > 0) {
         const existingCustomer = existingCustomers.data[0];
-        console.log('Found existing Stripe customer by email:', existingCustomer.id);
+        logger.info('Found existing Stripe customer by email', { customerId: existingCustomer.id });
 
         // Update customer with userId and name if provided and not already set
         const updateParams: Stripe.CustomerUpdateParams = {
@@ -263,7 +291,7 @@ export async function getOrCreateStripeCustomer(
     }
 
     // If no existing customer found, create a new one
-    console.log('No existing customer found, creating new Stripe customer');
+    logger.info('No existing customer found, creating new Stripe customer');
     const metadata = {
       ...(userId ? { userId } : {}),
       ...(name ? { name } : {}), // Store name in metadata for redundancy
@@ -275,7 +303,7 @@ export async function getOrCreateStripeCustomer(
       metadata,
     });
 
-    console.log('Created new Stripe customer:', {
+    logger.info('Created new Stripe customer:', {
       id: newCustomer.id,
       email: newCustomer.email,
       name: newCustomer.name,
@@ -286,7 +314,15 @@ export async function getOrCreateStripeCustomer(
     await syncStripeDataToKV(newCustomer.id);
     return newCustomer.id;
   } catch (error) {
-    console.error('Error in getOrCreateStripeCustomer:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'getOrCreateStripeCustomer' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error in getOrCreateStripeCustomer', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Try to give helpful context in error message
     const errorContext = userId
@@ -310,6 +346,7 @@ export async function createPaymentIntent({
   meetingData: Record<string, unknown>;
 }) {
   try {
+    const stripe = await getServerStripe();
     // Get event details
     const event = await db.query.EventsTable.findFirst({
       where: eq(EventsTable.id, eventId),
@@ -321,7 +358,7 @@ export async function createPaymentIntent({
 
     // Get expert's Stripe Connect account
     const expert = await db.query.UsersTable.findFirst({
-      where: eq(UsersTable.id, event.workosUserId),
+      where: eq(UsersTable.workosUserId, event.workosUserId),
     });
 
     if (!expert?.stripeConnectAccountId || !expert.stripeConnectDetailsSubmitted) {
@@ -370,7 +407,15 @@ export async function createPaymentIntent({
 
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
-    console.error('Error creating payment intent:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'createPaymentIntent' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error creating payment intent', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
@@ -385,39 +430,43 @@ export function getBaseUrl() {
 }
 
 export async function createStripeConnectAccount(email: string, country: string) {
-  console.log('Creating Connect account with country:', country);
+  logger.info('Creating Connect account with country', { country });
 
   return withRetry(
     async () => {
       try {
-        console.log('Creating Stripe Connect account:', { email, country });
+        const stripe = await getServerStripe();
+        logger.info('Creating Stripe Connect account', { email, country });
 
         // Determine the minimum payout delay for this country
         const minimumDelayDays = getMinimumPayoutDelay(country);
-        console.log(
+        logger.info(
           `Using minimum payout delay of ${minimumDelayDays} days for country ${country}`,
         );
 
-        const account = await stripe.accounts.create({
-          type: 'express',
-          country: country.toUpperCase(), // Ensure country code is uppercase
-          email,
-          capabilities: {
-            card_payments: { requested: true },
-            transfers: { requested: true },
-          },
-          business_type: 'individual',
-          settings: {
-            payouts: {
-              schedule: {
-                interval: 'manual', // ← FIXED: Use manual payouts for cron job control
-                // delay_days is not needed for manual payouts
+        const account = await stripe.accounts.create(
+          {
+            type: 'express',
+            country: country.toUpperCase(),
+            email,
+            capabilities: {
+              card_payments: { requested: true },
+              transfers: { requested: true },
+            },
+            business_type: 'individual',
+            settings: {
+              payouts: {
+                schedule: {
+                  interval: 'daily',
+                  delay_days: minimumDelayDays,
+                },
               },
             },
           },
-        });
+          { idempotencyKey: `create-connect-${email}` },
+        );
 
-        console.log('Stripe Connect account created:', {
+        logger.info('Stripe Connect account created:', {
           accountId: account.id,
           country: account.country,
           email: account.email,
@@ -426,7 +475,15 @@ export async function createStripeConnectAccount(email: string, country: string)
 
         return { accountId: account.id };
       } catch (error) {
-        console.error('Connect account creation error:', error);
+        if (error instanceof Stripe.errors.StripeError) {
+          Sentry.captureException(error, {
+            tags: { stripeErrorType: error.type, operation: 'createStripeConnectAccount' },
+            extra: { code: error.code, param: error.param },
+          });
+        }
+        logger.error('Connect account creation error', {
+          error: error instanceof Error ? error.message : String(error),
+        });
         throw error;
       }
     },
@@ -437,24 +494,36 @@ export async function createStripeConnectAccount(email: string, country: string)
 
 export async function getConnectAccountBalance(accountId: string) {
   try {
+    const stripe = await getServerStripe();
     const balance = await stripe.balance.retrieve({
       stripeAccount: accountId,
     });
     return balance;
   } catch (error) {
-    console.error('Error fetching Connect account balance:', error);
+    logger.error('Error fetching Connect account balance', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
 
 export async function getConnectAccountPayouts(accountId: string) {
   try {
+    const stripe = await getServerStripe();
     const payouts = await stripe.payouts.list({
       stripeAccount: accountId,
     });
     return payouts;
   } catch (error) {
-    console.error('Error fetching Connect account payouts:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'getConnectAccountPayouts' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error fetching Connect account payouts', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
@@ -464,16 +533,20 @@ export async function updateConnectAccountSettings(
   settings: Stripe.AccountUpdateParams,
 ) {
   try {
+    const stripe = await getServerStripe();
     const account = await stripe.accounts.update(accountId, settings);
     return account;
   } catch (error) {
-    console.error('Error updating Connect account settings:', error);
+    logger.error('Error updating Connect account settings', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
 
 export async function getStripeConnectAccountStatus(accountId: string) {
   try {
+    const stripe = await getServerStripe();
     const account = await stripe.accounts.retrieve(accountId);
     return {
       detailsSubmitted: account.details_submitted,
@@ -481,17 +554,34 @@ export async function getStripeConnectAccountStatus(accountId: string) {
       payoutsEnabled: account.payouts_enabled,
     };
   } catch (error) {
-    console.error('Error retrieving Connect account status:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'getStripeConnectAccountStatus' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error retrieving Connect account status', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
 
 export async function getStripeConnectLoginLink(accountId: string) {
   try {
+    const stripe = await getServerStripe();
     const loginLink = await stripe.accounts.createLoginLink(accountId);
     return loginLink.url;
   } catch (error) {
-    console.error('Error creating login link:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'getStripeConnectLoginLink' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error creating login link', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
@@ -522,6 +612,7 @@ export async function withRetry<T>(
 
 export async function getStripeConnectSetupOrLoginLink(accountId: string) {
   return withRetry(async () => {
+    const stripe = await getServerStripe();
     const account = await stripe.accounts.retrieve(accountId);
     const baseUrl = getBaseUrl();
 
@@ -558,17 +649,17 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
     });
 
     if (!user) {
-      console.error('Cannot sync identity - user not found:', workosUserId);
+      logger.error('Cannot sync identity - user not found', { workosUserId });
       return { success: false, message: 'User not found' };
     }
 
     if (!user.stripeConnectAccountId) {
-      console.error('Cannot sync identity - no Connect account:', workosUserId);
+      logger.error('Cannot sync identity - no Connect account', { workosUserId });
       return { success: false, message: 'No Stripe Connect account found' };
     }
 
     // For debugging, log all verification data
-    console.log('Syncing identity for user:', {
+    logger.info('Syncing identity for user:', {
       userId: user.id,
       workosUserId,
       email: user.email,
@@ -577,10 +668,11 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
       stripeIdentityVerificationStatus: user.stripeIdentityVerificationStatus,
     });
 
+    const stripe = await getServerStripe();
     // First, check if the Connect account is already fully verified
     const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
 
-    console.log('Initial Connect account status:', {
+    logger.info('Initial Connect account status', {
       connectAccountId: user.stripeConnectAccountId,
       detailsSubmitted: account.details_submitted,
       chargesEnabled: account.charges_enabled,
@@ -604,7 +696,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
         verificationStatus = await getIdentityVerificationStatus(user.stripeIdentityVerificationId);
 
         // Log the verification status for debugging
-        console.log('Retrieved verification status:', {
+        logger.info('Retrieved verification status', {
           userId: user.id,
           verificationId: user.stripeIdentityVerificationId,
           status: verificationStatus.status,
@@ -617,7 +709,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
           account.individual?.verification?.status !== 'verified'
         ) {
           forceVerify = true;
-          console.log('Force verifying due to status mismatch:', {
+          logger.info('Force verifying due to status mismatch:', {
             identityStatus: verificationStatus.status,
             connectStatus: account.individual?.verification?.status,
           });
@@ -639,7 +731,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
             })
             .where(eq(UsersTable.id, user.id));
 
-          console.log('Updated user verification status in database', {
+          logger.info('Updated user verification status in database', {
             userId: user.id,
             verified: verificationStatus.status === 'verified',
             status: verificationStatus.status,
@@ -654,12 +746,20 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
           };
         }
       } catch (error) {
-        console.error('Error checking verification status:', error);
+        if (error instanceof Stripe.errors.StripeError) {
+          Sentry.captureException(error, {
+            tags: { stripeErrorType: error.type, operation: 'syncIdentityVerificationToConnect_getStatus' },
+            extra: { code: error.code, param: error.param },
+          });
+        }
+        logger.error('Error checking verification status', {
+          error: error instanceof Error ? error.message : String(error),
+        });
         // If the user was previously marked as verified but we can't check now,
         // we'll proceed with the sync anyway as a fallback
         if (user.stripeIdentityVerified) {
           forceVerify = true;
-          console.log(
+          logger.info(
             'Force verifying due to error checking verification status but user marked as verified',
           );
         } else {
@@ -667,7 +767,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
         }
       }
     } else if (!user.stripeIdentityVerified && !forceVerify) {
-      console.error('Cannot sync identity - not verified:', workosUserId);
+      logger.error('Cannot sync identity - not verified', { workosUserId });
       return { success: false, message: 'User has not completed identity verification' };
     }
 
@@ -677,7 +777,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
       account.metadata?.identity_verified === 'true' &&
       account.metadata?.identity_verification_id === user.stripeIdentityVerificationId
     ) {
-      console.log('Connect account already properly verified with correct metadata:', {
+      logger.info('Connect account already properly verified with correct metadata:', {
         userId: user.id,
         connectAccountId: user.stripeConnectAccountId,
       });
@@ -690,7 +790,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
       account.individual?.verification?.status === 'verified' &&
       !account.metadata?.identity_verified
     ) {
-      console.log('Connect account verified but missing metadata. Updating metadata only:', {
+      logger.info('Connect account verified but missing metadata. Updating metadata only:', {
         userId: user.id,
         connectAccountId: user.stripeConnectAccountId,
       });
@@ -704,32 +804,24 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
         },
       });
 
-      console.log('Updated metadata on already verified account:', user.stripeConnectAccountId);
+      logger.info('Updated metadata on already verified account', {
+        connectAccountId: user.stripeConnectAccountId,
+      });
       return { success: true, message: 'Updated metadata on already verified account' };
     }
 
-    console.log('Updating Connect account with verification:', {
+    logger.info('Updating Connect account with verification:', {
       userId: user.id,
       connectAccountId: user.stripeConnectAccountId,
       verificationId: user.stripeIdentityVerificationId,
       forceVerify,
     });
 
-    // Apply the verification status to the Connect account
+    // Record that this account was verified through Stripe Identity via metadata.
+    // Do NOT set individual.first_name/last_name or verification.document -- Stripe
+    // manages KYC verification through its own flow, and setting fake names would
+    // corrupt the account's identity data in a health marketplace.
     await stripe.accounts.update(user.stripeConnectAccountId, {
-      individual: {
-        // Instead of directly setting verification status which causes a type error,
-        // let's update the person's information and Stripe will handle verification
-        first_name: 'VERIFIED_BY_PLATFORM',
-        last_name: 'VERIFIED_BY_PLATFORM',
-        verification: {
-          document: {
-            back: undefined,
-            front: undefined,
-          },
-        },
-      },
-      // Add verification metadata to indicate this account was verified through Stripe Identity
       metadata: {
         ...account.metadata,
         identity_verified: 'true',
@@ -742,7 +834,7 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
     // Verify the update worked by retrieving the account again
     const updatedAccount = await stripe.accounts.retrieve(user.stripeConnectAccountId);
 
-    console.log('Successfully synced identity verification to Connect account:', {
+    logger.info('Successfully synced identity verification to Connect account:', {
       workosUserId,
       connectAccountId: user.stripeConnectAccountId,
       identityVerificationId: user.stripeIdentityVerificationId,
@@ -756,7 +848,15 @@ export async function syncIdentityVerificationToConnect(workosUserId: string) {
       verificationStatus: updatedAccount.individual?.verification?.status,
     };
   } catch (error) {
-    console.error('Error syncing identity verification to Connect:', error);
+    if (error instanceof Stripe.errors.StripeError) {
+      Sentry.captureException(error, {
+        tags: { stripeErrorType: error.type, operation: 'syncIdentityVerificationToConnect' },
+        extra: { code: error.code, param: error.param },
+      });
+    }
+    logger.error('Error syncing identity verification to Connect', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error occurred',

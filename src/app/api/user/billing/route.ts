@@ -1,4 +1,4 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
 import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -7,13 +7,9 @@ import Stripe from 'stripe';
 
 // Mark route as dynamic
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
-
 export async function GET() {
   let workosUserId: string | null = null;
+  const stripe = await getServerStripe();
 
   try {
     // Get the authenticated user ID
@@ -65,6 +61,7 @@ export async function GET() {
       user: {
         id: dbUser.id,
         stripeConnectAccountId: dbUser.stripeConnectAccountId,
+        stripeIdentityVerified: dbUser.stripeIdentityVerified ?? false,
       },
       customer: customerData
         ? {

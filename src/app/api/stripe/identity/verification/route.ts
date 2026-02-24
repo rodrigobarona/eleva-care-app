@@ -174,34 +174,33 @@ export async function POST(request: NextRequest) {
             success: true,
             status: verificationStatus.status,
             verificationId: dbUser.stripeIdentityVerificationId,
-            redirectUrl: null,
+            clientSecret: null,
             message: 'Identity already verified',
           });
         }
 
-        // If session is in a usable state (requires_input or processing), return it
+        // If session is in a usable state (requires_input or processing), return it for modal
         if (['requires_input', 'processing'].includes(verificationStatus.status)) {
           console.log(
             `Returning existing verification session in status: ${verificationStatus.status}`,
           );
 
-          // Retrieve the existing session with URL
           try {
             const existingSession = await stripe.identity.verificationSessions.retrieve(
               dbUser.stripeIdentityVerificationId,
             );
 
-            if (existingSession.url) {
+            if (existingSession.client_secret) {
               return NextResponse.json({
                 success: true,
                 status: verificationStatus.status,
                 verificationId: dbUser.stripeIdentityVerificationId,
-                redirectUrl: existingSession.url,
+                clientSecret: existingSession.client_secret,
                 message: `Continuing existing verification in status: ${verificationStatus.status}`,
               });
             }
           } catch (error) {
-            console.error(`Error retrieving existing verification session URL: ${error}`);
+            console.error(`Error retrieving existing verification session: ${error}`);
             // Fall through to create a new session
           }
         }
@@ -249,8 +248,10 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(UsersTable.id, dbUser.id));
 
-    // Create a new verification session
-    const result = await createIdentityVerification(dbUser.id, user.id, user.email || dbUser.email);
+    // Create a new verification session (modal flow - returns clientSecret)
+    const result = await createIdentityVerification(dbUser.id, user.id, user.email || dbUser.email, {
+      useModal: true,
+    });
 
     // Add rate limit info to successful responses
     const response = NextResponse.json(result);

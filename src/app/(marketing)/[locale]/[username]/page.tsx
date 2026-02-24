@@ -275,7 +275,7 @@ async function ProfileInfo({
               About me
               {profile?.socialLinks && profile.socialLinks.length > 0 && (
                 <div className="flex gap-3">
-                  {profile.socialLinks.map((link) => {
+                  {profile.socialLinks.map((link: { name: string; url: string }) => {
                     if (!link.url) return null;
                     const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
                     return (

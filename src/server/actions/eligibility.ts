@@ -11,7 +11,10 @@
 
 'use server';
 
+import * as Sentry from '@sentry/nextjs';
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
+
+const { logger } = Sentry;
 import { db } from '@/drizzle/db';
 import {
   AnnualPlanEligibilityTable,
@@ -82,6 +85,7 @@ export interface EligibilityStatus {
  * @returns Eligibility status with detailed breakdown
  */
 export async function checkAnnualEligibility(workosUserId: string): Promise<EligibilityStatus> {
+  return Sentry.withServerActionInstrumentation('checkAnnualEligibility', { recordResponse: true }, async () => {
   try {
     // Get user details
     const user = await db.query.UsersTable.findFirst({
@@ -189,7 +193,7 @@ export async function checkAnnualEligibility(workosUserId: string): Promise<Elig
 
     return {
       isEligible,
-      tierLevel,
+      tierLevel: tierLevel as 'community' | 'top',
       meetsRequirements,
       currentMetrics: {
         monthsActive,
@@ -205,9 +209,10 @@ export async function checkAnnualEligibility(workosUserId: string): Promise<Elig
       breakEvenMonthlyRevenue: pricingConfig.breakEvenMonthlyRevenue,
     };
   } catch (error) {
-    console.error('Error checking eligibility:', error);
+    logger.error('Error checking eligibility', { error });
     throw error;
   }
+  });
 }
 
 // ============================================================================
@@ -223,6 +228,7 @@ export async function checkAnnualEligibility(workosUserId: string): Promise<Elig
  * @returns Success status
  */
 export async function updateEligibilityMetrics(workosUserId: string): Promise<boolean> {
+  return Sentry.withServerActionInstrumentation('updateEligibilityMetrics', { recordResponse: true }, async () => {
   try {
     // Get eligibility status
     const eligibility = await checkAnnualEligibility(workosUserId);
@@ -234,7 +240,7 @@ export async function updateEligibilityMetrics(workosUserId: string): Promise<bo
     });
 
     if (!membership?.orgId) {
-      console.error('No organization found for user:', workosUserId);
+      logger.error('No organization found for user', { workosUserId });
       return false;
     }
 
@@ -299,12 +305,13 @@ export async function updateEligibilityMetrics(workosUserId: string): Promise<bo
       });
     }
 
-    console.log(`✅ Updated eligibility metrics for user: ${workosUserId}`);
+    logger.info('Updated eligibility metrics for user', { workosUserId });
     return true;
   } catch (error) {
-    console.error('Error updating eligibility metrics:', error);
+    logger.error('Error updating eligibility metrics', { error });
     return false;
   }
+  });
 }
 
 // ============================================================================
@@ -322,45 +329,46 @@ export async function updateEligibilityMetrics(workosUserId: string): Promise<bo
 export async function getEligibilityStatus(
   workosUserId: string,
 ): Promise<EligibilityStatus | null> {
-  try {
-    const eligibility = await db.query.AnnualPlanEligibilityTable.findFirst({
-      where: eq(AnnualPlanEligibilityTable.workosUserId, workosUserId),
-    });
+  return Sentry.withServerActionInstrumentation('getEligibilityStatus', { recordResponse: true }, async () => {
+    try {
+      const eligibility = await db.query.AnnualPlanEligibilityTable.findFirst({
+        where: eq(AnnualPlanEligibilityTable.workosUserId, workosUserId),
+      });
 
-    if (!eligibility) {
+      if (!eligibility) {
+        return null;
+      }
+
+      const criteria =
+        eligibility.tierLevel === 'top'
+          ? SUBSCRIPTION_PRICING.eligibility.top_expert
+          : SUBSCRIPTION_PRICING.eligibility.community_expert;
+
+      return {
+        isEligible: eligibility.isEligible || false,
+        tierLevel: eligibility.tierLevel as 'community' | 'top',
+        meetsRequirements: {
+          monthsActive: (eligibility.monthsActive || 0) >= criteria.minMonthsActive,
+          avgMonthlyRevenue: (eligibility.avgMonthlyRevenue || 0) >= criteria.minAvgMonthlyRevenue,
+          totalBookings: (eligibility.totalBookings || 0) >= criteria.minCompletedAppointments,
+          rating: (eligibility.currentRating || 0) / 100 >= criteria.minRating,
+        },
+        currentMetrics: {
+          monthsActive: eligibility.monthsActive || 0,
+          avgMonthlyRevenue: eligibility.avgMonthlyRevenue || 0,
+          totalBookings: eligibility.totalBookings || 0,
+          currentRating: (eligibility.currentRating || 0) / 100,
+        },
+        projectedSavings: {
+          annualCommissions: eligibility.projectedAnnualCommissions || 0,
+          annualSavings: eligibility.projectedAnnualSavings || 0,
+          savingsPercentage: (eligibility.savingsPercentage || 0) / 10000,
+        },
+        breakEvenMonthlyRevenue: eligibility.breakEvenMonthlyRevenue || 0,
+      };
+    } catch (error) {
+      logger.error('Error getting eligibility status', { error });
       return null;
     }
-
-    // Get criteria for tier
-    const criteria =
-      eligibility.tierLevel === 'top'
-        ? SUBSCRIPTION_PRICING.eligibility.top_expert
-        : SUBSCRIPTION_PRICING.eligibility.community_expert;
-
-    return {
-      isEligible: eligibility.isEligible || false,
-      tierLevel: eligibility.tierLevel as 'community' | 'top',
-      meetsRequirements: {
-        monthsActive: (eligibility.monthsActive || 0) >= criteria.minMonthsActive,
-        avgMonthlyRevenue: (eligibility.avgMonthlyRevenue || 0) >= criteria.minAvgMonthlyRevenue,
-        totalBookings: (eligibility.totalBookings || 0) >= criteria.minCompletedAppointments,
-        rating: (eligibility.currentRating || 0) / 100 >= criteria.minRating,
-      },
-      currentMetrics: {
-        monthsActive: eligibility.monthsActive || 0,
-        avgMonthlyRevenue: eligibility.avgMonthlyRevenue || 0,
-        totalBookings: eligibility.totalBookings || 0,
-        currentRating: (eligibility.currentRating || 0) / 100,
-      },
-      projectedSavings: {
-        annualCommissions: eligibility.projectedAnnualCommissions || 0,
-        annualSavings: eligibility.projectedAnnualSavings || 0,
-        savingsPercentage: (eligibility.savingsPercentage || 0) / 10000,
-      },
-      breakEvenMonthlyRevenue: eligibility.breakEvenMonthlyRevenue || 0,
-    };
-  } catch (error) {
-    console.error('Error getting eligibility status:', error);
-    return null;
-  }
+  });
 }

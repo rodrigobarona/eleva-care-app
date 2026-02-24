@@ -1,6 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
+import * as Sentry from '@sentry/nextjs';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- SchedulesTable used in db.query.SchedulesTable (Drizzle ORM pattern)
 import { BlockedDatesTable, SchedulesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -22,6 +23,7 @@ interface BlockedDate {
 }
 
 export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> {
+  return Sentry.withServerActionInstrumentation('addBlockedDates', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
   if (!user || !userId) throw new Error('Unauthorized');
@@ -48,9 +50,11 @@ export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> 
   await db.insert(BlockedDatesTable).values(values);
   updateTag('schedules');
   updateTag(`user-schedule-${userId}`);
+  });
 }
 
 export async function removeBlockedDate(id: number): Promise<void> {
+  return Sentry.withServerActionInstrumentation('removeBlockedDate', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
   if (!user || !userId) throw new Error('Unauthorized');
@@ -61,9 +65,11 @@ export async function removeBlockedDate(id: number): Promise<void> {
 
   updateTag('schedules');
   updateTag(`user-schedule-${userId}`);
+  });
 }
 
 export async function getBlockedDates(): Promise<BlockedDate[]> {
+  return Sentry.withServerActionInstrumentation('getBlockedDates', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
   if (!user || !userId) throw new Error('Unauthorized');
@@ -85,10 +91,12 @@ export async function getBlockedDates(): Promise<BlockedDate[]> {
       timezone: blocked.timezone,
     };
   });
+  });
 }
 
 // New function to get blocked dates for a specific user (for public booking pages)
 export async function getBlockedDatesForUser(workosUserId: string): Promise<BlockedDate[]> {
+  return Sentry.withServerActionInstrumentation('getBlockedDatesForUser', { recordResponse: true }, async () => {
   const blockedDates = await db.query.BlockedDatesTable.findMany({
     where: (table, { eq }) => eq(table.workosUserId, workosUserId),
     orderBy: (table) => [table.date],
@@ -106,6 +114,7 @@ export async function getBlockedDatesForUser(workosUserId: string): Promise<Bloc
       timezone: blocked.timezone,
     };
   });
+  });
 }
 
 /**
@@ -115,6 +124,7 @@ export async function updateBlockedDate(
   id: number,
   updates: { date: Date; reason?: string; timezone: string },
 ): Promise<BlockedDate> {
+  return Sentry.withServerActionInstrumentation('updateBlockedDate', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
   if (!user || !userId) {
@@ -159,4 +169,5 @@ export async function updateBlockedDate(
     timezone: updatedRecord.timezone,
     reason: updatedRecord.reason || undefined,
   };
+  });
 }

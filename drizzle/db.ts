@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { upstashCache } from 'drizzle-orm/cache/upstash';
 import { drizzle } from 'drizzle-orm/neon-http';
 
 import * as schema from './schema';
@@ -39,7 +40,43 @@ function getDatabaseUrl(): string {
   return url || 'postgresql://placeholder:placeholder@localhost:5432/placeholder';
 }
 
-// Main database connection for core data (events, schedules, etc.)
+/**
+ * Creates the Drizzle query cache backed by Upstash Redis.
+ * Uses explicit strategy (global: false) -- only queries with `.$withCache()` are cached.
+ * Skipped during build phase or when Redis credentials are missing.
+ */
+function getCache() {
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (isBuildPhase || !url || !token) {
+    return undefined;
+  }
+
+  return upstashCache({
+    url,
+    token,
+    global: false,
+    config: { ex: 60 },
+  });
+}
+
 const databaseUrl = getDatabaseUrl();
 const sql = neon(databaseUrl);
-export const db = drizzle(sql, { schema });
+export const db = drizzle(sql, { schema, cache: getCache() });
+
+/**
+ * Invalidate Drizzle query cache by tags.
+ * Safe to call when cache is not configured (e.g. during build).
+ */
+export async function invalidateCache(tags: string[]): Promise<void> {
+  try {
+    const cache = (db as { $cache?: { invalidate: (opts: { tags: string | string[] }) => Promise<void> } }).$cache;
+    if (cache) {
+      await cache.invalidate({ tags });
+    }
+  } catch {
+    // Non-critical - cache may not be configured
+  }
+}
