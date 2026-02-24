@@ -112,6 +112,7 @@ This documentation follows the **[Diátaxis Framework](https://diataxis.fr/)** -
 | **[Role Progression](./02-core-systems/ROLE-PROGRESSION-SYSTEM.md)**       | Expert tier system                   | Business     |
 | **[Stripe Integration](./02-core-systems/payments/02-stripe-integration.md)** | Payment API reference                | Payments     |
 | **[Database Schema](./WorkOS-migration/reference/)**                       | Table definitions and relationships  | Database     |
+| **[Agent Skills Reference](./09-integrations/AGENT-SKILLS-REFERENCE.md)** | 24 skills + 8 rules mapped to code  | Development  |
 
 ---
 
@@ -251,6 +252,7 @@ This documentation follows the **[Diátaxis Framework](https://diataxis.fr/)** -
 - Google Calendar
 - Resend email
 - PostHog analytics
+- **[Agent Skills & Cursor Rules Reference](./09-integrations/AGENT-SKILLS-REFERENCE.md)** - 24 AI skills + 8 rules mapped to the codebase
 
 ---
 

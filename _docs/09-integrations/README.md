@@ -36,7 +36,7 @@ This directory contains documentation for third-party integrations, external lib
 ### Development Tools
 
 - **Svix**: Webhook infrastructure
-- **Clerk**: Authentication and user management
+- **WorkOS**: Authentication and user management
 - **Vercel**: Hosting and deployment platform
 
 ## Integration Guidelines
@@ -46,6 +46,11 @@ This directory contains documentation for third-party integrations, external lib
 3. **Error Handling**: Implement robust error handling and fallbacks
 4. **Documentation**: Maintain up-to-date integration documentation
 5. **Testing**: Include integration testing in CI/CD pipeline
+
+### AI-Assisted Development
+
+- **Agent Skills & Cursor Rules**: 24 skills + 8 rules for AI-guided development
+- **[Agent Skills Reference](./AGENT-SKILLS-REFERENCE.md)**: Complete mapping of all skills and rules to the codebase
 
 ## Related Documentation
 
