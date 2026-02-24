@@ -1,6 +1,3 @@
-// Email templates are now imported through the email service functions
-// Import email templates
-import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
 import { ExpertNewAppointmentTemplate } from '@/emails/experts';
 import {
@@ -13,9 +10,10 @@ import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-paym
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
 import type { SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
-import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
 import React from 'react';
+
+import { novu } from './client';
 
 // Re-export SupportedLocale for use in other modules
 export type { SupportedLocale };
@@ -98,34 +96,6 @@ export type { SupportedLocale };
  * - A/B testing ready: Built-in experiment framework
  * - Scalable: Easy to add new templates and variants
  */
-
-// Initialize Novu client with proper error handling
-let novu: Novu | null = null;
-let initializationError: string | null = null;
-
-try {
-  console.log('[Novu Email Service] Initializing client...');
-
-  if (ENV_CONFIG.NOVU_SECRET_KEY) {
-    novu = new Novu({
-      secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
-    });
-    console.log('[Novu Email Service] ✅ Client initialized successfully');
-  } else if (ENV_CONFIG.NOVU_API_KEY) {
-    novu = new Novu({
-      secretKey: ENV_CONFIG.NOVU_API_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
-    });
-    console.log('[Novu Email Service] ✅ Client initialized with legacy API key');
-  } else {
-    initializationError = 'Missing NOVU_SECRET_KEY or NOVU_API_KEY environment variable';
-    console.error(`[Novu Email Service] ❌ ${initializationError}`);
-  }
-} catch (error) {
-  initializationError = `Initialization failed: ${error}`;
-  console.error('[Novu Email Service] ❌ Failed to initialize:', error);
-}
 
 /**
  * Enhanced email service that integrates Novu workflows with Resend templates
@@ -711,9 +681,9 @@ export async function getSubscriberForEmail(workosUserId: string) {
 
 export async function triggerNovuWorkflow(workflowId: string, payload: TriggerWorkflowPayload) {
   if (!novu) {
-    const errorMsg = `[Novu Email Service] Cannot trigger workflow ${workflowId}: ${initializationError || 'client not initialized'}`;
+    const errorMsg = `[Novu Email Service] Cannot trigger workflow ${workflowId}: client not initialized`;
     console.error(errorMsg);
-    throw new Error(initializationError || 'Novu client not initialized');
+    throw new Error('Novu client not initialized');
   }
 
   try {

@@ -5,7 +5,7 @@ import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
-import { RateLimitCache } from '@/lib/redis/manager';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
@@ -40,21 +40,19 @@ const ADMIN_APPROVAL_RATE_LIMITS = {
 } as const;
 
 /**
- * Enhanced admin approval rate limiting
- * Implements strict controls for financial operations
+ * Multi-layer atomic admin approval rate limiting.
+ * Each `checkRateLimit` call atomically checks AND increments.
  */
 async function checkAdminApprovalRateLimits(adminId: string) {
   try {
-    // Layer 1: Admin-specific hourly limits
-    const adminLimit = await RateLimitCache.checkRateLimit(
+    const adminLimit = await checkRateLimit(
       `admin-approval:user:${adminId}`,
       ADMIN_APPROVAL_RATE_LIMITS.ADMIN.maxAttempts,
       ADMIN_APPROVAL_RATE_LIMITS.ADMIN.windowSeconds,
     );
-
     if (!adminLimit.allowed) {
       return {
-        allowed: false,
+        allowed: false as const,
         reason: 'admin_hourly_limit_exceeded',
         message: `Admin hourly approval limit reached. You can approve more transfers in ${Math.ceil((adminLimit.resetTime - Date.now()) / 1000)} seconds.`,
         resetTime: adminLimit.resetTime,
@@ -63,35 +61,30 @@ async function checkAdminApprovalRateLimits(adminId: string) {
       };
     }
 
-    // Layer 2: Admin daily limits (fraud protection)
-    const adminDailyLimit = await RateLimitCache.checkRateLimit(
+    const adminDailyLimit = await checkRateLimit(
       `admin-approval:user-daily:${adminId}`,
       ADMIN_APPROVAL_RATE_LIMITS.ADMIN_DAILY.maxAttempts,
       ADMIN_APPROVAL_RATE_LIMITS.ADMIN_DAILY.windowSeconds,
     );
-
     if (!adminDailyLimit.allowed) {
       return {
-        allowed: false,
+        allowed: false as const,
         reason: 'admin_daily_limit_exceeded',
-        message:
-          'Daily approval limit reached. Please contact a supervisor if you need to approve more transfers today.',
+        message: 'Daily approval limit reached. Please contact a supervisor if you need to approve more transfers today.',
         resetTime: adminDailyLimit.resetTime,
         remaining: adminDailyLimit.remaining,
         limit: `${ADMIN_APPROVAL_RATE_LIMITS.ADMIN_DAILY.maxAttempts} ${ADMIN_APPROVAL_RATE_LIMITS.ADMIN_DAILY.description}`,
       };
     }
 
-    // Layer 3: Global system protection
-    const globalLimit = await RateLimitCache.checkRateLimit(
+    const globalLimit = await checkRateLimit(
       'admin-approval:global',
       ADMIN_APPROVAL_RATE_LIMITS.GLOBAL.maxAttempts,
       ADMIN_APPROVAL_RATE_LIMITS.GLOBAL.windowSeconds,
     );
-
     if (!globalLimit.allowed) {
       return {
-        allowed: false,
+        allowed: false as const,
         reason: 'system_limit_exceeded',
         message: 'System approval capacity reached. Please try again in a few minutes.',
         resetTime: globalLimit.resetTime,
@@ -100,63 +93,23 @@ async function checkAdminApprovalRateLimits(adminId: string) {
       };
     }
 
-    // All limits passed
     return {
-      allowed: true,
+      allowed: true as const,
       limits: {
-        admin: {
-          remaining: adminLimit.remaining,
-          resetTime: adminLimit.resetTime,
-          totalHits: adminLimit.totalHits,
-        },
-        adminDaily: {
-          remaining: adminDailyLimit.remaining,
-          resetTime: adminDailyLimit.resetTime,
-          totalHits: adminDailyLimit.totalHits,
-        },
-        global: {
-          remaining: globalLimit.remaining,
-          resetTime: globalLimit.resetTime,
-          totalHits: globalLimit.totalHits,
-        },
+        admin: { remaining: adminLimit.remaining, resetTime: adminLimit.resetTime, totalHits: adminLimit.totalHits },
+        adminDaily: { remaining: adminDailyLimit.remaining, resetTime: adminDailyLimit.resetTime, totalHits: adminDailyLimit.totalHits },
+        global: { remaining: globalLimit.remaining, resetTime: globalLimit.resetTime, totalHits: globalLimit.totalHits },
       },
     };
   } catch (error) {
     console.error('Redis admin approval rate limiting error:', error);
-
-    // For admin financial operations, apply conservative fallback
     console.warn('Admin approval rate limiting failed - applying conservative restriction');
     return {
-      allowed: false,
+      allowed: false as const,
       reason: 'rate_limiting_error',
       message: 'Approval system is temporarily unavailable. Please try again in a moment.',
       fallback: true,
     };
-  }
-}
-
-/**
- * Record admin approval rate limit attempts
- */
-async function recordAdminApprovalAttempts(adminId: string) {
-  try {
-    await Promise.all([
-      RateLimitCache.recordAttempt(
-        `admin-approval:user:${adminId}`,
-        ADMIN_APPROVAL_RATE_LIMITS.ADMIN.windowSeconds,
-      ),
-      RateLimitCache.recordAttempt(
-        `admin-approval:user-daily:${adminId}`,
-        ADMIN_APPROVAL_RATE_LIMITS.ADMIN_DAILY.windowSeconds,
-      ),
-      RateLimitCache.recordAttempt(
-        'admin-approval:global',
-        ADMIN_APPROVAL_RATE_LIMITS.GLOBAL.windowSeconds,
-      ),
-    ]);
-  } catch (error) {
-    console.error('Error recording admin approval rate limit attempts:', error);
-    // Continue execution even if recording fails
   }
 }
 
@@ -267,9 +220,6 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    // **RECORD RATE LIMIT ATTEMPT: Only after validation but before approval**
-    await recordAdminApprovalAttempts(userId);
 
     // Update transfer to approved status
     await db

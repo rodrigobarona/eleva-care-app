@@ -29,6 +29,7 @@ class RedisManager {
         this.redis = new Redis({
           url: redisUrl,
           token: redisToken,
+          automaticDeserialization: false,
         });
         this.isRedisAvailable = true;
         console.log('✅ Redis client initialized successfully');
@@ -48,15 +49,6 @@ class RedisManager {
    * Set a key-value pair with optional expiration in seconds
    */
   async set(key: string, value: string, expirationSeconds?: number): Promise<void> {
-    // Validate that value is a string
-    if (typeof value !== 'string') {
-      console.error(
-        `RedisManager.set: Invalid value type for key "${key}". Expected string, got ${typeof value}. Value will be coerced to string.`,
-      );
-      // Coerce to string to prevent "[object Object]" issue
-      value = String(value);
-    }
-
     if (this.isRedisAvailable && this.redis) {
       try {
         if (expirationSeconds) {
@@ -86,33 +78,10 @@ class RedisManager {
   async get(key: string): Promise<string | null> {
     if (this.isRedisAvailable && this.redis) {
       try {
-        const result = await this.redis.get(key);
-
-        // Handle null case
-        if (result === null) {
-          return null;
-        }
-
-        // If result is already a string, return it
-        if (typeof result === 'string') {
-          return result;
-        }
-
-        // If result is an object, it's likely already parsed JSON from Upstash
-        // Re-stringify it to maintain API contract
-        if (typeof result === 'object') {
-          return JSON.stringify(result);
-        }
-
-        // For any other unexpected type, log error and delete
-        console.error(
-          `RedisManager.get: Invalid value type for key "${key}". Expected string, null, or object, got ${typeof result}. Deleting invalid cache.`,
-        );
-        await this.redis.del(key);
-        return null;
+        const result = await this.redis.get<string>(key);
+        return result ?? null;
       } catch (error) {
         console.error('Redis GET error:', error);
-        // Fallback to in-memory cache
       }
     }
 
@@ -778,168 +747,6 @@ export const CustomerCache = {
 };
 
 export default redisManager;
-
-/**
- * Rate limiting cache constants
- */
-const RATE_LIMIT_CACHE_PREFIX = 'rate_limit:';
-const RATE_LIMIT_DEFAULT_WINDOW_SECONDS = 300; // 5 minutes
-
-/**
- * Rate limiting cache utility for API endpoints and user actions
- */
-export const RateLimitCache = {
-  /**
-   * Check if a rate limit has been exceeded
-   */
-  async checkRateLimit(
-    key: string,
-    maxAttempts: number,
-    windowSeconds: number = RATE_LIMIT_DEFAULT_WINDOW_SECONDS,
-  ): Promise<{
-    allowed: boolean;
-    remaining: number;
-    resetTime: number;
-    totalHits: number;
-  }> {
-    const cacheKey = RATE_LIMIT_CACHE_PREFIX + key;
-    const now = Date.now();
-    const windowStart = now - windowSeconds * 1000;
-
-    try {
-      // Get current attempts data
-      const cached = await redisManager.get(cacheKey);
-      let attempts: number[] = [];
-
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          // Validate that parsed data is an array of numbers
-          if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'number')) {
-            attempts = parsed;
-          } else {
-            console.warn(`Invalid rate limit cache data for key ${cacheKey}, resetting:`, parsed);
-            // Reset corrupted cache entry
-            await redisManager.del(cacheKey);
-            attempts = [];
-          }
-        } catch (parseError) {
-          console.error(`Failed to parse rate limit cache data for key ${cacheKey}:`, parseError);
-          // Reset corrupted cache entry
-          await redisManager.del(cacheKey);
-          attempts = [];
-        }
-      }
-
-      // Filter out attempts outside the current window
-      attempts = attempts.filter((timestamp) => timestamp > windowStart);
-
-      // Check if limit exceeded
-      const currentAttempts = attempts.length;
-      const allowed = currentAttempts < maxAttempts;
-      const remaining = Math.max(0, maxAttempts - currentAttempts);
-
-      // Calculate reset time (when oldest attempt will expire)
-      const resetTime =
-        attempts.length > 0 ? attempts[0] + windowSeconds * 1000 : now + windowSeconds * 1000;
-
-      return {
-        allowed,
-        remaining,
-        resetTime,
-        totalHits: currentAttempts,
-      };
-    } catch (error) {
-      console.error('Rate limit check failed:', error);
-      // On error, allow the request (fail open)
-      return {
-        allowed: true,
-        remaining: maxAttempts - 1,
-        resetTime: now + windowSeconds * 1000,
-        totalHits: 0,
-      };
-    }
-  },
-
-  /**
-   * Record a rate limit attempt
-   */
-  async recordAttempt(
-    key: string,
-    windowSeconds: number = RATE_LIMIT_DEFAULT_WINDOW_SECONDS,
-  ): Promise<void> {
-    const cacheKey = RATE_LIMIT_CACHE_PREFIX + key;
-    const now = Date.now();
-    const windowStart = now - windowSeconds * 1000;
-
-    try {
-      // Get current attempts
-      const cached = await redisManager.get(cacheKey);
-      let attempts: number[] = [];
-
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          // Validate that parsed data is an array of numbers
-          if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'number')) {
-            attempts = parsed;
-          } else {
-            console.warn(`Invalid rate limit cache data for key ${cacheKey}, resetting:`, parsed);
-            // Reset corrupted cache entry
-            await redisManager.del(cacheKey);
-            attempts = [];
-          }
-        } catch (parseError) {
-          console.error(`Failed to parse rate limit cache data for key ${cacheKey}:`, parseError);
-          // Reset corrupted cache entry
-          await redisManager.del(cacheKey);
-          attempts = [];
-        }
-      }
-
-      // Filter out old attempts and add new one
-      attempts = attempts.filter((timestamp) => timestamp > windowStart);
-      attempts.push(now);
-
-      // Store updated attempts with TTL
-      const value = JSON.stringify(attempts);
-      await redisManager.set(cacheKey, value, windowSeconds + 60); // Extra 60s buffer
-    } catch (error) {
-      console.error('Failed to record rate limit attempt:', error);
-      // Continue execution even if recording fails
-    }
-  },
-
-  /**
-   * Reset rate limit for a specific key
-   */
-  async resetRateLimit(key: string): Promise<void> {
-    const cacheKey = RATE_LIMIT_CACHE_PREFIX + key;
-    await redisManager.del(cacheKey);
-  },
-
-  /**
-   * Get rate limit status without recording an attempt
-   */
-  async getRateLimitStatus(
-    key: string,
-    maxAttempts: number,
-    windowSeconds: number = RATE_LIMIT_DEFAULT_WINDOW_SECONDS,
-  ): Promise<{
-    attempts: number;
-    remaining: number;
-    resetTime: number;
-    blocked: boolean;
-  }> {
-    const result = await RateLimitCache.checkRateLimit(key, maxAttempts, windowSeconds);
-    return {
-      attempts: result.totalHits,
-      remaining: result.remaining,
-      resetTime: result.resetTime,
-      blocked: !result.allowed,
-    };
-  },
-};
 
 /**
  * Notification queue interfaces

@@ -6,3 +6,4 @@
 
 export { redisManager, CustomerCache, FormCache, IdempotencyCache } from './manager';
 export { cleanupPaymentRateLimitCache, type CleanupStats } from './cleanup';
+export { checkRateLimit, resetRateLimit, type RateLimitResult } from './rate-limiter';

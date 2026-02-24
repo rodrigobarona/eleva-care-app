@@ -3,7 +3,6 @@
     "loading": "Carregando conteúdo...",
     "selectLanguage": "Selecionar idioma"
   },
-  "language": "Português (PT)",
   "metadata": {
     "title": "Conecte-se com Especialistas Especialistas em Saúde da Mulher | Eleva Care",
     "description": "Eleva Care: Encontre e reserve especialistas de confiança em saúde da mulher para gravidez, pós-parto, menopausa e saúde sexual. Uma plataforma confiável que conecta você com especialistas de atenção independentes.",
@@ -36,12 +35,6 @@
     "cta2": "Encontrar um Especialista",
     "cta2Help": "Marque a sua consulta",
     "cta2Help2": "em menos de 3 minutos."
-  },
-  "podcast": {
-    "title": "Elevando a Saúde Feminina com Patrícia Mota, PT, PhD",
-    "subtitle": "O podcast",
-    "description": "Acompanhe \"Elevando a Saúde Feminina\" da Eleva Care e aumente o seu conhecimento em saúde. Os nossos especialistas discutem investigações de ponta em saúde feminina e traduzem estudos complexos em dicas práticas, todas as semanas. Do bem-estar reprodutivo à saúde mental, cobrimos tudo.",
-    "cta": "Ouvir agora"
   },
   "services": {
     "title": "Como a apoiamos",
@@ -110,121 +103,6 @@
     "item4": "**A saúde pélvica** é fundamental para o bem-estar geral.",
     "description": "Na Eleva Care, acreditamos em uma abordagem colaborativa. O nosso time de especialistas trabalha em conjunto para oferecer um apoio abrangente e personalizado, garantindo que todos os aspetos da sua saúde sejam atendidos.",
     "cta": "Saiba mais"
-  },
-  "mission": {
-    "title": "A Nossa Missão",
-    "subtitle": "Transformar a saúde feminina através de inovação e compaixão",
-    "description": "Na Eleva Care, estamos dedicados a empoderar mulheres de todas as idades para que assumam o controle da sua saúde e bem-estar. A nossa missão é fornecer uma plataforma de apoio inclusiva que ligue pessoas a recursos liderados por especialistas, informação baseada em evidências e uma comunidade colaborativa de especialistas em cuidado.",
-    "vision": {
-      "title": "A Nossa Visão",
-      "description": "Construir uma ponte entre a investigação científica e a aplicação prática, oferecendo soluções acessíveis e personalizadas para a saúde feminina em todas as fases da vida."
-    },
-    "cta": "Junte-se a nós",
-    "stats": [
-      {
-        "value": "10K+",
-        "label": "Mulheres Ajudadas"
-      },
-      {
-        "value": "50+",
-        "label": "Especialistas"
-      },
-      {
-        "value": "95%",
-        "label": "Satisfação das Clientes"
-      },
-      {
-        "value": "24/7",
-        "label": "Suporte Disponível"
-      }
-    ],
-    "beliefs": {
-      "title": "Na Eleva Care, acreditamos que:",
-      "items": [
-        "Toda mulher merece acesso a cuidados de saúde de qualidade.",
-        "O conhecimento é poder nas decisões sobre a saúde.",
-        "A colaboração traz melhores resultados de saúde.",
-        "A saúde feminina é uma jornada em constante evolução.",
-        "A saúde pélvica é fundamental para o bem-estar geral."
-      ]
-    }
-  },
-  "team": {
-    "title": "Conheça a Nossa Equipa",
-    "subtitle": "Fundada por especialistas apaixonados em saúde feminina",
-    "description": "A Eleva Care é liderada por uma equipa de profissionais dedicados que combinam anos de experiência em saúde feminina, tecnologia e cuidados liderados por especialistas. Os nossos fundadores e principais membros estão empenhados em revolucionar o acesso e a experiência de saúde das mulheres.",
-    "members": [
-      {
-        "name": "Patricia Mota, PT, PhD",
-        "role": "Co-Fundadora e CEO",
-        "image": "/img/team/team-patricia-mota-2.jpeg",
-        "quote": "A nossa missão é elevar os cuidados de saúde feminina, tornando-os mais acessíveis, inovadores e capacitadores para todas as mulheres."
-      },
-      {
-        "name": "Cristine Homsi Jorge, PT, PhD",
-        "role": "Consultora Científica (Saúde da Mulher)",
-        "image": "/img/team/team-cristine-homsi-jorge.jpg",
-        "quote": "A investigação clínica e a educação capacitam as mulheres para tomarem decisões informadas sobre a sua saúde."
-      },
-      {
-        "name": "Alexandre Delgado, PT, PhD",
-        "role": "Consultor Científico (Fisioterapia Obstétrica)",
-        "image": "/img/team/team-alexandre-delgado-br.png",
-        "quote": "A fisioterapia baseada em evidências transforma a experiência da gravidez e do parto, capacitando as mulheres em todas as etapas."
-      },
-      {
-        "name": "Patricia Driusso, PT, PhD",
-        "role": "Consultora Científica (Saúde da Mulher)",
-        "image": "/img/team/team-patricia-driusso.jpg",
-        "quote": "A investigação clínica avança os tratamentos de reabilitação enquanto capacita as mulheres através da educação baseada em evidências."
-      },
-      {
-        "name": "Annelie Gutke, PT, PhD",
-        "role": "Consultora Científica (Saúde da Mulher)",
-        "image": "/img/team/team-annelie-gutke.jpg",
-        "quote": "Compreender os mecanismos da dor transforma a forma como cuidamos das mulheres durante a gravidez."
-      },
-      {
-        "name": "Ruben Barakat, PhD",
-        "role": "Consultor Científico (Ciências do Exercício)",
-        "image": "/img/team/team-ruben-barakat.jpg",
-        "quote": "As evidências mostram que o exercício personalizado durante a gravidez pode transformar os resultados de saúde das mulheres."
-      },
-      {
-        "name": "Jessica Margarido, PT",
-        "role": "Reabilitação Oncológica",
-        "image": "/img/team/team-jessica-margarido.jpg",
-        "quote": "A reabilitação baseada em evidências restaura a função e a qualidade de vida durante os cuidados oncológicos."
-      },
-      {
-        "name": "Joana Goulão Barros, MD, PhD",
-        "role": "Ginecologia e Obstetrícia",
-        "image": "/img/team/team-joana-barros.jpg",
-        "quote": "A integração da especialidade médica com a reabilitação especializada cria o mais alto padrão de cuidados pré-natais."
-      },
-      {
-        "name": "Rodrigo Barona",
-        "role": "Co-Fundador",
-        "image": "/img/team/team-rodrigo-barona.jpg",
-        "quote": "Estamos a transformar os cuidados de saúde feminina combinando especialização clínica com tecnologia inovadora."
-      }
-    ]
-  },
-  "newsletter": {
-    "title": "Femme Focus",
-    "subtitle": "Uma Publicação da Eleva Care",
-    "description": "O seu destaque mensal sobre saúde da mulher, conselhos de especialistas e histórias inspiradoras para nutrir cada etapa da sua jornada de bem-estar.",
-    "placeholder": "Insira o seu email",
-    "cta": "Inscreva-se",
-    "privacy": "Respeitamos a sua privacidade. Pode cancelar a subscrição a qualquer momento."
-  },
-  "social": {
-    "title": "Siga-nos nas redes sociais",
-    "linkedin": "LinkedIn",
-    "instagram": "Instagram",
-    "facebook": "Facebook",
-    "twitter": "Twitter",
-    "scholar": "Google Scholar"
   },
   "status": {
     "allSystemsNormal": "Todos os sistemas normais",
@@ -369,29 +247,7 @@
     "manageCancelButtonText": "Cancelar",
     "manageSaveButtonText": "Salvar Preferências"
   },
-  "Legal": {
-    "title": "Documentação Legal",
-    "privacyPolicy": "Política de Privacidade",
-    "termsOfService": "Termos de Serviço",
-    "metaTitle": "Documentação Legal | Eleva Care",
-    "metaDescription": "Informação importante sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care."
-  },
   "Payments": {
-    "collision": {
-      "title": "Conflito de Marcação - Reembolso Total Processado",
-      "subject": "Marcação de Consulta - Horário Não Disponível",
-      "greeting": "Olá {clientName},",
-      "conflictMessage": "Lamentamos informar que a sua consulta com {expertName} marcada para {appointmentDateTime} já não está disponível, pois o horário foi reservado por outro cliente.",
-      "latePaymentExplanation": "Como este foi um pagamento Multibanco tardio e o horário já não está disponível, processámos um reembolso total de €{refundAmount} (100% do valor original). Acreditamos em tratar os nossos clientes de forma justa, por isso não são cobradas taxas de processamento.",
-      "apologyAndInvitation": "Pedimos desculpa pelo inconveniente e convidamo-lo/a a marcar uma nova consulta à sua conveniência.",
-      "signature": "Obrigado,",
-      "minimumNoticeViolation": "O horário da consulta já não cumpre o requisito de aviso mínimo do especialista de {minimumNoticeHours} horas.",
-      "refundDetails": {
-        "originalAmount": "Valor original: €{amount}",
-        "refundAmount": "Valor reembolsado: €{amount} (100% - Reembolso total)",
-        "processingFee": "Taxa de processamento: €{amount} (Sem taxa cobrada)"
-      }
-    },
     "checkout": {
       "multibancoNotice": "⚠️ **Aviso de Pagamento Multibanco:** Se escolher Multibanco como método de pagamento, o seu horário de consulta será reservado por 24 horas enquanto aguardamos confirmação do pagamento. Após 24 horas, se o pagamento não for recebido, não podemos garantir que a consulta ainda estará disponível. Para confirmação imediata, use um cartão de crédito/débito. [Ver Políticas de Pagamento]({paymentPoliciesUrl})",
       "termsOfService": "Ao prosseguir com o pagamento, concorda com os nossos [Termos de Serviço]({termsUrl}) e [Políticas de Pagamento]({paymentPoliciesUrl})."
@@ -414,22 +270,6 @@
         ],
         "cta": "Complete o Seu Perfil"
       }
-    },
-    "accountVerification": {
-      "subject": "Por favor, verifique a sua conta",
-      "body": "Para tirar o máximo partido da Eleva Care, por favor verifique a sua conta."
-    },
-    "paymentSuccess": {
-      "subject": "Pagamento bem-sucedido!",
-      "body": "O seu pagamento de {amount} para {planName} foi processado com sucesso."
-    },
-    "paymentFailed": {
-      "subject": "Falha no pagamento",
-      "body": "Não conseguimos processar o seu pagamento de {amount}. Por favor, verifique o seu método de pagamento e tente novamente."
-    },
-    "securityAlert": {
-      "subject": "Alerta de Segurança",
-      "body": "{message}"
     },
     "platformPaymentReceived": {
       "subject": "Pagamento Recebido: €{amount}",
@@ -514,10 +354,6 @@
         "time": "Hora: {appointmentTime}",
         "cta": "Ver Detalhes da Marcação"
       }
-    },
-    "recentLogin": {
-      "subject": "Novo login detectado",
-      "body": "Detectámos um novo login na sua conta de {location} às {timestamp}."
     },
     "expertOnboardingComplete": {
       "subject": "Configuração de especialista concluída!",
@@ -767,17 +603,6 @@
         "checking": "A verificar...",
         "resume": "Retomar Verificação",
         "tryAgain": "Tentar Novamente"
-      }
-    }
-  },
-  "HomePage": {
-    "metadata": {
-      "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
-      "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
-      "og": {
-        "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
-        "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
-        "siteName": "Eleva Care"
       }
     }
   }

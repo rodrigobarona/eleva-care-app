@@ -3,7 +3,6 @@
     "loading": "Loading content...",
     "selectLanguage": "Select language"
   },
-  "language": "English",
   "metadata": {
     "title": "Connect with Expert Women's Health Specialists | Eleva Care",
     "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
@@ -27,13 +26,6 @@
     "description": "The page you are looking for does not exist. Please check the URL or try a different page.",
     "retry": "Retry"
   },
-  "Legal": {
-    "title": "Legal Documentation",
-    "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service",
-    "metaTitle": "Legal Documentation | Eleva Care",
-    "metaDescription": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents."
-  },
   "hero": {
     "title": "World-Class Women's Health Experts, *on-demand.*",
     "subtitle": "Book Leading Women's Health Specialists - On Your Schedule.",
@@ -43,12 +35,6 @@
     "cta2": "Find an Expert",
     "cta2Help": "Make your appointment",
     "cta2Help2": "in less than 3 minutes."
-  },
-  "podcast": {
-    "title": "Elevating Women's Health with Patrícia Mota, PT, PhD",
-    "subtitle": "The podcast",
-    "description": "Empower your health journey with \"Elevating Women's Health\" by Eleva Care. Our expert hosts break down cutting-edge research in women's health each week, translating complex studies into actionable insights. From reproductive wellness to mental health, we cover it all.",
-    "cta": "Listen Now"
   },
   "services": {
     "title": "How we support you",
@@ -117,121 +103,6 @@
     "item4": "**Pelvic health** is essential to overall well-being.",
     "description": "At Eleva Care, we believe in a collaborative approach to care. Our team of experts work together to provide you with comprehensive and personalized support, ensuring that every aspect of your health is addressed.",
     "cta": "Our Mission"
-  },
-  "mission": {
-    "title": "Our Mission",
-    "subtitle": "Transforming women's health care through innovation and compassion",
-    "description": "At Eleva Care, we are dedicated to empowering women of all ages to take control of their health and well-being. Our mission is to provide a supportive and inclusive platform that connects individuals with expert-led resources, evidence-based information, and a collaborative community of care experts.",
-    "vision": {
-      "title": "Our Vision",
-      "description": "To bridge the gap between scientific research and practical application, delivering accessible and personalized women's health care solutions throughout every life stage."
-    },
-    "cta": "Join Us",
-    "stats": [
-      {
-        "value": "10K+",
-        "label": "Women Helped"
-      },
-      {
-        "value": "50+",
-        "label": "Experts"
-      },
-      {
-        "value": "95%",
-        "label": "Client Satisfaction"
-      },
-      {
-        "value": "24/7",
-        "label": "Support Available"
-      }
-    ],
-    "beliefs": {
-      "title": "At Eleva Care, we believe:",
-      "items": [
-        "Every woman deserves access to quality healthcare.",
-        "Knowledge is power in healthcare decisions.",
-        "Collaboration leads to better health outcomes.",
-        "Women's health is a lifelong, evolving journey.",
-        "Pelvic health is essential to overall well-being."
-      ]
-    }
-  },
-  "team": {
-    "title": "Meet Our Team",
-    "subtitle": "Founded by passionate experts in women's health",
-    "description": "Eleva Care is led by a team of dedicated professionals who bring together years of experience in women's health, technology, and expert-led care. Our founders and key team members are committed to revolutionizing the way women access and experience healthcare.",
-    "members": [
-      {
-        "name": "Patricia Mota, PT, PhD",
-        "role": "Co-Founder & CEO",
-        "image": "/img/team/team-patricia-mota-2.jpeg",
-        "quote": "Our mission is to elevate women's healthcare by making it more accessible, innovative, and empowering for all women."
-      },
-      {
-        "name": "Cristine Homsi Jorge, PT, PhD",
-        "role": "Board Advisor (Women's Health)",
-        "image": "/img/team/team-cristine-homsi-jorge.jpg",
-        "quote": "Clinical research and education empower women to make informed decisions about their healthcare journey."
-      },
-      {
-        "name": "Alexandre Delgado, PT, PhD",
-        "role": "Board Advisor (Obstetric Physical Therapy)",
-        "image": "/img/team/team-alexandre-delgado-br.png",
-        "quote": "Evidence-based physical therapy transforms the pregnancy and birth experience, empowering women through every stage."
-      },
-      {
-        "name": "Patricia Driusso, PT, PhD",
-        "role": "Board Advisor (Women's Health)",
-        "image": "/img/team/team-patricia-driusso.jpg",
-        "quote": "Clinical research advances rehabilitation treatments while empowering women through evidence-based education."
-      },
-      {
-        "name": "Annelie Gutke, PT, PhD",
-        "role": "Board Advisor (Women's Health)",
-        "image": "/img/team/team-annelie-gutke.jpg",
-        "quote": "Understanding pain mechanisms transforms how we care for women during pregnancy and beyond."
-      },
-      {
-        "name": "Ruben Barakat, PhD",
-        "role": "Board Advisor (Exercise Science)",
-        "image": "/img/team/team-ruben-barakat.jpg",
-        "quote": "Evidence shows that personalized exercise during pregnancy can transform women's health outcomes."
-      },
-      {
-        "name": "Jessica Margarido, PT",
-        "role": "Oncology Rehabilitation",
-        "image": "/img/team/team-jessica-margarido.jpg",
-        "quote": "Evidence-based rehabilitation restores function and quality of life throughout cancer care."
-      },
-      {
-        "name": "Joana Goulão Barros, MD, PhD",
-        "role": "Obstetrics & Gynecology",
-        "image": "/img/team/team-joana-barros.jpg",
-        "quote": "Integrating medical expertise with specialized rehabilitation creates the highest standard of prenatal care."
-      },
-      {
-        "name": "Rodrigo Barona",
-        "role": "Co-Founder",
-        "image": "/img/team/team-rodrigo-barona.jpg",
-        "quote": "We are transforming women's healthcare by combining clinical expertise with innovative technology."
-      }
-    ]
-  },
-  "newsletter": {
-    "title": "Femme Focus",
-    "subtitle": "An Eleva Care Publication",
-    "description": "Your monthly spotlight on women's health insights, expert advice, and empowering stories to nurture every stage of your wellness journey.",
-    "placeholder": "Enter your email",
-    "cta": "Subscribe",
-    "privacy": "We respect your privacy. Unsubscribe at any time."
-  },
-  "social": {
-    "title": "Follow Us",
-    "linkedin": "LinkedIn",
-    "instagram": "Instagram",
-    "facebook": "Facebook",
-    "twitter": "Twitter",
-    "scholar": "Google Scholar"
   },
   "status": {
     "allSystemsNormal": "All systems normal",
@@ -377,21 +248,6 @@
     "manageSaveButtonText": "Save Preferences"
   },
   "Payments": {
-    "collision": {
-      "title": "Appointment Conflict - Full Refund Processed",
-      "subject": "Appointment Booking - Time Slot No Longer Available",
-      "greeting": "Hi {clientName},",
-      "conflictMessage": "We regret to inform you that your appointment with {expertName} scheduled for {appointmentDateTime} is no longer available as the time slot has been booked by another client.",
-      "latePaymentExplanation": "Since this was a delayed Multibanco payment and the slot is no longer available, we have processed a full refund of €{refundAmount} (100% of the original amount). We believe in treating our customers fairly, so no processing fees are charged.",
-      "apologyAndInvitation": "We apologize for the inconvenience and invite you to book a new appointment at your convenience.",
-      "signature": "Thanks,",
-      "minimumNoticeViolation": "The appointment time no longer meets the expert's minimum notice requirement of {minimumNoticeHours} hours.",
-      "refundDetails": {
-        "originalAmount": "Original amount: €{amount}",
-        "refundAmount": "Refund amount: €{amount} (100% - Full refund)",
-        "processingFee": "Processing fee: €{amount} (No fee charged)"
-      }
-    },
     "checkout": {
       "multibancoNotice": "⚠️ **Multibanco Payment Notice:** If you choose Multibanco as your payment method, your appointment slot will be reserved for 24 hours while we wait for payment confirmation. After 24 hours, if payment is not received, we cannot guarantee the appointment will still be available. For immediate confirmation, please use a credit/debit card. [View Payment Policies]({paymentPoliciesUrl})",
       "termsOfService": "By proceeding with payment, you agree to our [Terms of Service]({termsUrl}) and [Payment Policies]({paymentPoliciesUrl})."
@@ -414,22 +270,6 @@
         ],
         "cta": "Complete Your Profile"
       }
-    },
-    "accountVerification": {
-      "subject": "Please verify your account",
-      "body": "To get the most out of Eleva Care, please verify your account."
-    },
-    "paymentSuccess": {
-      "subject": "Payment successful!",
-      "body": "Your payment of {amount} for {planName} has been processed successfully."
-    },
-    "paymentFailed": {
-      "subject": "Payment failed",
-      "body": "We couldn't process your payment of {amount}. Please check your payment method and try again."
-    },
-    "securityAlert": {
-      "subject": "Security Alert",
-      "body": "{message}"
     },
     "platformPaymentReceived": {
       "subject": "Payment Received: €{amount}",
@@ -514,10 +354,6 @@
         "time": "Time: {appointmentTime}",
         "cta": "View Booking Details"
       }
-    },
-    "recentLogin": {
-      "subject": "New login detected",
-      "body": "We detected a new login to your account from {location} at {timestamp}."
     },
     "expertOnboardingComplete": {
       "subject": "Expert setup complete!",
@@ -676,39 +512,6 @@
         "allRightsReserved": "All rights reserved."
       }
     },
-    "expertSetupStep": {
-      "subject": "Expert Setup: {stepName} Complete",
-      "body": "Hi {expertName}, you've successfully completed the {stepName} step in your expert setup process."
-    },
-    "expertSetupProgress": {
-      "subject": "Expert Setup Progress: {setupProgress}% Complete",
-      "body": "Hi {expertName}, your expert setup is {setupProgress}% complete. You've completed {completedSteps} and have {remainingSteps} remaining steps.",
-      "email": {
-        "subject": "Your Expert Setup Progress - {setupProgress}% Complete",
-        "title": "Setup Progress Update",
-        "greeting": "Hi {expertName},",
-        "body": "Great progress on your expert setup! You're {setupProgress}% complete.",
-        "nextStep": "Next step: {nextStep}",
-        "cta": "Continue Setup"
-      }
-    },
-    "expertIdentityVerification": {
-      "subject": "Identity Verification: {status}",
-      "body": "Hi {expertName}, your identity verification status has been updated: {status}. {message}",
-      "email": {
-        "subject": "Identity Verification Update - {status}",
-        "title": "Identity Verification Update",
-        "greeting": "Hi {expertName},",
-        "body": "Your identity verification status has been updated.",
-        "status": "Status: {status}",
-        "message": "{message}",
-        "cta": "View Details"
-      }
-    },
-    "expertGoogleAccount": {
-      "subject": "Google Account: {status}",
-      "body": "Hi {expertName}, your Google account connection status: {status}. {message}"
-    },
     "general": {
       "subject": "{title} - Eleva Care"
     },
@@ -801,295 +604,6 @@
         "resume": "Resume Verification",
         "tryAgain": "Try Again"
       }
-    }
-  },
-  "become-expert": {
-    "hero": {
-      "badge": "Start Your Expert Journey",
-      "title": "Share Your Expertise,",
-      "subtitle": "Earn on Your Schedule",
-      "description": "Join our community of healthcare professionals, coaches, and consultants. Set your own rates, manage your schedule, and help people achieve their goals.",
-      "cta": "Get Started",
-      "signin": "Already an Expert? Sign In",
-      "features": "Free to join • No hidden fees • Get paid directly"
-    },
-    "benefits": {
-      "title": "Why Join Eleva Care?",
-      "rates": {
-        "title": "Set Your Own Rates",
-        "description": "You decide how much you charge. Keep 80% of your earnings, with transparent fees."
-      },
-      "scheduling": {
-        "title": "Flexible Scheduling",
-        "description": "Integrate with your Google Calendar. Set your availability and let clients book when it works for you."
-      },
-      "clients": {
-        "title": "Grow Your Client Base",
-        "description": "Get discovered by clients actively searching for your expertise. No cold outreach needed."
-      },
-      "virtual": {
-        "title": "Virtual Consultations",
-        "description": "Meet clients anywhere with integrated Google Meet. No need for third-party tools."
-      },
-      "payments": {
-        "title": "Secure Payments",
-        "description": "Get paid automatically through Stripe. Direct deposit to your bank account."
-      },
-      "marketing": {
-        "title": "Built-in Marketing",
-        "description": "Get featured in search results, email reminders, and our expert directory."
-      }
-    },
-    "how": {
-      "title": "How It Works",
-      "step1": {
-        "title": "Create Your Profile",
-        "description": "Tell us about your expertise, credentials, and what makes you unique. Upload a professional photo and set your hourly rate."
-      },
-      "step2": {
-        "title": "Set Your Availability",
-        "description": "Connect your Google Calendar and set your working hours. Our smart booking system handles the rest."
-      },
-      "step3": {
-        "title": "Verify Your Identity",
-        "description": "Complete a quick identity verification for client trust and secure payments. Takes less than 5 minutes."
-      },
-      "step4": {
-        "title": "Start Consulting",
-        "description": "Once approved, clients can book you immediately. Get notified, meet virtually, and get paid automatically."
-      },
-      "cta": "Start Your Journey"
-    },
-    "requirements": {
-      "title": "What You Need to Get Started",
-      "credentials": {
-        "title": "Professional Credentials",
-        "description": "Valid certifications, licenses, or proven expertise in your field"
-      },
-      "internet": {
-        "title": "Reliable Internet",
-        "description": "Stable connection for video consultations"
-      },
-      "communication": {
-        "title": "Communication Skills",
-        "description": "Ability to clearly explain concepts and answer questions"
-      },
-      "passion": {
-        "title": "Passion for Helping",
-        "description": "Genuine desire to help others achieve their goals"
-      }
-    },
-    "cta": {
-      "title": "Ready to Share Your Expertise?",
-      "description": "Join thousands of experts earning on their own terms. Set up takes less than 15 minutes.",
-      "button": "Get Started Now",
-      "questions": "Questions?",
-      "contact": "Contact our team"
-    }
-  },
-  "HomePage": {
-    "metadata": {
-      "title": "Connect with Expert Women's Health Specialists | Eleva Care",
-      "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
-      "og": {
-        "title": "Connect with Expert Women's Health Specialists | Eleva Care",
-        "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
-        "siteName": "Eleva Care"
-      }
-    }
-  },
-  "evidenceBasedCare": {
-    "hero": {
-      "badge": "Clinical Excellence",
-      "title": "Evidence-based care,",
-      "subtitle": "proven by science",
-      "description": "Telehealth for women's health: safe, effective, faster, and more private. Trusted clinical care from home—tested in tens of thousands of patients and summarized in large systematic reviews.",
-      "ctaPrimary": {
-        "text": "Book a Consultation",
-        "href": "/experts"
-      },
-      "ctaSecondary": {
-        "text": "Learn About Us",
-        "href": "/about"
-      }
-    },
-    "keyNumbers": {
-      "title": "Clinical Evidence That Matters",
-      "subtitle": "Our commitment to evidence-based care is backed by rigorous research and validated in real-world settings",
-      "stats": [
-        {
-          "icon": "award",
-          "value": "38+",
-          "label": "Meta-Analyses",
-          "description": "Systematic reviews validating telehealth effectiveness across specialties"
-        },
-        {
-          "icon": "users",
-          "value": "44,894+",
-          "label": "Patients Studied",
-          "description": "In maternity telehealth trials showing similar or better outcomes"
-        },
-        {
-          "icon": "trending",
-          "value": "98%+",
-          "label": "Success Rate",
-          "description": "In telemedicine interventions with high patient acceptability"
-        },
-        {
-          "icon": "heart",
-          "value": "60%+",
-          "label": "Symptom Improvement",
-          "description": "In perinatal mental health interventions via telehealth"
-        }
-      ]
-    },
-    "clinicalAreas": {
-      "title": "Evidence by Clinical Area",
-      "subtitle": "Comprehensive research demonstrates telehealth effectiveness across all aspects of women's health",
-      "areas": [
-        {
-          "id": "prenatal",
-          "title": "Antenatal & Prenatal Care",
-          "description": "Reduced-visit prenatal schedules that replace some visits with telehealth show similar pregnancy and neonatal outcomes and often higher patient satisfaction. Telehealth can safely reduce routine in-person visits for low-risk pregnancies and improve convenience without harming outcomes.",
-          "keyFinding": "Similar pregnancy outcomes with higher patient satisfaction and improved access to care",
-          "research": [
-            {
-              "title": "Telehealth strategies for the delivery of maternal health care: A rapid review",
-              "authors": "Cantor AG, Jungbauer RM, Totten AM, et al.",
-              "year": "2022",
-              "doi": "10.7326/M22-0737"
-            }
-          ]
-        },
-        {
-          "id": "mental-health",
-          "title": "Perinatal & Maternal Mental Health",
-          "description": "Digital and telehealth psychological interventions (CBT, guided internet interventions, phone or app-based therapy) reduce depressive symptoms in pregnancy and postpartum in many trials and meta-analyses—especially when targeted and supported.",
-          "keyFinding": "Significant reduction in depression, anxiety, and distress with high patient acceptance",
-          "research": [
-            {
-              "title": "Mental health-related telemedicine interventions for pregnant women and new mothers: a systematic literature review",
-              "authors": "Stentzel U, Grabe HJ, Schmidt S, et al.",
-              "year": "2023",
-              "doi": "10.1186/s12888-023-04790-0"
-            },
-            {
-              "title": "Effectiveness of digital psychological interventions in reducing perinatal depression",
-              "authors": "Chen C, et al.",
-              "year": "2023",
-              "doi": "PMC10212734"
-            }
-          ]
-        },
-        {
-          "id": "reproductive-health",
-          "title": "Sexual & Reproductive Health",
-          "description": "Telemedicine models for contraceptive counselling and medication abortion have shown high effectiveness and safety—including very large cohorts for no-test telemedicine abortion with success rates ≈98–99% and very low serious adverse events. Telemedicine improves access, shortens wait times, and is highly acceptable to patients.",
-          "keyFinding": "98-99% success rates with very low adverse events and high patient acceptability",
-          "research": [
-            {
-              "title": "Effectiveness, safety and acceptability of no-test medical abortion provided via telemedicine: a national cohort study",
-              "authors": "Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J",
-              "year": "2021",
-              "doi": "10.1111/1471-0528.16668"
-            },
-            {
-              "title": "Safety and Efficacy of Telehealth Medication Abortions in the US During the COVID-19 Pandemic",
-              "authors": "Upadhyay UD, Koenig LR, Meckstroth KR",
-              "year": "2021",
-              "doi": "10.1001/jamanetworkopen.2021.22320"
-            }
-          ]
-        },
-        {
-          "id": "chronic-conditions",
-          "title": "Chronic Conditions & Lifestyle",
-          "description": "Telehealth and digital lifestyle interventions (diet/exercise coaching, remote monitoring) can be clinically effective and cost-saving in many implementations. Some large trials show meaningful clinical benefit; economic results improve when programs are targeted and scaled efficiently.",
-          "keyFinding": "As effective or more effective than usual care when implemented properly",
-          "research": [
-            {
-              "title": "The clinical effectiveness of telehealth: A systematic review of meta-analyses from 2010 to 2019",
-              "authors": "Snoswell CL, Chelberg G, De Guzman KR, et al.",
-              "year": "2023",
-              "doi": "10.1177/1357633X211022907"
-            }
-          ]
-        }
-      ]
-    },
-    "safety": {
-      "title": "Safety & Quality: How Eleva Care Protects You",
-      "subtitle": "Your safety and privacy are our top priorities. Every aspect of our platform is designed with your security in mind.",
-      "features": [
-        {
-          "icon": "user-check",
-          "title": "Licensed Healthcare Professionals",
-          "description": "Teleconsultations are delivered by independent, duly licensed clinicians who meet our onboarding requirements. You can review their credentials and professional background in their profile."
-        },
-        {
-          "icon": "lock",
-          "title": "Secure & Encrypted Platform",
-          "description": "Secure, encrypted video and messaging platforms that meet GDPR, LGPD, and HIPAA-ready privacy law requirements with AES-256 encryption."
-        },
-        {
-          "icon": "file-check",
-          "title": "Evidence-Based Clinical Protocols",
-          "description": "The platform supports evidence-based practices aligned with international guidelines and peer-reviewed research. Experts maintain clinical independence and follow escalation pathways when appropriate."
-        },
-        {
-          "icon": "shield",
-          "title": "Integrated Care Pathways",
-          "description": "Integrated recordkeeping and referral pathways to in-person specialists or emergency services when indicated for comprehensive care."
-        }
-      ]
-    },
-    "faq": {
-      "title": "Common Questions About Telehealth",
-      "subtitle": "Evidence-based answers to help you make informed decisions about your care",
-      "faqs": [
-        {
-          "id": "faq-1",
-          "question": "Is a video visit as good as in-person care?",
-          "answer": "For many visits—yes. Evidence shows similar clinical outcomes for many telehealth services; but some visits (procedures, certain physical exams) still require face-to-face care. Research from 38 meta-analyses found telehealth is as effective or more effective than usual in-person care across many specialties."
-        },
-        {
-          "id": "faq-2",
-          "question": "Is telehealth safe for pregnancy & babies?",
-          "answer": "For low-risk pregnancies and when combined with targeted in-person checks, telehealth-augmented prenatal care has similar maternal and neonatal outcomes in trials. A review of 44,894 patients across 28 RCTs found similar or sometimes better outcomes. Your clinician will recommend in-person visits when clinically necessary."
-        },
-        {
-          "id": "faq-3",
-          "question": "What about mental health care after birth?",
-          "answer": "Digital and telehealth psychological therapies (CBT, guided internet therapies) reduce perinatal depression symptoms in many studies and increase access. Research shows ~60% of RCTs reported significant improvements. Eleva Care offers immediate triage and evidence-based teletherapy options."
-        },
-        {
-          "id": "faq-4",
-          "question": "Are medication services safe by telemedicine?",
-          "answer": "Large cohort studies show telemedicine medication services are highly effective and safe when implemented with appropriate screening and follow-up. Studies of ~52,000 patients found success rates ≥98% with very low serious adverse events. Eleva Care follows protocols proven in large studies."
-        },
-        {
-          "id": "faq-5",
-          "question": "When should I see someone in person?",
-          "answer": "In-person care is recommended for: acute physical signs requiring examination (heavy bleeding, severe pain, preeclampsia signs), procedures requiring hands-on care (IUD insertion, surgeries, some scans), and cases where remote assessment cannot safely rule out urgent pathology. Eleva Care always provides a clear pathway to immediate in-person care."
-        }
-      ]
-    },
-    "researchTeam": {
-      "title": "Our Research Team",
-      "subtitle": "World-renowned experts whose research shapes evidence-based women's health care"
-    },
-    "finalCTA": {
-      "title": "Ready for Evidence-Based Care?",
-      "description": "Book a safe teleconsultation with a women's health specialist today. Quick, confidential, evidence-based care from home.",
-      "ctaPrimary": {
-        "text": "Find an Expert",
-        "href": "/experts"
-      },
-      "ctaSecondary": {
-        "text": "Contact Us",
-        "href": "mailto:hello@eleva.care"
-      },
-      "features": "Secure platform • Licensed professionals • Evidence-based protocols"
     }
   }
 }

@@ -5,52 +5,33 @@ import {
   createIdentityVerification,
   getIdentityVerificationStatus,
 } from '@/lib/integrations/stripe/identity';
-import { RateLimitCache } from '@/lib/redis/manager';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Rate limiting configuration
-const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds (fallback)
+const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes (DB fallback)
 
-// Redis-based rate limiting configuration
 const RATE_LIMITS = {
-  // User-based limits (strictest)
-  USER: {
-    maxAttempts: 3,
-    windowSeconds: 3600, // 1 hour
-    description: 'per user per hour',
-  },
-  // IP-based limits (abuse prevention)
-  IP: {
-    maxAttempts: 10,
-    windowSeconds: 3600, // 1 hour
-    description: 'per IP per hour',
-  },
-  // Global system protection
-  GLOBAL: {
-    maxAttempts: 500,
-    windowSeconds: 300, // 5 minutes
-    description: 'system-wide per 5 minutes',
-  },
+  USER: { maxAttempts: 3, windowSeconds: 3600, description: 'per user per hour' },
+  IP: { maxAttempts: 10, windowSeconds: 3600, description: 'per IP per hour' },
+  GLOBAL: { maxAttempts: 500, windowSeconds: 300, description: 'system-wide per 5 minutes' },
 } as const;
 
 /**
- * Enhanced rate limiting with Redis-based distributed cache
- * Implements multi-layer protection: user + IP + global limits
+ * Multi-layer atomic rate limiting (user + IP + global).
+ * Each `checkRateLimit` call atomically checks AND increments the counter.
  */
 async function checkRateLimits(userId: string, clientIP: string) {
   try {
-    // Layer 1: User-based rate limiting (strictest)
-    const userLimit = await RateLimitCache.checkRateLimit(
+    const userLimit = await checkRateLimit(
       `identity-verification:user:${userId}`,
       RATE_LIMITS.USER.maxAttempts,
       RATE_LIMITS.USER.windowSeconds,
     );
-
     if (!userLimit.allowed) {
       return {
-        allowed: false,
+        allowed: false as const,
         reason: 'user_limit_exceeded',
         message: `Too many verification attempts. You can try again in ${Math.ceil((userLimit.resetTime - Date.now()) / 1000)} seconds.`,
         resetTime: userLimit.resetTime,
@@ -59,16 +40,14 @@ async function checkRateLimits(userId: string, clientIP: string) {
       };
     }
 
-    // Layer 2: IP-based rate limiting (abuse prevention)
-    const ipLimit = await RateLimitCache.checkRateLimit(
+    const ipLimit = await checkRateLimit(
       `identity-verification:ip:${clientIP}`,
       RATE_LIMITS.IP.maxAttempts,
       RATE_LIMITS.IP.windowSeconds,
     );
-
     if (!ipLimit.allowed) {
       return {
-        allowed: false,
+        allowed: false as const,
         reason: 'ip_limit_exceeded',
         message: `Too many verification attempts from this location. Please try again in ${Math.ceil((ipLimit.resetTime - Date.now()) / 1000)} seconds.`,
         resetTime: ipLimit.resetTime,
@@ -77,77 +56,34 @@ async function checkRateLimits(userId: string, clientIP: string) {
       };
     }
 
-    // Layer 3: Global system protection
-    const globalLimit = await RateLimitCache.checkRateLimit(
+    const globalLimit = await checkRateLimit(
       'identity-verification:global',
       RATE_LIMITS.GLOBAL.maxAttempts,
       RATE_LIMITS.GLOBAL.windowSeconds,
     );
-
     if (!globalLimit.allowed) {
       return {
-        allowed: false,
+        allowed: false as const,
         reason: 'system_limit_exceeded',
-        message:
-          'System is currently experiencing high verification volume. Please try again in a few minutes.',
+        message: 'System is currently experiencing high verification volume. Please try again in a few minutes.',
         resetTime: globalLimit.resetTime,
         remaining: globalLimit.remaining,
         limit: `${RATE_LIMITS.GLOBAL.maxAttempts} ${RATE_LIMITS.GLOBAL.description}`,
       };
     }
 
-    // All limits passed
     return {
-      allowed: true,
+      allowed: true as const,
       limits: {
-        user: {
-          remaining: userLimit.remaining,
-          resetTime: userLimit.resetTime,
-          totalHits: userLimit.totalHits,
-        },
-        ip: {
-          remaining: ipLimit.remaining,
-          resetTime: ipLimit.resetTime,
-          totalHits: ipLimit.totalHits,
-        },
-        global: {
-          remaining: globalLimit.remaining,
-          resetTime: globalLimit.resetTime,
-          totalHits: globalLimit.totalHits,
-        },
+        user: { remaining: userLimit.remaining, resetTime: userLimit.resetTime, totalHits: userLimit.totalHits },
+        ip: { remaining: ipLimit.remaining, resetTime: ipLimit.resetTime, totalHits: ipLimit.totalHits },
+        global: { remaining: globalLimit.remaining, resetTime: globalLimit.resetTime, totalHits: globalLimit.totalHits },
       },
     };
   } catch (error) {
     console.error('Redis rate limiting error:', error);
-
-    // Fallback to original database-based rate limiting
     console.warn('Falling back to database-based rate limiting due to Redis error');
-    return { allowed: true, fallback: true };
-  }
-}
-
-/**
- * Record rate limit attempts across all layers
- */
-async function recordRateLimitAttempts(userId: string, clientIP: string) {
-  try {
-    await Promise.all([
-      RateLimitCache.recordAttempt(
-        `identity-verification:user:${userId}`,
-        RATE_LIMITS.USER.windowSeconds,
-      ),
-      RateLimitCache.recordAttempt(
-        `identity-verification:ip:${clientIP}`,
-        RATE_LIMITS.IP.windowSeconds,
-      ),
-      RateLimitCache.recordAttempt(
-        'identity-verification:global',
-        RATE_LIMITS.GLOBAL.windowSeconds,
-      ),
-    ]);
-  } catch (error) {
-    console.error('Error recording rate limit attempts:', error);
-    // Continue execution even if recording fails
+    return { allowed: true as const, fallback: true };
   }
 }
 
@@ -304,9 +240,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-
-    // Record the rate limit attempt (for future checks)
-    await recordRateLimitAttempts(user.id, clientIP);
 
     // Update the verification last checked timestamp (maintain existing behavior)
     await db
