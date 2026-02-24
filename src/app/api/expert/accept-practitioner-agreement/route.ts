@@ -19,7 +19,7 @@ const { logger } = Sentry;
 
 const acceptPractitionerAgreementSchema = z.object({
   version: z.string().min(1, 'Agreement version is required'),
-  accepted: z.literal(true, { errorMap: () => ({ message: 'Agreement must be accepted (accepted: true)' }) }),
+  accepted: z.literal(true, { error: 'Agreement must be accepted (accepted: true)' }),
 });
 
 export async function POST(request: Request) {

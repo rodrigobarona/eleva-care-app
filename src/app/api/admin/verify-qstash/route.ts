@@ -3,8 +3,11 @@ import { hasRole } from '@/lib/auth/roles.server';
 import { isQStashAvailable, qstashClient } from '@/lib/integrations/qstash/client';
 import { getQStashConfigMessage, validateQStashConfig } from '@/lib/integrations/qstash/config';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export const preferredRegion = 'auto';
 export const maxDuration = 60;

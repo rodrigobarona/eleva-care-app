@@ -2,7 +2,6 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { getTranslations } from 'next-intl/server';
-import type { CreateEmailOptions } from 'resend';
 import { Resend } from 'resend';
 
 const { logger } = Sentry;
@@ -66,19 +65,21 @@ export async function sendEmail({
       throw new Error('Invalid recipient email address');
     }
 
-    // Construct the email options object using proper Resend types
-    const emailPayload: CreateEmailOptions = {
+    const emailPayload = {
       from: fromAddress,
       to,
       subject,
-      ...(html && { html }),
-      ...(text && { text }),
+      html: html ?? undefined,
+      text: text ?? undefined,
       ...(replyTo && { replyTo }),
       ...(cc && { cc }),
       ...(bcc && { bcc }),
     };
 
-    const { data, error } = await getResendClient().emails.send(emailPayload);
+    // Resend's CreateEmailOptions is a union requiring either `react` or `html`/`text`.
+    // We always provide html or text (validated above), so this is safe.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await getResendClient().emails.send(emailPayload as any);
 
     if (error) {
       logger.error('Error sending email via Resend', { error: error.message });

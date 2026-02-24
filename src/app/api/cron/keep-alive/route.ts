@@ -367,17 +367,18 @@ export async function GET(request: Request) {
     let hasMore = true;
 
     while (hasMore) {
-      let query = db
+      const query = db
         .select({ userId: ProfilesTable.workosUserId })
         .from(ProfilesTable)
-        .limit(batchSize)
-        .orderBy(ProfilesTable.workosUserId);
+        .$dynamic();
 
       if (lastUserId) {
-        query = query.where(gt(ProfilesTable.workosUserId, lastUserId));
+        query.where(gt(ProfilesTable.workosUserId, lastUserId));
       }
 
-      const profiles = await query;
+      const profiles = await query
+        .orderBy(ProfilesTable.workosUserId)
+        .limit(batchSize);
 
       if (profiles.length === 0) {
         hasMore = false;

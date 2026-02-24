@@ -123,7 +123,7 @@ function NoConnectAccountFlow({
   t,
 }: {
   dbUser: BillingPageClientProps['dbUser'];
-  t: (key: string) => string;
+  t: ReturnType<typeof useTranslations<'account.billing'>>;
 }) {
   const router = useRouter();
   const { profile } = useUserProfile();
@@ -243,7 +243,7 @@ function ConnectAccountContent({
   t,
 }: {
   accountStatus: BillingPageClientProps['accountStatus'];
-  t: (key: string) => string;
+  t: ReturnType<typeof useTranslations<'account.billing'>>;
 }) {
   const router = useRouter();
   const isFullyOnboarded =

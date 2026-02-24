@@ -62,17 +62,20 @@ const ServiceSection: React.FC = () => {
           {t('description')}
         </p>
         <div className="mt-12 grid gap-2 md:grid-cols-2 md:gap-10 lg:grid-cols-2">
-          {Array.from({ length: parseInt(t('itemCount')) }, (_, i): ServiceItem => ({
-            icon: t(`item${i}.icon`),
-            title: t(`item${i}.title`),
-            description: t(`item${i}.description`),
-            subitems: Array.from(
-              { length: parseInt(t(`item${i}.subitemCount`)) },
-              (_, j) => t(`item${i}.subitem${j}`),
-            ),
-            image: t(`item${i}.image`),
-            cta: t(`item${i}.cta`),
-          })).map((service) => (
+          {Array.from({ length: parseInt(t('itemCount')) }, (_, i): ServiceItem => {
+            const key = (k: string) => t(k as Parameters<typeof t>[0]);
+            return {
+              icon: key(`item${i}.icon`),
+              title: key(`item${i}.title`),
+              description: key(`item${i}.description`),
+              subitems: Array.from(
+                { length: parseInt(key(`item${i}.subitemCount`)) },
+                (_, j) => key(`item${i}.subitem${j}`),
+              ),
+              image: key(`item${i}.image`),
+              cta: key(`item${i}.cta`),
+            };
+          }).map((service) => (
             <Card
               key={service.title}
               className="flex flex-col overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"

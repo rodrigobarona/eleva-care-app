@@ -2,9 +2,12 @@ import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * GET handler for the /api/customers endpoint

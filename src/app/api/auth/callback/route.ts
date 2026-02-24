@@ -29,7 +29,7 @@ import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { autoCreateUserOrganization } from '@/lib/integrations/workos/auto-organization';
 import { syncWorkOSUserToDatabase } from '@/lib/integrations/workos/sync';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const { logger } = Sentry;
 
@@ -147,7 +147,7 @@ const authHandler = handleAuth({
   },
 });
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
     request.headers.get('x-real-ip') ||

@@ -452,17 +452,17 @@ export const templateSelectionService = new TemplateSelectionService();
  * Send an email using Novu workflow + Resend service with enhanced template selection
  */
 export async function sendNovuEmailEnhanced(options: EnhancedEmailOptions) {
-  try {
-    const {
-      workflowId,
-      subscriberId,
-      templateData,
-      overrides,
-      userSegment = 'patient',
-      templateVariant = 'default',
-      locale = 'en',
-    } = options;
+  const {
+    workflowId,
+    subscriberId,
+    templateData,
+    overrides,
+    userSegment = 'patient',
+    templateVariant = 'default',
+    locale = 'en',
+  } = options;
 
+  try {
     if (!novu) {
       throw new Error('Novu client not initialized. Cannot send email.');
     }
@@ -472,7 +472,6 @@ export async function sendNovuEmailEnhanced(options: EnhancedEmailOptions) {
       to: { subscriberId },
       payload: {
         ...templateData,
-        // Add template selection context to payload
         _templateContext: {
           userSegment,
           templateVariant,

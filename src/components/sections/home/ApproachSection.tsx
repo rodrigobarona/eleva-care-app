@@ -65,7 +65,7 @@ const ApproachSection: React.FC = () => {
                     {i + 1}
                   </span>
                   <span className="ml-1 block py-2 text-base lg:ml-6 lg:py-6 lg:text-2xl">
-                    {parseBold(t(`item${i}`))}
+                    {parseBold(t(`item${i}` as Parameters<typeof t>[0]))}
                   </span>
                 </li>
               ))}

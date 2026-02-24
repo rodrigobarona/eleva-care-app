@@ -6,6 +6,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { inArray } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
+const { logger } = Sentry;
+
 // Cleanup Blocked Dates - Removes expired blocked dates from expert calendars
 // Performs the following tasks:
 // - Fetches all blocked dates from the database

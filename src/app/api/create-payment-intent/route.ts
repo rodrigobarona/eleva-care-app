@@ -16,6 +16,8 @@ import { FormCache, IdempotencyCache } from '@/lib/redis/manager';
 import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { checkBotId } from 'botid/server';
 import { and, eq, gt } from 'drizzle-orm';
+import type { Locale } from '@/lib/i18n/routing';
+import { locales, defaultLocale } from '@/lib/i18n/routing';
 import { getTranslations } from 'next-intl/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -405,8 +407,10 @@ export async function POST(request: NextRequest) {
       logger.info(logger.fmt`Marked form submission as processing in FormCache: ${formCacheKey}`);
     }
 
-    // Extract locale for translations
-    const locale = meetingData.locale || 'en';
+    const rawLocale = meetingData.locale || 'en';
+    const locale: Locale = locales.includes(rawLocale as Locale)
+      ? (rawLocale as Locale)
+      : defaultLocale;
 
     const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
 

@@ -13,13 +13,13 @@ const { logger } = Sentry;
 
 const postRecordSchema = z.object({
   content: z.string(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 const putRecordSchema = z.object({
   recordId: z.string(),
   content: z.string(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
