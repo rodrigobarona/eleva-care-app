@@ -1,5 +1,3 @@
-'use server';
-
 import { db, invalidateCache } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import {

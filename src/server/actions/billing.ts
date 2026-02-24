@@ -1,5 +1,3 @@
-'use server';
-
 import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';

@@ -5,6 +5,24 @@ globs: ['src/server/**/*.ts']
 
 # Server Actions Patterns
 
+## `'use server'` Directive
+
+In Next.js 16, `'use server'` is **not** about "running on the server" -- all code outside `'use client'` files already runs server-side. The directive specifically marks exported functions as **Server Actions**: RPC endpoints callable from client components via `<form action={...}>` or direct invocation.
+
+**Add `'use server'`** when the file exports functions called from client components.
+**Omit `'use server'`** when exports are only called from other server code (API routes, webhooks, other server functions). Adding it unnecessarily exposes functions as client-callable endpoints.
+
+```
+src/server/actions/
+├── events.ts              # 'use server' -- called from EventForm.tsx (client)
+├── schedule.ts            # 'use server' -- called from ScheduleForm.tsx (client)
+├── subscriptions.ts       # 'use server' -- called from SubscriptionDashboard.tsx (client)
+├── user-sync.ts           # NO directive -- only called from API routes
+├── billing.ts             # NO directive -- only called from API routes
+├── experts.ts             # NO directive -- only called from API routes
+└── commissions.ts         # NO directive -- only called from webhooks
+```
+
 ## Authentication
 
 All server actions MUST verify authentication first:
