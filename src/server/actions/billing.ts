@@ -9,10 +9,9 @@ import {
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
+import Stripe from 'stripe';
 
 const { logger } = Sentry;
-import pRetry from 'p-retry';
-import Stripe from 'stripe';
 
 /**
  * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
@@ -139,75 +138,6 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
     }
     logger.error('Failed to create Stripe Connect link', { error });
     throw error;
-  }
-  });
-}
-
-/**
- * Synchronizes a user's verified identity with their Stripe Connect account.
- * This helps streamline the verification process by reusing the Stripe Identity verification.
- * Includes retry logic for improved reliability.
- *
- * @returns An object with success status and a message
- */
-export async function syncIdentityToConnect() {
-  return Sentry.withServerActionInstrumentation('syncIdentityToConnect', { recordResponse: true }, async () => {
-  try {
-    const { user } = await withAuth();
-    if (!user) {
-      return { success: false, message: 'Not authenticated' };
-    }
-    const userId = user.id;
-
-    const { syncIdentityVerificationToConnect } = await import('@/lib/integrations/stripe');
-
-    const result = await pRetry(
-      async (attemptCount) => {
-        logger.info(`Syncing identity verification attempt ${attemptCount} for user ${userId}`);
-        const syncResult = await syncIdentityVerificationToConnect(userId);
-
-        if (!syncResult.success) {
-          throw new Error(syncResult.message || 'Sync failed with unknown reason');
-        }
-
-        return syncResult;
-      },
-      {
-        retries: 3,
-        minTimeout: 1000,
-        factor: 2,
-        onFailedAttempt: (error) => {
-          const err = error as unknown as Error & { attemptNumber: number; retriesLeft: number };
-          logger.warn(`Sync attempt ${err.attemptNumber} failed: ${err.message}`, {
-            userId,
-            retriesLeft: err.retriesLeft,
-          });
-
-          if (err instanceof Stripe.errors.StripeError) {
-            Sentry.captureException(err, {
-              tags: { stripeErrorType: err.type, operation: 'syncIdentityToConnect' },
-              extra: { code: err.code, param: err.param },
-            });
-          }
-        },
-      },
-    );
-
-    logger.info('Successfully synced identity verification', {
-      userId,
-      verificationStatus: result.verificationStatus,
-    });
-
-    return {
-      success: true,
-      message: 'Identity verification successfully synced to Connect account',
-    };
-  } catch (error) {
-    logger.error('Error in syncIdentityToConnect', { error });
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : 'An unknown error occurred',
-    };
   }
   });
 }
