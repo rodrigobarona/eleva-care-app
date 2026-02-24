@@ -22,6 +22,7 @@ import {
   OrganizationsTable,
   SubscriptionEventsTable,
   SubscriptionPlansTable,
+  UserOrgMembershipsTable,
   UsersTable,
 } from '@/drizzle/schema';
 import { getServerStripe } from '@/lib/integrations/stripe';
@@ -60,12 +61,12 @@ export async function POST(request: NextRequest) {
   const signature = (await headers()).get('stripe-signature');
 
   if (!signature) {
-    logger.error('❌ Missing Stripe signature header');
+    logger.error('Missing Stripe signature header');
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
   }
 
   if (!webhookSecret) {
-    logger.error('❌ Missing STRIPE_SUBSCRIPTION_WEBHOOK_SECRET');
+    logger.error('Missing STRIPE_SUBSCRIPTION_WEBHOOK_SECRET');
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
@@ -75,13 +76,13 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    logger.error('❌ Webhook signature verification failed', {
+    logger.error('Webhook signature verification failed', {
       error: err instanceof Error ? err.message : String(err),
     });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  logger.info(`✅ Webhook received: ${event.type} (${event.id})`);
+  logger.info(`Webhook received: ${event.type} (${event.id})`);
 
   try {
     switch (event.type) {
@@ -128,7 +129,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    logger.error('❌ Error processing webhook', {
+    Sentry.captureException(error);
+    logger.error('Error processing webhook', {
       error: error instanceof Error ? error.message : String(error),
     });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
@@ -152,7 +154,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  logger.info(`✅ Checkout completed for user ${workosUserId}, tier: ${tierLevel}`);
+  logger.info(`Checkout completed for user ${workosUserId}, tier: ${tierLevel}`);
 
   // Get subscription ID from session
   const subscriptionId =
@@ -199,11 +201,18 @@ async function handleSubscriptionUpdate(
     return;
   }
 
-  // Get user's organization
-  const org = await db.query.OrganizationsTable.findFirst({
-    where: eq(OrganizationsTable.workosOrgId, workosUserId),
-    columns: { id: true },
+  // Get user's organization via membership
+  const membership = await db.query.UserOrgMembershipsTable.findFirst({
+    where: eq(UserOrgMembershipsTable.workosUserId, workosUserId),
+    columns: { orgId: true },
   });
+
+  const org = membership
+    ? await db.query.OrganizationsTable.findFirst({
+        where: eq(OrganizationsTable.id, membership.orgId),
+        columns: { id: true },
+      })
+    : null;
 
   // Determine pricing details
   // Determine plan type from billing interval
@@ -223,14 +232,18 @@ async function handleSubscriptionUpdate(
   const priceItem = subscription.items.data[0];
   const priceId = typeof priceItem.price === 'string' ? priceItem.price : priceItem.price.id;
 
-  // ✅ Check if subscription plan already exists (by orgId, not userId)
+  if (!org) {
+    logger.error('Organization not found for user', { workosUserId });
+    return;
+  }
+
   const existingPlan = await db.query.SubscriptionPlansTable.findFirst({
-    where: eq(SubscriptionPlansTable.orgId, org?.id as string),
+    where: eq(SubscriptionPlansTable.orgId, org.id),
   });
 
   const subscriptionData = {
-    orgId: org?.id as string, // ✅ Primary owner: Organization
-    billingAdminUserId: workosUserId, // ✅ Secondary: Billing administrator
+    orgId: org.id,
+    billingAdminUserId: workosUserId,
     planType,
     tierLevel,
     billingInterval,
@@ -258,16 +271,16 @@ async function handleSubscriptionUpdate(
       .update(SubscriptionPlansTable)
       .set({
         ...subscriptionData,
-        orgId: org?.id || undefined,
+        orgId: org.id,
       })
       .where(eq(SubscriptionPlansTable.id, existingPlan.id));
 
-    logger.info(`✅ Updated subscription plan: ${existingPlan.id}`);
+    logger.info(`Updated subscription plan: ${existingPlan.id}`);
 
     // Log event
     await db.insert(SubscriptionEventsTable).values({
       workosUserId,
-      orgId: org?.id as string,
+      orgId: org.id,
       subscriptionPlanId: existingPlan.id,
       eventType: eventType === 'customer.subscription.created' ? 'plan_created' : 'plan_upgraded',
       previousPlanType: existingPlan.planType as 'commission' | 'monthly' | 'annual',
@@ -284,16 +297,16 @@ async function handleSubscriptionUpdate(
       .insert(SubscriptionPlansTable)
       .values({
         ...subscriptionData,
-        orgId: org?.id as string,
+        orgId: org.id,
       })
       .returning();
 
-    logger.info(`✅ Created subscription plan: ${newPlan.id}`);
+    logger.info(`Created subscription plan: ${newPlan.id}`);
 
     // Log event
     await db.insert(SubscriptionEventsTable).values({
       workosUserId,
-      orgId: org?.id as string,
+      orgId: org.id,
       subscriptionPlanId: newPlan.id,
       eventType: 'subscription_started',
       newPlanType: 'annual',
@@ -349,7 +362,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     reason: 'subscription_canceled',
   });
 
-  logger.info(`✅ Subscription canceled: ${plan.id}`);
+  logger.info(`Subscription canceled: ${plan.id}`);
 
   // TODO: Revert user to commission-based plan
   // This could be handled by the application logic when checking subscription status
@@ -401,7 +414,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     },
   });
 
-  logger.info(`✅ Payment succeeded for subscription: ${plan.id}`);
+  logger.info(`Payment succeeded for subscription: ${plan.id}`);
 }
 
 /**
@@ -445,7 +458,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     reason: 'invoice_payment_failed',
   });
 
-  logger.info(`❌ Payment failed for subscription: ${plan.id}`);
+  logger.info(`Payment failed for subscription: ${plan.id}`);
 
   // TODO: Send notification to user about failed payment
   // TODO: Implement dunning management (retry logic, grace period)

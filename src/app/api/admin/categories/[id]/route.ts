@@ -1,11 +1,14 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
 import { isAdmin } from '@/lib/auth/roles.server';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+
+const { logger } = Sentry;
 
 /** Zod schema for category update */
 const categoryUpdateSchema = z.object({
@@ -61,7 +64,8 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     return NextResponse.json(updatedCategory[0]);
   } catch (error) {
-    console.error('Error updating category:', error);
+    Sentry.captureException(error);
+    logger.error('Error updating category', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 },
@@ -107,7 +111,8 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
 
     return NextResponse.json(deletedCategory[0]);
   } catch (error) {
-    console.error('Error deleting category:', error);
+    Sentry.captureException(error);
+    logger.error('Error deleting category', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 },

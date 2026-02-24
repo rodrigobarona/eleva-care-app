@@ -1,9 +1,12 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * GET /api/stripe/identity/status
@@ -61,7 +64,8 @@ export async function GET() {
       lastUpdated: verificationStatus.lastUpdated,
     });
   } catch (error) {
-    console.error('Error getting identity verification status:', error);
+    Sentry.captureException(error);
+    logger.error('Error getting identity verification status', { error });
     return NextResponse.json(
       { error: 'Failed to get identity verification status' },
       { status: 500 },

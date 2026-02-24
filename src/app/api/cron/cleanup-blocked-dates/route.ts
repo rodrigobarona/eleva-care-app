@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { BlockedDatesTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { formatInTimeZone } from 'date-fns-tz';
 import { inArray } from 'drizzle-orm';
@@ -62,17 +63,15 @@ async function handler() {
       .where(inArray(BlockedDatesTable.id, expiredDateIds))
       .returning();
 
-    // Log the cleanup results with timezone information
-    console.log(`Cleaned up ${result.length} expired blocked dates`);
-    console.log(
-      'Deleted dates:',
-      result.map((d) => ({
+    logger.info(logger.fmt`Cleaned up ${result.length} expired blocked dates`);
+    logger.info('Deleted dates', {
+      dates: result.map((d) => ({
         id: d.id,
         date: d.date,
         timezone: d.timezone,
         localTime: formatInTimeZone(new Date(), d.timezone, 'yyyy-MM-dd HH:mm:ss zzz'),
       })),
-    );
+    });
 
     return NextResponse.json({
       success: true,
@@ -80,7 +79,10 @@ async function handler() {
       deletedDates: result,
     });
   } catch (error) {
-    console.error('Error cleaning up blocked dates:', error);
+    Sentry.captureException(error);
+    logger.error('Error cleaning up blocked dates', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       {
         error: 'Failed to clean up blocked dates',

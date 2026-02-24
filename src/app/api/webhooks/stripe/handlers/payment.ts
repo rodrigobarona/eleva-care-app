@@ -197,7 +197,7 @@ async function releaseClaim(meetingId: string): Promise<void> {
  * - Example: Blocked date '2025-02-15' in 'America/New_York' will match an appointment
  *   at 2025-02-16 04:00 UTC (which is 2025-02-15 23:00 EST)
  *
- * @param expertId - Expert's Clerk user ID
+ * @param expertId - Expert's WorkOS user ID
  * @param startTime - Appointment start time (UTC)
  * @param eventId - Event ID to get duration information
  * @returns Object with conflict info and reason
@@ -656,7 +656,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             );
             recalculatedTransferTime.setHours(4, 0, 0, 0);
 
-            logger.info('🔄 Recalculated Multibanco transfer schedule:', {
+            logger.info('Recalculated Multibanco transfer schedule:', {
               paymentTime: paymentTime.toISOString(),
               appointmentStart: appointmentStart.toISOString(),
               appointmentEnd: appointmentEnd.toISOString(),
@@ -682,7 +682,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             if (conflictResult.hasConflict) {
               logger.info(
-                `🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`,
+                `Late Multibanco payment conflict detected for PI ${paymentIntent.id}`,
               );
 
               // Map conflict reason to allowed conflictType values
@@ -747,7 +747,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 );
 
                 logger.info(
-                  `✅ Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
+                  `Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
                 );
 
                 // Mark the meeting as refunded and return early
@@ -762,7 +762,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 return; // Exit early - don't create calendar event or proceed with normal flow
               }
             } else {
-              logger.info(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
+              logger.info(`Multibanco payment ${paymentIntent.id} processed without conflicts`);
             }
           } // End of valid duration check
         } // End of Multibanco payment check
@@ -812,11 +812,11 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             if (claimResult.length === 0) {
               logger.info(
-                `⏭️ Calendar creation already claimed for meeting ${meeting.id}, skipping (idempotency)`,
+                `Calendar creation already claimed for meeting ${meeting.id}, skipping (idempotency)`,
               );
             } else {
               try {
-                logger.info(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
+                logger.info(`Creating deferred calendar event for meeting ${meeting.id}...`);
 
                 // Get the event details for calendar creation
                 const event = await db.query.EventsTable.findFirst({
@@ -828,7 +828,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   // The calendar service depends on meeting types which depend on payment types
                   const { createCalendarEvent } = await import('@/server/googleCalendar');
 
-                  logger.info('🚀 Calling createCalendarEvent for deferred booking:', {
+                  logger.info('Calling createCalendarEvent for deferred booking:', {
                     meetingId: meeting.id,
                     workosUserId: meeting.workosUserId,
                     guestEmail: meeting.guestEmail,
@@ -874,11 +874,11 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                         .where(eq(MeetingsTable.id, meeting.id));
 
                       logger.info(
-                        `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
+                        `Calendar event created and meeting URL updated for meeting ${meeting.id}`,
                       );
                     } else {
                       logger.warn(
-                        `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
+                        `Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
                       );
                     }
 
@@ -888,10 +888,10 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                         .delete(SlotReservationsTable)
                         .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
                       logger.info(
-                        `🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
+                        `Cleaned up slot reservation for payment intent ${paymentIntent.id}`,
                       );
                     } catch (cleanupError) {
-                      logger.error('❌ Failed to clean up slot reservation', {
+                      logger.error('Failed to clean up slot reservation', {
                         error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
                       });
                       // Continue execution - this is not critical
@@ -902,14 +902,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   }
                 } else {
                   logger.error(
-                    `❌ Event ${meeting.eventId} not found for deferred calendar creation`,
+                    `Event ${meeting.eventId} not found for deferred calendar creation`,
                   );
                   // Release the claim so retries can attempt again
                   await releaseClaim(meeting.id);
                 }
               } catch (calendarError) {
                 logger.error(
-                  `❌ Failed to create deferred calendar event for meeting ${meeting.id}:`,
+                  `Failed to create deferred calendar event for meeting ${meeting.id}:`,
                   {
                     error: calendarError instanceof Error ? calendarError.message : calendarError,
                     stack: calendarError instanceof Error ? calendarError.stack : undefined,
@@ -924,7 +924,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             }
           } else {
             logger.info(
-              `✅ Meeting ${meeting.id} already has a meeting URL: ${meeting.meetingUrl}`,
+              `Meeting ${meeting.id} already has a meeting URL: ${meeting.meetingUrl}`,
             );
           }
 
@@ -998,7 +998,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               }
 
               if (recalculatedTransferTime) {
-                logger.info(`✅ Using recalculated transfer time for Multibanco payment:`, {
+                logger.info(`Using recalculated transfer time for Multibanco payment:`, {
                   original: originalScheduledTime.toISOString(),
                   recalculated: recalculatedTransferTime.toISOString(),
                   diffHours: Math.floor(
@@ -1091,10 +1091,10 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                     },
                   },
                 });
-                logger.info('✅ Platform payment notification sent via Novu');
+                logger.info('Platform payment notification sent via Novu');
               }
             } catch (novuError) {
-              logger.error('❌ Failed to trigger platform payment notification', {
+              logger.error('Failed to trigger platform payment notification', {
                 error: novuError instanceof Error ? novuError.message : String(novuError),
               });
               // Don't fail the entire webhook for Novu errors

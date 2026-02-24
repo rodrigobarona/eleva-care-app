@@ -2,7 +2,10 @@ import { ENV_CONFIG } from '@/config/env';
 import { workflows } from '@/config/novu';
 import { Client as NovuFrameworkClient } from '@novu/framework';
 import { serve } from '@novu/framework/next';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // Create explicit Novu Framework client for Next.js 15 compatibility
 // Only initialize if secret key is available (skip during build time)
@@ -16,7 +19,7 @@ if (hasSecretKey) {
     strictAuthentication: false, // Allows flexible authentication for development
   });
 
-  console.log('[Novu] Bridge endpoint initialized with', workflows.length, 'workflows');
+  logger.info(logger.fmt`Novu bridge endpoint initialized with ${workflows.length} workflows`);
 
   // Export the handlers for the Novu framework
   // The serve function automatically handles GET, POST, and OPTIONS methods
@@ -26,7 +29,7 @@ if (hasSecretKey) {
   });
 } else {
   // Provide fallback handlers when Novu is not configured (e.g., during build)
-  console.warn('[Novu] Bridge endpoint skipped - NOVU_SECRET_KEY not configured');
+  logger.warn('Novu bridge endpoint skipped - NOVU_SECRET_KEY not configured');
   const fallbackHandler = () =>
     NextResponse.json({ error: 'Novu not configured' }, { status: 503 });
   handlers = {

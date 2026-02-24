@@ -3,9 +3,12 @@ import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
 import { findEmailByCustomerId } from '@/lib/utils/customerUtils';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * GET handler for individual customer details by secure ID
@@ -98,7 +101,8 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
 
     return NextResponse.json({ customer });
   } catch (error) {
-    console.error('Error fetching customer details:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching customer details', { error });
     return NextResponse.json({ error: 'Failed to fetch customer details' }, { status: 500 });
   }
 }

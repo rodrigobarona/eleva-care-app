@@ -434,7 +434,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       validateTransferMetadata(transferData, session.id, session.metadata?.transfer);
     }
 
-    // If we have a Clerk user ID, ensure synchronization
+    // If we have the expert's user ID, ensure synchronization
     if (meetingData.expert) {
       try {
         Sentry.logger.debug('Ensuring user synchronization', { expertId: meetingData.expert });

@@ -1,10 +1,14 @@
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
 import { redisManager } from '@/lib/redis/manager';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * Safely extracts and validates a base URL from environment variables
@@ -19,9 +23,7 @@ function getValidBaseUrl(
   try {
     // Check if environment variable exists and is non-empty
     if (!envValue || typeof envValue !== 'string' || envValue.trim() === '') {
-      console.warn(
-        'Environment variable NEXT_PUBLIC_APP_URL is empty or undefined, using fallback',
-      );
+      logger.warn('Environment variable NEXT_PUBLIC_APP_URL is empty or undefined, using fallback');
       return fallbackUrl;
     }
 
@@ -32,7 +34,7 @@ function getValidBaseUrl(
       .filter((url) => url.length > 0);
 
     if (urls.length === 0) {
-      console.warn('No valid URLs found in NEXT_PUBLIC_APP_URL after splitting, using fallback');
+      logger.warn('No valid URLs found in NEXT_PUBLIC_APP_URL after splitting, using fallback');
       return fallbackUrl;
     }
 
@@ -51,7 +53,7 @@ function getValidBaseUrl(
     // Return the validated URL as string
     return urlObject.toString();
   } catch (error) {
-    console.error('Failed to validate base URL from environment variable:', {
+    logger.error('Failed to validate base URL from environment variable', {
       envValue,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -61,7 +63,7 @@ function getValidBaseUrl(
       const fallbackUrlObject = new URL(fallbackUrl);
       return fallbackUrlObject.toString();
     } catch {
-      console.error('Fallback URL is also invalid, using safe default');
+      logger.error('Fallback URL is also invalid, using safe default');
       return 'http://localhost:3000';
     }
   }
@@ -138,13 +140,13 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
 
     if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return new Response('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const startTime = Date.now();
 
     // 1. Comprehensive system health check
-    console.log('🩺 Starting comprehensive health check...');
+    logger.info('Starting comprehensive health check...');
     try {
       const healthCheckStart = Date.now();
 
@@ -154,7 +156,7 @@ export async function GET(request: Request) {
 
       // Log the URL being used for transparency (but only in development)
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Using health check URL: ${healthCheckUrl}`);
+        logger.info(logger.fmt`Using health check URL: ${healthCheckUrl}`);
       }
 
       const healthResponse = await fetch(healthCheckUrl, {
@@ -177,7 +179,7 @@ export async function GET(request: Request) {
           responseTime,
         };
 
-        console.log('✅ Health check passed:', {
+        logger.info('Health check passed', {
           status: healthData.status,
           uptime: `${(healthData.uptime / 3600).toFixed(2)} hours`,
           memory: `${healthData.memory.percentage}%`,
@@ -187,7 +189,7 @@ export async function GET(request: Request) {
 
         // Alert if memory usage is high
         if (healthData.memory.percentage > 85) {
-          console.warn('⚠️ HIGH MEMORY USAGE DETECTED:', {
+          logger.warn('HIGH MEMORY USAGE DETECTED', {
             percentage: healthData.memory.percentage,
             used: `${healthData.memory.used}MB`,
             total: `${healthData.memory.total}MB`,
@@ -196,13 +198,13 @@ export async function GET(request: Request) {
 
         // Alert if response time is slow
         if (responseTime > 5000) {
-          console.warn('⚠️ SLOW HEALTH CHECK RESPONSE:', {
+          logger.warn('SLOW HEALTH CHECK RESPONSE', {
             responseTime: `${responseTime}ms`,
             threshold: '5000ms',
           });
         }
       } else {
-        console.error('❌ Health check failed:', {
+        logger.error('Health check failed', {
           status: healthResponse.status,
           statusText: healthResponse.statusText,
           responseTime: `${responseTime}ms`,
@@ -219,7 +221,10 @@ export async function GET(request: Request) {
         };
       }
     } catch (error) {
-      console.error('❌ Health check request failed:', error);
+      Sentry.captureException(error);
+      logger.error('Health check request failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       healthCheckResult = {
         status: 'unhealthy',
         uptime: 0,
@@ -234,27 +239,28 @@ export async function GET(request: Request) {
     // 2. Database connectivity check
     let mainDbStatus = 'healthy';
 
-    // Check main database (audit logs are now in the main database)
-    console.log('🗄️ Checking main database connectivity...');
+    logger.info('Checking main database connectivity...');
     try {
       await db.execute(sql`SELECT 1 as main_db_health_check`);
-      console.log('✅ Main database health check: OK');
+      logger.info('Main database health check: OK');
     } catch (error) {
-      console.error('❌ Main database health check failed:', error);
+      Sentry.captureException(error);
+      logger.error('Main database health check failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       mainDbStatus = 'unhealthy';
     }
 
-    // 3. Redis health check and cache maintenance
-    console.log('📦 Checking Redis connectivity...');
+    logger.info('Checking Redis connectivity...');
     try {
       const redisHealth = await redisManager.healthCheck();
       metrics.redisHealth = redisHealth;
-      console.log(
-        `✅ Redis health check: ${redisHealth.status} (${redisHealth.mode}, ${redisHealth.responseTime}ms)`,
+      logger.info(
+        logger.fmt`Redis health check: ${redisHealth.status} (${redisHealth.mode}, ${redisHealth.responseTime}ms)`,
       );
 
       if (redisHealth.status === 'unhealthy') {
-        console.warn('⚠️ Redis is unhealthy:', redisHealth.error);
+        logger.warn('Redis is unhealthy', { error: redisHealth.error });
       }
 
       // 3.1. Weekly cache cleanup (only if Redis is healthy)
@@ -267,7 +273,7 @@ export async function GET(request: Request) {
         const forceCleanup = process.env.FORCE_CACHE_CLEANUP === 'true';
 
         if ((isWeeklyCleanupDay && isCleanupHour) || forceCleanup) {
-          console.log('🧹 Starting weekly Redis cache cleanup...');
+          logger.info('Starting weekly Redis cache cleanup...');
           const cleanupStart = Date.now();
 
           try {
@@ -284,7 +290,7 @@ export async function GET(request: Request) {
               executionTime: cleanupEnd - cleanupStart,
             };
 
-            console.log(`✅ Cache cleanup completed in ${cleanupEnd - cleanupStart}ms:`, {
+            logger.info(logger.fmt`Cache cleanup completed in ${cleanupEnd - cleanupStart}ms`, {
               scanned: cleanupStats.scannedKeys,
               corrupted: cleanupStats.corruptedKeys,
               cleaned: cleanupStats.cleanedKeys,
@@ -292,10 +298,13 @@ export async function GET(request: Request) {
             });
 
             if (cleanupStats.cleanedKeys > 0) {
-              console.log(`🗑️  Removed ${cleanupStats.cleanedKeys} corrupted cache entries`);
+              logger.info(logger.fmt`Removed ${cleanupStats.cleanedKeys} corrupted cache entries`);
             }
           } catch (cleanupError) {
-            console.error('❌ Cache cleanup failed:', cleanupError);
+            Sentry.captureException(cleanupError);
+            logger.error('Cache cleanup failed', {
+              error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+            });
             metrics.cacheCleanup = {
               executed: true,
               scannedKeys: 0,
@@ -307,9 +316,7 @@ export async function GET(request: Request) {
             };
           }
         } else {
-          console.log(
-            `📅 Cache cleanup scheduled for Sundays 2-4 AM UTC (current: ${now.toISOString()})`,
-          );
+          logger.info(logger.fmt`Cache cleanup scheduled for Sundays 2-4 AM UTC (current: ${now.toISOString()})`);
         }
       }
     } catch (error) {
@@ -321,20 +328,22 @@ export async function GET(request: Request) {
         message: 'Redis health check failed',
         error: errorMessage,
       };
-      console.error('❌ Redis health check failed:', error);
+      Sentry.captureException(error);
+      logger.error('Redis health check failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
-    // 4. QStash health check
-    console.log('📬 Checking QStash connectivity...');
+    logger.info('Checking QStash connectivity...');
     try {
       const qstashHealth = await qstashHealthCheck();
       metrics.qstashHealth = qstashHealth;
-      console.log(
-        `✅ QStash health check: ${qstashHealth.status} (configured: ${qstashHealth.configured}, ${qstashHealth.responseTime}ms)`,
+      logger.info(
+        logger.fmt`QStash health check: ${qstashHealth.status} (configured: ${qstashHealth.configured}, ${qstashHealth.responseTime}ms)`,
       );
 
       if (qstashHealth.status === 'unhealthy') {
-        console.warn('⚠️ QStash is unhealthy:', qstashHealth.error);
+        logger.warn('QStash is unhealthy', { error: qstashHealth.error });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -345,11 +354,13 @@ export async function GET(request: Request) {
         message: 'QStash health check failed',
         error: errorMessage,
       };
-      console.error('❌ QStash health check failed:', error);
+      Sentry.captureException(error);
+      logger.error('QStash health check failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
-    // 5. Refresh tokens in batches for users with Google Calendar connected
-    console.log('🔄 Starting Google Calendar token refresh...');
+    logger.info('Starting Google Calendar token refresh...');
     const googleCalendarService = GoogleCalendarService.getInstance();
     const batchSize = 50; // Process 50 profiles at a time
     let lastUserId: string | undefined;
@@ -374,8 +385,8 @@ export async function GET(request: Request) {
       }
 
       metrics.totalProfiles += profiles.length;
-      console.log(
-        `Processing batch of ${profiles.length} profiles (after: ${lastUserId || 'start'})`,
+      logger.info(
+        logger.fmt`Processing batch of ${profiles.length} profiles (after: ${lastUserId || 'start'})`,
       );
 
       // Process batch concurrently with limited parallelism
@@ -386,15 +397,17 @@ export async function GET(request: Request) {
             const hasTokens = await googleCalendarService.hasValidTokens(profile.userId);
             if (hasTokens) {
               await googleCalendarService.getOAuthClient(profile.userId);
-              console.log(`Token refreshed for user: ${profile.userId}`);
+              logger.info(logger.fmt`Token refreshed for user: ${profile.userId}`);
               metrics.successfulRefreshes++;
             } else {
               metrics.skippedProfiles++;
             }
           } catch (error) {
-            // Only log error if it's not related to missing tokens
             if (!(error instanceof Error && error.message.includes('No refresh token'))) {
-              console.error(`Failed to refresh token for user ${profile.userId}:`, error);
+              Sentry.captureException(error);
+              logger.error(logger.fmt`Failed to refresh token for user ${profile.userId}`, {
+                error: error instanceof Error ? error.message : String(error),
+              });
               metrics.failedRefreshes++;
               metrics.errors.push({
                 userId: profile.userId,
@@ -436,7 +449,7 @@ export async function GET(request: Request) {
       },
     };
 
-    console.log('🎉 Keep-alive job completed:', {
+    logger.info('Keep-alive job completed', {
       duration: `${duration}ms`,
       systemHealth: summary.systemHealth,
       tokenMetrics: {
@@ -463,22 +476,17 @@ export async function GET(request: Request) {
         : 'not scheduled',
     });
 
-    return new Response(
-      JSON.stringify({
-        message: 'Keep-alive completed successfully',
-        metrics: summary,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    );
+    return NextResponse.json({
+      message: 'Keep-alive completed successfully',
+      metrics: summary,
+    });
   } catch (error) {
-    console.error('💥 Keep-alive job failed:', error);
-    return new Response(
-      JSON.stringify({
+    Sentry.captureException(error);
+    logger.error('Keep-alive job failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      {
         message: 'Keep-alive job failed',
         error: error instanceof Error ? error.message : 'Unknown error',
         metrics,
@@ -490,13 +498,8 @@ export async function GET(request: Request) {
           qstash: metrics.qstashHealth?.status || 'unknown',
           tokenRefresh: 'failed',
         },
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
       },
+      { status: 500 },
     );
   }
 }

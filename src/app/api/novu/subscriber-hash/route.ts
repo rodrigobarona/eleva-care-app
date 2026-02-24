@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
+
+const { logger } = Sentry;
 import { createHmacSha256 } from '@/lib/utils/crypto';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
@@ -34,7 +37,8 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(secureData);
   } catch (error) {
-    console.error('Error generating subscriber hash:', error);
+    Sentry.captureException(error);
+    logger.error('Error generating subscriber hash', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

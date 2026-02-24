@@ -1,9 +1,12 @@
 import { getUserRolesFromDB, hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+
+const { logger } = Sentry;
 
 /**
  * Zod schema for validating role updates
@@ -45,7 +48,8 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
 
     return NextResponse.json({ role });
   } catch (error) {
-    console.error('Error fetching user role:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching user role', { error });
     return NextResponse.json(
       { error: 'Internal Server Error', message: 'Failed to fetch user role' },
       { status: 500 },
@@ -107,7 +111,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
       message: `Role updated successfully to: ${role}`,
     });
   } catch (error) {
-    console.error('Error updating user role:', error);
+    Sentry.captureException(error);
+    logger.error('Error updating user role', { error });
     return NextResponse.json(
       { error: 'Internal Server Error', message: (error as Error).message },
       { status: 500 },

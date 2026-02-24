@@ -27,9 +27,12 @@ import {
   syncUserOrgMembership,
   syncWorkOSOrganizationToDatabase,
 } from '@/lib/integrations/workos/sync';
-import type { OrganizationMembership } from '@workos-inc/node';
+import type { Event, OrganizationMembership } from '@workos-inc/node';
 import { WorkOS } from '@workos-inc/node';
+import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // Initialize WorkOS client for webhook verification
 const workos = new WorkOS(ENV_CONFIG.WORKOS_API_KEY);
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('workos-signature');
 
     if (!signature) {
-      console.error('❌ Missing WorkOS signature header');
+      logger.error('Missing WorkOS signature header');
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
@@ -60,12 +63,13 @@ export async function POST(request: NextRequest) {
         secret: ENV_CONFIG.WORKOS_WEBHOOK_SECRET,
       });
     } catch (error) {
-      console.error('❌ Invalid webhook signature:', error);
+      logger.error('Invalid webhook signature', { error });
+      Sentry.captureException(error);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    console.log(`📨 WorkOS webhook received: ${event.event}`);
-    console.log(`Event ID: ${event.id}`);
+    logger.info(logger.fmt`WorkOS webhook received: ${event.event}`);
+    logger.info(logger.fmt`Event ID: ${event.id}`);
 
     // Handle event based on type
     switch (event.event) {
@@ -75,13 +79,12 @@ export async function POST(request: NextRequest) {
 
       case 'user.created': {
         const user = event.data;
-        console.log(`👤 New user created: ${user.email}`);
+        logger.info(logger.fmt`New user created: ${user.email}`);
 
-        // Full sync includes user + profile + memberships
         const result = await fullUserSync(user.id);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync new user: ${result.error}`);
+          logger.error('Failed to sync new user', { error: result.error });
         }
 
         break;
@@ -89,13 +92,12 @@ export async function POST(request: NextRequest) {
 
       case 'user.updated': {
         const user = event.data;
-        console.log(`🔄 User updated: ${user.email}`);
+        logger.info(logger.fmt`User updated: ${user.email}`);
 
-        // Re-sync all user data from WorkOS
         const result = await fullUserSync(user.id);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync updated user: ${result.error}`);
+          logger.error('Failed to sync updated user', { error: result.error });
         }
 
         break;
@@ -103,13 +105,12 @@ export async function POST(request: NextRequest) {
 
       case 'user.deleted': {
         const user = event.data;
-        console.log(`🗑️ User deleted: ${user.id}`);
+        logger.info(logger.fmt`User deleted: ${user.id}`);
 
-        // Delete user from database (cascades to related records)
         const result = await deleteUserFromDatabase(user.id);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to delete user: ${result.error}`);
+          logger.error('Failed to delete user', { error: result.error });
         }
 
         break;
@@ -121,15 +122,15 @@ export async function POST(request: NextRequest) {
 
       case 'organization_membership.created': {
         const membership = event.data as OrganizationMembership;
-        console.log(
-          `➕ Membership created: user ${membership.userId} → org ${membership.organizationId}`,
+        logger.info(
+          logger.fmt`Membership created: user ${membership.userId} -> org ${membership.organizationId}`,
         );
 
         // Sync membership to database
         const result = await syncUserOrgMembership(membership);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync membership: ${result.error}`);
+          logger.error('Failed to sync membership', { error: result.error });
         }
 
         break;
@@ -137,15 +138,15 @@ export async function POST(request: NextRequest) {
 
       case 'organization_membership.updated': {
         const membership = event.data as OrganizationMembership;
-        console.log(
-          `🔄 Membership updated: user ${membership.userId} → org ${membership.organizationId}`,
+        logger.info(
+          logger.fmt`Membership updated: user ${membership.userId} -> org ${membership.organizationId}`,
         );
 
         // Re-sync membership (handles role changes)
         const result = await syncUserOrgMembership(membership);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync membership update: ${result.error}`);
+          logger.error('Failed to sync membership update', { error: result.error });
         }
 
         break;
@@ -153,13 +154,13 @@ export async function POST(request: NextRequest) {
 
       case 'organization_membership.deleted': {
         const membership = event.data as OrganizationMembership;
-        console.log(
-          `🗑️ Membership deleted: user ${membership.userId} → org ${membership.organizationId}`,
+        logger.info(
+          logger.fmt`Membership deleted: user ${membership.userId} -> org ${membership.organizationId}`,
         );
 
         // TODO: Delete membership from database
         // This will be implemented in Phase 5
-        console.log('⚠️ Membership deletion not yet implemented');
+        logger.warn('Membership deletion not yet implemented');
 
         break;
       }
@@ -170,13 +171,13 @@ export async function POST(request: NextRequest) {
 
       case 'dsync.user.created': {
         const user = event.data;
-        console.log(`📂 Directory Sync - User created: ${user.email}`);
+        logger.info(logger.fmt`Directory Sync - User created: ${user.email}`);
 
         // Sync directory user same as regular user
         const result = await fullUserSync(user.id);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync directory user: ${result.error}`);
+          logger.error('Failed to sync directory user', { error: result.error });
         }
 
         break;
@@ -184,12 +185,12 @@ export async function POST(request: NextRequest) {
 
       case 'dsync.user.updated': {
         const user = event.data;
-        console.log(`📂 Directory Sync - User updated: ${user.email}`);
+        logger.info(logger.fmt`Directory Sync - User updated: ${user.email}`);
 
         const result = await fullUserSync(user.id);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync directory user update: ${result.error}`);
+          logger.error('Failed to sync directory user update', { error: result.error });
         }
 
         break;
@@ -197,12 +198,12 @@ export async function POST(request: NextRequest) {
 
       case 'dsync.user.deleted': {
         const user = event.data;
-        console.log(`📂 Directory Sync - User deleted: ${user.id}`);
+        logger.info(logger.fmt`Directory Sync - User deleted: ${user.id}`);
 
         const result = await deleteUserFromDatabase(user.id);
 
         if (!result.success) {
-          console.error(`⚠️ Failed to delete directory user: ${result.error}`);
+          logger.error('Failed to delete directory user', { error: result.error });
         }
 
         break;
@@ -214,7 +215,7 @@ export async function POST(request: NextRequest) {
 
       case 'organization.created': {
         const org = event.data;
-        console.log(`🏢 Organization created: ${org.name}`);
+        logger.info(logger.fmt`Organization created: ${org.name}`);
 
         // Sync organization to database
         const result = await syncWorkOSOrganizationToDatabase(
@@ -227,7 +228,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync organization: ${result.error}`);
+          logger.error('Failed to sync organization', { error: result.error });
         }
 
         break;
@@ -235,7 +236,7 @@ export async function POST(request: NextRequest) {
 
       case 'organization.updated': {
         const org = event.data;
-        console.log(`🏢 Organization updated: ${org.name}`);
+        logger.info(logger.fmt`Organization updated: ${org.name}`);
 
         // Re-sync organization data
         const result = await syncWorkOSOrganizationToDatabase(
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!result.success) {
-          console.error(`⚠️ Failed to sync organization update: ${result.error}`);
+          logger.error('Failed to sync organization update', { error: result.error });
         }
 
         break;
@@ -256,11 +257,11 @@ export async function POST(request: NextRequest) {
 
       case 'organization.deleted': {
         const org = event.data;
-        console.log(`🏢 Organization deleted: ${org.id}`);
+        logger.info(logger.fmt`Organization deleted: ${org.id}`);
 
         // TODO: Delete organization from database
         // This will be implemented in Phase 5
-        console.log('⚠️ Organization deletion not yet implemented');
+        logger.warn('Organization deletion not yet implemented');
 
         break;
       }
@@ -270,7 +271,7 @@ export async function POST(request: NextRequest) {
       // ========================================================================
 
       default:
-        console.log(`⚠️ Unhandled webhook event: ${event.event}`);
+        logger.warn(logger.fmt`Unhandled webhook event: ${event.event}`);
     }
 
     // Always return 200 to acknowledge receipt
@@ -284,7 +285,8 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error('❌ Error processing WorkOS webhook:', error);
+    logger.error('Error processing WorkOS webhook', { error });
+    Sentry.captureException(error);
 
     // Return 500 to trigger retry from WorkOS
     return NextResponse.json(

@@ -1,5 +1,9 @@
+import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { getNovuStatus, triggerWorkflow } from '@/lib/integrations/novu/client';
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
+
+const { logger } = Sentry;
 import { checkAllServices, ServiceHealthResult } from '@/lib/utils/server/service-health';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';
@@ -94,7 +98,7 @@ async function trackHealthCheck(data: HealthCheckData, isError = false) {
   try {
     const client = getPostHogClient();
     if (!client) {
-      console.warn('PostHog tracking disabled - missing API key');
+      logger.warn('PostHog tracking disabled - missing API key');
       return;
     }
 
@@ -109,7 +113,8 @@ async function trackHealthCheck(data: HealthCheckData, isError = false) {
       },
     });
   } catch (error) {
-    console.error('Failed to track health check in PostHog:', error);
+    Sentry.captureException(error);
+    logger.error('Failed to track health check in PostHog', { error });
   }
 }
 
@@ -137,7 +142,8 @@ async function notifyHealthCheckFailure(data: HealthCheckData) {
       },
     });
   } catch (error) {
-    console.error('Failed to send health check failure notification:', error);
+    logger.error('Failed to send health check failure notification', { error: error instanceof Error ? error.message : String(error) });
+    Sentry.captureException(error);
   }
 }
 
@@ -164,6 +170,15 @@ async function notifyHealthCheckFailure(data: HealthCheckData) {
  */
 export async function GET(request: Request) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    const rl = await checkRateLimit(ip, 60, 60, 'healthcheck');
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const url = new URL(request.url);
     const includeDetailed = url.searchParams.get('detailed') === 'true';
     const includeServices = url.searchParams.get('services') === 'true';
@@ -224,7 +239,7 @@ export async function GET(request: Request) {
 
     // Run comprehensive service health checks if requested
     if (includeDetailed || includeServices || isBetterStack) {
-      console.log('🔍 Running comprehensive service health checks...');
+      logger.info('Running comprehensive service health checks');
       const serviceHealth = await checkAllServices();
 
       healthData.services = {
@@ -256,7 +271,8 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    Sentry.captureException(error);
+    logger.error('Health check failed', { error });
 
     const errorData: HealthCheckData = {
       status: 'unhealthy',
@@ -308,7 +324,7 @@ export async function POST(request: Request) {
 
     // Log QStash requests for debugging
     if (isQStashRequest) {
-      console.log('QStash health check received:', {
+      logger.info('QStash health check received', {
         timestamp: new Date().toISOString(),
         body,
         headers: Object.fromEntries(request.headers.entries()),
@@ -346,7 +362,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error in health check POST handler:', error);
+    Sentry.captureException(error);
+    logger.error('Error in health check POST handler', { error });
 
     const errorData: HealthCheckData = {
       status: 'unhealthy',

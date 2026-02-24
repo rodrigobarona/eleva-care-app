@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import {
   calculateApplicationFee,
   DEFAULT_COUNTRY,
@@ -5,6 +6,8 @@ import {
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { getServerStripe } from '@/lib/integrations/stripe';
+
+const { logger } = Sentry;
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable, SlotReservationsTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
@@ -125,8 +128,9 @@ async function checkPaymentRateLimits(userIdentifier: string, clientIP: string) 
       },
     };
   } catch (error) {
-    console.error('Redis payment rate limiting error:', error);
-    console.warn('Payment rate limiting failed - applying temporary restriction');
+    Sentry.captureException(error);
+    logger.error('Redis payment rate limiting error', { error });
+    logger.warn('Payment rate limiting failed - applying temporary restriction');
     return {
       allowed: false as const,
       reason: 'rate_limiting_error',
@@ -219,7 +223,7 @@ function createSharedMetadata({
 }
 
 export async function POST(request: NextRequest) {
-  console.log('Starting payment intent creation process');
+  logger.info('Starting payment intent creation process');
 
   // 🛡️ BotID Protection: Check for bot traffic before processing payment
   const botResult = (await checkBotId({
@@ -229,7 +233,7 @@ export async function POST(request: NextRequest) {
   })) as import('@/types/botid').BotIdVerificationResult;
 
   if (botResult.isBot) {
-    console.warn('🚫 Bot detected in payment intent creation:', {
+    logger.warn('Bot detected in payment intent creation', {
       isVerifiedBot: botResult.isVerifiedBot,
       verifiedBotName: botResult.verifiedBotName,
       verifiedBotCategory: botResult.verifiedBotCategory,
@@ -272,7 +276,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body first to get expert's workosUserId
     const body = await request.json();
-    console.log('Request body received:', {
+    logger.info('Request body received', {
       eventId: body.eventId,
       hasPrice: !!body.price,
       hasMeetingData: !!body.meetingData,
@@ -298,12 +302,12 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!workosUserId) {
-      console.warn('Missing workosUserId (expert user ID)');
+      logger.warn('Missing workosUserId (expert user ID)');
       return NextResponse.json({ error: 'Missing expert user ID' }, { status: 400 });
     }
 
     if (!price || !meetingData?.guestEmail) {
-      console.warn('Missing required fields:', {
+      logger.warn('Missing required fields', {
         hasPrice: !!price,
         hasGuestEmail: !!meetingData?.guestEmail,
       });
@@ -316,7 +320,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!meetingData?.startTime) {
-      console.warn('Missing startTime in meeting data');
+      logger.warn('Missing startTime in meeting data');
       return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
     }
 
@@ -330,8 +334,8 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkPaymentRateLimits(guestIdentifier, clientIP);
 
     if (!rateLimitResult.allowed) {
-      console.log(
-        `Payment rate limit exceeded for guest ${meetingData.guestEmail} (IP: ${clientIP}):`,
+      logger.info(
+        logger.fmt`Payment rate limit exceeded for guest ${meetingData.guestEmail} (IP: ${clientIP})`,
         {
           reason: rateLimitResult.reason,
           limit: rateLimitResult.limit,
@@ -369,7 +373,7 @@ export async function POST(request: NextRequest) {
       // Check if we've seen this request before in distributed cache
       const cachedResult = await IdempotencyCache.get(idempotencyKey);
       if (cachedResult) {
-        console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
+        logger.info(logger.fmt`Returning cached result for idempotency key: ${idempotencyKey}`);
         return NextResponse.json({ url: cachedResult.url });
       }
     }
@@ -385,7 +389,7 @@ export async function POST(request: NextRequest) {
       // Check if this exact form submission is already being processed
       const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
       if (isAlreadyProcessing) {
-        console.log('🚫 Form submission already in progress (FormCache) - blocking duplicate');
+        logger.info('Form submission already in progress (FormCache) - blocking duplicate');
         return NextResponse.json({ error: 'Request already in progress' }, { status: 429 });
       }
 
@@ -398,15 +402,13 @@ export async function POST(request: NextRequest) {
         timestamp: Date.now(),
       });
 
-      console.log('📝 Marked form submission as processing in FormCache:', formCacheKey);
+      logger.info(logger.fmt`Marked form submission as processing in FormCache: ${formCacheKey}`);
     }
 
     // Extract locale for translations
     const locale = meetingData.locale || 'en';
 
-    // Get translations for the checkout messages
-    // TypeScript doesn't infer types correctly for nested namespaces in server routes
-    const t = (await getTranslations({ locale, namespace: 'Payments.checkout' })) as any;
+    const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
 
     // Construct URLs for legal pages
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
@@ -414,7 +416,7 @@ export async function POST(request: NextRequest) {
     const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
 
     // Get expert's Connect account
-    console.log('Querying event details:', { eventId });
+    logger.info('Querying event details', { eventId });
     const event = await db.query.EventsTable.findFirst({
       where: eq(EventsTable.id, eventId),
       with: {
@@ -429,14 +431,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('Event query results:', {
+    logger.info('Event query results', {
       eventFound: !!event,
       hasUser: !!event?.user,
       hasConnectAccount: !!event?.user?.stripeConnectAccountId,
     });
 
     if (!event?.user?.stripeConnectAccountId) {
-      console.error('Expert Connect account not found:', {
+      logger.error('Expert Connect account not found', {
         eventId,
         workosUserId: event?.workosUserId,
       });
@@ -466,7 +468,7 @@ export async function POST(request: NextRequest) {
     // We don't include them in Stripe metadata to avoid size limits
     // The notes will be available through the meeting record
 
-    console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
+    logger.info('Prepared meeting metadata for Stripe', meetingMetadata);
 
     // **CRITICAL: Check for existing reservations and conflicts BEFORE creating anything**
     const appointmentStartTime = new Date(meetingData.startTime);
@@ -483,7 +485,7 @@ export async function POST(request: NextRequest) {
     if (existingReservation) {
       // Check if it's the same user (allow them to continue with existing reservation)
       if (existingReservation.guestEmail === meetingData.guestEmail) {
-        console.log('User has existing active reservation, checking if we can reuse session:', {
+        logger.info('User has existing active reservation, checking if we can reuse session', {
           reservationId: existingReservation.id,
           sessionId: existingReservation.stripeSessionId,
           expiresAt: existingReservation.expiresAt,
@@ -498,12 +500,12 @@ export async function POST(request: NextRequest) {
 
             // If session is still valid and unpaid, return it
             if (existingSession.status === 'open' && existingSession.payment_status === 'unpaid') {
-              console.log('Reusing existing valid session:', existingSession.id);
+              logger.info('Reusing existing valid session', { sessionId: existingSession.id });
               return NextResponse.json({
                 url: existingSession.url,
               });
             } else {
-              console.log('Existing session is no longer valid:', {
+              logger.info('Existing session is no longer valid', {
                 status: existingSession.status,
                 paymentStatus: existingSession.payment_status,
               });
@@ -513,7 +515,9 @@ export async function POST(request: NextRequest) {
                 .where(eq(SlotReservationsTable.id, existingReservation.id));
             }
           } catch (stripeError) {
-            console.log('Failed to retrieve existing session, will create new one:', stripeError);
+            logger.info('Failed to retrieve existing session, will create new one', {
+              error: stripeError,
+            });
             // Clean up the invalid reservation
             await db
               .delete(SlotReservationsTable)
@@ -522,7 +526,7 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // Different user has this slot reserved
-        console.warn('Slot already reserved by another user:', {
+        logger.warn('Slot already reserved by another user', {
           requestingUser: meetingData.guestEmail,
           reservedBy: existingReservation.guestEmail,
           expiresAt: existingReservation.expiresAt,
@@ -548,7 +552,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (conflictingMeeting) {
-      console.error('Time slot already booked with confirmed payment:', {
+      logger.error('Time slot already booked with confirmed payment', {
         eventId,
         startTime: appointmentStartTime,
         requestingUser: meetingData.guestEmail,
@@ -567,18 +571,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create customer with guest name for prefilled checkout
-    console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
+    logger.info('Attempting to get/create Stripe customer with name', {
+      guestName: meetingData.guestName,
+    });
     const customerId = await getOrCreateStripeCustomer(
       undefined,
       meetingData.guestEmail,
       meetingData.guestName, // Pass the guest name to prefill in checkout
     );
-    console.log('Customer retrieved/created:', { customerId });
+    logger.info('Customer retrieved/created', { customerId });
 
     // Calculate application fee
     const applicationFeeAmount = calculateApplicationFee(price);
     const expertAmount = price - applicationFeeAmount;
-    console.log('Calculated application fee:', {
+    logger.info('Calculated application fee', {
       originalPrice: price,
       feeAmount: applicationFeeAmount,
       expertAmount: expertAmount,
@@ -628,7 +634,7 @@ export async function POST(request: NextRequest) {
     // Set to 4 AM on the scheduled day (matching CRON job time)
     transferDate.setHours(4, 0, 0, 0);
 
-    console.log('📅 Scheduled transfer with dual-requirement compliance:', {
+    logger.info('Scheduled transfer with dual-requirement compliance', {
       currentDate: currentDate.toISOString(),
       sessionStartTime: sessionStartTime.toISOString(),
       appointmentEndTime: appointmentEndTime.toISOString(),
@@ -673,8 +679,8 @@ export async function POST(request: NextRequest) {
       // Standard checkout session expiration (1 hour)
       checkoutExpiresAt = new Date(currentTime.getTime() + 60 * 60 * 1000);
 
-      console.log(
-        `⚡ Immediate booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card only, expires in 1 hour`,
+      logger.info(
+        logger.fmt`Immediate booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card only, expires in 1 hour`,
       );
     } else {
       // Meeting is > 8 days away - Allow both Card and Multibanco
@@ -684,8 +690,8 @@ export async function POST(request: NextRequest) {
       // Note: Multibanco voucher will have 7-day expiration automatically from Stripe
       checkoutExpiresAt = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
 
-      console.log(
-        `🕒 Advance booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card + Multibanco, checkout expires in 24h`,
+      logger.info(
+        logger.fmt`Advance booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card + Multibanco, checkout expires in 24h`,
       );
     }
 
@@ -822,7 +828,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('Checkout session created successfully:', {
+    logger.info('Checkout session created successfully', {
       sessionId: session.id,
       url: session.url,
     });
@@ -835,25 +841,26 @@ export async function POST(request: NextRequest) {
             session_id: session.id,
           },
         });
-        console.log('✅ Payment intent updated with session ID:', {
+        logger.info('Payment intent updated with session ID', {
           paymentIntentId: session.payment_intent,
           sessionId: session.id,
         });
       } catch (updateError) {
-        console.error('Failed to update payment intent with session ID:', updateError);
+        Sentry.captureException(updateError);
+        logger.error('Failed to update payment intent with session ID', { error: updateError });
         // Continue execution - this is not critical for the immediate flow
       }
     }
 
-    console.log('✅ Checkout session created successfully - no slot reservation needed');
-    console.log('📝 Slot management will be handled by webhooks based on payment method');
+    logger.info('Checkout session created successfully - no slot reservation needed');
+    logger.info('Slot management will be handled by webhooks based on payment method');
 
     // **IDEMPOTENCY: Cache the successful result**
     if (idempotencyKey && session.url) {
       await IdempotencyCache.set(idempotencyKey, {
         url: session.url,
       });
-      console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
+      logger.info(logger.fmt`Cached result for idempotency key: ${idempotencyKey}`);
     }
 
     // **FORM CACHE: Mark submission as completed**
@@ -864,14 +871,15 @@ export async function POST(request: NextRequest) {
         meetingData.startTime,
       );
       await FormCache.markCompleted(formCacheKey);
-      console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
+      logger.info(logger.fmt`Marked form submission as completed in FormCache: ${formCacheKey}`);
     }
 
     return NextResponse.json({
       url: session.url,
     });
   } catch (error) {
-    console.error('Request processing failed:', {
+    Sentry.captureException(error);
+    logger.error('Request processing failed', {
       error:
         error instanceof Error
           ? {
@@ -900,9 +908,10 @@ export async function POST(request: NextRequest) {
           meetingData.startTime,
         );
         await FormCache.markFailed(formCacheKey);
-        console.log('❌ Marked form submission as failed in FormCache:', formCacheKey);
+        logger.info(logger.fmt`Marked form submission as failed in FormCache: ${formCacheKey}`);
       } catch (cacheError) {
-        console.error('Failed to mark FormCache as failed:', cacheError);
+        Sentry.captureException(cacheError);
+        logger.error('Failed to mark FormCache as failed', { error: cacheError });
       }
     }
 

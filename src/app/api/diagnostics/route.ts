@@ -1,5 +1,5 @@
 /**
- * 🔍 Comprehensive System Diagnostics API
+ * Comprehensive System Diagnostics API
  *
  * This endpoint provides a complete health check of all system integrations:
  * - Novu configuration and workflow status
@@ -11,6 +11,8 @@
  *
  * Usage: GET /api/diagnostics?component=all|novu|qstash|webhooks
  */
+import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { runNovuDiagnostics } from '@/lib/integrations/novu/client';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
@@ -22,6 +24,8 @@ import {
 } from '@/lib/webhooks/health';
 import { sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 interface ComponentHealth {
   status: string;
@@ -71,7 +75,7 @@ async function checkEnvironmentVariables() {
   const requiredVars = [
     'NEXT_PUBLIC_APP_URL',
     'DATABASE_URL',
-    'CLERK_SECRET_KEY',
+    'WORKOS_API_KEY',
     'STRIPE_SECRET_KEY',
     'NOVU_SECRET_KEY',
   ];
@@ -79,7 +83,7 @@ async function checkEnvironmentVariables() {
   const optionalVars = [
     'QSTASH_TOKEN',
     'STRIPE_WEBHOOK_SECRET',
-    'CLERK_WEBHOOK_SIGNING_SECRET',
+    'WORKOS_WEBHOOK_SECRET',
     'UPSTASH_REDIS_REST_URL',
     'UPSTASH_REDIS_REST_TOKEN',
   ];
@@ -194,6 +198,15 @@ async function runWebhookDiagnostics() {
 }
 
 export async function GET(request: NextRequest) {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+  const rl = await checkRateLimit(ip, 10, 60, 'diagnostics');
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const component = searchParams.get('component') || 'all';
   const includeDetails = searchParams.get('details') === 'true';
@@ -218,9 +231,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Only log component info for authorized requests
   if (hasValidToken) {
-    console.log(`🔍 Running diagnostics for: ${component}`);
+    logger.info(logger.fmt`Running diagnostics for: ${component}`);
   }
 
   const result: DiagnosticsResult = {
@@ -239,27 +251,27 @@ export async function GET(request: NextRequest) {
   try {
     // Run diagnostics based on component parameter
     if (component === 'all' || component === 'environment') {
-      console.log('📊 Checking environment variables...');
+      logger.info('Checking environment variables');
       result.components.environment = await checkEnvironmentVariables();
     }
 
     if (component === 'all' || component === 'database') {
-      console.log('🗄️ Checking database connectivity...');
+      logger.info('Checking database connectivity');
       result.components.database = await checkDatabaseHealth();
     }
 
     if (component === 'all' || component === 'novu') {
-      console.log('📧 Checking Novu integration...');
+      logger.info('Checking Novu integration');
       result.components.novu = await runNovuDiagnosticsWrapper();
     }
 
     if (component === 'all' || component === 'qstash') {
-      console.log('⏰ Checking QStash integration...');
+      logger.info('Checking QStash integration');
       result.components.qstash = await runQStashDiagnostics();
     }
 
     if (component === 'all' || component === 'webhooks') {
-      console.log('🔗 Checking webhook endpoints...');
+      logger.info('Checking webhook endpoints');
       result.components.webhooks = await runWebhookDiagnostics();
     }
 
@@ -305,7 +317,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`✅ Diagnostics complete. Overall status: ${result.status}`);
+    logger.info(logger.fmt`Diagnostics complete. Overall status: ${result.status}`);
 
     return NextResponse.json(result, {
       status: result.status === 'critical' ? 503 : 200,
@@ -315,7 +327,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('❌ Diagnostics failed:', error);
+    logger.error('Diagnostics failed', { error: error instanceof Error ? error.message : String(error) });
+    Sentry.captureException(error);
 
     return NextResponse.json(
       {

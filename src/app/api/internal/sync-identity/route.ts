@@ -1,9 +1,12 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { timingSafeEqual } from 'crypto';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * Timing-safe string comparison to prevent timing attacks
@@ -45,7 +48,7 @@ export async function POST(request: Request) {
     // Ensures env var is defined and non-empty before comparing
     const expectedKey = process.env.INTERNAL_ADMIN_KEY;
     if (!expectedKey || !adminKey || !safeCompare(adminKey, expectedKey)) {
-      console.warn('Unauthorized access attempt to /api/internal/sync-identity');
+      logger.warn('Unauthorized access attempt to /api/internal/sync-identity');
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
 
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     // Log with masked email for GDPR/CCPA compliance
-    console.log('Syncing identity verification for user:', {
+    logger.info('Syncing identity verification for user', {
       workosUserId,
       userId: user.id,
       email: maskEmail(user.email),
@@ -90,7 +93,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error syncing identity verification:', error);
+    logger.error('Error syncing identity verification', { error: error instanceof Error ? error.message : String(error) });
+    Sentry.captureException(error);
     return NextResponse.json(
       {
         error: 'Internal server error',

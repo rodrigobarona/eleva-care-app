@@ -9,7 +9,10 @@
  */
 
 import { getCurrentUser } from '@/lib/integrations/workos/rbac';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export async function GET() {
   try {
@@ -36,7 +39,8 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[API/user/rbac] Error:', error);
+    Sentry.captureException(error);
+    logger.error('API/user/rbac Error', { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 },

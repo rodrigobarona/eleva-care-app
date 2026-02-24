@@ -1,9 +1,12 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * GET /api/stripe/identity/verification/status
@@ -161,7 +164,8 @@ export async function GET() {
           ),
         );
       } catch (error) {
-        console.error('Error checking verification with Stripe API:', error);
+        Sentry.captureException(error);
+        logger.error('Error checking verification with Stripe API', { error });
         // Fall back to database status if API call fails
         return NextResponse.json(
           buildResponse(
@@ -178,7 +182,8 @@ export async function GET() {
     // No verification has been started
     return NextResponse.json(buildResponse(false, 'not_started', null, 'initial_state'));
   } catch (error) {
-    console.error('Error getting identity verification status:', error);
+    Sentry.captureException(error);
+    logger.error('Error getting identity verification status', { error });
     return NextResponse.json(
       {
         success: false,

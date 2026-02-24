@@ -13,8 +13,11 @@ import {
   normalizeLocale,
 } from '@/lib/cron/appointment-utils';
 import { triggerWorkflow } from '@/lib/integrations/novu';
+import * as Sentry from '@sentry/nextjs';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /** Vercel region configuration for serverless function */
 export const preferredRegion = 'auto';
@@ -56,11 +59,11 @@ const WINDOW_END_MINUTES = 75;
  * ```
  */
 async function handler() {
-  console.log('⚡ Running 1-hour urgent appointment reminder cron job...');
+  logger.info('Running 1-hour urgent appointment reminder cron job...');
 
   try {
     const appointments = await getUpcomingAppointments(WINDOW_START_MINUTES, WINDOW_END_MINUTES);
-    console.log(`Found ${appointments.length} appointments needing urgent reminders`);
+    logger.info(logger.fmt`Found ${appointments.length} appointments needing urgent reminders`);
 
     let expertRemindersSent = 0;
     let expertRemindersFailed = 0;
@@ -102,16 +105,17 @@ async function handler() {
         });
 
         if (expertResult) {
-          console.log(`⚡ URGENT reminder sent to expert: ${appointment.expertWorkosId}`);
+          logger.info(logger.fmt`URGENT reminder sent to expert: ${appointment.expertWorkosId}`);
           expertRemindersSent++;
         } else {
-          console.warn(`⚠️ Workflow returned null for expert ${appointment.expertWorkosId}`);
+          logger.warn(logger.fmt`Workflow returned null for expert ${appointment.expertWorkosId}`);
           expertRemindersFailed++;
         }
       } catch (error) {
-        console.error(
-          `❌ Failed to send urgent reminder to expert ${appointment.expertWorkosId}:`,
-          error,
+        Sentry.captureException(error);
+        logger.error(
+          logger.fmt`Failed to send urgent reminder to expert ${appointment.expertWorkosId}`,
+          { error: error instanceof Error ? error.message : String(error) },
         );
         expertRemindersFailed++;
       }
@@ -120,8 +124,8 @@ async function handler() {
       try {
         // Validate guest email before using as subscriberId
         if (appointment.customerWorkosId === 'guest' && !appointment.guestEmail) {
-          console.error(
-            `❌ Cannot send reminder: guest appointment ${appointment.id} has no guestEmail`,
+          logger.error(
+            logger.fmt`Cannot send reminder: guest appointment ${appointment.id} has no guestEmail`,
           );
           patientRemindersFailed++;
           continue; // Skip to next appointment
@@ -166,22 +170,23 @@ async function handler() {
         });
 
         if (patientResult) {
-          console.log(`⚡ URGENT reminder sent to patient: ${appointment.guestEmail}`);
+          logger.info(logger.fmt`URGENT reminder sent to patient: ${appointment.guestEmail}`);
           patientRemindersSent++;
         } else {
-          console.warn(`⚠️ Workflow returned null for patient ${appointment.guestEmail}`);
+          logger.warn(logger.fmt`Workflow returned null for patient ${appointment.guestEmail}`);
           patientRemindersFailed++;
         }
       } catch (error) {
-        console.error(
-          `❌ Failed to send urgent reminder to patient ${appointment.guestEmail}:`,
-          error,
+        Sentry.captureException(error);
+        logger.error(
+          logger.fmt`Failed to send urgent reminder to patient ${appointment.guestEmail}`,
+          { error: error instanceof Error ? error.message : String(error) },
         );
         patientRemindersFailed++;
       }
     }
 
-    console.log('🎉 1-hour urgent appointment reminder cron job completed', {
+    logger.info('1-hour urgent appointment reminder cron job completed', {
       totalAppointments: appointments.length,
       expertRemindersSent,
       expertRemindersFailed,
@@ -198,7 +203,10 @@ async function handler() {
       patientRemindersFailed,
     });
   } catch (error) {
-    console.error('❌ Error in 1-hour appointment reminder cron job:', error);
+    Sentry.captureException(error);
+    logger.error('Error in 1-hour appointment reminder cron job', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to process urgent reminders' },
       { status: 500 },

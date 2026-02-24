@@ -1,24 +1,36 @@
+import { profileFormSchema } from '@/schema/profile';
 import { updateProfile } from '@/server/actions/profile';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export async function POST(req: Request) {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
     if (!user || !userId) {
-      return new Response('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const result = await updateProfile(userId, body);
+    const bodyResult = profileFormSchema.safeParse(await req.json());
+    if (!bodyResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: bodyResult.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const result = await updateProfile(userId, bodyResult.data);
 
     if (result.error) {
-      return new Response(result.error, { status: 500 });
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    return new Response('OK');
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error);
-    return new Response('Internal Server Error', { status: 500 });
+    Sentry.captureException(error);
+    logger.error('Error updating profile', { error });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

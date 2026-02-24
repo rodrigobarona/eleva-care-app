@@ -4,21 +4,23 @@ import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications'
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
 import { eq } from 'drizzle-orm';
+import * as Sentry from '@sentry/nextjs';
 import type { Stripe } from 'stripe';
+
+const { logger } = Sentry;
 
 export async function handleExternalAccountCreated(
   externalAccount: Stripe.BankAccount | Stripe.Card,
   accountId: string,
 ) {
-  console.log('External account added:', externalAccount.id);
+  logger.info('External account added', { externalAccountId: externalAccount.id });
 
-  // Find the user associated with this Connect account
   const user = await db.query.UsersTable.findFirst({
     where: eq(UsersTable.stripeConnectAccountId, accountId),
   });
 
   if (!user) {
-    console.error('User not found for Connect account:', accountId);
+    logger.error('User not found for Connect account', { accountId });
     return;
   }
 
@@ -52,7 +54,8 @@ export async function handleExternalAccountCreated(
       1000,
     );
   } catch (error) {
-    console.error('Error creating notification after retries:', error);
+    Sentry.captureException(error);
+    logger.error('Error creating notification after retries', { error });
   }
 }
 
@@ -60,37 +63,39 @@ export async function handleExternalAccountDeleted(
   externalAccount: Stripe.BankAccount | Stripe.Card,
   accountId: string,
 ) {
-  console.log('External account removed:', externalAccount.id);
+  try {
+    logger.info('External account removed', { externalAccountId: externalAccount.id });
 
-  // Find the user associated with this Connect account
-  const user = await db.query.UsersTable.findFirst({
-    where: eq(UsersTable.stripeConnectAccountId, accountId),
-  });
-
-  if (!user) {
-    console.error('User not found for Connect account:', accountId);
-    return;
-  }
-
-  // Fetch user profile for name (firstName/lastName are in ProfilesTable, not UsersTable)
-  const profile = await db.query.ProfilesTable.findFirst({
-    where: eq(ProfilesTable.workosUserId, user.workosUserId),
-  });
-
-  // Create notification for the user
-  await db.transaction(async (_tx) => {
-    await createUserNotification({
-      userId: user.id,
-      type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
-      data: {
-        userName: profile?.firstName || user.username || 'User',
-        title: externalAccount.object === 'bank_account' ? 'Bank Account Removed' : 'Card Removed',
-        message:
-          externalAccount.object === 'bank_account'
-            ? 'A bank account has been removed from your Stripe Connect account.'
-            : 'A card has been removed from your Stripe Connect account.',
-        actionUrl: '/account/connect',
-      },
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.stripeConnectAccountId, accountId),
     });
-  });
+
+    if (!user) {
+      logger.error('User not found for Connect account', { accountId });
+      return;
+    }
+
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: eq(ProfilesTable.workosUserId, user.workosUserId),
+    });
+
+    await db.transaction(async (_tx) => {
+      await createUserNotification({
+        userId: user.id,
+        type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+        data: {
+          userName: profile?.firstName || user.username || 'User',
+          title: externalAccount.object === 'bank_account' ? 'Bank Account Removed' : 'Card Removed',
+          message:
+            externalAccount.object === 'bank_account'
+              ? 'A bank account has been removed from your Stripe Connect account.'
+              : 'A card has been removed from your Stripe Connect account.',
+          actionUrl: '/account/connect',
+        },
+      });
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    logger.error('Error handling external account deletion', { error });
+  }
 }

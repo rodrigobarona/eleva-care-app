@@ -2,11 +2,14 @@ import { db } from '@/drizzle/db';
 import { RolesTable, UsersTable } from '@/drizzle/schema';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import type { ApiResponse, ApiUser } from '@/types/api';
+import * as Sentry from '@sentry/nextjs';
 import { WORKOS_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, ilike, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+const { logger } = Sentry;
 
 /** All valid WorkOS role values for Zod enum */
 const VALID_ROLES = Object.values(WORKOS_ROLES) as [string, ...string[]];
@@ -100,9 +103,9 @@ export async function GET(req: Request) {
 
     // Log warning if any users have multiple roles (data inconsistency)
     if (multiRoleUsers.length > 0) {
-      console.warn(
-        `Users with multiple roles detected (using first role): ${multiRoleUsers.join(', ')}`,
-      );
+      logger.warn('Users with multiple roles detected (using first role)', {
+        multiRoleUsers,
+      });
     }
 
     const formattedUsers: ApiUser[] = users.map((user) => ({
@@ -121,7 +124,8 @@ export async function GET(req: Request) {
       },
     } as ApiResponse<{ users: ApiUser[]; total: number }>);
   } catch (error) {
-    console.error('Error fetching users:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching users', { error });
     return NextResponse.json(
       {
         success: false,
@@ -190,7 +194,8 @@ export async function PATCH(req: Request) {
       message: `Role updated successfully to: ${role}`,
     } as ApiResponse<null>);
   } catch (error) {
-    console.error('Error updating user role:', error);
+    Sentry.captureException(error);
+    logger.error('Error updating user role', { error });
     return NextResponse.json(
       {
         success: false,

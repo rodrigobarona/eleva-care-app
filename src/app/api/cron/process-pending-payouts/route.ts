@@ -14,12 +14,15 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
+import * as Sentry from '@sentry/nextjs';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { createPayoutCompletedNotification } from '@/lib/notifications/payment';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 // Enhanced Process Pending Payouts - Creates actual Stripe payouts after legal requirements
 // This cron job handles the final phase of expert payments with comprehensive verification:
@@ -84,12 +87,12 @@ async function handler(_request: Request) {
   const stripe = await getServerStripe();
 
   try {
-    console.log('🚀 Starting Enhanced Payout Processing at:', now.toISOString());
+    logger.info('Starting Enhanced Payout Processing', { timestamp: now.toISOString() });
 
     // ================================================================================
     // PHASE 1: DATABASE-DRIVEN PAYOUT PROCESSING (Primary Method)
     // ================================================================================
-    console.log('\n📊 PHASE 1: Processing database-tracked completed transfers...');
+    logger.info('PHASE 1: Processing database-tracked completed transfers...');
 
     // Find completed transfers that don't have payouts yet
     const completedTransfers = await db.query.PaymentTransfersTable.findMany({
@@ -100,7 +103,7 @@ async function handler(_request: Request) {
       orderBy: desc(PaymentTransfersTable.created),
     });
 
-    console.log(`Found ${completedTransfers.length} completed transfers to evaluate for payout`);
+    logger.info(logger.fmt`Found ${completedTransfers.length} completed transfers to evaluate for payout`);
 
     // Filter transfers based on appointment completion + complaint window requirements
     const eligibleForPayout = [];
@@ -112,15 +115,15 @@ async function handler(_request: Request) {
         });
 
         if (!expertUser) {
-          console.error(
-            `Could not find expert user ${transfer.expertWorkosUserId} for transfer ${transfer.id}`,
+          logger.error(
+            logger.fmt`Could not find expert user ${transfer.expertWorkosUserId} for transfer ${transfer.id}`,
           );
           continue;
         }
 
         if (!expertUser.stripeConnectAccountId) {
-          console.error(
-            `Expert user ${transfer.expertWorkosUserId} has no Connect account for transfer ${transfer.id}`,
+          logger.error(
+            logger.fmt`Expert user ${transfer.expertWorkosUserId} has no Connect account for transfer ${transfer.id}`,
           );
           continue;
         }
@@ -132,7 +135,7 @@ async function handler(_request: Request) {
         });
 
         if (!event) {
-          console.error(`Could not find event ${transfer.eventId} for transfer ${transfer.id}`);
+          logger.error(logger.fmt`Could not find event ${transfer.eventId} for transfer ${transfer.id}`);
           continue;
         }
 
@@ -146,8 +149,8 @@ async function handler(_request: Request) {
           (now.getTime() - appointmentEndTime.getTime()) / (1000 * 60 * 60),
         );
 
-        console.log(
-          `Transfer ${transfer.id}: Appointment ended ${hoursSinceAppointmentEnd}h ago (required: ${APPOINTMENT_COMPLAINT_WINDOW_HOURS}h), appointment end: ${appointmentEndTime.toISOString()}`,
+        logger.info(
+          logger.fmt`Transfer ${transfer.id}: Appointment ended ${hoursSinceAppointmentEnd}h ago (required: ${APPOINTMENT_COMPLAINT_WINDOW_HOURS}h), appointment end: ${appointmentEndTime.toISOString()}`,
         );
 
         // Check if complaint window has passed (24+ hours since appointment ended)
@@ -158,26 +161,29 @@ async function handler(_request: Request) {
             appointmentEndTime,
             hoursSinceAppointmentEnd,
           });
-          console.log(
-            `✅ Transfer ${transfer.id} eligible for payout: appointment ended ${hoursSinceAppointmentEnd}h ago`,
+          logger.info(
+            logger.fmt`Transfer ${transfer.id} eligible for payout: appointment ended ${hoursSinceAppointmentEnd}h ago`,
           );
         } else {
-          console.log(
-            `❌ Transfer ${transfer.id} not ready for payout: only ${hoursSinceAppointmentEnd}h since appointment ended (need ${APPOINTMENT_COMPLAINT_WINDOW_HOURS}h)`,
+          logger.info(
+            logger.fmt`Transfer ${transfer.id} not ready for payout: only ${hoursSinceAppointmentEnd}h since appointment ended (need ${APPOINTMENT_COMPLAINT_WINDOW_HOURS}h)`,
           );
         }
       } catch (error) {
-        console.error(`Error evaluating payout eligibility for transfer ${transfer.id}:`, error);
+        Sentry.captureException(error);
+        logger.error(logger.fmt`Error evaluating payout eligibility for transfer ${transfer.id}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
-    console.log(`Found ${eligibleForPayout.length} transfers eligible for payout creation`);
+    logger.info(logger.fmt`Found ${eligibleForPayout.length} transfers eligible for payout creation`);
 
     // Process each eligible transfer
     databaseResults = await Promise.allSettled(
       eligibleForPayout.map(async (transferData) => {
         const { expertUser, ...transfer } = transferData;
-        console.log(`Creating payout for transfer: ${transfer.id}`);
+        logger.info(logger.fmt`Creating payout for transfer: ${transfer.id}`);
 
         try {
           const result = await createPayoutForTransfer(transfer, expertUser, 'database');
@@ -199,7 +205,10 @@ async function handler(_request: Request) {
 
           return result;
         } catch (error) {
-          console.error(`Error processing transfer ${transfer.id}:`, error);
+          Sentry.captureException(error);
+          logger.error(logger.fmt`Error processing transfer ${transfer.id}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
           return {
             success: false,
             paymentTransferId: transfer.id,
@@ -217,7 +226,7 @@ async function handler(_request: Request) {
     // ================================================================================
     // PHASE 2: STRIPE FALLBACK VERIFICATION (Legal Compliance Safety Net)
     // ================================================================================
-    console.log('\n🔍 PHASE 2: Stripe fallback verification for legal compliance...');
+    logger.info('PHASE 2: Stripe fallback verification for legal compliance...');
 
     // Get all users with Connect accounts (these are experts who can receive payouts)
     const expertUsers = await db.query.UsersTable.findMany({
@@ -234,7 +243,7 @@ async function handler(_request: Request) {
       .filter((user) => user.stripeConnectAccountId)
       .map((user) => user.stripeConnectAccountId!);
 
-    console.log(`Checking ${connectAccountIds.length} Connect accounts for overdue balances...`);
+    logger.info(logger.fmt`Checking ${connectAccountIds.length} Connect accounts for overdue balances...`);
 
     // Get accounts that already had payouts processed in Phase 1 to avoid duplicates
     const processedAccountIds = databaseResults
@@ -246,7 +255,7 @@ async function handler(_request: Request) {
       (accountId) => !processedAccountIds.includes(accountId),
     );
 
-    console.log(`Found ${unprocessedAccountIds.length} unprocessed Connect accounts to verify`);
+    logger.info(logger.fmt`Found ${unprocessedAccountIds.length} unprocessed Connect accounts to verify`);
 
     // Check each Connect account for balances that exceed legal holding period
     stripeResults = (await Promise.allSettled(
@@ -256,7 +265,10 @@ async function handler(_request: Request) {
         try {
           return await checkConnectAccountForOverdueBalance(stripe, accountId, expertUser);
         } catch (error) {
-          console.error(`Error checking Connect account ${accountId}:`, error);
+          Sentry.captureException(error);
+          logger.error(logger.fmt`Error checking Connect account ${accountId}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
           return {
             success: false,
             connectAccountId: accountId,
@@ -302,7 +314,7 @@ async function handler(_request: Request) {
       })),
     };
 
-    console.log('\n📊 Enhanced Payout Processing Summary:', {
+    logger.info('Enhanced Payout Processing Summary', {
       timestamp: now.toISOString(),
       phase1_database: {
         eligible: eligibleForPayout.length,
@@ -321,12 +333,12 @@ async function handler(_request: Request) {
     });
 
     if (failed.length > 0) {
-      console.error('❌ Failed payouts:', failed);
+      logger.error('Failed payouts', { failed });
     }
 
     if (successful.length > 0) {
-      console.log(
-        `✅ Successfully created ${successful.length} payouts totaling €${totalAmountPaidOut / 100}`,
+      logger.info(
+        logger.fmt`Successfully created ${successful.length} payouts totaling €${totalAmountPaidOut / 100}`,
       );
     }
 
@@ -353,7 +365,10 @@ async function handler(_request: Request) {
       timestamp: now.toISOString(),
     });
   } catch (error) {
-    console.error('❌ Error in enhanced payout processing:', error);
+    Sentry.captureException(error);
+    logger.error('Error in enhanced payout processing', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Send failure heartbeat to BetterStack
     await sendHeartbeatFailure(
@@ -402,8 +417,8 @@ async function createPayoutForTransfer(
     );
 
     if (!availableBalance || availableBalance.amount <= 0) {
-      console.log(
-        `No available balance for ${transfer.currency} in account ${expertUser.stripeConnectAccountId}`,
+      logger.info(
+        logger.fmt`No available balance for ${transfer.currency} in account ${expertUser.stripeConnectAccountId}`,
       );
       return {
         success: false,
@@ -437,8 +452,8 @@ async function createPayoutForTransfer(
       },
     );
 
-    console.log(
-      `✅ Successfully created payout ${payout.id} for ${payoutAmount / 100} ${transfer.currency} to expert ${expertUser.workosUserId} (${source})`,
+    logger.info(
+      logger.fmt`Successfully created payout ${payout.id} for ${payoutAmount / 100} ${transfer.currency} to expert ${expertUser.workosUserId} (${source})`,
     );
 
     return {
@@ -451,7 +466,10 @@ async function createPayoutForTransfer(
       source,
     };
   } catch (error) {
-    console.error(`Error creating payout for transfer ${transfer.id}:`, error);
+    Sentry.captureException(error);
+    logger.error(logger.fmt`Error creating payout for transfer ${transfer.id}`, {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       paymentTransferId: transfer.id,
@@ -473,13 +491,13 @@ async function checkConnectAccountForOverdueBalance(
   expertUser: ExpertUserForPayout,
 ): Promise<PayoutResult> {
   try {
-    console.log(`🔍 Checking Connect account ${accountId} for overdue balance...`);
+    logger.info(logger.fmt`Checking Connect account ${accountId} for overdue balance...`);
 
     // Get account balance
     const balance = await stripe.balance.retrieve({}, { stripeAccount: accountId });
 
     if (!balance.available || balance.available.length === 0) {
-      console.log(`No available balance in account ${accountId}`);
+      logger.info(logger.fmt`No available balance in account ${accountId}`);
       return {
         success: true,
         payoutId: 'none-needed',
@@ -495,7 +513,7 @@ async function checkConnectAccountForOverdueBalance(
     const payoutSchedule = account.settings?.payouts?.schedule;
 
     if (payoutSchedule?.interval !== 'manual') {
-      console.log(`Account ${accountId} has automatic payouts enabled, skipping manual check`);
+      logger.info(logger.fmt`Account ${accountId} has automatic payouts enabled, skipping manual check`);
       return {
         success: true,
         payoutId: 'auto-payouts-enabled',
@@ -527,7 +545,7 @@ async function checkConnectAccountForOverdueBalance(
     }
 
     if (overdueAmount === 0) {
-      console.log(`No significant balance requiring payout in account ${accountId}`);
+      logger.info(logger.fmt`No significant balance requiring payout in account ${accountId}`);
       return {
         success: true,
         payoutId: 'no-significant-balance',
@@ -538,8 +556,8 @@ async function checkConnectAccountForOverdueBalance(
       };
     }
 
-    console.log(
-      `🚨 Found overdue balance in account ${accountId}: ${overdueAmount / 100} ${currency.toUpperCase()}`,
+    logger.info(
+      logger.fmt`Found overdue balance in account ${accountId}: ${overdueAmount / 100} ${currency.toUpperCase()}`,
     );
 
     // Create payout for the overdue balance
@@ -561,8 +579,8 @@ async function checkConnectAccountForOverdueBalance(
       },
     );
 
-    console.log(
-      `✅ Created compliance payout ${payout.id} for ${overdueAmount / 100} ${currency} to account ${accountId}`,
+    logger.info(
+      logger.fmt`Created compliance payout ${payout.id} for ${overdueAmount / 100} ${currency} to account ${accountId}`,
     );
 
     // Send notification for Stripe-detected payout
@@ -577,7 +595,10 @@ async function checkConnectAccountForOverdueBalance(
       source: 'stripe_fallback',
     };
   } catch (error) {
-    console.error(`Error checking account ${accountId} for overdue balance:`, error);
+    Sentry.captureException(error);
+    logger.error(logger.fmt`Error checking account ${accountId} for overdue balance`, {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       connectAccountId: accountId,
@@ -638,9 +659,12 @@ async function sendPayoutNotification(
       eventId: transfer.eventId,
     });
 
-    console.log(`📧 Payout notification sent to expert ${transfer.expertWorkosUserId}`);
+    logger.info(logger.fmt`Payout notification sent to expert ${transfer.expertWorkosUserId}`);
   } catch (notificationError) {
-    console.error('Error sending payout notification:', notificationError);
+    Sentry.captureException(notificationError);
+    logger.error('Error sending payout notification', {
+      error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+    });
     // Continue processing even if notification fails
   }
 }
@@ -674,9 +698,12 @@ async function sendStripeVerificationNotification(
       eventId: 'stripe_verification',
     });
 
-    console.log(`📧 Stripe verification notification sent to expert ${expertUser.workosUserId}`);
+    logger.info(logger.fmt`Stripe verification notification sent to expert ${expertUser.workosUserId}`);
   } catch (notificationError) {
-    console.error('Error sending Stripe verification notification:', notificationError);
+    Sentry.captureException(notificationError);
+    logger.error('Error sending Stripe verification notification', {
+      error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+    });
     // Continue processing even if notification fails
   }
 }

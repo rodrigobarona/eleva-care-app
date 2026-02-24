@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { hasRole } from '@/lib/auth/roles.server';
+
+const { logger } = Sentry;
 import { verifyAndUpdateSpecificExpert } from '@/server/actions/experts';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -37,7 +40,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in verify-specific endpoint:', {
+    Sentry.captureException(error);
+    logger.error('Error in verify-specific endpoint', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -6,11 +6,14 @@ import {
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
 import { checkRateLimit } from '@/lib/redis/rate-limiter';
+import * as Sentry from '@sentry/nextjs';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+
+const { logger } = Sentry;
 
 /** Zod schema for transfer approval request */
 const approveTransferSchema = z.object({
@@ -102,8 +105,9 @@ async function checkAdminApprovalRateLimits(adminId: string) {
       },
     };
   } catch (error) {
-    console.error('Redis admin approval rate limiting error:', error);
-    console.warn('Admin approval rate limiting failed - applying conservative restriction');
+    Sentry.captureException(error);
+    logger.error('Redis admin approval rate limiting error', { error });
+    logger.warn('Admin approval rate limiting failed - applying conservative restriction');
     return {
       allowed: false as const,
       reason: 'rate_limiting_error',
@@ -134,7 +138,8 @@ export async function POST(request: NextRequest) {
     try {
       isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
     } catch (error) {
-      console.error('Role check error in transfer approval:', error);
+      Sentry.captureException(error);
+      logger.error('Role check error in transfer approval', { error });
       return NextResponse.json({ error: 'Role verification failed' }, { status: 500 });
     }
 
@@ -146,7 +151,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkAdminApprovalRateLimits(userId);
 
     if (!rateLimitResult.allowed) {
-      console.log(`Admin approval rate limit exceeded for admin ${userId}:`, {
+      logger.info(logger.fmt`Admin approval rate limit exceeded for admin ${userId}`, {
         reason: rateLimitResult.reason,
         limit: rateLimitResult.limit,
         resetTime: rateLimitResult.resetTime,
@@ -231,7 +236,7 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(PaymentTransfersTable.id, transferId));
 
-    console.log(`Admin ${userId} approved transfer ${transferId}`, {
+    logger.info(logger.fmt`Admin ${userId} approved transfer ${transferId}`, {
       transferAmount: transfer.amount,
       expertId: transfer.expertWorkosUserId,
       eventId: transfer.eventId,
@@ -265,7 +270,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Error approving transfer:', error);
+    Sentry.captureException(error);
+    logger.error('Error approving transfer', { error });
     // Sanitize error details in production to avoid leaking sensitive info
     const isDev = process.env.NODE_ENV === 'development';
     return NextResponse.json(

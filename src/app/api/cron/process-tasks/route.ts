@@ -1,4 +1,5 @@
 import { getServerStripe } from '@/lib/integrations/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
@@ -6,6 +7,8 @@ import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 // Process Tasks - Main daily task processor for expert transfers and system maintenance
 // Performs the following tasks:
@@ -49,7 +52,7 @@ async function handler(request: Request) {
   try {
     // 1. Process expert transfers
     const now = new Date();
-    console.log('Looking for transfers to process at:', now.toISOString());
+    logger.info('Looking for transfers to process at', { timestamp: now.toISOString() });
 
     const pendingTransfers = await db.query.PaymentTransfersTable.findMany({
       where: and(
@@ -67,12 +70,12 @@ async function handler(request: Request) {
       ),
     });
 
-    console.log(`Found ${pendingTransfers.length} transfers to process`);
+    logger.info(logger.fmt`Found ${pendingTransfers.length} transfers to process`);
 
     // Process each pending transfer
     const results = await Promise.allSettled(
       pendingTransfers.map(async (transfer) => {
-        console.log(`Processing transfer for payment intent: ${transfer.paymentIntentId}`);
+        logger.info(logger.fmt`Processing transfer for payment intent: ${transfer.paymentIntentId}`);
 
         try {
           // Retrieve the PaymentIntent to get the charge ID
@@ -90,7 +93,7 @@ async function handler(request: Request) {
               ? paymentIntent.latest_charge
               : paymentIntent.latest_charge.id;
 
-          console.log(`Using charge ID ${chargeId} for transfer`);
+          logger.info(logger.fmt`Using charge ID ${chargeId} for transfer`);
 
           // ✅ CRITICAL FIX: Check if a Stripe transfer already exists for this charge
           // This prevents duplicate transfers when webhooks have already processed the payment
@@ -137,8 +140,8 @@ async function handler(request: Request) {
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
-          console.log(
-            `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertWorkosUserId}`,
+          logger.info(
+            logger.fmt`Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertWorkosUserId}`,
           );
           return {
             success: true,
@@ -146,7 +149,10 @@ async function handler(request: Request) {
             paymentTransferId: transfer.id,
           } as SuccessResult;
         } catch (error) {
-          console.error('Error creating Stripe transfer:', error);
+          Sentry.captureException(error);
+          logger.error('Error creating Stripe transfer', {
+            error: error instanceof Error ? error.message : String(error),
+          });
 
           const stripeError = error as Stripe.errors.StripeError;
           const newRetryCount = (transfer.retryCount || 0) + 1;
@@ -206,7 +212,10 @@ async function handler(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error processing tasks:', error);
+    Sentry.captureException(error);
+    logger.error('Error processing tasks', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: 'Failed to process tasks', details: (error as Error).message },
       { status: 500 },

@@ -24,21 +24,27 @@
  *
  * @see lib/integrations/workos/auto-organization.ts
  */
+import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { autoCreateUserOrganization } from '@/lib/integrations/workos/auto-organization';
 import { syncWorkOSUserToDatabase } from '@/lib/integrations/workos/sync';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
+import { NextResponse } from 'next/server';
 
-export const GET = handleAuth({
+const { logger } = Sentry;
+
+const authHandler = handleAuth({
   // Default return path - will be overridden by returnTo in state
   returnPathname: '/onboarding',
   baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 
   onSuccess: async ({ user, organizationId, authenticationMethod, state }) => {
-    console.log('✅ WorkOS authentication successful');
-    console.log('User ID:', user.id);
-    console.log('Email:', user.email);
-    console.log('Organization ID:', organizationId || 'None');
-    console.log('Authentication Method:', authenticationMethod || 'N/A');
+    logger.info('WorkOS authentication successful', {
+      userId: user.id,
+      email: user.email,
+      organizationId: organizationId || 'None',
+      authenticationMethod: authenticationMethod || 'N/A',
+    });
 
     // Sync user to database (WorkOS as source of truth)
     try {
@@ -52,14 +58,14 @@ export const GET = handleAuth({
       });
 
       if (!syncResult.success) {
-        console.error('⚠️ User sync failed (non-blocking):', syncResult.error);
+        logger.error('User sync failed (non-blocking)', { error: syncResult.error });
       } else {
-        console.log('✅ User synced successfully');
+        logger.info('User synced successfully');
       }
 
       // Track authentication method if available
       if (authenticationMethod) {
-        console.log(`🔐 User authenticated via: ${authenticationMethod}`);
+        logger.info(logger.fmt`User authenticated via: ${authenticationMethod}`);
         // TODO: Track authentication method in analytics
       }
 
@@ -69,17 +75,17 @@ export const GET = handleAuth({
       if (state) {
         try {
           const stateData = JSON.parse(state);
-          console.log('📦 Custom state received:', stateData);
+          logger.debug('Custom state received', { stateData });
 
           // Check for expert registration flag (from ?expert=true URL param)
           if (stateData.expert === true || stateData.expert === 'true') {
             isExpertRegistration = true;
-            console.log('🎓 Expert registration detected');
+            logger.info('Expert registration detected');
           }
 
           // Log custom redirect path (handled by handleAuth via state.returnTo)
           if (stateData.returnTo) {
-            console.log(`🔀 Custom redirect path: ${stateData.returnTo}`);
+            logger.info(logger.fmt`Custom redirect path: ${stateData.returnTo}`);
           }
         } catch {
           // Invalid state JSON - ignore
@@ -89,7 +95,7 @@ export const GET = handleAuth({
       // Auto-create personal organization (Airbnb-style pattern)
       // - Default: patient_personal (fast, frictionless)
       // - Expert flow: expert_individual (guided onboarding)
-      console.log('🏢 Auto-creating user organization...');
+      logger.info('Auto-creating user organization');
 
       const orgResult = await autoCreateUserOrganization({
         workosUserId: user.id,
@@ -100,22 +106,23 @@ export const GET = handleAuth({
       });
 
       if (orgResult.success) {
-        console.log(
-          `✅ Organization ${orgResult.isNewOrg ? 'created' : 'exists'}: ${orgResult.organizationId}`,
-        );
-        console.log(
-          `📊 Organization type: ${isExpertRegistration ? 'expert_individual' : 'patient_personal'}`,
-        );
-        console.log(`🔗 Internal org ID: ${orgResult.internalOrgId}`);
+        logger.info('Organization created or exists', {
+          isNewOrg: orgResult.isNewOrg,
+          organizationId: orgResult.organizationId,
+          orgType: isExpertRegistration ? 'expert_individual' : 'patient_personal',
+          internalOrgId: orgResult.internalOrgId,
+        });
       } else {
-        console.error('❌ CRITICAL: Organization creation failed!');
-        console.error('Error:', orgResult.error);
-        console.error('User will be stuck on /onboarding page');
+        logger.error('Organization creation failed', {
+          error: orgResult.error,
+          userId: user.id,
+        });
         // This is a critical failure - user can't proceed without an organization
         // The /onboarding page will attempt to create a fallback organization
       }
     } catch (error) {
-      console.error('❌ Error in onSuccess callback:', error);
+      Sentry.captureException(error);
+      logger.error('Error in onSuccess callback', { error });
       // Don't throw - let authentication succeed even if database operations fail
       // This prevents auth loops if database is temporarily unavailable
     }
@@ -125,16 +132,29 @@ export const GET = handleAuth({
   },
 
   onError: async ({ error, request }) => {
-    console.error('❌ Authentication error:', error);
-    console.error('Request URL:', request.url);
-
-    // Log error details for debugging
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    Sentry.captureException(error);
+    logger.error('Authentication error', {
+      error,
+      requestUrl: request.url,
+      ...(error instanceof Error && {
+        message: error.message,
+        stack: error.stack,
+      }),
+    });
 
     // Return error response (handleAuth will redirect to sign-in with error)
     return new Response('Authentication failed', { status: 401 });
   },
 });
+
+export async function GET(request: Request) {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
+  const rl = await checkRateLimit(ip, 20, 60, 'auth-callback');
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+  return authHandler(request);
+}

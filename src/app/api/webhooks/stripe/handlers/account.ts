@@ -146,9 +146,9 @@ export async function handleAccountUpdated(account: Stripe.Account) {
                   },
                 },
               });
-              logger.info('✅ Novu workflow triggered for Connect account update');
+              logger.info('Novu workflow triggered for Connect account update');
             } catch (novuError) {
-              logger.error('❌ Failed to trigger Novu workflow', {
+              logger.error('Failed to trigger Novu workflow', {
                 error: novuError instanceof Error ? novuError.message : String(novuError),
               });
               // Don't fail the entire webhook for Novu errors

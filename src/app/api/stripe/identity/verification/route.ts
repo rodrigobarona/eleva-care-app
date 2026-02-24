@@ -6,9 +6,12 @@ import {
   getIdentityVerificationStatus,
 } from '@/lib/integrations/stripe/identity';
 import { checkRateLimit } from '@/lib/redis/rate-limiter';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes (DB fallback)
 
@@ -81,8 +84,9 @@ async function checkRateLimits(userId: string, clientIP: string) {
       },
     };
   } catch (error) {
-    console.error('Redis rate limiting error:', error);
-    console.warn('Falling back to database-based rate limiting due to Redis error');
+    Sentry.captureException(error);
+    logger.error('Redis rate limiting error', { error });
+    logger.warn('Falling back to database-based rate limiting due to Redis error');
     return { allowed: true as const, fallback: true };
   }
 }
@@ -116,7 +120,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkRateLimits(user.id, clientIP);
 
     if (!rateLimitResult.allowed) {
-      console.log(`Rate limit exceeded for user ${user.id} (IP: ${clientIP}):`, {
+      logger.info(logger.fmt`Rate limit exceeded for user ${user.id} (IP: ${clientIP})`, {
         reason: rateLimitResult.reason,
         limit: rateLimitResult.limit,
         resetTime: rateLimitResult.resetTime,
@@ -158,9 +162,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already has an active verification session
     if (dbUser.stripeIdentityVerificationId) {
-      console.log(
-        `User ${dbUser.id} already has a verification session: ${dbUser.stripeIdentityVerificationId}`,
-      );
+      logger.info(logger.fmt`User ${dbUser.id} already has a verification session: ${dbUser.stripeIdentityVerificationId}`);
 
       // Get the status of the existing verification
       try {
@@ -181,9 +183,7 @@ export async function POST(request: NextRequest) {
 
         // If session is in a usable state (requires_input or processing), return it for modal
         if (['requires_input', 'processing'].includes(verificationStatus.status)) {
-          console.log(
-            `Returning existing verification session in status: ${verificationStatus.status}`,
-          );
+          logger.info(logger.fmt`Returning existing verification session in status: ${verificationStatus.status}`);
 
           try {
             const existingSession = await stripe.identity.verificationSessions.retrieve(
@@ -200,17 +200,17 @@ export async function POST(request: NextRequest) {
               });
             }
           } catch (error) {
-            console.error(`Error retrieving existing verification session: ${error}`);
+            Sentry.captureException(error);
+            logger.error('Error retrieving existing verification session', { error });
             // Fall through to create a new session
           }
         }
 
         // For other states (canceled, etc), create a new session
-        console.log(
-          `Existing verification session is in status ${verificationStatus.status}, creating a new one`,
-        );
+        logger.info(logger.fmt`Existing verification session is in status ${verificationStatus.status}, creating a new one`);
       } catch (error) {
-        console.error(`Error checking existing verification status: ${error}`);
+        Sentry.captureException(error);
+        logger.error('Error checking existing verification status', { error });
         // If there was an error retrieving the status, we'll create a new session
       }
     }
@@ -223,9 +223,7 @@ export async function POST(request: NextRequest) {
 
       if (timeSinceLastAttempt < RATE_LIMIT_COOLDOWN_MS) {
         const remainingCooldown = Math.ceil((RATE_LIMIT_COOLDOWN_MS - timeSinceLastAttempt) / 1000);
-        console.log(
-          `Database rate limit exceeded for user ${dbUser.id}. Cooldown remaining: ${remainingCooldown}s`,
-        );
+        logger.info(logger.fmt`Database rate limit exceeded for user ${dbUser.id}. Cooldown remaining: ${remainingCooldown}s`);
 
         return NextResponse.json(
           {
@@ -273,7 +271,8 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Error creating identity verification:', error);
+    Sentry.captureException(error);
+    logger.error('Error creating identity verification', { error });
     return NextResponse.json({ error: 'Failed to create identity verification' }, { status: 500 });
   }
 }

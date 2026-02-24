@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { ImageResponse } from 'next/og';
+
+const { logger } = Sentry;
 import type { NextRequest } from 'next/server';
 import { z, ZodError } from 'zod';
 
@@ -521,7 +524,8 @@ async function handler(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('OG Image generation error:', error);
+    Sentry.captureException(error);
+    logger.error('OG Image generation error', { error });
 
     return new Response(
       JSON.stringify({

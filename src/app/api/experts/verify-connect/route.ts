@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { hasRole } from '@/lib/auth/roles.server';
+
+const { logger } = Sentry;
 import { verifyExpertConnectAccount } from '@/server/actions/experts';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
@@ -32,7 +35,8 @@ export async function POST() {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in verify-connect endpoint:', {
+    Sentry.captureException(error);
+    logger.error('Error in verify-connect endpoint', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

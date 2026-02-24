@@ -7,7 +7,32 @@
  */
 import { getUserSchedulingSettings, updateSchedulingSettings } from '@/server/schedulingSettings';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const { logger } = Sentry;
+
+const patchSchedulingSettingsSchema = z
+  .object({
+    beforeEventBuffer: z.number().min(0).optional(),
+    afterEventBuffer: z.number().min(0).optional(),
+    minimumNotice: z
+      .number()
+      .min(60)
+      .max(20160)
+      .refine((v) =>
+        [60, 180, 360, 720, 1440, 2880, 4320, 7200, 10080, 20160].includes(v),
+      )
+      .optional(),
+    timeSlotInterval: z
+      .number()
+      .min(5)
+      .refine((v) => v % 5 === 0)
+      .optional(),
+    bookingWindowDays: z.number().min(7).max(365).optional(),
+  })
+  .strict();
 
 /**
  * GET handler for fetching scheduling settings
@@ -17,22 +42,19 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user || !userId) {
-      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const settings = await getUserSchedulingSettings(userId);
 
     return NextResponse.json(settings);
   } catch (error) {
-    console.error('Error fetching scheduling settings:', error);
-    return new NextResponse(JSON.stringify({ error: 'Failed to fetch scheduling settings' }), {
-      status: 500,
-    });
+    Sentry.captureException(error);
+    logger.error('Error fetching scheduling settings', { error });
+    return NextResponse.json({ error: 'Failed to fetch scheduling settings' }, { status: 500 });
   }
 }
 
@@ -45,66 +67,27 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user || !userId) {
-      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const updates = await request.json();
-
-    // Validate the input
-    const validUpdates: Record<string, number> = {};
-
-    // Process buffer time before events
-    if (typeof updates.beforeEventBuffer === 'number' && updates.beforeEventBuffer >= 0) {
-      validUpdates.beforeEventBuffer = updates.beforeEventBuffer;
+    const bodyResult = patchSchedulingSettingsSchema.safeParse(await request.json());
+    if (!bodyResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: bodyResult.error.flatten() },
+        { status: 400 },
+      );
     }
+    const validUpdates = bodyResult.data;
 
-    // Process buffer time after events
-    if (typeof updates.afterEventBuffer === 'number' && updates.afterEventBuffer >= 0) {
-      validUpdates.afterEventBuffer = updates.afterEventBuffer;
-    }
-
-    // Process minimum notice period
-    if (
-      typeof updates.minimumNotice === 'number' &&
-      updates.minimumNotice >= 60 && // Minimum 1 hour
-      updates.minimumNotice <= 20160 && // Maximum 2 weeks
-      [60, 180, 360, 720, 1440, 2880, 4320, 7200, 10080, 20160].includes(updates.minimumNotice)
-    ) {
-      validUpdates.minimumNotice = updates.minimumNotice;
-    }
-
-    // Process time slot intervals
-    if (
-      typeof updates.timeSlotInterval === 'number' &&
-      updates.timeSlotInterval >= 5 &&
-      updates.timeSlotInterval % 5 === 0
-    ) {
-      // Must be in 5-minute increments
-      validUpdates.timeSlotInterval = updates.timeSlotInterval;
-    }
-
-    // Process booking window days
-    if (
-      typeof updates.bookingWindowDays === 'number' &&
-      updates.bookingWindowDays >= 7 && // Minimum 1 week
-      updates.bookingWindowDays <= 365 // Maximum 1 year
-    ) {
-      validUpdates.bookingWindowDays = updates.bookingWindowDays;
-    }
-
-    // Update settings in the database
     const updatedSettings = await updateSchedulingSettings(userId, validUpdates);
 
     return NextResponse.json(updatedSettings);
   } catch (error) {
-    console.error('Error updating scheduling settings:', error);
-    return new NextResponse(JSON.stringify({ error: 'Failed to update scheduling settings' }), {
-      status: 500,
-    });
+    Sentry.captureException(error);
+    logger.error('Error updating scheduling settings', { error });
+    return NextResponse.json({ error: 'Failed to update scheduling settings' }, { status: 500 });
   }
 }

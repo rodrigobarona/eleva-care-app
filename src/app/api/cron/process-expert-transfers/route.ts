@@ -8,6 +8,7 @@ import {
   PAYMENT_TRANSFER_STATUS_FAILED,
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
+import * as Sentry from '@sentry/nextjs';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
@@ -22,6 +23,8 @@ import {
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 // Process Expert Transfers - Automated fund transfers to expert accounts
 // Handles payment aging, country delays, and Stripe Connect integration
@@ -66,7 +69,7 @@ async function handler(request: Request) {
     // Find all pending transfers that are due (scheduled time ≤ now or manually approved)
     // AND have met the payment aging requirements
     const now = new Date();
-    console.log('Looking for transfers to process at:', now.toISOString());
+    logger.info('Looking for transfers to process at', { timestamp: now.toISOString() });
 
     // Get user information to determine country-specific payout delay
     const pendingTransfers = await db.query.PaymentTransfersTable.findMany({
@@ -85,8 +88,8 @@ async function handler(request: Request) {
       ),
     });
 
-    console.log(
-      `Found ${pendingTransfers.length} potential transfers to evaluate for payment aging`,
+    logger.info(
+      logger.fmt`Found ${pendingTransfers.length} potential transfers to evaluate for payment aging`,
     );
 
     // Filter transfers based on payment aging requirements
@@ -105,8 +108,8 @@ async function handler(request: Request) {
         });
 
         if (!expertUser) {
-          console.error(
-            `Could not find expert user ${transfer.expertWorkosUserId} for transfer ${transfer.id}`,
+          logger.error(
+            logger.fmt`Could not find expert user ${transfer.expertWorkosUserId} for transfer ${transfer.id}`,
           );
           continue;
         }
@@ -118,7 +121,7 @@ async function handler(request: Request) {
         });
 
         if (!event) {
-          console.error(`Could not find event ${transfer.eventId} for transfer ${transfer.id}`);
+          logger.error(logger.fmt`Could not find event ${transfer.eventId} for transfer ${transfer.id}`);
           continue;
         }
 
@@ -144,8 +147,8 @@ async function handler(request: Request) {
           (now.getTime() - appointmentEndTime.getTime()) / (1000 * 60 * 60),
         );
 
-        console.log(
-          `Transfer ${transfer.id}: Payment age is ${daysSincePayment} days (required: ${requiredAgingDays}), appointment ended ${hoursSinceAppointmentEnd}h ago (required: 24h)`,
+        logger.info(
+          logger.fmt`Transfer ${transfer.id}: Payment age is ${daysSincePayment} days (required: ${requiredAgingDays}), appointment ended ${hoursSinceAppointmentEnd}h ago (required: 24h)`,
         );
 
         // Both conditions must be met:
@@ -156,8 +159,8 @@ async function handler(request: Request) {
 
         if (paymentAgedEnough && appointmentComplaintWindowPassed) {
           eligibleTransfers.push(transfer);
-          console.log(
-            `✅ Transfer ${transfer.id} eligible: payment aged ${daysSincePayment}d, appointment ended ${hoursSinceAppointmentEnd}h ago`,
+          logger.info(
+            logger.fmt`Transfer ${transfer.id} eligible: payment aged ${daysSincePayment}d, appointment ended ${hoursSinceAppointmentEnd}h ago`,
           );
         } else {
           const reasons = [];
@@ -167,21 +170,24 @@ async function handler(request: Request) {
           if (!appointmentComplaintWindowPassed) {
             reasons.push(`appointment completion wait (${hoursSinceAppointmentEnd}/24 hours)`);
           }
-          console.log(`❌ Transfer ${transfer.id} not ready: ${reasons.join(', ')}`);
+          logger.info(logger.fmt`Transfer ${transfer.id} not ready: ${reasons.join(', ')}`);
         }
       } catch (error) {
-        console.error(`Error evaluating transfer eligibility for transfer ${transfer.id}:`, error);
+        Sentry.captureException(error);
+        logger.error(logger.fmt`Error evaluating transfer eligibility for transfer ${transfer.id}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
-    console.log(
-      `Found ${eligibleTransfers.length} transfers eligible for processing after payment aging check`,
+    logger.info(
+      logger.fmt`Found ${eligibleTransfers.length} transfers eligible for processing after payment aging check`,
     );
 
     // Process each eligible transfer
     const results = await Promise.allSettled(
       eligibleTransfers.map(async (transfer) => {
-        console.log(`Processing transfer for payment intent: ${transfer.paymentIntentId}`);
+        logger.info(logger.fmt`Processing transfer for payment intent: ${transfer.paymentIntentId}`);
 
         try {
           // Retrieve the PaymentIntent to get the charge ID
@@ -199,7 +205,7 @@ async function handler(request: Request) {
               ? paymentIntent.latest_charge
               : paymentIntent.latest_charge.id;
 
-          console.log(`Using charge ID ${chargeId} for transfer`);
+          logger.info(logger.fmt`Using charge ID ${chargeId} for transfer`);
 
           // ✅ CRITICAL FIX: Check if a Stripe transfer already exists for this charge
           // This prevents duplicate transfers when webhooks have already processed the payment
@@ -246,8 +252,8 @@ async function handler(request: Request) {
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
-          console.log(
-            `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertWorkosUserId}`,
+          logger.info(
+            logger.fmt`Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertWorkosUserId}`,
           );
 
           // Send notification to the expert
@@ -258,11 +264,14 @@ async function handler(request: Request) {
               currency: transfer.currency,
               eventId: transfer.eventId,
             });
-            console.log(
-              `Payment completion notification sent to expert ${transfer.expertWorkosUserId}`,
+            logger.info(
+              logger.fmt`Payment completion notification sent to expert ${transfer.expertWorkosUserId}`,
             );
           } catch (notificationError) {
-            console.error('Error sending payment notification:', notificationError);
+            Sentry.captureException(notificationError);
+            logger.error('Error sending payment notification', {
+              error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+            });
             // Continue processing even if notification fails
           }
 
@@ -272,7 +281,10 @@ async function handler(request: Request) {
             paymentTransferId: transfer.id,
           } as SuccessResult;
         } catch (error) {
-          console.error('Error creating Stripe transfer:', error);
+          Sentry.captureException(error);
+          logger.error('Error creating Stripe transfer', {
+            error: error instanceof Error ? error.message : String(error),
+          });
 
           const stripeError = error as Stripe.errors.StripeError;
           // Increment retry count, with maximum retry limit
@@ -303,11 +315,14 @@ async function handler(request: Request) {
                 currency: transfer.currency,
                 errorMessage: stripeError.message || 'Unknown payment processing error',
               });
-              console.log(
-                `Payment failure notification sent to expert ${transfer.expertWorkosUserId}`,
+              logger.info(
+                logger.fmt`Payment failure notification sent to expert ${transfer.expertWorkosUserId}`,
               );
             } catch (notificationError) {
-              console.error('Error sending payment failure notification:', notificationError);
+              Sentry.captureException(notificationError);
+              logger.error('Error sending payment failure notification', {
+                error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+              });
               // Continue processing even if notification fails
             }
           }
@@ -352,7 +367,10 @@ async function handler(request: Request) {
 
     return NextResponse.json({ success: true, summary });
   } catch (error) {
-    console.error('Error processing expert transfers:', error);
+    Sentry.captureException(error);
+    logger.error('Error processing expert transfers', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Send failure heartbeat to BetterStack
     await sendHeartbeatFailure(

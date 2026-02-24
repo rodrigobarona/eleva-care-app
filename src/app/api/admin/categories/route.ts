@@ -2,10 +2,13 @@ import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
 import { isAdmin } from '@/lib/auth/roles.server';
 import type { ApiResponse } from '@/types/api';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+const { logger } = Sentry;
 
 /** Zod schema for category creation/update */
 const categorySchema = z.object({
@@ -36,7 +39,8 @@ export async function GET() {
       data: categories,
     } as ApiResponse<unknown[]>);
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching categories', { error });
     return NextResponse.json(
       {
         success: false,
@@ -59,7 +63,8 @@ export async function POST(request: Request) {
     const authResult = await withAuth();
     user = authResult.user;
   } catch (error) {
-    console.error('Auth error in category creation:', error);
+    Sentry.captureException(error);
+    logger.error('Auth error in category creation', { error });
     return NextResponse.json(
       {
         success: false,
@@ -79,7 +84,8 @@ export async function POST(request: Request) {
   try {
     isUserAdmin = await isAdmin();
   } catch (error) {
-    console.error('Role check error in category creation:', error);
+    Sentry.captureException(error);
+    logger.error('Role check error in category creation', { error });
     return NextResponse.json(
       {
         success: false,
@@ -103,7 +109,7 @@ export async function POST(request: Request) {
   })) as import('@/types/botid').BotIdVerificationResult;
 
   if (botVerification.isBot && !botVerification.isVerifiedBot) {
-    console.warn('🚫 Bot detected in admin category creation:', {
+    logger.warn('Bot detected in admin category creation', {
       isVerifiedBot: botVerification.isVerifiedBot,
       verifiedBotName: botVerification.verifiedBotName,
     });
@@ -153,7 +159,8 @@ export async function POST(request: Request) {
       data: newCategory[0],
     } as ApiResponse<(typeof newCategory)[0]>);
   } catch (error) {
-    console.error('Error creating category:', error);
+    Sentry.captureException(error);
+    logger.error('Error creating category', { error });
     return NextResponse.json(
       {
         success: false,

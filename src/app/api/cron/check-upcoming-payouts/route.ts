@@ -2,6 +2,7 @@ import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
@@ -12,6 +13,8 @@ import { getFullUserByWorkosId as getUserByWorkosId } from '@/server/db/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // Check Upcoming Payouts - Notifies experts about upcoming eligible payouts
 // Performs the following tasks:
@@ -28,7 +31,7 @@ export const maxDuration = 60;
 // This CRON job runs daily and checks for payments that will be eligible for payout soon
 // It sends notifications to experts about upcoming payouts
 async function handler(request: Request) {
-  console.log('Starting check for upcoming payouts...');
+  logger.info('Starting check for upcoming payouts...');
 
   try {
     // Get all pending transfers that have not been notified yet
@@ -43,8 +46,8 @@ async function handler(request: Request) {
         ),
       );
 
-    console.log(
-      `Found ${pendingTransfers.length} pending transfers to check for upcoming payout notifications`,
+    logger.info(
+      logger.fmt`Found ${pendingTransfers.length} pending transfers to check for upcoming payout notifications`,
     );
 
     const results = {
@@ -58,8 +61,8 @@ async function handler(request: Request) {
         // Get the expert's country to determine payout delay
         const expert = await getUserByWorkosId(transfer.expertWorkosUserId);
         if (!expert || !expert.country) {
-          console.log(
-            `Expert ${transfer.expertWorkosUserId} not found or has no country set, skipping notification`,
+          logger.info(
+            logger.fmt`Expert ${transfer.expertWorkosUserId} not found or has no country set, skipping notification`,
           );
           continue;
         }
@@ -94,21 +97,22 @@ async function handler(request: Request) {
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
-          console.log(
-            `Sent upcoming payout notification to expert ${transfer.expertWorkosUserId} for payment transfer ${transfer.id}`,
+          logger.info(
+            logger.fmt`Sent upcoming payout notification to expert ${transfer.expertWorkosUserId} for payment transfer ${transfer.id}`,
           );
           results.notifications_sent++;
         }
       } catch (error) {
-        console.error(
-          `Error processing upcoming payout notification for transfer ${transfer.id}:`,
-          error,
+        Sentry.captureException(error);
+        logger.error(
+          logger.fmt`Error processing upcoming payout notification for transfer ${transfer.id}`,
+          { error: error instanceof Error ? error.message : String(error) },
         );
         results.errors++;
       }
     }
 
-    console.log('Completed upcoming payouts check. Results:', results);
+    logger.info('Completed upcoming payouts check', { results });
 
     // Send success heartbeat to BetterStack
     await sendHeartbeatSuccess({
@@ -118,7 +122,10 @@ async function handler(request: Request) {
 
     return NextResponse.json(results);
   } catch (error) {
-    console.error('Error in check-upcoming-payouts CRON job:', error);
+    Sentry.captureException(error);
+    logger.error('Error in check-upcoming-payouts CRON job', {
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Send failure heartbeat to BetterStack
     await sendHeartbeatFailure(

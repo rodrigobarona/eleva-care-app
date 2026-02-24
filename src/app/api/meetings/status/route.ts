@@ -1,8 +1,21 @@
 import { db } from '@/drizzle/db';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export async function GET(request: Request) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    const rl = await checkRateLimit(ip, 30, 60, 'meeting-status');
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const { searchParams } = new URL(request.url);
     const startTime = searchParams.get('startTime');
     const eventSlug = searchParams.get('eventSlug');
@@ -31,7 +44,8 @@ export async function GET(request: Request) {
       meeting: meeting ? { id: meeting.id } : null,
     });
   } catch (error) {
-    console.error('Error checking meeting status:', error);
+    Sentry.captureException(error);
+    logger.error('Error checking meeting status', { error });
     return NextResponse.json({ error: 'Failed to check meeting status' }, { status: 500 });
   }
 }

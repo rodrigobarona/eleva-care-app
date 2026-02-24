@@ -1,7 +1,13 @@
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import { z } from 'zod';
+
+const { logger } = Sentry;
 import { del, put } from '@vercel/blob';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
+
+const folderSchema = z.enum(['general', 'profiles', 'medical-images', 'categories']);
 
 /**
  * Handles file uploads to Vercel Blob storage
@@ -24,7 +30,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     })) as import('@/types/botid').BotIdVerificationResult;
 
     if (botVerification.isBot) {
-      console.warn('🚫 Bot detected in file upload:', {
+      logger.warn('Bot detected in file upload', {
         isVerifiedBot: botVerification.isVerifiedBot,
         verifiedBotName: botVerification.verifiedBotName,
       });
@@ -46,8 +52,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const { searchParams } = new URL(request.url);
     const filename = searchParams.get('filename');
-    const folder = searchParams.get('folder') || 'general';
+    const folderParam = searchParams.get('folder') || 'general';
     const addRandomSuffix = searchParams.get('addRandomSuffix') !== 'false'; // Default to true
+
+    const folderResult = folderSchema.safeParse(folderParam);
+    if (!folderResult.success) {
+      return NextResponse.json({ error: 'Invalid folder' }, { status: 400 });
+    }
+    const folder = folderResult.data;
 
     if (!filename) {
       return NextResponse.json({ error: 'Filename is required' }, { status: 400 });
@@ -72,7 +84,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       success: true,
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    logger.error('Error uploading file', { error: error instanceof Error ? error.message : String(error) });
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error', success: false },
       { status: 500 },
@@ -108,7 +121,8 @@ export async function DELETE(request: Request): Promise<NextResponse> {
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('Error deleting file:', error);
+    Sentry.captureException(error);
+    logger.error('Error deleting file', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 },

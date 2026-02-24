@@ -1,6 +1,9 @@
 import { getUserRole } from '@/lib/auth/roles.server';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export async function GET() {
   try {
@@ -20,7 +23,8 @@ export async function GET() {
       role,
     });
   } catch (error) {
-    console.error('Error fetching user authorization details:', error);
+    logger.error('Error fetching user authorization details', { error });
+    Sentry.captureException(error);
     return NextResponse.json(
       { error: 'Internal Server Error', message: 'Failed to fetch user authorization details' },
       { status: 500 },

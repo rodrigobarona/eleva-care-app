@@ -1,8 +1,11 @@
 import { hasRole } from '@/lib/auth/roles.server';
 import { isQStashAvailable, validateQStashConfig } from '@/lib/integrations/qstash/config';
+import * as Sentry from '@sentry/nextjs';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * QStash health check endpoint
@@ -52,7 +55,8 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error checking QStash health:', error);
+    Sentry.captureException(error);
+    logger.error('Error checking QStash health', { error });
     return NextResponse.json(
       {
         status: 'error',

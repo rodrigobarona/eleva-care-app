@@ -6,6 +6,21 @@ import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
+
+const { logger } = Sentry;
+
+const postRecordSchema = z.object({
+  content: z.string(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+const putRecordSchema = z.object({
+  recordId: z.string(),
+  content: z.string(),
+  metadata: z.record(z.unknown()).optional(),
+});
 
 /**
  * Decrypted record shape returned to clients.
@@ -52,7 +67,14 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { content, metadata } = await request.json();
+    const bodyResult = postRecordSchema.safeParse(await request.json());
+    if (!bodyResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: bodyResult.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const { content, metadata } = bodyResult.data;
 
     // Verify the meeting belongs to this expert
     const meeting = await db.query.MeetingsTable.findFirst({
@@ -67,10 +89,9 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     // Check for legacy meetings without org context (created before org-scoping Phase 5)
     // These cannot create encrypted records until migrated to an organization
     if (!meeting.orgId) {
-      console.warn(
-        '[LEGACY] Meeting missing orgId - cannot create encrypted record:',
-        params.meetingId,
-      );
+      logger.warn('Meeting missing orgId - cannot create encrypted record', {
+        meetingId: params.meetingId,
+      });
       return NextResponse.json(
         {
           error: 'Legacy meeting requires migration',
@@ -87,8 +108,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     // Get WorkOS org ID for Vault encryption
     const workosOrgId = await getWorkosOrgId(meeting.orgId);
     if (!workosOrgId) {
-      // This indicates a data integrity issue: meeting has orgId but org doesn't exist
-      console.error('[DATA_INTEGRITY] Organization not found for meeting:', {
+      logger.error('Organization not found for meeting', {
         meetingId: params.meetingId,
         orgId: meeting.orgId,
       });
@@ -139,13 +159,14 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         },
       });
     } catch (auditError) {
-      console.error('Error logging audit event for MEDICAL_RECORD_CREATED:', auditError);
-      // Do not fail the request if audit logging fails
+      Sentry.captureException(auditError);
+      logger.error('Error logging audit event for MEDICAL_RECORD_CREATED', { error: auditError });
     }
 
     return NextResponse.json({ success: true, recordId: record.id });
   } catch (error) {
-    console.error('Error creating record:', error);
+    Sentry.captureException(error);
+    logger.error('Error creating record', { error });
     logSecurityError(error, 'MEDICAL_RECORD_CREATED', 'medical_record', params.meetingId);
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
   }
@@ -172,7 +193,9 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
 
     // Check for legacy meetings without org context (created before org-scoping Phase 5)
     if (!meeting.orgId) {
-      console.warn('[LEGACY] Meeting missing orgId - cannot decrypt records:', params.meetingId);
+      logger.warn('Meeting missing orgId - cannot decrypt records', {
+        meetingId: params.meetingId,
+      });
       return NextResponse.json(
         {
           error: 'Legacy meeting requires migration',
@@ -189,8 +212,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     // Get WorkOS org ID for Vault decryption
     const workosOrgId = await getWorkosOrgId(meeting.orgId);
     if (!workosOrgId) {
-      // This indicates a data integrity issue: meeting has orgId but org doesn't exist
-      console.error('[DATA_INTEGRITY] Organization not found for meeting:', {
+      logger.error('Organization not found for meeting', {
         meetingId: params.meetingId,
         orgId: meeting.orgId,
       });
@@ -244,15 +266,12 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
 
           return decryptedRecord;
         } catch (decryptError) {
-          // Log internally but don't expose failure details to client
-          console.error(
-            '[SECURITY] Failed to decrypt record:',
-            JSON.stringify({
-              recordId: record.id,
-              meetingId: params.meetingId,
-              error: decryptError instanceof Error ? decryptError.message : 'Unknown',
-            }),
-          );
+          Sentry.captureException(decryptError);
+          logger.error('Failed to decrypt record', {
+            recordId: record.id,
+            meetingId: params.meetingId,
+            error: decryptError instanceof Error ? decryptError.message : 'Unknown',
+          });
           return null;
         }
       }),
@@ -274,7 +293,8 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
         failedDecryptions: failedCount,
       });
     } catch (auditError) {
-      console.error('Error logging audit event for MEDICAL_RECORD_VIEWED:', auditError);
+      Sentry.captureException(auditError);
+      logger.error('Error logging audit event for MEDICAL_RECORD_VIEWED', { error: auditError });
     }
 
     // Return records with metadata about the response
@@ -287,7 +307,8 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       },
     });
   } catch (error) {
-    console.error('Error fetching records:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching records', { error });
     logSecurityError(error, 'MEDICAL_RECORD_VIEWED', 'medical_record', params.meetingId);
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
@@ -302,7 +323,14 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { recordId, content, metadata } = await request.json();
+    const bodyResult = putRecordSchema.safeParse(await request.json());
+    if (!bodyResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: bodyResult.error.flatten() },
+        { status: 400 },
+      );
+    }
+    const { recordId, content, metadata } = bodyResult.data;
 
     // Verify the record belongs to this expert and retrieve its current state for audit logging
     const oldRecord = await db.query.RecordsTable.findFirst({
@@ -317,7 +345,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     // Check for legacy records without org context (created before org-scoping Phase 5)
     // These cannot be updated with encryption until migrated to an organization
     if (!oldRecord.orgId) {
-      console.warn('[LEGACY] Record missing orgId - cannot update with encryption:', recordId);
+      logger.warn('Record missing orgId - cannot update with encryption', { recordId });
       return NextResponse.json(
         {
           error: 'Legacy record requires migration',
@@ -334,8 +362,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     // Get WorkOS org ID for Vault encryption
     const workosOrgId = await getWorkosOrgId(oldRecord.orgId);
     if (!workosOrgId) {
-      // This indicates a data integrity issue: record has orgId but org doesn't exist
-      console.error('[DATA_INTEGRITY] Organization not found for record:', {
+      logger.error('Organization not found for record', {
         recordId,
         orgId: oldRecord.orgId,
       });
@@ -395,12 +422,14 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
         },
       });
     } catch (auditError) {
-      console.error('Error logging audit event for MEDICAL_RECORD_UPDATED:', auditError);
+      Sentry.captureException(auditError);
+      logger.error('Error logging audit event for MEDICAL_RECORD_UPDATED', { error: auditError });
     }
 
     return NextResponse.json({ success: true, recordId: updatedRecord.id });
   } catch (error) {
-    console.error('Error updating record:', error);
+    Sentry.captureException(error);
+    logger.error('Error updating record', { error });
     logSecurityError(error, 'MEDICAL_RECORD_UPDATED', 'medical_record', params.meetingId);
     return NextResponse.json({ error: 'Failed to update record' }, { status: 500 });
   }

@@ -6,9 +6,12 @@
  */
 import { db } from '@/drizzle/db';
 import { RolesTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export async function GET() {
   try {
@@ -37,7 +40,8 @@ export async function GET() {
 
     return NextResponse.json({ roles });
   } catch (error) {
-    console.error('Error fetching user roles:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching user roles', { error });
     return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });
   }
 }

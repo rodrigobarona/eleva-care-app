@@ -7,7 +7,7 @@
  * Usage:
  * - GET /api/health/stripe - Check Stripe API connectivity
  * - GET /api/health/neon-database - Check database connectivity
- * - GET /api/health/clerk - Check Clerk API connectivity
+ * - GET /api/health/workos - Check WorkOS API connectivity
  * - etc.
  *
  * Available services:
@@ -15,15 +15,19 @@
  * - neon-database
  * - audit-database
  * - stripe
- * - clerk
+ * - workos
  * - upstash-redis
  * - upstash-qstash
  * - resend
  * - posthog
  * - novu
  */
+import * as Sentry from '@sentry/nextjs';
+import { checkRateLimit } from '@/lib/redis/rate-limiter';
 import { getAvailableServices, getServiceHealthCheck } from '@/lib/utils/server/service-health';
 import { NextRequest, NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export const maxDuration = 30;
 
@@ -35,6 +39,15 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    const rl = await checkRateLimit(ip, 30, 60, 'health-check');
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const { service } = await params;
 
     // Special endpoint to list all available services
@@ -101,7 +114,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error('Service health check failed:', error);
+    Sentry.captureException(error);
+    logger.error('Service health check failed', { error });
 
     return NextResponse.json(
       {

@@ -1,9 +1,11 @@
-import { getServerStripe } from '@/lib/integrations/stripe';
-import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
+import { getServerStripe, getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 // Mark route as dynamic
 
@@ -16,7 +18,7 @@ export async function GET() {
     const { user } = await withAuth();
     const userId = user?.id;
     workosUserId = userId ?? null;
-    console.log('Auth check result:', { userId, hasId: !!userId });
+    logger.info('Auth check result', { userId, hasId: !!userId });
 
     if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,7 +28,7 @@ export async function GET() {
     const dbUser = await ensureFullUserSynchronization(userId);
 
     if (!dbUser) {
-      console.error('Failed to synchronize user:', { workosUserId: userId });
+      logger.error('Failed to synchronize user', { workosUserId: userId });
       return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
 
@@ -37,14 +39,14 @@ export async function GET() {
         const customerResponse = await stripe.customers.retrieve(dbUser.stripeCustomerId);
         if (!('deleted' in customerResponse)) {
           customerData = customerResponse;
-          console.log('Retrieved customer data:', {
+          logger.info('Retrieved customer data', {
             customerId: customerData.id,
             hasDefaultPaymentMethod: !!customerData.invoice_settings?.default_payment_method,
           });
         }
       }
     } catch (stripeError) {
-      console.error('Error retrieving Stripe customer:', stripeError);
+      logger.error('Error retrieving Stripe customer', { error: stripeError });
     }
 
     // Get Stripe account status if connected
@@ -53,7 +55,7 @@ export async function GET() {
       try {
         accountStatus = await getStripeConnectAccountStatus(dbUser.stripeConnectAccountId);
       } catch (stripeError) {
-        console.error('Error retrieving Stripe Connect account status:', stripeError);
+        logger.error('Error retrieving Stripe Connect account status', { error: stripeError });
       }
     }
 
@@ -73,7 +75,8 @@ export async function GET() {
       accountStatus,
     });
   } catch (error) {
-    console.error('Error in user billing API:', {
+    Sentry.captureException(error);
+    logger.error('Error in user billing API', {
       error,
       workosUserId,
       timestamp: new Date().toISOString(),

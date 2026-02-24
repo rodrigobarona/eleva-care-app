@@ -1,8 +1,21 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const { logger } = Sentry;
+
+const putSecurityPreferencesSchema = z.object({
+  preferences: z
+    .object({
+      theme: z.enum(['light', 'dark', 'system']).optional(),
+      language: z.enum(['en', 'es', 'pt', 'br']).optional(),
+    })
+    .strict(),
+});
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
@@ -46,7 +59,8 @@ export async function GET() {
       preferences,
     });
   } catch (error) {
-    console.error('Error fetching user preferences:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching user preferences', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -65,42 +79,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const preferences: Partial<UserPreferences> = body.preferences;
-
-    if (!preferences || typeof preferences !== 'object') {
-      return NextResponse.json({ error: 'Invalid preferences data' }, { status: 400 });
-    }
-
-    // Validate preference values
-    const validKeys = ['theme', 'language'];
-
-    const invalidKeys = Object.keys(preferences).filter((key) => !validKeys.includes(key));
-    if (invalidKeys.length > 0) {
+    const bodyResult = putSecurityPreferencesSchema.safeParse(await req.json());
+    if (!bodyResult.success) {
       return NextResponse.json(
-        {
-          error: `Invalid preference keys: ${invalidKeys.join(', ')}. Valid keys: ${validKeys.join(', ')}`,
-        },
+        { error: 'Invalid request body', details: bodyResult.error.flatten() },
         { status: 400 },
       );
     }
+    const preferences = bodyResult.data.preferences;
 
-    // Validate types
-    if (preferences.theme && !['light', 'dark', 'system'].includes(preferences.theme)) {
-      return NextResponse.json(
-        { error: "Invalid theme value. Must be 'light', 'dark', or 'system'" },
-        { status: 400 },
-      );
-    }
-
-    if (preferences.language && !['en', 'es', 'pt', 'br'].includes(preferences.language)) {
-      return NextResponse.json(
-        { error: "Invalid language value. Must be 'en', 'es', 'pt', or 'br'" },
-        { status: 400 },
-      );
-    }
-
-    // Update preferences directly in UsersTable
     const updateData: Partial<{
       theme: 'light' | 'dark' | 'system';
       language: 'en' | 'es' | 'pt' | 'br';
@@ -132,7 +119,8 @@ export async function PUT(req: NextRequest) {
         : preferences,
     });
   } catch (error) {
-    console.error('Error updating user preferences:', error);
+    Sentry.captureException(error);
+    logger.error('Error updating user preferences', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,8 +1,11 @@
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
+import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // Mark route as dynamic
 
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User has no Identity verification ID' }, { status: 400 });
     }
 
-    console.log('Force-verifying Connect account for user:', {
+    logger.info('Force-verifying Connect account for user', {
       workosUserId,
       userId: user.id,
       email: user.email,
@@ -113,7 +116,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error force-verifying Connect account:', error);
+    logger.error('Error force-verifying Connect account', { error });
+    Sentry.captureException(error);
     return NextResponse.json(
       {
         error: 'Internal server error',

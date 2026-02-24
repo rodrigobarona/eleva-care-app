@@ -4,8 +4,11 @@ import { logSecurityError } from '@/lib/constants/security';
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { count, eq, inArray } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /** Maximum records per page to prevent excessive memory/decryption costs */
 const MAX_PAGE_SIZE = 100;
@@ -84,14 +87,11 @@ export async function GET(request: NextRequest) {
 
     // Log security warning for records missing required orgId
     if (recordsWithoutOrg.length > 0) {
-      console.error(
-        '[SECURITY] Records missing required orgId - cannot decrypt:',
-        JSON.stringify({
-          count: recordsWithoutOrg.length,
-          recordIds: recordsWithoutOrg.map((r) => r.id),
-          expertId: workosUserId,
-        }),
-      );
+      logger.error('Records missing required orgId - cannot decrypt', {
+        count: recordsWithoutOrg.length,
+        recordIds: recordsWithoutOrg.map((r) => r.id),
+        expertId: workosUserId,
+      });
     }
 
     // Batch fetch all org mappings in one query to avoid N+1
@@ -107,10 +107,10 @@ export async function GET(request: NextRequest) {
 
         // Organization mapping not found - data integrity issue
         if (!workosOrgId) {
-          console.error(
-            '[SECURITY] Organization mapping not found for record:',
-            JSON.stringify({ recordId: record.id, orgId: record.orgId }),
-          );
+          logger.error('Organization mapping not found for record', {
+            recordId: record.id,
+            orgId: record.orgId,
+          });
           return null;
         }
 
@@ -147,11 +147,11 @@ export async function GET(request: NextRequest) {
 
           return decryptedRecord;
         } catch (decryptError) {
-          // Log internally but don't expose failure details to client
-          console.error(
-            '[SECURITY] Failed to decrypt record:',
-            JSON.stringify({ recordId: record.id, error: decryptError instanceof Error ? decryptError.message : 'Unknown' }),
-          );
+          Sentry.captureException(decryptError);
+          logger.error('Failed to decrypt record', {
+            recordId: record.id,
+            error: decryptError instanceof Error ? decryptError.message : 'Unknown',
+          });
           return null;
         }
       }),
@@ -183,8 +183,8 @@ export async function GET(request: NextRequest) {
         );
       }
     } catch (auditError) {
-      // Log but don't fail the request - audit is best-effort
-      console.error('Error logging audit events for MEDICAL_RECORD_VIEWED:', auditError);
+      Sentry.captureException(auditError);
+      logger.error('Error logging audit events for MEDICAL_RECORD_VIEWED', { error: auditError });
     }
 
     // Return records with pagination metadata
@@ -202,7 +202,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching records:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching records', { error });
     logSecurityError(error, 'MEDICAL_RECORD_VIEWED', 'medical_record', 'bulk_fetch');
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }

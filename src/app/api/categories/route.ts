@@ -1,7 +1,10 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export async function GET() {
   try {
@@ -16,7 +19,8 @@ export async function GET() {
     });
     return NextResponse.json(categories);
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching categories', { error });
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

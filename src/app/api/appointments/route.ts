@@ -1,8 +1,11 @@
 import { db } from '@/drizzle/db';
 import { MeetingsTable, SlotReservationsTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import * as Sentry from '@sentry/nextjs';
 import { and, eq, gt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // Add route segment config
 
@@ -39,9 +42,9 @@ export async function GET() {
       orderBy: (reservations, { desc }) => [desc(reservations.startTime)],
     });
 
-    console.log(
-      `[Appointments API] Found ${appointments.length} appointments and ${reservations.length} active reservations for expert ${userId} (timezone: ${expertTimezone})`,
-    );
+    logger.info(logger.fmt`Found ${appointments.length} appointments and ${reservations.length} active reservations for expert ${userId}`, {
+      timezone: expertTimezone,
+    });
 
     return NextResponse.json({
       expertTimezone, // Include expert's timezone in response
@@ -73,7 +76,8 @@ export async function GET() {
       })),
     });
   } catch (error) {
-    console.error('Error fetching appointments and reservations:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching appointments and reservations', { error });
     return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
   }
 }

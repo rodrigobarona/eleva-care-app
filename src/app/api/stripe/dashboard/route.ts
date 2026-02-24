@@ -1,20 +1,23 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { getStripeConnectSetupOrLoginLink } from '@/lib/integrations/stripe';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
+const { logger } = Sentry;
+
 export async function POST() {
   try {
-    console.log('Starting dashboard route handler');
+    logger.debug('Starting dashboard route handler');
 
     const { user } = await withAuth();
     const userId = user?.id;
-    console.log('Auth check completed', { userId });
+    logger.debug('Auth check completed', { userId });
 
     if (!user || !userId) {
-      console.log('No userId found in auth');
+      logger.debug('No userId found in auth');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,7 +25,7 @@ export async function POST() {
     const dbUser = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, userId),
     });
-    console.log('User query completed', {
+    logger.debug('User query completed', {
       found: !!dbUser,
       hasConnectAccount: !!dbUser?.stripeConnectAccountId,
       connectAccountId: dbUser?.stripeConnectAccountId,
@@ -37,12 +40,13 @@ export async function POST() {
 
     try {
       // Get the appropriate URL (setup or login link)
-      console.log('Attempting to create Stripe link', { accountId: dbUser.stripeConnectAccountId });
+      logger.debug('Attempting to create Stripe link', { accountId: dbUser.stripeConnectAccountId });
       const url = await getStripeConnectSetupOrLoginLink(dbUser.stripeConnectAccountId);
-      console.log('Successfully created Stripe link');
+      logger.debug('Successfully created Stripe link');
       return NextResponse.json({ url });
     } catch (stripeError) {
-      console.error('Stripe link creation failed', {
+      Sentry.captureException(stripeError);
+      logger.error('Stripe link creation failed', {
         error: stripeError,
         accountId: dbUser.stripeConnectAccountId,
         errorMessage: stripeError instanceof Error ? stripeError.message : 'Unknown error',
@@ -50,7 +54,8 @@ export async function POST() {
       throw stripeError;
     }
   } catch (error) {
-    console.error('Dashboard route handler failed', {
+    Sentry.captureException(error);
+    logger.error('Dashboard route handler failed', {
       error,
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,

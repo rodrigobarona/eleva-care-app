@@ -13,13 +13,15 @@ import {
 } from '@/lib/integrations/betterstack/heartbeat';
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
-import { logger } from '@/lib/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import Stripe from 'stripe';
+
+const { logger } = Sentry;
 
 // Add route segment config
 export const preferredRegion = 'auto';
@@ -39,7 +41,8 @@ async function rateLimitedStripeCall<T>(
     await new Promise((resolve) => setTimeout(resolve, 25));
     return result;
   } catch (error) {
-    logger.error(`Stripe API error during ${operationName}`, {
+    Sentry.captureException(error);
+    logger.error(logger.fmt`Stripe API error during ${operationName}`, {
       error: error instanceof Error ? error.message : String(error),
     });
     throw error;
@@ -179,7 +182,7 @@ async function handler(request: NextRequest) {
           ),
         );
 
-      logger.info(`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`);
+      logger.info(logger.fmt`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`);
 
       let stageRemindersSent = 0;
 
@@ -187,7 +190,7 @@ async function handler(request: NextRequest) {
         const { reservation, event, expert, profile } = item;
 
         if (!event || !expert) {
-          logger.warn(`Skipping reservation ${reservation.id} - missing event or expert data`);
+          logger.warn(logger.fmt`Skipping reservation ${reservation.id} - missing event or expert data`);
           continue;
         }
 
@@ -204,7 +207,7 @@ async function handler(request: NextRequest) {
           // Don't send gentle reminders too early (wait at least 48 hours after creation)
           if (stage.type === 'gentle' && hoursSinceCreation < 48) {
             logger.info(
-              `Skipping gentle reminder for reservation ${reservation.id} - too recent (${hoursSinceCreation.toFixed(1)}h old)`,
+              logger.fmt`Skipping gentle reminder for reservation ${reservation.id} - too recent (${hoursSinceCreation.toFixed(1)}h old)`,
             );
             continue;
           }
@@ -212,7 +215,7 @@ async function handler(request: NextRequest) {
           // Don't send urgent reminders too early (wait at least 120 hours after creation)
           if (stage.type === 'urgent' && hoursSinceCreation < 120) {
             logger.info(
-              `Skipping urgent reminder for reservation ${reservation.id} - not urgent yet (${hoursSinceCreation.toFixed(1)}h old)`,
+              logger.fmt`Skipping urgent reminder for reservation ${reservation.id} - not urgent yet (${hoursSinceCreation.toFixed(1)}h old)`,
             );
             continue;
           }
@@ -262,11 +265,12 @@ async function handler(request: NextRequest) {
                 // Fallback: Use amount from payment intent if Multibanco details not available
                 multibancoDetails.amount = (paymentIntent.amount / 100).toFixed(2);
                 logger.warn(
-                  `Multibanco details not found for payment intent ${reservation.stripePaymentIntentId}`,
+                  logger.fmt`Multibanco details not found for payment intent ${reservation.stripePaymentIntentId}`,
                 );
               }
             } catch (stripeError) {
-              logger.error(`Failed to fetch Stripe payment intent for reservation ${reservation.id}`, {
+              Sentry.captureException(stripeError);
+              logger.error(logger.fmt`Failed to fetch Stripe payment intent for reservation ${reservation.id}`, {
                 error: stripeError instanceof Error ? stripeError.message : String(stripeError),
               });
               // Continue with placeholder values
@@ -316,7 +320,7 @@ async function handler(request: NextRequest) {
 
           if (workflowResult) {
             logger.info(
-              `${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
+              logger.fmt`${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
             );
 
             // Mark reminder as sent to prevent duplicates
@@ -331,7 +335,7 @@ async function handler(request: NextRequest) {
             stageRemindersSent++;
           } else {
             logger.error(
-              `Failed to trigger workflow for ${stage.description} to ${reservation.guestEmail}`,
+              logger.fmt`Failed to trigger workflow for ${stage.description} to ${reservation.guestEmail}`,
             );
           }
         } catch (reminderError) {
@@ -369,6 +373,7 @@ async function handler(request: NextRequest) {
       timestamp: currentTime.toISOString(),
     });
   } catch (error) {
+    Sentry.captureException(error);
     logger.error('Error during payment reminders job', {
       error: error instanceof Error ? error.message : String(error),
     });

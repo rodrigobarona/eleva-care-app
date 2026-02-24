@@ -18,8 +18,11 @@
 import { logSecurityError } from '@/lib/constants/security';
 import { storeGoogleTokens } from '@/lib/integrations/google/oauth-tokens';
 import { logAuditEvent } from '@/lib/utils/server/audit';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * Google OAuth Callback Handler
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
     const { user } = await withAuth();
 
     if (!user) {
-      console.error('[Google OAuth Callback] No authenticated user');
+      logger.error('Google OAuth Callback: No authenticated user');
       return NextResponse.redirect(new URL('/sign-in?error=unauthenticated', request.url));
     }
 
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // 3. Handle OAuth errors
     if (error) {
-      console.error('[Google OAuth Callback] OAuth error:', error);
+      logger.error('Google OAuth callback error', { oauthError: error });
 
       // Log failed attempt for audit
       await logAuditEvent('google_calendar.connection_failed', 'integration', 'google_calendar', {
@@ -71,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // 4. Validate authorization code exists
     if (!code) {
-      console.error('[Google OAuth Callback] Missing authorization code');
+      logger.error('Google OAuth Callback: Missing authorization code');
       return NextResponse.redirect(
         new URL('/settings/integrations?error=missing_code', request.url),
       );
@@ -94,9 +97,9 @@ export async function GET(request: NextRequest) {
     // If WorkOS requires an additional API call to exchange the code,
     // implement that exchange here.
 
-    console.warn(
-      '[Google OAuth Callback] TODO: Implement token exchange with WorkOS API',
-      'Current implementation expects tokens in URL or WorkOS session',
+    logger.warn(
+      'Google OAuth Callback: TODO: Implement token exchange with WorkOS API',
+      { context: 'Current implementation expects tokens in URL or WorkOS session' },
     );
 
     // TEMPORARY: For development/testing, check if tokens are passed as params
@@ -106,7 +109,7 @@ export async function GET(request: NextRequest) {
     const expiresIn = searchParams.get('expires_in');
 
     if (!accessToken) {
-      console.error('[Google OAuth Callback] No access token received from WorkOS');
+      logger.error('Google OAuth Callback: No access token received from WorkOS');
       return NextResponse.redirect(new URL('/settings/integrations?error=no_token', request.url));
     }
 
@@ -121,7 +124,7 @@ export async function GET(request: NextRequest) {
       scope: 'https://www.googleapis.com/auth/calendar', // Adjust based on actual scopes
     });
 
-    console.log('[Google OAuth Callback] ✅ Tokens encrypted and stored for user:', user.id);
+    logger.info(logger.fmt`Google OAuth Callback: Tokens encrypted and stored for user: ${user.id}`);
 
     // 7. Log successful connection for audit
     await logAuditEvent('google_calendar.connected', 'integration', 'google_calendar', {
@@ -138,7 +141,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(successUrl);
   } catch (error) {
-    console.error('[Google OAuth Callback] Error processing callback:', error);
+    logger.error('Google OAuth Callback: Error processing callback', { error });
+    Sentry.captureException(error);
     logSecurityError(error, 'GOOGLE_OAUTH_CALLBACK', 'oauth_token', 'google_calendar');
 
     // Return user to settings with error message

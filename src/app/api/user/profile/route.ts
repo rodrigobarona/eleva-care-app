@@ -1,6 +1,9 @@
 import { getFullUserByWorkosId } from '@/server/db/users';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export const dynamic = 'force-dynamic';
 
@@ -27,11 +30,7 @@ export async function GET() {
       username: dbUser.username,
       firstName: user.firstName || '',
       lastName: user.lastName || '',
-      imageUrl:
-        dbUser.imageUrl ||
-        (user as unknown as Record<string, unknown>).profilePictureUrl ||
-        (user as unknown as Record<string, unknown>).profile_picture_url ||
-        null,
+      imageUrl: dbUser.imageUrl || user.profilePictureUrl || null,
       country: dbUser.country || 'PT',
       stripeCustomerId: dbUser.stripeCustomerId,
       stripeConnectAccountId: dbUser.stripeConnectAccountId,
@@ -39,7 +38,8 @@ export async function GET() {
 
     return NextResponse.json({ user: userProfile });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching user profile', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

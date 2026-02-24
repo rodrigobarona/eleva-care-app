@@ -113,7 +113,8 @@ export async function GET() {
         // Overall status is operational if we have connectivity and at least one schedule
         status.operational = status.connectivity && status.schedules.count > 0;
       } catch (error) {
-        console.error('Error testing QStash connectivity:', error);
+        Sentry.captureException(error);
+        logger.error('Error testing QStash connectivity', { error });
         status.connectivity = false;
         status.operational = false;
       }
@@ -130,7 +131,8 @@ export async function GET() {
       status,
     });
   } catch (error) {
-    console.error('Error verifying QStash setup:', error);
+    Sentry.captureException(error);
+    logger.error('Error verifying QStash setup', { error });
     return NextResponse.json(
       { error: 'Failed to verify QStash setup', details: String(error) },
       { status: 500 },
@@ -189,7 +191,8 @@ export async function POST() {
       destination: destinationUrl,
     });
   } catch (error) {
-    console.error('Error sending test QStash message:', error);
+    Sentry.captureException(error);
+    logger.error('Error sending test QStash message', { error });
     return NextResponse.json(
       { error: 'Failed to send test QStash message', details: String(error) },
       { status: 500 },

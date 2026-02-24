@@ -1,8 +1,11 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 /**
  * Direct API endpoint to check identity verification status from the database
@@ -42,7 +45,8 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Error checking identity verification status:', error);
+    Sentry.captureException(error);
+    logger.error('Error checking identity verification status', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

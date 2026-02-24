@@ -6,32 +6,35 @@
  *
  * @route POST /api/expert/accept-practitioner-agreement
  */
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const { logger } = Sentry;
+
+const acceptPractitionerAgreementSchema = z.object({
+  version: z.string().min(1, 'Agreement version is required'),
+  accepted: z.literal(true, { errorMap: () => ({ message: 'Agreement must be accepted (accepted: true)' }) }),
+});
 
 export async function POST(request: Request) {
   try {
     // 1. Authenticate user
     const { user } = await withAuth({ ensureSignedIn: true });
 
-    // 2. Parse request body
-    const body = await request.json();
-    const { version, accepted } = body;
-
-    if (!version) {
-      return NextResponse.json({ error: 'Agreement version is required' }, { status: 400 });
-    }
-
-    if (accepted !== true) {
+    const bodyResult = acceptPractitionerAgreementSchema.safeParse(await request.json());
+    if (!bodyResult.success) {
       return NextResponse.json(
-        { error: 'Agreement must be accepted (accepted: true)' },
+        { error: 'Invalid request body', details: bodyResult.error.flatten() },
         { status: 400 },
       );
     }
+    const { version } = bodyResult.data;
 
     // 3. Get comprehensive geolocation and request data from Vercel headers
     const headersList = await headers();
@@ -96,7 +99,8 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Failed to record practitioner agreement:', error);
+    Sentry.captureException(error);
+    logger.error('Failed to record practitioner agreement', { error });
     return NextResponse.json({ error: 'Failed to record agreement acceptance' }, { status: 500 });
   }
 }
@@ -135,7 +139,8 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Failed to check practitioner agreement status:', error);
+    Sentry.captureException(error);
+    logger.error('Failed to check practitioner agreement status', { error });
     return NextResponse.json({ error: 'Failed to check agreement status' }, { status: 500 });
   }
 }

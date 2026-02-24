@@ -2,9 +2,12 @@ import { hasRole } from '@/lib/auth/roles.server';
 import { listSchedules } from '@/lib/integrations/qstash/client';
 import { setupQStashSchedules } from '@/lib/integrations/qstash/schedules';
 import type { ApiResponse } from '@/types/api';
+import * as Sentry from '@sentry/nextjs';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
@@ -28,7 +31,8 @@ export async function GET() {
       data: { schedules },
     } as ApiResponse<{ schedules: unknown[] }>);
   } catch (error) {
-    console.error('Error listing schedules:', error);
+    Sentry.captureException(error);
+    logger.error('Error listing schedules', { error });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
@@ -67,7 +71,8 @@ export async function POST() {
       },
     } as ApiResponse<{ message: string; results: unknown[] }>);
   } catch (error) {
-    console.error('Error setting up schedules:', error);
+    Sentry.captureException(error);
+    logger.error('Error setting up schedules', { error });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {

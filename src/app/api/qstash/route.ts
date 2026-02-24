@@ -1,4 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { validateQStashConfig } from '@/lib/integrations/qstash/config';
+
+const { logger } = Sentry;
 import { generateVerificationToken } from '@/lib/utils/crypto';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import type { NextRequest } from 'next/server';
@@ -27,7 +30,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   // Validate QStash configuration first
   const config = validateQStashConfig();
   if (!config.isValid) {
-    console.error('QStash is not properly configured for signature verification');
+    logger.error('QStash is not properly configured for signature verification');
     return NextResponse.json(
       {
         error: 'QStash is not properly configured',
@@ -40,7 +43,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   // Get the target endpoint from the request
   const targetEndpoint = req.headers.get('x-qstash-target-url');
   if (!targetEndpoint) {
-    console.error('Missing target endpoint in QStash request');
+    logger.error('Missing target endpoint in QStash request');
     return NextResponse.json({ error: 'Missing target endpoint' }, { status: 400 });
   }
 
@@ -57,14 +60,14 @@ async function handler(req: NextRequest): Promise<NextResponse> {
 
     // Validate domain
     if (!allowedDomains.includes(url.hostname)) {
-      console.error(`Blocked request to untrusted domain: ${url.hostname}`);
+      logger.error(logger.fmt`Blocked request to untrusted domain: ${url.hostname}`);
       return NextResponse.json({ error: 'Target endpoint domain not allowed' }, { status: 403 });
     }
 
     // Validate path
     const isAllowedPath = allowedPathPrefixes.some((prefix) => url.pathname.startsWith(prefix));
     if (!isAllowedPath) {
-      console.error(`Blocked request to untrusted path: ${url.pathname}`);
+      logger.error(logger.fmt`Blocked request to untrusted path: ${url.pathname}`);
       return NextResponse.json({ error: 'Target endpoint path not allowed' }, { status: 403 });
     }
 
@@ -78,8 +81,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         // body is already initialized as an empty object
       }
 
-      // Log the incoming request
-      console.log(`QStash forwarding request to ${targetEndpoint}`, {
+      logger.info(logger.fmt`QStash forwarding request to ${targetEndpoint}`, {
         body,
         headers: Object.fromEntries(req.headers.entries()),
       });
@@ -107,7 +109,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Error forwarding request to ${targetEndpoint}:`, errorText);
+        logger.error(logger.fmt`Error forwarding request to ${targetEndpoint}: ${errorText}`);
         return NextResponse.json(
           { error: `Target endpoint returned ${response.status}: ${errorText}` },
           { status: response.status },
@@ -117,14 +119,16 @@ async function handler(req: NextRequest): Promise<NextResponse> {
       const responseData = await response.json();
       return NextResponse.json(responseData);
     } catch (error: unknown) {
-      console.error('Error processing QStash request:', error);
+      Sentry.captureException(error);
+      logger.error('Error processing QStash request', { error });
       return NextResponse.json(
         { error: 'Internal server error processing QStash request' },
         { status: 500 },
       );
     }
   } catch (error) {
-    console.error('Invalid target URL:', targetEndpoint, error);
+    Sentry.captureException(error);
+    logger.error('Invalid target URL', { targetEndpoint, error });
     return NextResponse.json({ error: 'Invalid target URL' }, { status: 400 });
   }
 }

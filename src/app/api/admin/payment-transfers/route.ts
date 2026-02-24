@@ -5,11 +5,14 @@ import {
   PAYMENT_TRANSFER_STATUSES,
   type PaymentTransferStatus,
 } from '@/lib/constants/payment-transfers';
+import * as Sentry from '@sentry/nextjs';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+
+const { logger } = Sentry;
 
 /** Zod schema for transfer update request */
 const patchTransferSchema = z.object({
@@ -143,7 +146,8 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching payment transfers:', error);
+    Sentry.captureException(error);
+    logger.error('Error fetching payment transfers', { error });
     return NextResponse.json(
       { error: 'Failed to fetch payment transfers', details: (error as Error).message },
       { status: 500 },
@@ -212,7 +216,7 @@ export async function PATCH(request: NextRequest) {
       .set(updates)
       .where(eq(PaymentTransfersTable.id, transferId));
 
-    console.log(`Admin ${userId} updated transfer ${transferId}`);
+    logger.info(logger.fmt`Admin ${userId} updated transfer ${transferId}`);
 
     return NextResponse.json({
       success: true,
@@ -220,7 +224,8 @@ export async function PATCH(request: NextRequest) {
       transferId,
     });
   } catch (error) {
-    console.error('Error updating transfer:', error);
+    Sentry.captureException(error);
+    logger.error('Error updating transfer', { error });
     return NextResponse.json(
       { error: 'Failed to update transfer', details: (error as Error).message },
       { status: 500 },

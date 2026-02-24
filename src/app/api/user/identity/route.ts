@@ -1,7 +1,10 @@
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
+import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
+
+const { logger } = Sentry;
 
 // Mark route as dynamic
 
@@ -11,7 +14,7 @@ export async function GET() {
   try {
     const { user: authUser } = await withAuth();
     workosUserId = authUser?.id || null;
-    console.log('Auth check result:', { userId: workosUserId, hasId: !!workosUserId });
+    logger.info('Auth check result', { userId: workosUserId, hasId: !!workosUserId });
 
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -21,7 +24,7 @@ export async function GET() {
     const user = await ensureFullUserSynchronization(authUser.id);
 
     if (!user) {
-      console.error('Failed to synchronize user:', { workosUserId: authUser.id });
+      logger.error('Failed to synchronize user', { workosUserId: authUser.id });
       return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
 
@@ -30,12 +33,12 @@ export async function GET() {
     if (user.stripeIdentityVerificationId) {
       try {
         verificationStatus = await getIdentityVerificationStatus(user.stripeIdentityVerificationId);
-        console.log('Retrieved verification status:', {
+        logger.info('Retrieved verification status', {
           verificationId: user.stripeIdentityVerificationId,
           status: verificationStatus.status,
         });
       } catch (stripeError) {
-        console.error('Error retrieving Stripe Identity verification status:', stripeError);
+        logger.error('Error retrieving Stripe Identity verification status', { error: stripeError });
         // Return unverified status if we encounter an error
         verificationStatus = {
           status: 'error',
@@ -49,7 +52,7 @@ export async function GET() {
         status: 'unverified',
         lastUpdated: null,
       };
-      console.log('No verification ID found for user:', user.id);
+      logger.info('No verification ID found for user', { userId: user.id });
     }
 
     return NextResponse.json({
@@ -61,7 +64,8 @@ export async function GET() {
       verificationStatus,
     });
   } catch (error) {
-    console.error('Error in user identity API:', {
+    Sentry.captureException(error);
+    logger.error('Error in user identity API', {
       error,
       workosUserId,
       timestamp: new Date().toISOString(),
