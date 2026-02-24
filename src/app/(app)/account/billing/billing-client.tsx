@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
+import { getCountryLabel } from '@/lib/constants/countries';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Link, useRouter } from '@/lib/i18n/navigation';
 import { FileText, Info } from 'lucide-react';
@@ -40,43 +41,6 @@ interface BillingPageClientProps {
   } | null;
 }
 
-const COUNTRY_LABELS: Record<string, string> = {
-  US: 'United States',
-  GB: 'United Kingdom',
-  AU: 'Australia',
-  CA: 'Canada',
-  DE: 'Germany',
-  FR: 'France',
-  IT: 'Italy',
-  ES: 'Spain',
-  NL: 'Netherlands',
-  BE: 'Belgium',
-  AT: 'Austria',
-  CH: 'Switzerland',
-  IE: 'Ireland',
-  SE: 'Sweden',
-  DK: 'Denmark',
-  NO: 'Norway',
-  FI: 'Finland',
-  SG: 'Singapore',
-  HK: 'Hong Kong',
-  JP: 'Japan',
-  NZ: 'New Zealand',
-  PT: 'Portugal',
-  LU: 'Luxembourg',
-  MX: 'Mexico',
-  BR: 'Brazil',
-  MY: 'Malaysia',
-  TH: 'Thailand',
-  PL: 'Poland',
-  CZ: 'Czech Republic',
-  SK: 'Slovakia',
-  EE: 'Estonia',
-  LT: 'Lithuania',
-  LV: 'Latvia',
-  GR: 'Greece',
-  CY: 'Cyprus',
-};
 
 function PaymentAgingInformation({
   userCountry,
@@ -247,7 +211,7 @@ function NoConnectAccountFlow({
           <SelectContent>
             {STRIPE_CONNECT_SUPPORTED_COUNTRIES.map((code) => (
               <SelectItem key={code} value={code}>
-                {COUNTRY_LABELS[code] ?? code}
+                {getCountryLabel(code)}
               </SelectItem>
             ))}
           </SelectContent>

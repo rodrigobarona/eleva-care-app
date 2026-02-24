@@ -1,3 +1,4 @@
+import { STRIPE_CONNECT_COUNTRY_CODES } from '@/lib/constants/countries';
 import type Stripe from 'stripe';
 
 export const STRIPE_CONFIG = {
@@ -23,48 +24,9 @@ export const STRIPE_CONFIG = {
 
   // Connect Account Configuration
   CONNECT: {
-    // Default country for fallbacks
-    DEFAULT_COUNTRY: 'PT', // Portugal
+    DEFAULT_COUNTRY: 'PT' as const,
 
-    // Countries officially supported by Stripe Connect
-    // Source: https://stripe.com/global
-    SUPPORTED_COUNTRIES: [
-      'US', // United States
-      'GB', // United Kingdom
-      'AU', // Australia
-      'CA', // Canada
-      'DE', // Germany
-      'FR', // France
-      'IT', // Italy
-      'ES', // Spain
-      'NL', // Netherlands
-      'BE', // Belgium
-      'AT', // Austria
-      'CH', // Switzerland
-      'IE', // Ireland
-      'SE', // Sweden
-      'DK', // Denmark
-      'NO', // Norway
-      'FI', // Finland
-      'SG', // Singapore
-      'HK', // Hong Kong
-      'JP', // Japan
-      'NZ', // New Zealand
-      'PT', // Portugal
-      'LU', // Luxembourg
-      'MX', // Mexico
-      'BR', // Brazil
-      'MY', // Malaysia
-      'TH', // Thailand
-      'PL', // Poland
-      'CZ', // Czech Republic
-      'SK', // Slovakia
-      'EE', // Estonia
-      'LT', // Lithuania
-      'LV', // Latvia
-      'GR', // Greece
-      'CY', // Cyprus
-    ] as const,
+    SUPPORTED_COUNTRIES: STRIPE_CONNECT_COUNTRY_CODES,
 
     // Minimum payout delay in days required by Stripe for new accounts
     // These values may change - refer to Stripe documentation for the latest requirements

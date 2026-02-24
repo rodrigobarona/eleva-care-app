@@ -1,5 +1,6 @@
 'use client';
 
+import { STRIPE_CONNECT_APPEARANCE } from '@/config/stripe-appearance';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
 import { ConnectComponentsProvider } from '@stripe/react-connect-js';
 import { useState } from 'react';
@@ -17,12 +18,7 @@ export function StripeConnectProvider({ children }: { children: React.ReactNode 
         const { client_secret } = await response.json();
         return client_secret;
       },
-      appearance: {
-        overlays: 'dialog',
-        variables: {
-          colorPrimary: '#6366f1',
-        },
-      },
+      appearance: STRIPE_CONNECT_APPEARANCE,
     }),
   );
 
