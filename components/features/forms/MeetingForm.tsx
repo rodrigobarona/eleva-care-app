@@ -178,7 +178,7 @@ const Step2Content = React.memo<Step2ContentProps>(
       <div className="rounded-lg border p-6">
         <div className="mb-6">
           <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-          <div className="bg-muted/50 text-muted-foreground flex flex-col gap-1 rounded-md p-3">
+          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-4 w-4" />
               <span>
@@ -283,7 +283,7 @@ const Step2Content = React.memo<Step2ContentProps>(
         </div>
 
         {errors.root?.message && (
-          <div className="bg-destructive/10 text-destructive mt-4 rounded-md p-3 text-sm">
+          <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {errors.root.message}
           </div>
         )}
@@ -358,7 +358,7 @@ const Step3Content = React.memo<Step3ContentProps>(
   ({ isCreatingCheckout, isProcessing, checkoutUrl }) => (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
         <p className="mt-4 text-lg font-medium">
           {isCreatingCheckout || isProcessing
             ? 'Creating secure checkout...'
@@ -366,7 +366,7 @@ const Step3Content = React.memo<Step3ContentProps>(
               ? 'Redirecting to payment...'
               : 'Preparing checkout...'}
         </p>
-        <p className="text-muted-foreground mt-2 text-sm">
+        <p className="mt-2 text-sm text-muted-foreground">
           Please do not close this window or navigate away
         </p>
       </div>
@@ -413,6 +413,7 @@ export function MeetingFormContent({
   // **CLIENT-SIDE DUPLICATE PREVENTION: Track request timestamps and IDs**
   const lastRequestTimestamp = React.useRef<number>(0);
   const activeRequestId = React.useRef<string | null>(null);
+  const isPrefetchRequest = React.useRef(false);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
   // **REF: Store handleNextStep to break circular dependency**
@@ -546,169 +547,159 @@ export function MeetingFormContent({
   );
 
   // Function to create or get payment intent
-  const createPaymentIntent = React.useCallback(async () => {
-    // Don't recreate if already fetched
-    if (checkoutUrl) {
-      console.log('✅ Using existing checkout URL');
-      return checkoutUrl;
-    }
+  const createPaymentIntent = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      // Don't recreate if already fetched
+      if (checkoutUrl) {
+        console.log('✅ Using existing checkout URL');
+        return checkoutUrl;
+      }
 
-    const formValues = form.getValues();
+      const formValues = form.getValues();
 
-    // **VALIDATION: Ensure required data is present**
-    if (!formValues.guestEmail || !formValues.startTime) {
-      throw new Error('Missing required form data');
-    }
+      // **VALIDATION: Ensure required data is present**
+      if (!formValues.guestEmail || !formValues.startTime) {
+        throw new Error('Missing required form data');
+      }
 
-    // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
-    // Note: Email normalization is handled inside generateFormCacheKey
-    const formCacheKey = generateFormCacheKey(
-      eventId,
-      formValues.guestEmail,
-      formValues.startTime.toISOString(),
-    );
+      // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
+      // Note: Email normalization is handled inside generateFormCacheKey
+      const formCacheKey = generateFormCacheKey(
+        eventId,
+        formValues.guestEmail,
+        formValues.startTime.toISOString(),
+      );
 
-    // **NOTE: Redis operations are handled server-side in the API endpoint**
-    // Server-side duplicate prevention will be handled by the API endpoint
-    console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
+      // **NOTE: Redis operations are handled server-side in the API endpoint**
+      // Server-side duplicate prevention will be handled by the API endpoint
+      console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
 
-    // **UNIQUE REQUEST ID: Generate and track current request**
-    const currentRequestId = generateRequestKey();
+      // **UNIQUE REQUEST ID: Generate and track current request**
+      const currentRequestId = generateRequestKey();
 
-    // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
-    if (activeRequestId.current === currentRequestId) {
-      console.log('🚫 Same request already in progress - blocking duplicate');
-      return null;
-    }
+      // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
+      if (activeRequestId.current === currentRequestId) {
+        console.log('🚫 Same request already in progress - blocking duplicate');
+        return null;
+      }
 
-    if (activeRequestId.current !== null) {
-      console.log('🚫 Different request already active - blocking new request');
-      return null;
-    }
+      if (activeRequestId.current !== null) {
+        console.log('🚫 Different request already active - blocking new request');
+        return null;
+      }
 
-    // **MARK REQUEST AS ACTIVE**
-    activeRequestId.current = currentRequestId;
-    setIsCreatingCheckout(true);
+      // **MARK REQUEST AS ACTIVE**
+      activeRequestId.current = currentRequestId;
+      setIsCreatingCheckout(true);
 
-    // **ADDITIONAL PROTECTION: Check if we're already in a pending state**
-    if (isSubmitting) {
-      console.log('🚫 Form already in submitting state - blocking duplicate');
-      activeRequestId.current = null;
-      setIsCreatingCheckout(false);
-      return null;
-    }
+      try {
+        // **NOTE: Redis operations moved to server-side API endpoint**
+        // The /api/create-payment-intent endpoint will handle FormCache operations
 
-    // **SMART CACHING: If we already have a valid checkout URL, return it immediately**
-    if (checkoutUrl) {
-      console.log('✅ Reusing existing valid checkout URL:', checkoutUrl);
-      return checkoutUrl;
-    }
+        // **IDEMPOTENCY: Use the current request ID for API deduplication**
+        const requestKey = currentRequestId;
 
-    try {
-      // **NOTE: Redis operations moved to server-side API endpoint**
-      // The /api/create-payment-intent endpoint will handle FormCache operations
+        // Get the locale for multilingual emails
+        const userLocale = locale || 'en';
 
-      // **IDEMPOTENCY: Use the current request ID for API deduplication**
-      const requestKey = currentRequestId;
+        console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
 
-      // Get the locale for multilingual emails
-      const userLocale = locale || 'en';
-
-      console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
-
-      // Create payment intent using the new enhanced endpoint
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // **IDEMPOTENCY HEADER: Prevent server-side duplicates**
-          'Idempotency-Key': requestKey,
-        },
-        body: JSON.stringify({
-          eventId,
-          clerkUserId,
-          price,
-          meetingData: {
-            guestName: formValues.guestName,
-            guestEmail: formValues.guestEmail,
-            guestNotes: formValues.guestNotes,
-            startTime: formValues.startTime.toISOString(),
-            startTimeFormatted: formValues.startTime.toLocaleString(userLocale, {
-              dateStyle: 'full',
-              timeStyle: 'short',
-            }),
-            timezone: formValues.timezone || 'UTC',
-            locale: userLocale,
-            date: formValues.date?.toISOString() || '',
+        // Create payment intent using the new enhanced endpoint
+        const response = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // **IDEMPOTENCY HEADER: Prevent server-side duplicates**
+            'Idempotency-Key': requestKey,
           },
-          username,
-          eventSlug,
-          // **IDEMPOTENCY: Include request key in payload**
-          requestKey,
-        }),
-      });
+          body: JSON.stringify({
+            eventId,
+            clerkUserId,
+            price,
+            meetingData: {
+              guestName: formValues.guestName,
+              guestEmail: formValues.guestEmail,
+              guestNotes: formValues.guestNotes,
+              startTime: formValues.startTime.toISOString(),
+              startTimeFormatted: formValues.startTime.toLocaleString(userLocale, {
+                dateStyle: 'full',
+                timeStyle: 'short',
+              }),
+              timezone: formValues.timezone || 'UTC',
+              locale: userLocale,
+              date: formValues.date?.toISOString() || '',
+            },
+            username,
+            eventSlug,
+            // **IDEMPOTENCY: Include request key in payload**
+            requestKey,
+          }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
 
-        // Handle BotID protection responses
-        if (response.status === 403 && errorData.error === 'Access denied') {
-          throw new Error(errorData.message || 'Request blocked for security reasons');
+          // Handle BotID protection responses
+          if (response.status === 403 && errorData.error === 'Access denied') {
+            throw new Error(errorData.message || 'Request blocked for security reasons');
+          }
+
+          throw new Error(errorData.error || 'Failed to create payment intent');
         }
 
-        throw new Error(errorData.error || 'Failed to create payment intent');
+        const { url } = await response.json();
+
+        if (!url) {
+          throw new Error('No checkout URL received from server');
+        }
+
+        // **SECURITY: Validate checkout URL before storing**
+        try {
+          validateCheckoutUrl(url);
+          console.log('✅ Checkout URL validated');
+        } catch (validationError) {
+          console.error('❌ Invalid checkout URL received:', url, validationError);
+          throw new Error(
+            validationError instanceof Error
+              ? validationError.message
+              : 'Invalid checkout URL received from server',
+          );
+        }
+
+        console.log('✅ Payment intent created successfully');
+
+        // **NOTE: FormCache.markCompleted() will be handled server-side**
+        setCheckoutUrl(url);
+        return url;
+      } catch (error) {
+        console.error('❌ Payment creation error:', error);
+
+        if (!options?.silent) {
+          form.setError('root', {
+            message:
+              error instanceof Error ? error.message : 'There was an error creating your payment.',
+          });
+        }
+        return null;
+      } finally {
+        setIsCreatingCheckout(false);
+        if (isPrefetchRequest.current || activeRequestId.current === currentRequestId) {
+          activeRequestId.current = null;
+        }
       }
-
-      const { url } = await response.json();
-
-      if (!url) {
-        throw new Error('No checkout URL received from server');
-      }
-
-      // **SECURITY: Validate checkout URL before storing**
-      try {
-        validateCheckoutUrl(url);
-        console.log('✅ Checkout URL validated');
-      } catch (validationError) {
-        console.error('❌ Invalid checkout URL received:', url, validationError);
-        throw new Error(
-          validationError instanceof Error
-            ? validationError.message
-            : 'Invalid checkout URL received from server',
-        );
-      }
-
-      console.log('✅ Payment intent created successfully');
-
-      // **NOTE: FormCache.markCompleted() will be handled server-side**
-      setCheckoutUrl(url);
-      return url;
-    } catch (error) {
-      console.error('❌ Payment creation error:', error);
-
-      // **ERROR HANDLING: Reset state (server handles FormCache.markFailed)**
-
-      form.setError('root', {
-        message:
-          error instanceof Error ? error.message : 'There was an error creating your payment.',
-      });
-      return null;
-    } finally {
-      // **CLEANUP: Reset creation state and clear active request ID**
-      setIsCreatingCheckout(false);
-      activeRequestId.current = null;
-    }
-  }, [
-    checkoutUrl,
-    clerkUserId,
-    eventId,
-    eventSlug,
-    form,
-    locale,
-    price,
-    username,
-    generateRequestKey,
-  ]);
+    },
+    [
+      checkoutUrl,
+      clerkUserId,
+      eventId,
+      eventSlug,
+      form,
+      locale,
+      price,
+      username,
+      generateRequestKey,
+    ],
+  );
 
   // Helper to handle submission logic for both keyboard and click submissions
   const submitMeeting = React.useCallback(
@@ -828,18 +819,17 @@ export function MeetingFormContent({
     if (canPrefetch) {
       // Prefetch with a longer delay to avoid interfering with user typing
       const timer = setTimeout(() => {
-        // Don't show UI indication during prefetch - do it silently
         setIsPrefetching(true);
-        createPaymentIntent()
+        isPrefetchRequest.current = true;
+        createPaymentIntent({ silent: true })
           .then(() => {
-            // Successfully prefetched
             console.log('Checkout URL prefetched successfully');
           })
           .catch((error) => {
-            // Prefetch failed, but we don't need to show an error to the user
             console.error('Prefetch failed:', error);
           })
           .finally(() => {
+            isPrefetchRequest.current = false;
             setIsPrefetching(false);
           });
       }, 3000); // 3-second delay after user completes form
@@ -882,7 +872,6 @@ export function MeetingFormContent({
         }, remainingMs);
         return;
       }
-      lastRequestTimestamp.current = now;
 
       // Set processing guard BEFORE async validation for ALL paths
       isProcessingRef.current = true;
@@ -899,6 +888,9 @@ export function MeetingFormContent({
         setIsProcessing(false);
         return;
       }
+
+      // Only start the cooldown timer after validation passes
+      lastRequestTimestamp.current = Date.now();
 
       // For free sessions, call submitMeeting directly
       if (price === 0) {
@@ -949,16 +941,18 @@ export function MeetingFormContent({
       try {
         // Clear any in-flight prefetch so it doesn't block the user-initiated request
         activeRequestId.current = null;
+        isPrefetchRequest.current = false;
 
         const url = await createPaymentIntent();
 
-        if (url) {
-          console.log('🚀 Redirecting to checkout:', url);
+        const redirectUrl = url || checkoutUrl;
+        if (redirectUrl) {
+          console.log('🚀 Redirecting to checkout:', redirectUrl);
 
           try {
-            validateCheckoutUrl(url);
+            validateCheckoutUrl(redirectUrl);
           } catch (validationError) {
-            console.error('❌ Refusing to redirect to invalid URL:', url, validationError);
+            console.error('❌ Refusing to redirect to invalid URL:', redirectUrl, validationError);
             throw new Error(
               validationError instanceof Error
                 ? validationError.message
@@ -974,7 +968,7 @@ export function MeetingFormContent({
             }
           }, 3000);
 
-          window.location.href = url;
+          window.location.href = redirectUrl;
           return;
         } else {
           throw new Error('Failed to get checkout URL');
@@ -1140,7 +1134,7 @@ export function MeetingFormContent({
     return (
       <div className="py-8 text-center">
         <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="text-muted-foreground mb-4">
+        <p className="mb-4 text-muted-foreground">
           We need access to your Google Calendar to show available time slots.
         </p>
         <Button
@@ -1172,7 +1166,7 @@ export function MeetingFormContent({
               Select Date & Time
             </span>
           </div>
-          <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
+          <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -1187,7 +1181,7 @@ export function MeetingFormContent({
           </div>
           {price > 0 && (
             <>
-              <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
+              <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
               <div className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
