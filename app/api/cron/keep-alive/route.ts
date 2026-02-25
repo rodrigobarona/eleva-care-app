@@ -4,7 +4,8 @@ import { ProfileTable } from '@/drizzle/schema';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
 import { redisManager } from '@/lib/redis/manager';
-import GoogleCalendarService from '@/server/googleCalendar';
+import { updateSetupStepForUser } from '@/server/actions/expert-setup';
+import { getGoogleAccessToken } from '@/server/utils/tokenUtils';
 import { gt, sql } from 'drizzle-orm';
 
 /**
@@ -360,10 +361,12 @@ export async function GET(request: Request) {
       console.error('❌ QStash health check failed:', error);
     }
 
-    // 5. Refresh tokens in batches for users with Google Calendar connected
+    // 5. Refresh Google OAuth tokens for all users in batches.
+    // Calling getGoogleAccessToken triggers Clerk to refresh the access token
+    // using the stored refresh token, keeping it active within Google's
+    // 6-month inactivity expiration window.
     console.log('🔄 Starting Google Calendar token refresh...');
-    const googleCalendarService = GoogleCalendarService.getInstance();
-    const batchSize = 50; // Process 50 profiles at a time
+    const batchSize = 50;
     let lastUserId: string | undefined;
     let hasMore = true;
 
@@ -390,21 +393,19 @@ export async function GET(request: Request) {
         `Processing batch of ${profiles.length} profiles (after: ${lastUserId || 'start'})`,
       );
 
-      // Process batch concurrently with limited parallelism
       await Promise.allSettled(
         profiles.map(async (profile) => {
           try {
-            // Check if user has Google Calendar tokens before attempting refresh
-            const hasTokens = await googleCalendarService.hasValidTokens(profile.userId);
-            if (hasTokens) {
-              await googleCalendarService.getOAuthClient(profile.userId);
-              console.log(`Token refreshed for user: ${profile.userId}`);
+            const token = await getGoogleAccessToken(profile.userId);
+            if (token) {
               metrics.successfulRefreshes++;
             } else {
+              // Token missing: user never connected or token was revoked.
+              // Sync metadata so the setup page reflects the real state.
+              await updateSetupStepForUser('google_account', profile.userId, false);
               metrics.skippedProfiles++;
             }
           } catch (error) {
-            // Only log error if it's not related to missing tokens
             if (!(error instanceof Error && error.message.includes('No refresh token'))) {
               console.error(`Failed to refresh token for user ${profile.userId}:`, error);
               metrics.failedRefreshes++;

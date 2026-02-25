@@ -10,6 +10,7 @@
  */
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
 import { triggerWorkflow } from '@/lib/integrations/novu/utils';
+import { getGoogleAccessToken } from '@/server/utils/tokenUtils';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -549,21 +550,3 @@ export async function getGoogleCalendarClient(userId: string) {
   }
 }
 
-/**
- * Gets a Google OAuth access token for a Clerk user
- *
- * @param clerkUserId Clerk user ID to get the token for
- * @returns OAuth access token or null if not available
- */
-async function getGoogleAccessToken(clerkUserId: string): Promise<string | null> {
-  try {
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
-    const response = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
-    return response.data[0]?.token ?? null;
-  } catch (error) {
-    console.error('[getGoogleAccessToken] Error getting token:', error);
-    return null;
-  }
-}

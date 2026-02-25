@@ -23,12 +23,13 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  checkExpertSetupStatus,
-  syncGoogleAccountConnectionStatus,
-} from '@/server/actions/expert-setup';
-import { useSession, useUser } from '@clerk/nextjs';
-import type { SessionWithActivitiesResource } from '@clerk/types';
+import { syncGoogleAccountConnectionStatus } from '@/server/actions/expert-setup';
+import { useReverification, useSession, useUser } from '@clerk/nextjs';
+import type {
+  CreateExternalAccountParams,
+  ExternalAccountResource,
+  SessionWithActivitiesResource,
+} from '@clerk/types';
 import { Copy, Info, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -138,25 +139,18 @@ export default function SecurityPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [accountToDisconnect, setAccountToDisconnect] = useState<{
     id: string;
     email: string;
   } | null>(null);
-  // 🔧 FIX: Force refresh function to reload user data
-  const forceRefresh = useCallback(async () => {
-    try {
-      console.log('🔄 Force refreshing user data...');
 
-      // Reload user to get fresh metadata
-      if (user) {
-        await user.reload();
-        console.log('✅ User data reloaded successfully');
-        console.log('📊 Current expertSetup metadata:', user.unsafeMetadata?.expertSetup);
-      }
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    }
-  }, [user]);
+  const createExternalAccount = useReverification((params: CreateExternalAccountParams) =>
+    user?.createExternalAccount(params),
+  );
+  const destroyExternalAccount = useReverification((account: ExternalAccountResource) =>
+    account.destroy(),
+  );
 
   const loadSessions = useCallback(async () => {
     if (!user || !isUserLoaded) return;
@@ -175,51 +169,24 @@ export default function SecurityPage() {
     loadSessions();
   }, [loadSessions]);
 
-  // Detect OAuth success and show success message
   React.useEffect(() => {
-    // Check if user just returned from OAuth callback
     const urlParams = new URLSearchParams(window.location.search);
     const fromOAuth = sessionStorage.getItem('oauth_return_url');
 
     if (fromOAuth === '/account/security' || urlParams.get('oauth_success') === 'true') {
-      // Clear the OAuth return URL
       sessionStorage.removeItem('oauth_return_url');
 
-      // Update the user metadata to mark Google account as connected
       const updateGoogleAccountStatus = async () => {
         try {
-          console.log('🔍 Starting Google account status update for expert...');
+          if (!checkExpertRole(user)) return;
 
-          // Check current user role first using type-safe helper
-          const userRoles = getUserRoles(user);
-          const isExpert = checkExpertRole(user);
-
-          console.log('🔍 User roles:', userRoles, 'Is expert:', isExpert);
-
-          if (!isExpert) {
-            console.log('ℹ️ User is not an expert, skipping expert setup metadata update');
-            return;
-          }
-
-          console.log('🔄 OAuth completed, checking connection status...');
-
-          // Manually sync the Google account connection status as a fallback
-          // This ensures the metadata is updated even if webhooks are delayed
           const syncResult = await syncGoogleAccountConnectionStatus();
-
-          if (syncResult.success) {
-            console.log('✅ Google account connection status synced successfully');
-          } else {
-            console.warn('⚠️ Failed to sync Google account status:', syncResult.error);
+          if (!syncResult.success) {
+            console.warn('Failed to sync Google account status:', syncResult.error);
           }
 
-          // Also reload user data to ensure UI reflects the latest state
-          if (user) {
-            await user.reload();
-            console.log('✅ User data reloaded after OAuth');
-          }
+          await user?.reload();
 
-          // Dispatch event to notify other components about the Google account connection
           window.dispatchEvent(
             new CustomEvent('google-account-connected', {
               detail: {
@@ -229,13 +196,11 @@ export default function SecurityPage() {
             }),
           );
         } catch (error) {
-          console.error('❌ Error updating Google account connection status:', error);
+          console.error('Error updating Google account connection status:', error);
         }
       };
 
-      // Update metadata first, then show success message
       updateGoogleAccountStatus().finally(() => {
-        // Show success message after a short delay to ensure UI is ready
         setTimeout(() => {
           toast.success('Google account connected successfully!', {
             duration: 4000,
@@ -243,13 +208,13 @@ export default function SecurityPage() {
         }, 1000);
       });
 
-      // Clean URL if it has oauth_success parameter
       if (urlParams.get('oauth_success')) {
         const newUrl = window.location.pathname;
         window.history.replaceState({}, document.title, newUrl);
       }
     }
-  }, [user, forceRefresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Calculate password strength whenever password changes
   React.useEffect(() => {
@@ -401,9 +366,8 @@ export default function SecurityPage() {
     }
   };
 
-  // 🔧 FIX: Memoize connected accounts
   const connectedAccounts = useMemo(() => {
-    return user?.externalAccounts?.filter((account) => account.provider.includes('google')) || [];
+    return user?.externalAccounts?.filter((account) => account.provider === 'google') || [];
   }, [user?.externalAccounts]);
 
   const copyUserId = () => {
@@ -436,21 +400,18 @@ export default function SecurityPage() {
     if (!accountToDisconnect) return;
 
     try {
-      setIsLoading(true);
+      setIsDisconnecting(true);
       setShowDisconnectDialog(false);
 
       const account = user?.externalAccounts.find((acc) => acc.id === accountToDisconnect.id);
-      const googleEmail = account?.emailAddress;
-
-      // Disconnect the account using the destroy() method
-      const accountToDestroy = user?.externalAccounts.find(
-        (acc) => acc.id === accountToDisconnect.id,
-      );
-      if (accountToDestroy) {
-        await accountToDestroy.destroy();
+      if (!account) {
+        throw new Error('Account not found');
       }
 
-      // Find and remove the email if it's not the primary email
+      const googleEmail = account.emailAddress;
+
+      await destroyExternalAccount(account);
+
       if (googleEmail && user?.primaryEmailAddress?.emailAddress !== googleEmail) {
         const emailToRemove = user?.emailAddresses.find(
           (email) => email.emailAddress === googleEmail,
@@ -460,26 +421,9 @@ export default function SecurityPage() {
         }
       }
 
-      // Directly update the metadata for expert setup
-      if (user?.unsafeMetadata?.expertSetup) {
-        const expertSetup = { ...(user.unsafeMetadata.expertSetup as Record<string, boolean>) };
-        expertSetup.google_account = false;
+      await syncGoogleAccountConnectionStatus();
+      await user?.reload();
 
-        await user.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
-            expertSetup,
-          },
-        });
-      }
-
-      // Update expert setup status from server
-      await checkExpertSetupStatus();
-
-      // 🔧 FIX: Force UI refresh after disconnect
-      await forceRefresh();
-
-      // Dispatch the disconnection event
       window.dispatchEvent(
         new CustomEvent('google-account-disconnected', {
           detail: {
@@ -497,7 +441,7 @@ export default function SecurityPage() {
       console.error('Error disconnecting account:', error);
       toast.error('Failed to disconnect account. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsDisconnecting(false);
     }
   };
 
@@ -509,13 +453,11 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // Check if user already has a Google account connected
       const existingGoogleAccounts = user.externalAccounts.filter(
         (account) => account.provider === 'google',
       );
 
       if (existingGoogleAccounts.length > 0) {
-        // Let the user know they already have a Google account and ask if they want to add another
         toast.info(
           'You already have a Google account connected. You can continue to add another account or cancel.',
           {
@@ -529,70 +471,33 @@ export default function SecurityPage() {
             },
           },
         );
-        // Continue after a short delay if they don't cancel
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
-      // Store if user is an expert in session storage to use in callback
-      const isExpert =
-        user.publicMetadata?.role &&
-        (Array.isArray(user.publicMetadata.role)
-          ? user.publicMetadata.role.some((role) =>
-              ['community_expert', 'top_expert'].includes(String(role)),
-            )
-          : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
-
-      if (isExpert) {
+      if (checkExpertRole(user)) {
         sessionStorage.setItem('is_expert_oauth_flow', 'true');
       }
 
-      // Store the return URL to handle proper redirection
       sessionStorage.setItem('oauth_return_url', '/account/security');
 
-      // Redirect directly to security page with success parameter - no separate callback needed
       const callbackUrl = `${window.location.origin}/account/security?oauth_success=true`;
 
-      // Debug logging
-      console.log('🔧 OAuth Debug Info:', {
-        callbackUrl,
-        baseUrl: window.location.origin,
-        environment: process.env.NODE_ENV,
-      });
-
-      // Show loading toast
       toast.loading('Connecting to Google...', { id: 'google-connect' });
 
-      try {
-        // Use the correct Clerk Core 2 method to create external account
-        const externalAccount = await user.createExternalAccount({
-          strategy: 'oauth_google',
-          redirectUrl: callbackUrl, // Core 2 uses 'redirectUrl' (camelCase)
-        });
+      const externalAccount = await createExternalAccount({
+        strategy: 'oauth_google',
+        redirectUrl: callbackUrl,
+      });
 
-        console.log('✅ External account creation response:', {
-          hasVerification: !!externalAccount?.verification,
-          hasRedirectURL: !!externalAccount?.verification?.externalVerificationRedirectURL,
-          redirectURL: externalAccount?.verification?.externalVerificationRedirectURL?.toString(),
-        });
-
-        if (externalAccount?.verification?.externalVerificationRedirectURL) {
-          // Dismiss loading toast
-          toast.dismiss('google-connect');
-
-          // Navigate to the OAuth URL - Core 2 handles this automatically
-          window.location.href =
-            externalAccount.verification.externalVerificationRedirectURL.toString();
-        } else {
-          throw new Error('No verification URL provided by Clerk');
-        }
-      } catch (createAccountError) {
-        console.error('❌ Error creating external account:', createAccountError);
-        throw createAccountError;
+      if (externalAccount?.verification?.externalVerificationRedirectURL) {
+        toast.dismiss('google-connect');
+        router.push(externalAccount.verification.externalVerificationRedirectURL.href);
+      } else {
+        throw new Error('No verification URL provided by Clerk');
       }
     } catch (error) {
-      console.error('❌ Error connecting account:', error);
+      console.error('Error connecting account:', error);
 
-      // Provide more specific error messages
       let errorMessage = 'Failed to connect account';
       if (error instanceof Error) {
         if (error.message.includes('redirect')) {
@@ -1080,7 +985,6 @@ export default function SecurityPage() {
               <div className="flex flex-col items-start gap-4">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">No connected accounts found.</p>
-                  {/* 🔧 FIX: Show expert setup status for debugging */}
                 </div>
                 <Button
                   variant="outline"
@@ -1106,9 +1010,9 @@ export default function SecurityPage() {
                   <Button
                     variant="outline"
                     onClick={() => handleInitiateDisconnect(account.id, account.emailAddress)}
-                    disabled={isLoading}
+                    disabled={isDisconnecting}
                   >
-                    {isLoading ? 'Disconnecting...' : 'Disconnect'}
+                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
                   </Button>
                 </div>
               ))
@@ -1167,13 +1071,13 @@ export default function SecurityPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDisconnecting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDisconnect}
-              disabled={isLoading}
+              disabled={isDisconnecting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isLoading ? 'Disconnecting...' : 'Disconnect Account'}
+              {isDisconnecting ? 'Disconnecting...' : 'Disconnect Account'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
