@@ -92,7 +92,7 @@ INSERT INTO payment_transfers (
     checkout_session_id,
     event_id,
     expert_connect_account_id,
-    expert_clerk_user_id,
+    expert_workos_user_id,
     amount,
     platform_fee,
     currency,

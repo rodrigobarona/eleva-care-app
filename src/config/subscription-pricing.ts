@@ -41,7 +41,7 @@
  *
  * @see docs/.cursor/plans/SUBSCRIPTION-PRICING-MASTER.md
  * @see docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md
- * @see drizzle/schema-workos.ts - OrganizationType documentation
+ * @see drizzle/schema.ts - OrganizationType documentation
  */
 
 export type PlanType = 'commission' | 'monthly' | 'annual';

@@ -297,7 +297,7 @@ type expert
 
 ---
 
-### Phase 2: Partner Features
+### Phase 2: Team Features
 
 | Feature                    | Current Solution  | Need FGA? | Reason                             |
 | -------------------------- | ----------------- | --------- | ---------------------------------- |
@@ -317,7 +317,7 @@ type expert
 | ---------------------- | ---------------- | --------- | ------------------------- |
 | Document collaboration | Not planned      | ✅ Yes    | Perfect for FGA           |
 | External sharing       | Not planned      | ✅ Yes    | Dynamic resource sharing  |
-| API partner access     | Not planned      | ✅ Yes    | Third-party authorization |
+| API third-party access | Not planned      | ✅ Yes    | Third-party authorization |
 | Multi-tenant SaaS      | Not planned      | ✅ Yes    | Complex tenant isolation  |
 
 **Phase 3 Verdict:** ✅ **FGA HIGHLY RECOMMENDED**
@@ -386,7 +386,7 @@ type expert
    - Relationship-based access (e.g., "manager of owner of document")
 
 4. **Third-Party Access**
-   - External partners need access to specific resources
+   - External parties need access to specific resources
    - API consumers with custom permission models
    - Customer-managed access control
 
@@ -520,6 +520,6 @@ type appointment
 
 ### FGA Adoption Triggers
 
-- Team/clinic feature development starts
+- Team feature development starts
 - Need for resource-scoped authorization (admin of Team X but not Team Y)
 - Enterprise customer requirements

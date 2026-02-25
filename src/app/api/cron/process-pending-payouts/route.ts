@@ -98,7 +98,7 @@ async function handler(_request: Request) {
         eq(PaymentTransfersTable.status, PAYMENT_TRANSFER_STATUS_COMPLETED),
         isNull(PaymentTransfersTable.payoutId), // No payout created yet
       ),
-      orderBy: desc(PaymentTransfersTable.created),
+      orderBy: desc(PaymentTransfersTable.createdAt),
     });
 
     logger.info(logger.fmt`Found ${completedTransfers.length} completed transfers to evaluate for payout`);
@@ -193,7 +193,7 @@ async function handler(_request: Request) {
               .set({
                 payoutId: result.payoutId,
                 status: PAYMENT_TRANSFER_STATUS_PAID_OUT,
-                updated: new Date(),
+                updatedAt: new Date(),
               })
               .where(eq(PaymentTransfersTable.id, transfer.id));
 

@@ -68,7 +68,7 @@ async function handler(request: Request) {
         // Get country-specific payout delay with proper case handling
         const countryCode = expert.country.toUpperCase() as keyof typeof PAYOUT_DELAY_DAYS;
         const countryDelay = PAYOUT_DELAY_DAYS[countryCode] || PAYOUT_DELAY_DAYS.DEFAULT;
-        const paymentDate = transfer.created || new Date();
+        const paymentDate = transfer.createdAt || new Date();
         const daysAged = differenceInDays(new Date(), paymentDate);
         const remainingDays = Math.max(0, countryDelay - daysAged);
 
@@ -91,7 +91,7 @@ async function handler(request: Request) {
             .update(PaymentTransfersTable)
             .set({
               notifiedAt: new Date(),
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 

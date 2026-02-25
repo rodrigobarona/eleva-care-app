@@ -55,8 +55,8 @@ type PaymentTransfer = {
   requiresApproval: boolean;
   adminUserId: string | null;
   adminNotes: string | null;
-  created: string;
-  updated: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type PaymentTransfersResponse = {

@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
             name: org.name,
             domains: org.domains,
           },
-          'patient_personal', // Default type, can be updated later
+          'member_personal',
         );
 
         if (!result.success) {
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
             name: org.name,
             domains: org.domains,
           },
-          'patient_personal', // Type should be preserved from existing record
+          'member_personal',
         );
 
         if (!result.success) {

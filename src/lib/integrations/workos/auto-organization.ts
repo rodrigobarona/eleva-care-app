@@ -2,13 +2,13 @@
  * Auto-Organization Creation for New Users
  *
  * Airbnb-style approach:
- * - Default: Auto-create patient_personal organization (like Airbnb guests)
+ * - Default: Auto-create member_personal organization (like Airbnb guests)
  * - Special: "Become an Expert" flow for expert_individual organizations (like "Become a Host")
  *
  * Pattern:
  * - WorkOS creates the user → We create their organization automatically
  * - One organization per user (org-per-user model)
- * - Fast, frictionless for patients (majority of users)
+ * - Fast, frictionless for members (majority of users)
  * - Guided onboarding for experts (minority who opt-in)
  *
  * @see https://workos.com/docs/organizations
@@ -29,13 +29,13 @@ import { workos } from '@/lib/integrations/workos/client';
  * Auto-Organization Creation for New Users
  *
  * Airbnb-style approach:
- * - Default: Auto-create patient_personal organization (like Airbnb guests)
+ * - Default: Auto-create member_personal organization (like Airbnb guests)
  * - Special: "Become an Expert" flow for expert_individual organizations (like "Become a Host")
  *
  * Pattern:
  * - WorkOS creates the user → We create their organization automatically
  * - One organization per user (org-per-user model)
- * - Fast, frictionless for patients (majority of users)
+ * - Fast, frictionless for members (majority of users)
  * - Guided onboarding for experts (minority who opt-in)
  *
  * @see https://workos.com/docs/organizations
@@ -49,7 +49,7 @@ import { workos } from '@/lib/integrations/workos/client';
  * every user has an organization (org-per-user model).
  *
  * Default behavior:
- * - Creates `patient_personal` organization for most users
+ * - Creates `member_personal` organization for most users
  * - Fast, frictionless experience (like Airbnb guests)
  *
  * Expert flow (with `?expert=true` URL param):
@@ -61,15 +61,15 @@ import { workos } from '@/lib/integrations/workos/client';
  * @param params.email - User email address
  * @param params.firstName - User first name (optional)
  * @param params.lastName - User last name (optional)
- * @param params.orgType - Organization type (defaults to patient_personal)
+ * @param params.orgType - Organization type (defaults to member_personal)
  * @returns Object containing organizationId and success status
  *
  * @example
  * ```typescript
- * // In auth callback - auto-create patient organization
+ * // In auth callback - auto-create member organization
  * const { organizationId, isNewOrg } = await autoCreateUserOrganization({
  *   workosUserId: 'user_01H...',
- *   email: 'patient@example.com',
+ *   email: 'member@example.com',
  *   firstName: 'John',
  *   lastName: 'Doe',
  * });
@@ -102,7 +102,7 @@ export async function autoCreateUserOrganization(params: {
     email,
     firstName,
     lastName,
-    orgType = 'patient_personal', // Default: patient
+    orgType = 'member_personal',
   } = params;
 
   try {

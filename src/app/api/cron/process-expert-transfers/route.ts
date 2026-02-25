@@ -135,7 +135,7 @@ async function handler(request: Request) {
         const requiredAgingDays = PAYOUT_DELAY_DAYS[countryCode] || PAYOUT_DELAY_DAYS.DEFAULT;
 
         // REQUIREMENT 1: Calculate days since payment was created (7+ days for regulatory compliance)
-        const paymentDate = transfer.created;
+        const paymentDate = transfer.createdAt;
         const daysSincePayment = Math.floor(
           (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24),
         );
@@ -246,7 +246,7 @@ async function handler(request: Request) {
             .set({
               transferId: stripeTransfer.id,
               status: PAYMENT_TRANSFER_STATUS_COMPLETED,
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
@@ -300,7 +300,7 @@ async function handler(request: Request) {
               stripeErrorCode: stripeError.code || 'unknown_error',
               stripeErrorMessage: stripeError.message || 'Unknown error occurred',
               retryCount: newRetryCount,
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 

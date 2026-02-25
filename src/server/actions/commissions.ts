@@ -20,10 +20,10 @@
  *   • Monthly subscription → 8% (saves 47%)
  *   • Annual subscription → 8% (saves 47%)
  *
- * Clinics (type: 'clinic') - Future:
+ * Teams (type: 'team') - Future:
  * ----------------------------------
- * Each expert in the clinic keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the clinic's subscription.
+ * Each expert in the team keeps their INDIVIDUAL commission rate
+ * based on their own role, regardless of the team's subscription.
  *
  * Example:
  *   Team subscribes to team plan ($99/month)
@@ -91,10 +91,10 @@ import { getCurrentCommissionRate } from './subscriptions';
  *   • Monthly subscription → 8% (saves 47%)
  *   • Annual subscription → 8% (saves 47%)
  *
- * Clinics (type: 'clinic') - Future:
+ * Teams (type: 'team') - Future:
  * ----------------------------------
- * Each expert in the clinic keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the clinic's subscription.
+ * Each expert in the team keeps their INDIVIDUAL commission rate
+ * based on their own role, regardless of the team's subscription.
  *
  * Example:
  *   Team subscribes to team plan ($99/month)
@@ -146,10 +146,10 @@ import { getCurrentCommissionRate } from './subscriptions';
  *   • Monthly subscription → 8% (saves 47%)
  *   • Annual subscription → 8% (saves 47%)
  *
- * Clinics (type: 'clinic') - Future:
+ * Teams (type: 'team') - Future:
  * ----------------------------------
- * Each expert in the clinic keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the clinic's subscription.
+ * Each expert in the team keeps their INDIVIDUAL commission rate
+ * based on their own role, regardless of the team's subscription.
  *
  * Example:
  *   Team subscribes to team plan ($99/month)
@@ -201,10 +201,10 @@ import { getCurrentCommissionRate } from './subscriptions';
  *   • Monthly subscription → 8% (saves 47%)
  *   • Annual subscription → 8% (saves 47%)
  *
- * Clinics (type: 'clinic') - Future:
+ * Teams (type: 'team') - Future:
  * ----------------------------------
- * Each expert in the clinic keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the clinic's subscription.
+ * Each expert in the team keeps their INDIVIDUAL commission rate
+ * based on their own role, regardless of the team's subscription.
  *
  * Example:
  *   Team subscribes to team plan ($99/month)

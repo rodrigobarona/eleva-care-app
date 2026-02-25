@@ -1021,8 +1021,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 sessionStartTime: meeting.startTime,
                 scheduledTransferTime: scheduledTime, // 🆕 Uses recalculated time if available
                 status: PAYMENT_TRANSFER_STATUS_READY,
-                created: new Date(),
-                updated: new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date(),
               });
               logger.info(`Created new transfer record for payment ${paymentIntent.id}`);
             } else {
@@ -1038,7 +1038,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   .update(PaymentTransfersTable)
                   .set({
                     status: PAYMENT_TRANSFER_STATUS_READY,
-                    updated: new Date(),
+                    updatedAt: new Date(),
                   })
                   .where(eq(PaymentTransfersTable.id, transfer.id));
               },
@@ -1307,7 +1307,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
                 .set({
                   status: PAYMENT_TRANSFER_STATUS_FAILED,
                   stripeErrorMessage: lastPaymentError, // Store the failure reason
-                  updated: new Date(),
+                  updatedAt: new Date(),
                 })
                 .where(eq(PaymentTransfersTable.id, transfer.id));
             },
@@ -1483,7 +1483,7 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
           .update(PaymentTransfersTable)
           .set({
             status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransfersTable schema/enum if any
-            updated: new Date(),
+            updatedAt: new Date(),
           })
           .where(eq(PaymentTransfersTable.id, transfer.id));
 
@@ -1560,7 +1560,7 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
           .update(PaymentTransfersTable)
           .set({
             status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransfersTable schema/enum
-            updated: new Date(),
+            updatedAt: new Date(),
           })
           .where(eq(PaymentTransfersTable.id, transfer.id));
 

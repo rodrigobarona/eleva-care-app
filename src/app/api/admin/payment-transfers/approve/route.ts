@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
       .set({
         status: PAYMENT_TRANSFER_STATUS_APPROVED,
         adminUserId: userId,
-        updated: new Date(),
+        updatedAt: new Date(),
       })
       .where(eq(PaymentTransfersTable.id, transferId));
 

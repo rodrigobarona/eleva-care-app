@@ -12,7 +12,7 @@
  * 5. User synced to database (WorkOS as source of truth)
  * 6. Auto-create personal organization (Airbnb-style pattern)
  * 7. User redirected based on organization type:
- *    - patient_personal → /dashboard (default, fast)
+ *    - member_personal → /dashboard (default, fast)
  *    - expert_individual → /onboarding (guided setup)
  *
  * Sync Strategy:
@@ -93,7 +93,7 @@ const authHandler = handleAuth({
       }
 
       // Auto-create personal organization (Airbnb-style pattern)
-      // - Default: patient_personal (fast, frictionless)
+      // - Default: member_personal (fast, frictionless)
       // - Expert flow: expert_individual (guided onboarding)
       logger.info('Auto-creating user organization');
 
@@ -102,14 +102,14 @@ const authHandler = handleAuth({
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        orgType: isExpertRegistration ? 'expert_individual' : 'patient_personal',
+        orgType: isExpertRegistration ? 'expert_individual' : 'member_personal',
       });
 
       if (orgResult.success) {
         logger.info('Organization created or exists', {
           isNewOrg: orgResult.isNewOrg,
           organizationId: orgResult.organizationId,
-          orgType: isExpertRegistration ? 'expert_individual' : 'patient_personal',
+          orgType: isExpertRegistration ? 'expert_individual' : 'member_personal',
           internalOrgId: orgResult.internalOrgId,
         });
       } else {

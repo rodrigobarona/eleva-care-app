@@ -152,7 +152,7 @@ export async function syncWorkOSUserToDatabase(userData: WorkOSUserData): Promis
     // ⚠️ IMPORTANT: Do NOT create ProfilesTable or ExpertSetupTable here
     // These tables are ONLY for experts and should be created when:
     // - User becomes an expert (via expert application approval)
-    // - Or registers via /become-expert flow with expert_individual org type
+    // - Or registers via /become-expert flow with 'expert_individual' org type
     //
     // Creating profiles for all users causes:
     // 1. Database bloat (profiles for non-experts)
@@ -301,10 +301,10 @@ export async function deleteUserFromDatabase(workosUserId: string): Promise<Sync
 export async function syncWorkOSOrganizationToDatabase(
   orgData: WorkOSOrganizationData,
   orgType:
-    | 'patient_personal'
+    | 'member_personal'
     | 'expert_individual'
-    | 'clinic'
-    | 'educational_institution' = 'patient_personal',
+    | 'team'
+    | 'educational_institution' = 'member_personal',
 ): Promise<SyncResult> {
   try {
     console.log(`🔄 Syncing organization to database: ${orgData.name}`);

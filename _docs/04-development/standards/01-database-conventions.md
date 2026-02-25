@@ -1,90 +1,99 @@
 # Database Naming Conventions
 
-## Current State and Future Direction
+## Standard: `snake_case` Everywhere
 
-Our database currently has mixed naming conventions due to historical reasons. While we're working towards standardizing everything to `snake_case`, this is a gradual process to ensure data safety.
+All tables and columns use `snake_case`. No exceptions.
 
-### Current Naming Patterns
-
-1. **Table Names**
-   - Standard: Use `snake_case` for new tables
-   - Example: `payment_transfers`, `blocked_dates`
-   - Legacy: Some tables use `camelCase` (e.g., `scheduleAvailabilities`)
-
-2. **Column Names**
-   - Standard: Use `snake_case` for new columns
-   - Example: `created_at`, `updated_at`, `expert_clerk_user_id`
-   - Legacy: Some columns use `camelCase` (e.g., `clerkUserId`, `startTime`)
-
-3. **Primary Keys**
-   - Use `id` as the standard primary key name
-   - UUID or Serial depending on the use case
-
-4. **Foreign Keys**
-   - Standard: `resource_id` format (e.g., `user_id`, `event_id`)
-   - Legacy: Some use `camelCase` (e.g., `scheduleId`)
-
-5. **Timestamps**
-   - Standard: `created_at`, `updated_at`
-   - Legacy: Some use `createdAt`, `updatedAt`
-
-### Migration Strategy
-
-To maintain data integrity while moving towards consistent naming:
-
-1. **New Tables**
-   - Always use `snake_case` for both table and column names
-   - Follow the standard naming patterns above
-
-2. **Existing Tables**
-   - Create migration plans for each table
-   - Test thoroughly in staging environment
-   - Ensure all related code is updated
-   - Schedule migrations during low-traffic periods
-
-3. **Priority Order**
-   - Start with less critical tables
-   - Coordinate with feature development
-   - Document all changes thoroughly
-
-### Examples
+### Table Names
 
 ```sql
--- ✅ Good (New Standard)
-CREATE TABLE expert_profiles (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL,
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- ❌ Avoid (Legacy Pattern)
-CREATE TABLE expertProfiles (
-    id UUID PRIMARY KEY,
-    userId UUID NOT NULL,
-    firstName VARCHAR(255),
-    lastName VARCHAR(255),
-    createdAt TIMESTAMP DEFAULT NOW(),
-    updatedAt TIMESTAMP DEFAULT NOW()
-);
+-- Examples
+payment_transfers
+schedule_availabilities
+user_org_memberships
+transaction_commissions
 ```
 
-## Future Migrations
+### Column Names
 
-The following tables will need migration in the future:
+```sql
+-- Identity
+workos_user_id       -- WorkOS user ID reference
+org_id               -- Organization foreign key
 
-1. `scheduleAvailabilities` → `schedule_availabilities`
-2. Mixed columns in `meetings` table
-3. Mixed columns in `users` table
-4. `schedulingSettings` → `scheduling_settings`
+-- Timestamps
+created_at           -- Record creation time
+updated_at           -- Last modification time
 
-Each migration will:
+-- Stripe references
+stripe_customer_id
+stripe_subscription_id
+expert_workos_user_id
+```
 
-1. Create new table with correct naming
-2. Migrate data safely
-3. Update foreign key constraints
-4. Drop old table
+### Primary Keys
 
-These migrations will be planned and executed gradually to minimize risk.
+- Use `id` as the standard primary key name
+- `uuid` for most tables (default random)
+- `serial` for `payment_transfers` and `scheduling_settings`
+
+### Foreign Keys
+
+Use `resource_id` format:
+
+```sql
+org_id          -- references organizations.id
+event_id        -- references events.id
+schedule_id     -- references schedules.id
+meeting_id      -- references meetings.id
+```
+
+### Timestamps
+
+Every table uses:
+
+```sql
+created_at TIMESTAMP NOT NULL DEFAULT NOW()
+updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+```
+
+### Enums
+
+Defined via `pgEnum` in the Drizzle schema:
+
+```sql
+-- payment_transfer_status_enum: PENDING, READY, COMPLETED, FAILED, ...
+-- day: monday, tuesday, ...
+```
+
+## Drizzle ORM Mapping
+
+Drizzle property names are `camelCase` in TypeScript, mapping to `snake_case` DB columns:
+
+```typescript
+// TypeScript property → DB column
+expertWorkosUserId: text('expert_workos_user_id')
+createdAt: timestamp('created_at')
+orgId: uuid('org_id')
+```
+
+## Organization Types
+
+```typescript
+type OrganizationType =
+  | 'member_personal'          // Member's personal organization
+  | 'expert_individual'        // Solo expert's organization
+  | 'team'                     // Multi-expert team
+  | 'educational_institution'; // Future
+```
+
+## RLS (Row-Level Security)
+
+All 22 tables have RLS enabled with policies using `auth.user_id()` (Neon Auth).
+Policies are defined in `drizzle/migrations-manual/001_enable_rls.sql` through `005_*.sql`.
+
+## References
+
+- `drizzle/schema.ts` -- Source of truth for all table definitions
+- `drizzle/migrations-manual/*.sql` -- RLS policies
+- `_docs/02-core-systems/NAMING-CONVENTIONS-GLOSSARY.md` -- Full terminology matrix

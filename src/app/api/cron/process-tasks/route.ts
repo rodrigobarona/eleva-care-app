@@ -134,7 +134,7 @@ async function handler(request: Request) {
             .set({
               status: 'COMPLETED',
               transferId: stripeTransfer.id,
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
@@ -164,7 +164,7 @@ async function handler(request: Request) {
               stripeErrorCode: stripeError.code || 'unknown_error',
               stripeErrorMessage: stripeError.message || 'Unknown error occurred',
               retryCount: newRetryCount,
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 

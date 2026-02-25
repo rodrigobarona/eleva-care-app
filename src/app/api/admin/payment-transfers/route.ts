@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         case 'amount':
           return PaymentTransfersTable.amount;
         case 'created':
-          return PaymentTransfersTable.created;
+          return PaymentTransfersTable.createdAt;
         case 'status':
           return PaymentTransfersTable.status;
         case 'sessionStartTime':
@@ -198,7 +198,7 @@ export async function PATCH(request: NextRequest) {
 
     // Only allow updates to certain fields
     const updates: Record<string, unknown> = {
-      updated: new Date(),
+      updatedAt: new Date(),
       adminUserId: userId,
     };
 

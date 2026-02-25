@@ -1,8 +1,8 @@
 /**
  * Complete WorkOS Schema with Neon Auth RLS
  *
- * This schema replaces the Clerk-based schema with:
- * - WorkOS user IDs (text) instead of Clerk IDs
+ * WorkOS-native schema with Neon Auth RLS:
+ * - WorkOS user IDs (text) for all identity references
  * - Organization-per-user model for complete data isolation
  * - Automatic RLS using Neon Auth's `auth.user_id()` function
  * - Unified audit logging (no separate database needed)
@@ -63,44 +63,45 @@ const updatedAt = timestamp('updated_at')
  *    - Only 1 member (the expert themselves)
  *    - Subscription tier and user role are synchronized
  *
- * 2️⃣ CLINICS (Future - Phase 2):
- *    - Multi-expert organization (type: 'clinic')
+ * 2️⃣ TEAMS (Future - Phase 2):
+ *    - Multi-expert organization (type: 'team')
  *    - Can have multiple experts with DIFFERENT levels (community/top)
  *    - THREE-PARTY REVENUE MODEL (Industry Standard):
- *      Patient → Eleva (Platform Fee) → Clinic (Marketing Fee) → Expert (Net)
+ *      Member → Eleva (Platform Fee) → Team (Marketing Fee) → Expert (Net)
  *
  *    Example Three-Party Split:
- *      Clinic Org → Workspace Subscription ($99-199/month)
- *      Clinic Settings → Marketing Fee (15%)
+ *      Team Org → Team Subscription ($99-199/month)
+ *      Team Settings → Marketing Fee (15%)
  *
- *      Patient books $100 appointment with Dr. Maria (Top Expert):
+ *      Member books $100 appointment with Dr. Maria (Top Expert):
  *        ├─ Eleva Platform Fee: $8 (8% - based on Dr. Maria's tier)
- *        ├─ Clinic Marketing Fee: $15 (15% - set by clinic)
+ *        ├─ Team Marketing Fee: $15 (15% - set by team)
  *        └─ Expert Net Payment: $77 (77% - Dr. Maria receives)
  *
- *      Patient books $100 appointment with Dr. João (Community):
+ *      Member books $100 appointment with Dr. João (Community):
  *        ├─ Eleva Platform Fee: $12 (12% - based on Dr. João's tier)
- *        ├─ Clinic Marketing Fee: $15 (15% - same clinic rate)
+ *        ├─ Team Marketing Fee: $15 (15% - same team rate)
  *        └─ Expert Net Payment: $73 (73% - Dr. João receives)
  *
  *    Key Rules:
  *      • Expert MUST receive minimum 60% of booking
- *      • Total fees (platform + clinic) cannot exceed 40%
- *      • Clinic fee range: 10-25%
- *      • Each expert's platform fee based on THEIR tier (not clinic tier)
+ *      • Total fees (platform + team) cannot exceed 40%
+ *      • Team fee range: 10-25%
+ *      • Each expert's platform fee based on THEIR tier (not team tier)
  *
- * 3️⃣ PATIENTS:
+ * 3️⃣ MEMBERS:
  *    - Personal organization for data isolation (HIPAA/GDPR)
  *    - No subscription required
  *
  * 4️⃣ EDUCATIONAL INSTITUTIONS (Future - Phase 3):
- *    - For courses and lectures
- *    - Lecturers can be community or top level
+ *    - For courses and lectures (Lecturer addon via Stripe)
+ *
+ * @see _docs/02-core-systems/RBAC-NAMING-DECISIONS.md
  */
 export type OrganizationType =
-  | 'patient_personal' // Individual patient's personal organization
+  | 'member_personal' // Individual member's personal organization
   | 'expert_individual' // Solo expert's organization (1 expert = 1 org)
-  | 'clinic' // Multi-expert clinic (multiple experts, mixed levels allowed)
+  | 'team' // Multi-expert team (multiple experts, mixed levels allowed)
   | 'educational_institution'; // For courses/lectures (future)
 
 /**
@@ -138,7 +139,7 @@ export const OrganizationsTable = pgTable(
  * Roles Table
  *
  * Stores user roles for RBAC (Role-Based Access Control).
- * Replaces Clerk's publicMetadata.role approach.
+ * Backed by WorkOS RBAC for role/permission management.
  */
 export const RolesTable = pgTable(
   'roles',
@@ -309,14 +310,13 @@ export const UserOrgMembershipsTable = pgTable(
 /**
  * Expert Setup Table
  *
- * Tracks expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ * Tracks expert onboarding progress in database.
  *
- * Benefits over Clerk metadata:
  * - Queryable: Can find all incomplete setups
  * - Indexed: Fast filtering and analytics
  * - Audit trail: Track completion dates
  * - No size limits: Store unlimited data
- * - No API calls: Direct database access
+ * - Direct database access via RLS
  */
 export const ExpertSetupTable = pgTable(
   'expert_setup',
@@ -442,7 +442,6 @@ export const EventsTable = pgTable(
   'events',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull(),
     name: text('name').notNull(),
@@ -474,7 +473,6 @@ export const SchedulesTable = pgTable(
   'schedules',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull().unique(),
     timezone: text('timezone').notNull(),
@@ -526,7 +524,6 @@ export const MeetingsTable = pgTable(
   'meetings',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     eventId: uuid('event_id')
       .notNull()
@@ -611,7 +608,6 @@ export const ProfilesTable = pgTable(
   'profiles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull().unique(),
     profilePicture: text('profile_picture'),
@@ -661,7 +657,6 @@ export const RecordsTable = pgTable(
   'records',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     meetingId: uuid('meeting_id')
       .notNull()
@@ -694,8 +689,7 @@ export const RecordsTable = pgTable(
  *   Example: 5000 = €50.00 or $50.00
  *   Always divide by 100 for display.
  *
- * NOTE: The DB column is still named `expert_clerk_user_id` for backward compatibility.
- * The Drizzle property is `expertWorkosUserId` to reflect the current auth provider.
+ * The `expertWorkosUserId` column stores the WorkOS user ID of the expert.
  */
 export const paymentTransferStatusEnum = pgEnum(
   'payment_transfer_status_enum',
@@ -706,13 +700,12 @@ export const PaymentTransfersTable = pgTable(
   'payment_transfers',
   {
     id: serial('id').primaryKey(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     paymentIntentId: text('payment_intent_id').notNull(),
     checkoutSessionId: text('checkout_session_id').notNull(),
     eventId: text('event_id').notNull(),
     expertConnectAccountId: text('expert_connect_account_id').notNull(),
-    expertWorkosUserId: text('expert_clerk_user_id').notNull(),
+    expertWorkosUserId: text('expert_workos_user_id').notNull(),
     /** Amount in minor currency units (cents). E.g., 5000 = €50.00 */
     amount: integer('amount').notNull(),
     currency: text('currency').notNull().default('eur'),
@@ -730,8 +723,8 @@ export const PaymentTransfersTable = pgTable(
     adminUserId: text('admin_user_id'),
     adminNotes: text('admin_notes'),
     notifiedAt: timestamp('notified_at'),
-    created: timestamp('created').notNull().defaultNow(),
-    updated: timestamp('updated').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
   (table) => ({
     orgIdIndex: index('payment_transfers_org_id_idx').on(table.orgId),
@@ -746,7 +739,6 @@ export const SchedulingSettingsTable = pgTable(
   'scheduling_settings',
   {
     id: serial('id').primaryKey(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull(),
     beforeEventBuffer: integer('before_event_buffer').notNull().default(0),
@@ -770,7 +762,6 @@ export const BlockedDatesTable = pgTable(
   'blocked_dates',
   {
     id: serial('id').primaryKey(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull(),
     date: date('date').notNull(),
@@ -798,7 +789,6 @@ export const SlotReservationsTable = pgTable(
   'slot_reservations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    // TODO: Make notNull() after Clerk → WorkOS migration complete (Phase 5)
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     eventId: uuid('event_id')
       .notNull()

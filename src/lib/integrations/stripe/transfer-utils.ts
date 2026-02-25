@@ -49,7 +49,7 @@ export async function checkExistingTransfer(
       .set({
         status: PAYMENT_TRANSFER_STATUS_COMPLETED,
         transferId: existingTransferId,
-        updated: new Date(),
+        updatedAt: new Date(),
       })
       .where(eq(PaymentTransfersTable.id, transferRecord.id));
 
@@ -94,7 +94,7 @@ export async function checkExistingTransfer(
         .set({
           status: PAYMENT_TRANSFER_STATUS_COMPLETED,
           transferId: transfer.id,
-          updated: new Date(),
+          updatedAt: new Date(),
         })
         .where(eq(PaymentTransfersTable.id, transferRecord.id));
 
