@@ -184,7 +184,7 @@ describe('Analytics Integration', () => {
       const groupProperties = buildGroupProperties('user');
 
       expect(groupProperties).toEqual({
-        role: 'user',
+        role: 'member',
         is_expert: false,
         is_admin: false,
       });

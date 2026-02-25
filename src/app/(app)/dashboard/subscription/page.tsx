@@ -8,7 +8,7 @@ export default async function SubscriptionPage() {
   // TODO: Add proper role check based on user role from database
   // const { user } = await withAuth({ ensureSignedIn: true });
   // const userRecord = await db.query.UsersTable.findFirst(...);
-  // if (!userRecord.role || !['expert_community', 'expert_top', 'expert_lecturer'].includes(userRecord.role)) {
+  // if (!userRecord.role || !['expert_community', 'expert_top'].includes(userRecord.role)) {
   //   redirect('/dashboard');
   // }
 

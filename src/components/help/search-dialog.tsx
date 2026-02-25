@@ -27,7 +27,7 @@ import { useState } from 'react';
  * Tags:
  * - patient: Patient Help Center
  * - expert: Expert Resources
- * - workspace: Workspace Portal
+ * - workspace: Team Portal
  *
  * @example
  * ```tsx
@@ -76,7 +76,7 @@ export default function HelpSearchDialog(props: SharedProps) {
             </TagsListItem>
             <TagsListItem value="workspace" className="gap-1">
               <Building2 className="size-3" />
-              Workspace
+              Team
             </TagsListItem>
           </TagsList>
         </SearchDialogFooter>

@@ -190,26 +190,22 @@ export const UsersTable = pgTable(
     //   - role = 'expert_top' → Top tier subscription → 18% monthly, 8% annual commission
     //   - Role and subscription tier are SYNCHRONIZED (1:1 mapping)
     //
-    // For CLINICS (type: 'clinic') - Future:
+    // For TEAMS (type: 'team') - Future:
     //   - Multiple experts can have DIFFERENT roles (mixed community/top)
     //   - Each expert's commission based on THEIR role, not the org's subscription
-    //   - Example: Same clinic can have both community (12%) and top (8%) experts
-    //   - Clinic pays workspace subscription fee separately
+    //   - Example: Same team can have both community (12%) and top (8%) experts
+    //   - Team pays team subscription fee separately
     //
-    // For LECTURERS (type: 'expert_lecturer'):
-    //   - Can be community or top level (affects course platform fees)
-    //   - Same commission logic applies to course sales
+    // Lecturer capabilities are NOT a role -- granted via Stripe addon subscription.
     //
-    // NOTE: Role determines BOTH permissions AND pricing tier
-    //       In future phases, these might be separated into:
-    //       - Permission roles (what they can DO)
-    //       - Qualification badges (achievement-based status)
+    // NOTE: In future phases, role/tier/badge will be fully separated:
+    //   - Permission roles (what they can DO) -- this column
+    //   - Pricing tiers (what they PAY) -- Stripe subscription
+    //   - Qualification badges (achievement-based status) -- separate system
     role: text('role')
       .notNull()
-      .default('user')
-      .$type<
-        'user' | 'expert_top' | 'expert_community' | 'expert_lecturer' | 'admin' | 'superadmin'
-      >(),
+      .default('member')
+      .$type<'member' | 'expert_top' | 'expert_community' | 'admin' | 'superadmin'>(),
 
     // Stripe IDs
     stripeCustomerId: text('stripe_customer_id').unique(),

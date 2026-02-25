@@ -71,11 +71,11 @@ export const getCurrentUser = cache(async (): Promise<WorkOSUserWithRBAC | null>
 /**
  * Get current user's role from JWT
  *
- * @returns Role slug or 'patient' as default
+ * @returns Role slug or 'member' as default
  */
 export async function getCurrentUserRole(): Promise<WorkOSRole> {
   const user = await getCurrentUser();
-  return user?.role || WORKOS_ROLES.PATIENT;
+  return user?.role || WORKOS_ROLES.MEMBER;
 }
 
 /**
@@ -138,7 +138,7 @@ export async function hasAnyRole(roles: WorkOSRole[]): Promise<boolean> {
  *
  * @example
  * ```ts
- * // Returns true for expert_community, expert_top, partner_admin, superadmin
+ * // Returns true for expert_community, expert_top, team_admin, superadmin
  * if (await hasRoleLevel(WORKOS_ROLES.EXPERT_COMMUNITY)) {
  *   // Show expert features
  * }
@@ -318,25 +318,25 @@ export async function isCommunityExpert(): Promise<boolean> {
 }
 
 /**
- * Check if current user is a partner member or admin
+ * Check if current user is a team member or team admin
  */
-export async function isPartner(): Promise<boolean> {
+export async function isTeamMember(): Promise<boolean> {
   const role = await getCurrentUserRole();
-  return role === WORKOS_ROLES.PARTNER_MEMBER || role === WORKOS_ROLES.PARTNER_ADMIN;
+  return role === WORKOS_ROLES.TEAM_MEMBER || role === WORKOS_ROLES.TEAM_ADMIN;
 }
 
 /**
- * Check if current user is a partner admin
+ * Check if current user is a team admin
  */
-export async function isPartnerAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.PARTNER_ADMIN);
+export async function isTeamAdmin(): Promise<boolean> {
+  return hasRole(WORKOS_ROLES.TEAM_ADMIN);
 }
 
 /**
- * Check if current user is a patient (default role)
+ * Check if current user is a member (base/default role)
  */
-export async function isPatient(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.PATIENT);
+export async function isMember(): Promise<boolean> {
+  return hasRole(WORKOS_ROLES.MEMBER);
 }
 
 // ============================================================================
@@ -397,10 +397,10 @@ export async function canViewExpertDashboard(): Promise<boolean> {
 }
 
 /**
- * Check if current user can view patient dashboard
+ * Check if current user can view member dashboard
  */
-export async function canViewPatientDashboard(): Promise<boolean> {
-  return hasPermission(WORKOS_PERMISSIONS.DASHBOARD_VIEW_PATIENT);
+export async function canViewMemberDashboard(): Promise<boolean> {
+  return hasPermission(WORKOS_PERMISSIONS.DASHBOARD_VIEW_MEMBER);
 }
 
 // ============================================================================

@@ -34,7 +34,7 @@ interface PageProps {
 const portalTitles: Record<PortalKey, string> = {
   patient: 'Patient Help Center',
   expert: 'Expert Resources',
-  workspace: 'Workspace Portal',
+  workspace: 'Team Portal',
 };
 
 /**

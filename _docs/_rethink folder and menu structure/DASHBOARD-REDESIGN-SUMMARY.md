@@ -8,7 +8,7 @@
 
 ## 🎯 What Was Delivered
 
-I've created a **complete dashboard architecture redesign** with industry-leading navigation patterns that scales from solo practitioners to multi-expert partners and future LMS features.
+I've created a **complete dashboard architecture redesign** with industry-leading navigation patterns that scales from solo practitioners to multi-expert teams and future LMS features.
 
 ### 📚 5 Comprehensive Documents (49+ pages)
 
@@ -35,7 +35,7 @@ I analyzed best practices from industry leaders:
 
 - Analytics-first approach
 - Clean feature separation
-- Customer/partner management
+- Customer/team management
 - Dashboard organization
 
 ### ✅ Vercel & WorkOS
@@ -54,7 +54,7 @@ I analyzed best practices from industry leaders:
 - ❌ Developer terminology ("booking" instead of user-facing terms)
 - ❌ Scattered features (billing split between admin/account)
 - ❌ No clear analytics section
-- ❌ Not scalable for partners or LMS
+- ❌ Not scalable for teams or LMS
 - ❌ Mixed internal/external terminology
 - ❌ Single availability schedule (no flexibility)
 - ❌ Google Calendar mandatory (barrier to entry)
@@ -64,9 +64,9 @@ I analyzed best practices from industry leaders:
 - ✅ User-friendly names (`events`, `availability`, `profile`)
 - ✅ Consolidated sections (billing, analytics, settings)
 - ✅ Clear feature grouping
-- ✅ Scalable structure for Phase 2 (partners) & Phase 3 (LMS)
+- ✅ Scalable structure for Phase 2 (teams) & Phase 3 (LMS)
 - ✅ Role-aware navigation with WorkOS RBAC
-- ✅ **Multiple schedules** like Cal.com (Remote, In-Person, Partner)
+- ✅ **Multiple schedules** like Cal.com (Remote, In-Person, Team)
 - ✅ **Optional calendar integration** - works without external calendar
 - ✅ **Built-in calendar view** with Day/Week/Month views
 - ✅ **Location management** per schedule
@@ -85,11 +85,11 @@ I analyzed best practices from industry leaders:
   ├─ Upcoming
   ├─ Past
   ├─ Calendar (Built-in Day/Week/Month) 🆕
-  └─ Patients
+  └─ Members
 
 🗓️ Availability (Enhanced - Like Cal.com) 🆕
   ├─ Schedules
-  │  ├─ All Schedules (e.g., Remote, In-Person, Partner)
+  │  ├─ All Schedules (e.g., Remote, In-Person, Team)
   │  ├─ Create New Schedule
   │  └─ Edit Schedule (Hours, Dates, Location)
   ├─ Booking Limits
@@ -126,16 +126,16 @@ I analyzed best practices from industry leaders:
 - **+ Analytics Section** 📈
   - Overview
   - Revenue
-  - Patients
+  - Members
   - Performance
 
-### Partner Admins (Future)
+### Team Admins (Future)
 
-- **+ Partner Section** 🏥
-  - Partner Overview
+- **+ Team Section** 🏥
+  - Team Overview
   - Team Management
-  - Partner Schedule
-  - Patients
+  - Team Schedule
+  - Members
   - Analytics
   - Settings
   - Revenue & Payouts
@@ -172,7 +172,7 @@ notifications/                 (NEW: Notification center)
 availability/schedules/        (NEW: Multiple schedules like Cal.com)
 availability/calendars/        (NEW: Calendar connections - optional)
 appointments/calendar/         (NEW: Built-in calendar view)
-partner/                        (Future: Phase 2)
+team/                           (Future: Phase 2)
 learn/                         (Future: Phase 3)
 ```
 
@@ -207,7 +207,7 @@ learn/                         (Future: Phase 3)
 
 ---
 
-### Phase 2: Partner Features (Future)
+### Phase 2: Team Features (Future)
 
 **Goal:** Multi-expert organization support
 
@@ -215,8 +215,8 @@ learn/                         (Future: Phase 3)
 
 - Team management
 - Multi-practitioner calendar
-- Shared patient records
-- Partner-wide analytics
+- Shared member records
+- Team-wide analytics
 - Revenue splitting
 
 ---
@@ -254,7 +254,7 @@ learn/                         (Future: Phase 3)
 
 - 💰 **Tier Upgrades:** Analytics visibility drives conversions
 - 📈 **Feature Adoption:** Better discovery = more usage
-- 🏥 **B2B Ready:** Partner features support scaling
+- 🏥 **B2B Ready:** Team features support scaling
 - 🎓 **LMS Ready:** Future revenue streams enabled
 
 ---
@@ -266,7 +266,7 @@ learn/                         (Future: Phase 3)
 ```typescript
 // Permission-based navigation
 const showAnalytics = await hasPermission(WORKOS_PERMISSIONS.ANALYTICS_VIEW);
-const showClinic = await hasPermission(WORKOS_PERMISSIONS.CLINIC_VIEW);
+const showTeam = await hasPermission(WORKOS_PERMISSIONS.TEAM_VIEW);
 const isAdmin = await hasPermission(WORKOS_PERMISSIONS.ADMIN_ACCESS);
 ```
 
@@ -458,7 +458,7 @@ _docs/
 
 ### 3. Scalable Architecture
 
-**Decision:** Design for future partner and LMS features now  
+**Decision:** Design for future team and LMS features now  
 **Why:** Avoid major restructuring later  
 **Impact:** Easy to add Phase 2 and 3 features without breaking changes
 
@@ -478,12 +478,12 @@ _docs/
 
 ## 💡 Innovation Highlights
 
-### 1. Hybrid Solo/Partner Model
+### 1. Hybrid Solo/Team Model
 
 Most platforms are either solo OR multi-expert. We support both seamlessly:
 
 - Solo experts see solo features
-- Partner members see both personal and partner sections
+- Team members see both personal and team sections
 - No confusion or complexity
 
 ### 2. Tier-Based Feature Visibility
@@ -499,7 +499,7 @@ Rather than hiding premium features, we show them to drive upgrades:
 Built for features that don't exist yet:
 
 - LMS section designed but not implemented
-- Partner features structured but not built
+- Team features structured but not built
 - Easy to enable with feature flags
 
 ---
@@ -606,7 +606,7 @@ This is a **production-ready design** with:
 **Estimated effort:** 2 weeks (1 developer)  
 **Risk level:** Low (with proper testing)  
 **User impact:** High (better UX, feature discovery)  
-**Business impact:** High (enables partner features, drives upgrades)
+**Business impact:** High (enables team features, drives upgrades)
 
 ---
 

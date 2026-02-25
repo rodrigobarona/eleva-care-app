@@ -143,7 +143,7 @@ export async function syncWorkOSUserToDatabase(userData: WorkOSUserData): Promis
         workosUserId: userData.id,
         email: userData.email,
         imageUrl: userData.profilePictureUrl || null,
-        role: 'user', // Default role
+        role: 'member', // Default role
       });
 
       console.log(`✅ User created: ${userData.email}`);

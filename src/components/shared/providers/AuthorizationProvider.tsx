@@ -64,13 +64,13 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
 
         if (!response.ok) {
           console.error('Failed to fetch user roles');
-          setRoles([WORKOS_ROLES.PATIENT]); // Default to patient role
+          setRoles([WORKOS_ROLES.MEMBER]); // Default to member role
           return;
         }
 
         const data = await response.json();
         // Validate response shape
-        const roles = Array.isArray(data.roles) ? data.roles : [WORKOS_ROLES.PATIENT];
+        const roles = Array.isArray(data.roles) ? data.roles : [WORKOS_ROLES.MEMBER];
         setRoles(roles);
       } catch (error) {
         // Ignore abort errors (component unmounted)
@@ -78,7 +78,7 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
           return;
         }
         console.error('Error fetching user roles:', error);
-        setRoles([WORKOS_ROLES.PATIENT]); // Default to patient role on error
+        setRoles([WORKOS_ROLES.MEMBER]); // Default to member role on error
       } finally {
         setIsLoadingRoles(false);
       }

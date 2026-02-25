@@ -20,19 +20,19 @@
  *      • Monthly ($177/mo): 8% commission (47% savings)
  *      • Annual ($1,774/yr): 8% commission (47% savings)
  *
- * 2️⃣ CLINICS (Future - Phase 2):
- *    Multi-expert organizations (type: 'clinic') where each expert
+ * 2️⃣ TEAMS (Future - Phase 2):
+ *    Multi-expert organizations (type: 'team') where each expert
  *    maintains their individual commission rate based on their role.
  *
  *    Example:
- *      Clinic Organization ($99/month workspace fee)
+ *      Team Organization ($99/month team fee)
  *        ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *        ├─ Dr. João (expert_community) → 12% on his bookings
  *        └─ Dr. Ana (expert_community) → 12% on her bookings
  *
  *    💡 Per-expert rates ensure:
  *       - Fair compensation (top experts earned their benefits)
- *       - Talent retention (experts keep benefits in clinics)
+ *       - Talent retention (experts keep benefits in teams)
  *       - Growth incentive (community → top progression)
  *
  * 🎯 COMMISSION CALCULATION:

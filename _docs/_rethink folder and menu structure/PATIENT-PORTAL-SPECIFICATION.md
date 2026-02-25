@@ -1,4 +1,4 @@
-# Patient Portal & Review System Specification
+# Member Portal & Review System Specification
 
 **Version:** 1.0  
 **Date:** November 12, 2025  
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This document defines the **Patient Portal** - a dedicated dashboard for patients to:
+This document defines the **Member Portal** - a dedicated dashboard for members to:
 
 - ✅ View and manage their appointments
 - ✅ Access session summaries and notes
@@ -23,63 +23,63 @@ This document defines the **Patient Portal** - a dedicated dashboard for patient
 
 ## Navigation Structure
 
-### Patient Dashboard
+### Member Dashboard
 
 ```
-🏠 Patient Portal
+🏠 Member Portal
 ├─ 📊 Overview
-│  └── /patient/dashboard
+│  └── /member/dashboard
 │      ├── Upcoming appointments
 │      ├── Recent session summaries
 │      ├── Quick actions
 │      └── Recommended experts
 │
 ├─ 📅 My Appointments
-│  └── /patient/appointments
-│      ├── /patient/appointments/upcoming      # Default view
-│      ├── /patient/appointments/past
-│      ├── /patient/appointments/[id]          # Appointment details
+│  └── /member/appointments
+│      ├── /member/appointments/upcoming      # Default view
+│      ├── /member/appointments/past
+│      ├── /member/appointments/[id]          # Appointment details
 │      │   ├── Session summary/notes
 │      │   ├── Reschedule/Cancel
 │      │   ├── Join video call
 │      │   └── Leave review (after session) 🆕
-│      └── /patient/appointments/calendar      # Calendar view
+│      └── /member/appointments/calendar      # Calendar view
 │
 ├─ 📝 Session Notes
-│  └── /patient/sessions
-│      ├── /patient/sessions                   # All sessions list
-│      └── /patient/sessions/[id]              # Session details
+│  └── /member/sessions
+│      ├── /member/sessions                   # All sessions list
+│      └── /member/sessions/[id]              # Session details
 │          ├── Expert notes (shared)
 │          ├── Recommendations
 │          ├── Homework/exercises
 │          └── Related resources
 │
 ├─ ⭐ My Reviews
-│  └── /patient/reviews
-│      ├── /patient/reviews                    # All my reviews
-│      ├── /patient/reviews/pending            # Pending reviews
-│      └── /patient/reviews/[id]               # Edit review
+│  └── /member/reviews
+│      ├── /member/reviews                    # All my reviews
+│      ├── /member/reviews/pending            # Pending reviews
+│      └── /member/reviews/[id]               # Edit review
 │
 ├─ 👥 My Experts
-│  └── /patient/experts
-│      ├── /patient/experts                    # Experts I've worked with
-│      └── /patient/experts/[username]         # Expert profile + review
+│  └── /member/experts
+│      ├── /member/experts                    # Experts I've worked with
+│      └── /member/experts/[username]         # Expert profile + review
 │
 ├─ 💳 Billing
-│  └── /patient/billing
-│      ├── /patient/billing/payments           # Payment history
-│      ├── /patient/billing/invoices           # Invoices
-│      └── /patient/billing/methods            # Payment methods
+│  └── /member/billing
+│      ├── /member/billing/payments           # Payment history
+│      ├── /member/billing/invoices           # Invoices
+│      └── /member/billing/methods            # Payment methods
 │
 ├─ 👤 Profile
-│  └── /patient/profile
+│  └── /member/profile
 │      ├── Personal information
 │      ├── Health information (optional)
 │      ├── Emergency contact
 │      └── Privacy settings
 │
 └─ ⚙️ Settings
-   └── /patient/settings
+   └── /member/settings
        ├── Notifications
        ├── Privacy preferences
        ├── Communication preferences
@@ -92,17 +92,17 @@ This document defines the **Patient Portal** - a dedicated dashboard for patient
 
 ### Overview
 
-Implement a **post-session review system** that allows patients to rate and review their experience with experts, similar to Airbnb's guest review system.
+Implement a **post-session review system** that allows members to rate and review their experience with experts, similar to Airbnb's guest review system.
 
 ### Key Features
 
 1. **Automatic Review Prompts**
    - Send review request 24 hours after session ends
    - Email + in-app notification
-   - Show banner in patient dashboard
+   - Show banner in member dashboard
 
 2. **Two-Way Review System** (Optional - Future)
-   - Patients review experts
+   - Members review experts
    - Experts can leave feedback notes (private)
    - Both published simultaneously
 
@@ -129,10 +129,10 @@ interface Review {
   id: string;
 
   // Relationships
-  patientId: string; // Patient who left review
+  memberId: string; // Member who left review
   expertId: string; // Expert being reviewed
   appointmentId: string; // Specific appointment
-  organizationId?: string; // If part of partner
+  organizationId?: string; // If part of team
 
   // Rating (1-5 stars)
   overallRating: number; // Required: 1, 2, 3, 4, or 5
@@ -154,7 +154,7 @@ interface Review {
   photos?: string[]; // Photo URLs
 
   // Metadata
-  isAnonymous: boolean; // Hide patient name
+  isAnonymous: boolean; // Hide member name
   isVerified: boolean; // Confirmed attended session
 
   // Response (expert can respond)
@@ -224,7 +224,7 @@ interface Appointment {
 
 ---
 
-## Review Flow (Patient Journey)
+## Review Flow (Member Journey)
 
 ### 1. Session Completion
 
@@ -239,7 +239,7 @@ Send review request
 └─ Dashboard banner
 ```
 
-### 2. Patient Writes Review
+### 2. Member Writes Review
 
 ```
 ┌─────────────────────────────────────────┐
@@ -338,9 +338,9 @@ DELETE /api/reviews/:id        # Delete review
 GET  /api/experts/:username/reviews  # Public reviews for expert
 GET  /api/experts/:username/stats    # Rating stats
 
-// Patient-specific
-GET  /api/patient/reviews             # My reviews
-GET  /api/patient/reviews/pending     # Pending reviews
+// Member-specific
+GET  /api/member/reviews             # My reviews
+GET  /api/member/reviews/pending     # Pending reviews
 
 // 3. React components
 <StarRating value={5} onChange={setRating} />
@@ -461,7 +461,7 @@ CREATE TABLE reviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
   -- Relationships
-  patient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expert_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   appointment_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
@@ -521,7 +521,7 @@ CREATE TABLE review_votes (
 
 -- Indexes
 CREATE INDEX idx_reviews_expert_id ON reviews(expert_id);
-CREATE INDEX idx_reviews_patient_id ON reviews(patient_id);
+CREATE INDEX idx_reviews_member_id ON reviews(member_id);
 CREATE INDEX idx_reviews_appointment_id ON reviews(appointment_id);
 CREATE INDEX idx_reviews_status ON reviews(status);
 CREATE INDEX idx_reviews_published_at ON reviews(published_at DESC);
@@ -543,7 +543,7 @@ ALTER TABLE meetings
 ### Reviews API
 
 ```typescript
-// Create review (Patient only)
+// Create review (Member only)
 POST /api/reviews
 Body: {
   appointmentId: string;
@@ -573,24 +573,24 @@ Response: {
   pagination: PaginationMeta;
 }
 
-// Get my reviews (Patient)
-GET /api/patient/reviews
+// Get my reviews (Member)
+GET /api/member/reviews
 Response: Review[]
 
-// Get pending reviews (Patient)
-GET /api/patient/reviews/pending
+// Get pending reviews (Member)
+GET /api/member/reviews/pending
 Response: {
   appointment: Appointment;
   expert: Expert;
   canReview: boolean;
 }[]
 
-// Update review (Patient, within 30 days)
+// Update review (Member, within 30 days)
 PATCH /api/reviews/:id
 Body: Partial<ReviewInput>
 Response: Review
 
-// Delete review (Patient, within 7 days)
+// Delete review (Member, within 7 days)
 DELETE /api/reviews/:id
 Response: { success: boolean }
 
@@ -841,7 +841,7 @@ interface ReviewCardProps {
     highlights?: string[];
     isAnonymous: boolean;
     createdAt: Date;
-    patient?: {
+    member?: {
       name: string;
       avatar?: string;
     };
@@ -849,21 +849,21 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ review }: ReviewCardProps) {
-  const patientName = review.isAnonymous
+  const memberName = review.isAnonymous
     ? 'Anonymous'
-    : review.patient?.name || 'Patient';
+    : review.member?.name || 'Member';
 
   const initials = review.isAnonymous
     ? 'A'
-    : patientName.split(' ').map(n => n[0]).join('');
+    : memberName.split(' ').map(n => n[0]).join('');
 
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="flex items-start gap-4">
           <Avatar>
-            {!review.isAnonymous && review.patient?.avatar && (
-              <AvatarImage src={review.patient.avatar} />
+            {!review.isAnonymous && review.member?.avatar && (
+              <AvatarImage src={review.member.avatar} />
             )}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
@@ -871,7 +871,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
           <div className="flex-1 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">{patientName}</p>
+                <p className="font-medium">{memberName}</p>
                 <p className="text-sm text-muted-foreground">
                   {formatDistanceToNow(new Date(review.createdAt), {
                     addSuffix: true
@@ -925,7 +925,7 @@ export async function sendReviewRequests() {
       isNull(MeetingsTable.reviewRequestedAt),
     ),
     with: {
-      patient: true,
+      member: true,
       expert: true,
     },
   });
@@ -933,13 +933,13 @@ export async function sendReviewRequests() {
   for (const appointment of appointments) {
     // Send email
     await sendEmail({
-      to: appointment.patient.email,
+      to: appointment.member.email,
       subject: `How was your session with ${appointment.expert.name}?`,
       template: 'review-request',
       data: {
-        patientName: appointment.patient.name,
+        memberName: appointment.member.name,
         expertName: appointment.expert.name,
-        reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL}/patient/appointments/${appointment.id}/review`,
+        reviewUrl: `${process.env.NEXT_PUBLIC_APP_URL}/member/appointments/${appointment.id}/review`,
       },
     });
 
@@ -1000,9 +1000,9 @@ export async function GET(request: Request) {
 - **Response Time:** How quickly experts respond to reviews
 - **Moderation Rate:** % of reviews flagged/removed
 
-### Patient Engagement
+### Member Engagement
 
-- **Portal Usage:** % of patients who log in
+- **Portal Usage:** % of members who log in
 - **Review Completion:** % who complete reviews within 7 days
 - **Repeat Bookings:** Correlation between reviews and re-bookings
 
@@ -1021,17 +1021,17 @@ export async function GET(request: Request) {
 1. **No Health Information in Reviews**
    - Reviews should NOT contain medical details
    - Auto-flag PHI keywords
-   - Clear guidelines for patients
+   - Clear guidelines for members
 
 2. **Right to Delete**
-   - Patients can delete reviews within 7 days
+   - Members can delete reviews within 7 days
    - After 7 days, contact support
    - Soft delete (mark as removed, keep for records)
 
 3. **Data Access**
-   - Patients can export their reviews
-   - Experts cannot access patient info via reviews
-   - Anonymous reviews protect patient identity
+   - Members can export their reviews
+   - Experts cannot access member info via reviews
+   - Anonymous reviews protect member identity
 
 4. **Review Guidelines**
 
@@ -1046,7 +1046,7 @@ export async function GET(request: Request) {
 - Medical conditions or diagnoses
 - Treatment details
 - Personal health information
-- Other patients' information
+- Other members' information
 ```
 
 ---

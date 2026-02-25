@@ -48,7 +48,7 @@ async function handler(_request: NextRequest) {
   try {
     // Get all active experts (community and top)
     const experts = await db.query.UsersTable.findMany({
-      where: inArray(UsersTable.role, ['expert_community', 'expert_top', 'expert_lecturer']),
+      where: inArray(UsersTable.role, ['expert_community', 'expert_top']),
       columns: {
         id: true,
         workosUserId: true,

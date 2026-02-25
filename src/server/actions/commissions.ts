@@ -26,7 +26,7 @@
  * based on their own role, regardless of the clinic's subscription.
  *
  * Example:
- *   Clinic subscribes to workspace plan ($99/month)
+ *   Team subscribes to team plan ($99/month)
  *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *   ├─ Dr. João (expert_community) → 12% on his bookings
  *   └─ Commission per expert ensures fair compensation
@@ -97,7 +97,7 @@ import { getCurrentCommissionRate } from './subscriptions';
  * based on their own role, regardless of the clinic's subscription.
  *
  * Example:
- *   Clinic subscribes to workspace plan ($99/month)
+ *   Team subscribes to team plan ($99/month)
  *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *   ├─ Dr. João (expert_community) → 12% on his bookings
  *   └─ Commission per expert ensures fair compensation
@@ -152,7 +152,7 @@ import { getCurrentCommissionRate } from './subscriptions';
  * based on their own role, regardless of the clinic's subscription.
  *
  * Example:
- *   Clinic subscribes to workspace plan ($99/month)
+ *   Team subscribes to team plan ($99/month)
  *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *   ├─ Dr. João (expert_community) → 12% on his bookings
  *   └─ Commission per expert ensures fair compensation
@@ -207,7 +207,7 @@ import { getCurrentCommissionRate } from './subscriptions';
  * based on their own role, regardless of the clinic's subscription.
  *
  * Example:
- *   Clinic subscribes to workspace plan ($99/month)
+ *   Team subscribes to team plan ($99/month)
  *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *   ├─ Dr. João (expert_community) → 12% on his bookings
  *   └─ Commission per expert ensures fair compensation
@@ -388,9 +388,8 @@ export async function recordCommission(
     // - expert_community → 'community' tier (12-20% commission)
     //
     // For SOLO EXPERTS: This matches their org subscription tier (1:1)
-    // For CLINICS (future): Each expert keeps their own tier regardless of org subscription
-    const tierLevel =
-      user?.role === 'expert_top' || user?.role === 'expert_lecturer' ? 'top' : 'community';
+    // For TEAMS (future): Each expert keeps their own tier regardless of org subscription
+    const tierLevel = user?.role === 'expert_top' ? 'top' : 'community';
 
     // Get organization subscription to determine plan type
     // Plan type affects the commission rate (commission/monthly/annual)

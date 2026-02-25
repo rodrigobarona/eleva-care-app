@@ -1,9 +1,23 @@
 /**
  * WorkOS RBAC Type Definitions
  *
- * These types match the roles and permissions defined in WorkOS Dashboard.
- * Used throughout the application for type-safe permission checking.
+ * Single source of truth for all roles and permissions used in the Eleva Care
+ * RBAC system. These types must match exactly what is configured in the WorkOS
+ * Dashboard.
  *
+ * Role architecture:
+ * - `member`: Base role for all registered users (free tier)
+ * - `expert_community`: Standard expert tier (subscription-backed)
+ * - `expert_top`: Premium expert tier (subscription-backed)
+ * - `team_member`: Member of a team/clinic organization
+ * - `team_admin`: Administrator of a team/clinic organization
+ * - `superadmin`: Platform-wide administrator
+ *
+ * Lecturer capabilities are NOT a role -- they are granted via Stripe addon
+ * subscriptions and delivered as entitlements in the JWT.
+ *
+ * @see _docs/02-core-systems/RBAC-NAMING-DECISIONS.md
+ * @see _docs/02-core-systems/NAMING-CONVENTIONS-GLOSSARY.md
  * @see _docs/_WorkOS RABAC implemenation/WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md
  * @see scripts/configure-workos-rbac.ts for full permission list
  */
@@ -15,41 +29,51 @@
 /**
  * WorkOS RBAC Role Slugs
  *
- * These match the roles defined in WorkOS Dashboard.
- * Priority order: patient < partner_member < expert_community < expert_top < partner_admin < superadmin
+ * These slugs must match exactly what is configured in the WorkOS Dashboard.
+ * Priority order: member < team_member < expert_community < expert_top < team_admin < superadmin
+ *
+ * Naming decisions:
+ * - `member` chosen over `patient`/`user` for generality (WorkOS, Vercel, Cal.com convention)
+ * - `team_*` chosen over `partner_*`/`workspace_*` for people-focus (Cal.com, Vercel convention)
+ * - `expert_*` kept as brand term despite healthcare "practitioner" standard
+ *
+ * @see _docs/02-core-systems/RBAC-NAMING-DECISIONS.md
  */
 export const WORKOS_ROLES = {
-  /** Basic patient role (priority: 10) */
-  PATIENT: 'patient',
-  /** Standard expert tier (priority: 70) */
+  /** Base role for all registered users -- free tier (priority: 10) */
+  MEMBER: 'member',
+  /** Standard expert tier -- subscription-backed (priority: 70) */
   EXPERT_COMMUNITY: 'expert_community',
-  /** Premium expert tier (priority: 80) */
+  /** Premium expert tier -- subscription-backed (priority: 80) */
   EXPERT_TOP: 'expert_top',
-  /** Partner team member (priority: 60) */
-  PARTNER_MEMBER: 'partner_member',
-  /** Partner administrator (priority: 90) */
-  PARTNER_ADMIN: 'partner_admin',
-  /** Platform administrator (priority: 100) */
+  /** Member of a team/clinic organization (priority: 60) */
+  TEAM_MEMBER: 'team_member',
+  /** Administrator of a team/clinic organization (priority: 90) */
+  TEAM_ADMIN: 'team_admin',
+  /** Platform-wide administrator (priority: 100) */
   SUPERADMIN: 'superadmin',
 } as const;
 
 export type WorkOSRole = (typeof WORKOS_ROLES)[keyof typeof WORKOS_ROLES];
 
 /**
- * Role hierarchy for permission escalation checks
- * Higher values have more permissions
+ * Role hierarchy for permission escalation checks.
+ * Higher values indicate more permissions.
+ *
+ * @see _docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md
  */
 export const WORKOS_ROLE_HIERARCHY: Record<WorkOSRole, number> = {
-  [WORKOS_ROLES.PATIENT]: 10,
-  [WORKOS_ROLES.PARTNER_MEMBER]: 60,
+  [WORKOS_ROLES.MEMBER]: 10,
+  [WORKOS_ROLES.TEAM_MEMBER]: 60,
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 70,
   [WORKOS_ROLES.EXPERT_TOP]: 80,
-  [WORKOS_ROLES.PARTNER_ADMIN]: 90,
+  [WORKOS_ROLES.TEAM_ADMIN]: 90,
   [WORKOS_ROLES.SUPERADMIN]: 100,
 };
 
 /**
- * Expert roles for quick checking
+ * Expert roles for quick checking.
+ * Both tiers are subscription-backed (even $0 invite-only plans).
  */
 export const EXPERT_ROLES = [WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_TOP] as const;
 
@@ -59,9 +83,12 @@ export const EXPERT_ROLES = [WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_
 export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
 
 /**
- * Partner roles for quick checking
+ * Team roles for quick checking.
+ * These roles are scoped to team/clinic organizations in WorkOS.
+ *
+ * @see _docs/02-core-systems/NAMING-CONVENTIONS-GLOSSARY.md
  */
-export const PARTNER_ROLES = [WORKOS_ROLES.PARTNER_MEMBER, WORKOS_ROLES.PARTNER_ADMIN] as const;
+export const TEAM_ROLES = [WORKOS_ROLES.TEAM_MEMBER, WORKOS_ROLES.TEAM_ADMIN] as const;
 
 // ============================================================================
 // PERMISSIONS (121 total)
@@ -72,6 +99,12 @@ export const PARTNER_ROLES = [WORKOS_ROLES.PARTNER_MEMBER, WORKOS_ROLES.PARTNER_
  *
  * These match the permissions defined in WorkOS Dashboard.
  * Format: resource:action (e.g., events:create)
+ *
+ * Permission groups:
+ * - `team:*` -- team membership and workspace operations
+ * - `schedule:*` -- scheduling management (team-scoped)
+ * - `revenue:*` -- financial operations (team-scoped)
+ * - All other groups are role-scoped (member, expert, admin)
  */
 export const WORKOS_PERMISSIONS = {
   // =========================================================================
@@ -191,8 +224,8 @@ export const WORKOS_PERMISSIONS = {
   BILLING_VIEW_SUBSCRIPTION: 'billing:view_subscription',
   BILLING_MANAGE_SUBSCRIPTION: 'billing:manage_subscription',
   BILLING_METHODS_MANAGE: 'billing:methods_manage',
-  BILLING_MANAGE_CLINIC_SUB: 'billing:manage_clinic_sub',
-  BILLING_VIEW_CLINIC_BILLING: 'billing:view_clinic_billing',
+  BILLING_MANAGE_TEAM_SUB: 'billing:manage_team_sub',
+  BILLING_VIEW_TEAM_BILLING: 'billing:view_team_billing',
 
   // =========================================================================
   // Settings (7)
@@ -209,23 +242,23 @@ export const WORKOS_PERMISSIONS = {
   // Dashboard (2)
   // =========================================================================
   DASHBOARD_VIEW_EXPERT: 'dashboard:view_expert',
-  DASHBOARD_VIEW_PATIENT: 'dashboard:view_patient',
+  DASHBOARD_VIEW_MEMBER: 'dashboard:view_member',
 
   // =========================================================================
-  // Partner (18) - Phase 2
+  // Team (18) - Phase 2: team management + workspace operations
   // =========================================================================
-  PARTNER_VIEW_DASHBOARD: 'partner:view_dashboard',
-  PARTNER_MANAGE_SETTINGS: 'partner:manage_settings',
-  PARTNER_MANAGE_BRANDING: 'partner:manage_branding',
-  PARTNER_VIEW_ANALYTICS: 'partner:view_analytics',
-  PARTNER_VIEW_PATIENTS: 'partner:view_patients',
-  PARTNER_EXPORT_DATA: 'partner:export_data',
+  TEAM_VIEW_DASHBOARD: 'team:view_dashboard',
+  TEAM_MANAGE_SETTINGS: 'team:manage_settings',
+  TEAM_MANAGE_BRANDING: 'team:manage_branding',
+  TEAM_VIEW_ANALYTICS: 'team:view_analytics',
+  TEAM_VIEW_PATIENTS: 'team:view_patients',
+  TEAM_EXPORT_DATA: 'team:export_data',
   TEAM_VIEW_MEMBERS: 'team:view_members',
   TEAM_INVITE_MEMBERS: 'team:invite_members',
   TEAM_REMOVE_MEMBERS: 'team:remove_members',
   TEAM_MANAGE_ROLES: 'team:manage_roles',
   TEAM_VIEW_PERFORMANCE: 'team:view_performance',
-  SCHEDULE_MANAGE_CLINIC: 'schedule:manage_clinic',
+  SCHEDULE_MANAGE_TEAM: 'schedule:manage_team',
   SCHEDULE_MANAGE_ROOMS: 'schedule:manage_rooms',
   SCHEDULE_VIEW_CAPACITY: 'schedule:view_capacity',
   REVENUE_VIEW_OVERVIEW: 'revenue:view_overview',
@@ -269,8 +302,8 @@ export type WorkOSPermission = (typeof WORKOS_PERMISSIONS)[keyof typeof WORKOS_P
 /**
  * Extended AuthKit User with RBAC claims
  *
- * This interface represents the user object with role and permissions
- * extracted from the JWT token.
+ * Represents the user object with role and permissions extracted from the
+ * WorkOS JWT token.
  */
 export interface WorkOSUserWithRBAC {
   /** WorkOS user ID */
@@ -302,28 +335,28 @@ export interface WorkOSUserWithRBAC {
 // ============================================================================
 
 /**
- * Check if a role is an expert role
+ * Check if a role is an expert role (expert_community or expert_top)
  */
 export function isExpertRole(role: string): boolean {
   return (EXPERT_ROLES as readonly string[]).includes(role);
 }
 
 /**
- * Check if a role is an admin role
+ * Check if a role is an admin role (superadmin)
  */
 export function isAdminRole(role: string): boolean {
   return (ADMIN_ROLES as readonly string[]).includes(role);
 }
 
 /**
- * Check if a role is a partner role
+ * Check if a role is a team role (team_member or team_admin)
  */
-export function isPartnerRole(role: string): boolean {
-  return (PARTNER_ROLES as readonly string[]).includes(role);
+export function isTeamRole(role: string): boolean {
+  return (TEAM_ROLES as readonly string[]).includes(role);
 }
 
 /**
- * Get role hierarchy level
+ * Get role hierarchy level (higher = more permissions)
  */
 export function getRoleLevel(role: string): number {
   return WORKOS_ROLE_HIERARCHY[role as WorkOSRole] ?? 0;
@@ -341,40 +374,42 @@ export function hasHigherOrEqualRole(roleA: string, roleB: string): boolean {
 // ============================================================================
 
 /**
- * User-facing display names for roles
+ * User-facing display names for roles.
  *
- * Note: Technical roles use "partner_*" prefix (WorkOS RBAC),
- * but users see "Workspace" terminology (product branding).
+ * Technical slugs use `team_*` prefix (WorkOS RBAC), users see "Team" terminology.
  *
  * @see _docs/02-core-systems/NAMING-CONVENTIONS-GLOSSARY.md
  */
 export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
-  [WORKOS_ROLES.PATIENT]: 'Patient',
+  [WORKOS_ROLES.MEMBER]: 'Member',
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 'Community Expert',
   [WORKOS_ROLES.EXPERT_TOP]: 'Top Expert',
-  [WORKOS_ROLES.PARTNER_MEMBER]: 'Workspace Member',
-  [WORKOS_ROLES.PARTNER_ADMIN]: 'Workspace Admin',
+  [WORKOS_ROLES.TEAM_MEMBER]: 'Team Member',
+  [WORKOS_ROLES.TEAM_ADMIN]: 'Team Admin',
   [WORKOS_ROLES.SUPERADMIN]: 'Platform Admin',
 };
 
+/**
+ * Role descriptions for tooltips and admin UI
+ */
 export const WORKOS_ROLE_DESCRIPTIONS: Record<WorkOSRole, string> = {
-  [WORKOS_ROLES.PATIENT]: 'Book appointments and access patient features',
+  [WORKOS_ROLES.MEMBER]: 'Base role for all registered users',
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 'Standard expert with core features',
   [WORKOS_ROLES.EXPERT_TOP]: 'Premium expert with analytics and branding',
-  [WORKOS_ROLES.PARTNER_MEMBER]: 'Team member of a workspace',
-  [WORKOS_ROLES.PARTNER_ADMIN]: 'Administrator of a workspace',
+  [WORKOS_ROLES.TEAM_MEMBER]: 'Member of a team organization',
+  [WORKOS_ROLES.TEAM_ADMIN]: 'Administrator of a team organization',
   [WORKOS_ROLES.SUPERADMIN]: 'Full platform access',
 };
 
 /**
- * Get display name for a role
+ * Get display name for a role slug
  */
 export function getRoleDisplayName(role: string): string {
   return WORKOS_ROLE_DISPLAY_NAMES[role as WorkOSRole] ?? role;
 }
 
 /**
- * Get description for a role
+ * Get description for a role slug
  */
 export function getRoleDescription(role: string): string {
   return WORKOS_ROLE_DESCRIPTIONS[role as WorkOSRole] ?? '';

@@ -236,10 +236,7 @@ export async function getSubscriptionStatus(
         columns: { role: true },
       });
 
-      const tierLevel =
-        userRecord?.role === 'expert_top' || userRecord?.role === 'expert_lecturer'
-          ? 'top'
-          : 'community';
+      const tierLevel = userRecord?.role === 'expert_top' ? 'top' : 'community';
 
       const commissionRate =
         tierLevel === 'top'

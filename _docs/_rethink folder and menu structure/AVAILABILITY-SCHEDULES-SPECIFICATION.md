@@ -11,7 +11,7 @@
 
 This document defines a **multi-schedule availability system** that allows experts to:
 
-- ✅ Create multiple schedules for different contexts (remote, in-person, partner)
+- ✅ Create multiple schedules for different contexts (remote, in-person, team)
 - ✅ Assign different schedules to different event types
 - ✅ Work with or without calendar integrations (optional, not mandatory)
 - ✅ Use built-in calendar view for booking management
@@ -24,7 +24,7 @@ This document defines a **multi-schedule availability system** that allows exper
 
 ### Use Case 1: Remote + In-Person Expert
 
-**Scenario:** Dr. João works remotely most days but offers in-person sessions at a partner on Tuesday and Thursday afternoons.
+**Scenario:** Dr. João works remotely most days but offers in-person sessions at a team on Tuesday and Thursday afternoons.
 
 **Solution:**
 
@@ -34,7 +34,7 @@ Schedule 1: "Remote Work" (Default)
 ├─ Location: Remote (Video call)
 └─ Timezone: America/Sao_Paulo
 
-Schedule 2: "Partner - In-Person"
+Schedule 2: "Team - In-Person"
 ├─ Tuesday: 2:00 PM - 6:00 PM
 ├─ Thursday: 2:00 PM - 6:00 PM
 ├─ Location: Clínica São Paulo (Address)
@@ -42,26 +42,26 @@ Schedule 2: "Partner - In-Person"
 
 Event Types:
 ├─ "Online Consultation" → Uses Schedule 1 (Remote)
-└─ "In-Person Consultation" → Uses Schedule 2 (Partner)
+└─ "In-Person Consultation" → Uses Schedule 2 (Team)
 ```
 
 ---
 
-### Use Case 2: Expert Working at Multiple Partners
+### Use Case 2: Expert Working at Multiple Teams
 
-**Scenario:** Dr. Maria works part-time at two different partners with different schedules.
+**Scenario:** Dr. Maria works part-time at two different teams with different schedules.
 
 **Solution:**
 
 ```
-Schedule 1: "Partner A - Morning"
+Schedule 1: "Team A - Morning"
 ├─ Monday, Wednesday, Friday: 8:00 AM - 12:00 PM
-├─ Location: Partner A (Address)
+├─ Location: Team A (Address)
 └─ Timezone: America/Sao_Paulo
 
-Schedule 2: "Partner B - Afternoon"
+Schedule 2: "Team B - Afternoon"
 ├─ Tuesday, Thursday: 2:00 PM - 6:00 PM
-├─ Location: Partner B (Address)
+├─ Location: Team B (Address)
 └─ Timezone: America/Sao_Paulo
 
 Schedule 3: "Remote Evenings"
@@ -70,16 +70,16 @@ Schedule 3: "Remote Evenings"
 └─ Timezone: America/Sao_Paulo
 
 Event Types:
-├─ "Partner A Session" → Uses Schedule 1
-├─ "Partner B Session" → Uses Schedule 2
+├─ "Team A Session" → Uses Schedule 1
+├─ "Team B Session" → Uses Schedule 2
 └─ "Evening Online Session" → Uses Schedule 3
 ```
 
 ---
 
-### Use Case 3: Expert in Personal Practice + Partner Organization
+### Use Case 3: Expert in Personal Practice + Team Organization
 
-**Scenario:** Dr. Ana has her own solo practice but also works part-time for a partner organization.
+**Scenario:** Dr. Ana has her own solo practice but also works part-time for a team organization.
 
 **Solution:**
 
@@ -90,11 +90,11 @@ Personal Organization:
 │   └─ Location: My Office (Address)
 └─ Event Types: Personal consultation events
 
-Partner Organization (Member):
-├─ Schedule 2: "Partner Schedule"
+Team Organization (Member):
+├─ Schedule 2: "Team Schedule"
 │   ├─ Tuesday, Thursday: 10:00 AM - 4:00 PM
-│   └─ Location: Partner Partner (Address)
-└─ Event Types: Partner-assigned events
+│   └─ Location: Team Office (Address)
+└─ Event Types: Team-assigned events
 ```
 
 ---
@@ -107,10 +107,10 @@ Partner Organization (Member):
 interface Schedule {
   id: string;
   userId: string; // Owner of the schedule
-  organizationId?: string; // If schedule belongs to partner
+  organizationId?: string; // If schedule belongs to team
 
   // Identity
-  name: string; // "Remote Work", "Partner Tuesdays", "Evening Sessions"
+  name: string; // "Remote Work", "Team Tuesdays", "Evening Sessions"
   isDefault: boolean; // One schedule marked as default
 
   // Availability Rules
@@ -219,7 +219,7 @@ interface CalendarDestination {
 │  ├─ + Create New Schedule
 │  └─ List of schedules:
 │     ├─ Remote Work (Default) ⭐
-│     ├─ Partner Tuesdays
+│     ├─ Team Tuesdays
 │     └─ Evening Sessions
 │
 ├─ ⚙️ Limits
@@ -297,7 +297,7 @@ interface CalendarDestination {
 ├─────────────────────────────────────────┤
 │                                          │
 │ Location Name                            │
-│ [Clínica São Paulo____________]         │
+│ [Clínica São Paulo____________]      │
 │                                          │
 │ Street Address*                          │
 │ [Av. Paulista, 1000___________]         │
@@ -334,7 +334,7 @@ interface CalendarDestination {
 │ [Remote Work Hours (Default) ▼]         │
 │   Options:                               │
 │   • Remote Work Hours (Default) ⭐      │
-│   • Partner Tuesdays                      │
+│   • Team Tuesdays                      │
 │   • Evening Sessions                     │
 │                                          │
 │ Location will inherit from schedule:     │
@@ -520,14 +520,14 @@ interface ConnectedCalendar {
 │  │ 12:00   ─────────────────────────────────────────────────  │ │
 │  │ 13:00                                                       │ │
 │  │ 14:00   [In-Person] 🏥          [In-Person] 🏥           │ │
-│  │ 15:00   (Partner)                (Partner)                   │ │
+│  │ 15:00   (Team)                (Team)                   │ │
 │  │ 16:00                                                       │ │
 │  │ 17:00                                                       │ │
 │  │ 18:00                                                       │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                   │
 │  Legend: 🏥 In-Person  💻 Remote  📞 Phone                       │
-│          Partner Tuesdays  Remote Work  Evening Sessions          │
+│          Team Tuesdays  Remote Work  Evening Sessions          │
 └──────────────────────────────────────────────────────────────────┘
 ```
 

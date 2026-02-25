@@ -44,7 +44,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
 
     // Fetch the requested user's role
     const roles = await getUserRolesFromDB(params.userId);
-    const role = roles.length > 0 ? roles[0] : WORKOS_ROLES.PATIENT;
+    const role = roles.length > 0 ? roles[0] : WORKOS_ROLES.MEMBER;
 
     return NextResponse.json({ role });
   } catch (error) {

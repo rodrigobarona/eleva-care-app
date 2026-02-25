@@ -30,8 +30,8 @@ export const portals = {
     icon: BookOpen,
   },
   workspace: {
-    title: 'Workspace Portal',
-    description: 'Manage your organization, team, and analytics.',
+    title: 'Team Portal',
+    description: 'Manage your team, members, and analytics.',
     basePath: '/help/workspace',
     icon: Building2,
   },
@@ -99,8 +99,8 @@ function getSidebarTabs(locale: string): NonNullable<DocsLayoutProps['sidebar']>
       icon: <BookOpen className="size-4" />,
     },
     {
-      title: 'Workspace Portal',
-      description: 'For organizations',
+      title: 'Team Portal',
+      description: 'For teams',
       url: getPortalUrl('/help/workspace', locale),
       icon: <Building2 className="size-4" />,
     },

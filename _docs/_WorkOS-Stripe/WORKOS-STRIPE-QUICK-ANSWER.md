@@ -9,7 +9,7 @@
 **NO for payments, YES for subscriptions!**
 
 ### ❌ WorkOS-Stripe Does NOT Handle:
-1. **Appointment Payments** (Patient → Expert)
+1. **Appointment Payments** (Member → Expert)
    - Keep: `create-payment-intent/route.ts`
    - Keep: Payment Intent creation
    - Keep: Your entire current payment flow
@@ -23,10 +23,12 @@
 1. **Expert Subscriptions** (Expert → Platform)
    - Community: €25/month
    - Top: €59/month
+   - **$0 invite-only tiers** (`EXPERT_INVITE_LOOKUP_KEYS`) for admin-approved experts
+   - **Lecturer addon** (`LECTURER_LOOKUP_KEYS`) – Stripe addon subscription, not a standalone role
    - **Automatic tier in JWT** (no DB queries!)
    - **Instant permission checks**
 
-2. **Clinic Billing** (Clinic → Platform) 🔮 Phase 2
+2. **Team Billing** (Team → Platform) 🔮 Phase 2
    - Usage-based pricing per practitioner
    - Automatic seat count sync
    - Real-time billing updates
@@ -72,7 +74,7 @@ async function canAccessAnalytics(userId: string) {
 │                 ELEVA CARE PAYMENTS                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  1. APPOINTMENT PAYMENTS (Patient → Expert)            │
+│  1. APPOINTMENT PAYMENTS (Member → Expert)             │
 │     ✅ KEEP: create-payment-intent route               │
 │     ✅ KEEP: Stripe Connect                            │
 │     ✅ KEEP: Platform fees                             │
@@ -87,8 +89,8 @@ async function canAccessAnalytics(userId: string) {
 │     • Automatic role in JWT                            │
 │     • No DB queries for permissions                    │
 │                                                         │
-│  4. CLINIC SUBSCRIPTIONS (Clinic → Platform) 🔮       │
-│     ✅ NEW: Use WorkOS Stripe Seat Sync (Phase 2)     │
+│  4. TEAM SUBSCRIPTIONS (Team → Platform) 🔮            │
+│     ✅ NEW: Use WorkOS Stripe Seat Sync (Phase 2)      │
 │     • Usage-based billing per seat                     │
 │     • Automatic meter events                           │
 │                                                         │
@@ -109,7 +111,9 @@ async function canAccessAnalytics(userId: string) {
 
 ### Step 2: Configure Stripe Products (10 minutes)
 ```
-In Stripe Dashboard, add features to products:
+In Stripe Dashboard, add features to products.
+See src/config/subscription-lookup-keys.ts for lookup keys:
+- EXPERT_LOOKUP_KEYS, EXPERT_INVITE_LOOKUP_KEYS ($0 invite-only), LECTURER_LOOKUP_KEYS (addon), TEAM_LOOKUP_KEYS
 
 Expert Community Product:
   ✓ appointments_manage
@@ -179,8 +183,8 @@ export default async function AnalyticsPage() {
 **WorkOS-Stripe integration is for SUBSCRIPTIONS, not TRANSACTIONS.**
 
 - ✅ **Use it for:** Expert tier management (Community/Top)
-- ✅ **Use it for:** Clinic seat-based billing (Phase 2)
-- ❌ **Don't use for:** Patient appointment payments
+- ✅ **Use it for:** Team seat-based billing (Phase 2)
+- ❌ **Don't use for:** Member appointment payments
 - ❌ **Don't use for:** Expert payout transfers
 
 **Your current `create-payment-intent` system is perfect for appointment payments!**
@@ -204,9 +208,11 @@ export default async function AnalyticsPage() {
 **YES, use WorkOS-Stripe, but ONLY for subscriptions:**
 
 1. ✅ **Expert Community/Top tiers** → WorkOS Entitlements
-2. ✅ **Clinic seat billing** (Phase 2) → WorkOS Seat Sync
-3. ❌ **Appointment payments** → Keep current system
-4. ❌ **Expert payouts** → Keep Stripe Connect
+2. ✅ **$0 invite-only expert tiers** → `EXPERT_INVITE_LOOKUP_KEYS`
+3. ✅ **Lecturer addon** → `LECTURER_LOOKUP_KEYS` (Stripe addon, not standalone role)
+4. ✅ **Team seat billing** (Phase 2) → WorkOS Seat Sync (use `TEAM_LOOKUP_KEYS` / `getTeamLookupKey`)
+5. ❌ **Appointment payments** → Keep current system
+6. ❌ **Expert payouts** → Keep Stripe Connect
 
 **Result:** Zero DB queries for permission checks + Automatic subscription management! 🚀
 

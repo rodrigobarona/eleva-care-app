@@ -113,7 +113,7 @@ export async function GET(req: Request) {
       email: user.email,
       // Use username or email for display (WorkOS API could be called here for full name if needed)
       name: user.username || user.email,
-      role: roleMap.get(user.workosUserId) || WORKOS_ROLES.PATIENT,
+      role: roleMap.get(user.workosUserId) || WORKOS_ROLES.MEMBER,
     }));
 
     return NextResponse.json({

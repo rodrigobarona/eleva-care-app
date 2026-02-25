@@ -1,8 +1,9 @@
 # WorkOS FGA Evaluation for Eleva Care
 
-**Date:** November 13, 2partner_admin25  
+**Date:** November 13, 2025  
 **Status:** Architecture Decision Record  
-**Decision:** Recommendation on whether to adopt WorkOS FGA
+**Decision:** Recommendation on whether to adopt WorkOS FGA  
+**Related:** [RBAC-NAMING-DECISIONS.md](../02-core-systems/RBAC-NAMING-DECISIONS.md) — role/permission naming (member, team_*, team:*)
 
 ---
 
@@ -164,7 +165,7 @@ type session_note
 
 - Expert wants to share specific session notes with another expert
 - Patient wants to grant access to their records to a family member
-- Partner admin wants to share specific reports with external auditors
+- Team admin wants to share specific reports with external auditors
 
 **Current Solution:** Not easily achievable with RLS alone ❌
 
@@ -183,33 +184,33 @@ type session_note
 
 **Verdict:** Would benefit from FGA, but **not needed for Phase 1** 🔮
 
-#### 2. **Delegation & Complex Hierarchies (Future Partner Features)**
+#### 2. **Delegation & Complex Hierarchies (Future Team Features)**
 
 **Example Use Case:**
 
-- Partner admin delegates scheduling permissions to office manager
+- Team admin delegates scheduling permissions to office manager
 - Department head has access to all team members' data
-- Regional manager oversees multiple partner locations
+- Regional manager oversees multiple team locations
 
 **Current Solution:** Hard to model in RLS ❌
 
 **With FGA:** Perfect use case ✅
 
 ```fga
-type partner
+type team
   relation admin [user]
   relation member [user]
   relation can_manage_schedule []
 
 type expert
-  relation partner [partner]
+  relation team [team]
   relation can_view_data []
 
   inherit can_view_data if
-    relation admin on partner [partner]
+    relation admin on team [team]
 ```
 
-**Verdict:** Important for **Phase 2 partner features** 🔮
+**Verdict:** Important for **Phase 2 team features** 🔮
 
 #### 3. **Document/Content Collaboration (Not Planned)**
 
@@ -300,8 +301,8 @@ type expert
 
 | Feature                    | Current Solution  | Need FGA? | Reason                             |
 | -------------------------- | ----------------- | --------- | ---------------------------------- |
-| Partner team management    | WorkOS Orgs + RLS | ⚠️ Maybe  | Could simplify complex hierarchies |
-| Shared patient access      | RLS policies      | ⚠️ Maybe  | FGA better for dynamic sharing     |
+| Team management            | WorkOS Orgs + RLS | ⚠️ Maybe  | Could simplify complex hierarchies |
+| Shared patient access      | RLS policies      | ⚠️ Maybe  | FGA better for dynamic sharing    |
 | Delegation                 | Not implemented   | ✅ Yes    | Natural FGA use case               |
 | Department hierarchies     | Not implemented   | ✅ Yes    | Complex relationships              |
 | Resource-level permissions | Not implemented   | ✅ Yes    | Per-resource access control        |
@@ -347,7 +348,7 @@ type expert
 
 ### Future Consideration (Phase 2)
 
-**✅ Evaluate FGA when implementing partner features**
+**✅ Evaluate FGA when implementing team features**
 
 **Trigger Criteria:**
 
@@ -360,7 +361,7 @@ type expert
 **Implementation Strategy:**
 
 1. **Hybrid Approach:** Keep RLS for basic data isolation, add FGA for complex relationships
-2. **Gradual Migration:** Start with new partner features, migrate existing gradually
+2. **Gradual Migration:** Start with new team features, migrate existing gradually
 3. **Testing:** Extensive testing in staging before production
 
 ---
@@ -429,7 +430,7 @@ type expert
 - [ ] Team documentation
 - [ ] Incident response plan
 
-**Total Timeline:** 8-1partner_admin weeks
+**Total Timeline:** 8-10 weeks
 
 ---
 
@@ -476,7 +477,7 @@ If you decide you need FGA for specific features but want to keep RLS:
 
 ### Future State
 
-🔮 **Phase 2 Consideration** - Evaluate for partner features  
+🔮 **Phase 2 Consideration** - Evaluate for team features  
 🔮 **Collaboration Features** - Strong case for FGA  
 🔮 **Complex Hierarchies** - FGA excels here  
 🔮 **Hybrid Approach** - Use both FGA and RLS for different purposes
@@ -485,11 +486,40 @@ If you decide you need FGA for specific features but want to keep RLS:
 
 **For now: ❌ Skip FGA, continue with RBAC + RLS**
 
-Your current architecture is well-designed and sufficient. FGA would add complexity and cost without immediate benefits. Revisit this decision when implementing Phase 2 partner features or if you add collaboration/sharing functionality.
+Your current architecture is well-designed and sufficient. FGA would add complexity and cost without immediate benefits. Revisit this decision when implementing Phase 2 team features or if you add collaboration/sharing functionality.
 
 ---
 
-**Document Version:** 1.partner_admin  
-**Last Updated:** November 13, 2partner_admin25  
+**Document Version:** 1.0  
+**Last Updated:** November 13, 2025  
 **Next Review:** Before Phase 2 development starts  
 **Decision Owner:** Architecture Team
+
+---
+
+## Planned FGA Resource Type Schema
+
+When the Team feature is built, WorkOS FGA will be adopted with these resource types (see [RBAC-NAMING-DECISIONS.md](../02-core-systems/RBAC-NAMING-DECISIONS.md) for full context):
+
+```fga
+type team
+  relation member [user]
+  relation admin [user]
+  relation owner [user]
+
+type event_type
+  relation parent [team]
+  relation owner [user]
+  relation editor [user]
+
+type appointment
+  relation parent [event_type]
+  relation expert [user]
+  relation patient [user]
+```
+
+### FGA Adoption Triggers
+
+- Team/clinic feature development starts
+- Need for resource-scoped authorization (admin of Team X but not Team Y)
+- Enterprise customer requirements

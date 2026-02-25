@@ -120,15 +120,15 @@ export async function isCommunityExpert(): Promise<boolean> {
  * Higher index = higher priority.
  *
  * Note: If a role isn't in this array, indexOf returns -1,
- * making it lower priority than PATIENT. This is safe because
+ * making it lower priority than MEMBER. This is safe because
  * getUserRolesFromDB filters invalid roles via VALID_ROLES.
  */
 const ROLE_PRIORITY: WorkOSRole[] = [
-  WORKOS_ROLES.PATIENT,
-  WORKOS_ROLES.PARTNER_MEMBER,
+  WORKOS_ROLES.MEMBER,
+  WORKOS_ROLES.TEAM_MEMBER,
   WORKOS_ROLES.EXPERT_COMMUNITY,
   WORKOS_ROLES.EXPERT_TOP,
-  WORKOS_ROLES.PARTNER_ADMIN,
+  WORKOS_ROLES.TEAM_ADMIN,
   WORKOS_ROLES.SUPERADMIN,
 ];
 
@@ -136,7 +136,7 @@ const ROLE_PRIORITY: WorkOSRole[] = [
  * Get the highest-priority role from an array of roles.
  */
 function getHighestPriorityRole(roles: WorkOSRole[]): WorkOSRole {
-  if (roles.length === 0) return WORKOS_ROLES.PATIENT;
+  if (roles.length === 0) return WORKOS_ROLES.MEMBER;
   if (roles.length === 1) return roles[0];
 
   // Find the role with the highest priority index
@@ -160,11 +160,11 @@ function getHighestPriorityRole(roles: WorkOSRole[]): WorkOSRole {
  */
 export async function getUserRole(): Promise<WorkOSRole> {
   const { user } = await withAuth();
-  if (!user) return WORKOS_ROLES.PATIENT;
+  if (!user) return WORKOS_ROLES.MEMBER;
 
   const userRoles = await getUserRolesFromDB(user.id);
 
-  if (userRoles.length === 0) return WORKOS_ROLES.PATIENT;
+  if (userRoles.length === 0) return WORKOS_ROLES.MEMBER;
 
   return getHighestPriorityRole(userRoles);
 }

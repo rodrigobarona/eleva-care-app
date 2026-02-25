@@ -171,16 +171,16 @@ export function RequireCommunityExpert({
 }
 
 /**
- * Require any partner role (member or admin)
+ * Require any team role (member or admin)
  */
-export function RequirePartner({
+export function RequireTeamMember({
   children,
   fallback = null,
   loading = null,
 }: RoleChildrenProps) {
   return (
     <RequireRole
-      anyRoles={[WORKOS_ROLES.PARTNER_MEMBER, WORKOS_ROLES.PARTNER_ADMIN]}
+      anyRoles={[WORKOS_ROLES.TEAM_MEMBER, WORKOS_ROLES.TEAM_ADMIN]}
       fallback={fallback}
       loading={loading}
     >
@@ -190,16 +190,16 @@ export function RequirePartner({
 }
 
 /**
- * Require partner admin role
+ * Require team admin role
  */
-export function RequirePartnerAdminRole({
+export function RequireTeamAdmin({
   children,
   fallback = null,
   loading = null,
 }: RoleChildrenProps) {
   return (
     <RequireRole
-      role={WORKOS_ROLES.PARTNER_ADMIN}
+      role={WORKOS_ROLES.TEAM_ADMIN}
       fallback={fallback}
       loading={loading}
     >
@@ -209,16 +209,16 @@ export function RequirePartnerAdminRole({
 }
 
 /**
- * Require patient role (basic users)
+ * Require member role (base users)
  */
-export function RequirePatient({
+export function RequireMember({
   children,
   fallback = null,
   loading = null,
 }: RoleChildrenProps) {
   return (
     <RequireRole
-      role={WORKOS_ROLES.PATIENT}
+      role={WORKOS_ROLES.MEMBER}
       fallback={fallback}
       loading={loading}
     >
@@ -261,7 +261,7 @@ export function NotRole({
 }
 
 /**
- * Show content only for non-experts (patients)
+ * Show content only for non-experts (members)
  */
 export function NonExpert({
   children,

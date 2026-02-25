@@ -22,7 +22,7 @@ app/(private)/
 │   └── schedule/
 ├── appointments/
 │   ├── page.tsx
-│   ├── patients/
+│   ├── members/
 │   └── records/
 ├── admin/
 │   ├── categories/
@@ -47,7 +47,7 @@ app/(private)/
 - Scattered settings across multiple locations
 - No clear analytics section
 - Billing spread across admin and account
-- No scalable structure for partners or LMS
+- No scalable structure for teams or LMS
 - Mixing internal terminology with user features
 
 ---
@@ -62,7 +62,7 @@ app/(private)/
 ├── appointments/                 # ✅ Keep & Enhance
 │   ├── page.tsx                 # Upcoming/Past tabs
 │   ├── calendar/                # NEW: Calendar view
-│   └── patients/                # ✅ Keep
+│   └── members/                # ✅ Keep
 │       ├── page.tsx
 │       ├── [id]/
 │       └── layout.tsx
@@ -83,7 +83,7 @@ app/(private)/
 ├── analytics/                    # NEW: Consolidated analytics
 │   ├── page.tsx                 # Overview
 │   ├── revenue/                 # Financial insights
-│   ├── patients/                # Patient insights
+│   ├── members/                # Patient insights
 │   └── performance/             # Booking trends
 │
 ├── profile/                      # NEW: Public profile management
@@ -97,12 +97,12 @@ app/(private)/
 │   ├── payouts/                 # Earnings & payouts
 │   └── invoices/                # Generated invoices
 │
-├── partner/                       # 🔮 FUTURE: Partner features
-│   ├── layout.tsx              # Partner member check
-│   ├── page.tsx                # Partner overview
+├── team/                       # 🔮 FUTURE: Team features
+│   ├── layout.tsx              # Team member check
+│   ├── page.tsx                # Team overview
 │   ├── team/
 │   ├── schedule/
-│   ├── patients/
+│   ├── members/
 │   ├── analytics/
 │   └── settings/
 │
@@ -185,7 +185,7 @@ export interface NavigationSection {
   label?: string;
   items: NavigationItem[];
   permission?: string; // Permission for entire section
-  condition?: boolean; // Dynamic condition (e.g., isClinicMember)
+  condition?: boolean; // Dynamic condition (e.g., isTeamMember)
 }
 ```
 
@@ -234,7 +234,7 @@ export function getExpertNavigation(): NavigationSection[] {
             { title: 'Upcoming', url: '/appointments' },
             { title: 'Past', url: '/appointments?tab=past' },
             { title: 'Calendar View', url: '/appointments/calendar' },
-            { title: 'Patients', url: '/appointments/patients' },
+            { title: 'Members', url: '/appointments/members' },
           ],
         },
         {
@@ -265,7 +265,7 @@ export function getExpertNavigation(): NavigationSection[] {
           items: [
             { title: 'Overview', url: '/analytics' },
             { title: 'Revenue', url: '/analytics/revenue' },
-            { title: 'Patients', url: '/analytics/patients' },
+            { title: 'Members', url: '/analytics/members' },
             { title: 'Performance', url: '/analytics/performance' },
           ],
         },
@@ -296,56 +296,56 @@ export function getExpertNavigation(): NavigationSection[] {
 }
 
 /**
- * Partner Navigation
- * Additional section for partner members/admins
+ * Team Navigation
+ * Additional section for team members/admins
  */
-export function getClinicNavigation(isClinicAdmin: boolean): NavigationSection {
+export function getTeamNavigation(isTeamAdmin: boolean): NavigationSection {
   return {
-    label: 'Partner',
-    condition: true, // Only show if user is partner member
+    label: 'Team',
+    condition: true, // Only show if user is team member
     items: [
       {
-        title: 'Partner Overview',
-        url: '/partner',
+        title: 'Team Overview',
+        url: '/team',
         icon: Building2,
-        permission: WORKOS_PERMISSIONS.CLINIC_VIEW,
+        permission: WORKOS_PERMISSIONS.TEAM_VIEW,
       },
       {
         title: 'Team',
-        url: '/partner/team',
+        url: '/team/team',
         icon: Users,
-        permission: WORKOS_PERMISSIONS.CLINIC_MANAGE,
-        items: isClinicAdmin
+        permission: WORKOS_PERMISSIONS.TEAM_MANAGE,
+        items: isTeamAdmin
           ? [
-              { title: 'Members', url: '/partner/team' },
-              { title: 'Invite', url: '/partner/team/invite' },
-              { title: 'Roles', url: '/partner/team/roles' },
+              { title: 'Members', url: '/team/team' },
+              { title: 'Invite', url: '/team/team/invite' },
+              { title: 'Roles', url: '/team/team/roles' },
             ]
           : undefined,
       },
       {
         title: 'Schedule',
-        url: '/partner/schedule',
+        url: '/team/schedule',
         icon: Calendar,
-        permission: WORKOS_PERMISSIONS.CLINIC_VIEW,
+        permission: WORKOS_PERMISSIONS.TEAM_VIEW,
       },
       {
-        title: 'Patients',
-        url: '/partner/patients',
+        title: 'Members',
+        url: '/team/members',
         icon: Users,
-        permission: WORKOS_PERMISSIONS.CLINIC_VIEW,
+        permission: WORKOS_PERMISSIONS.TEAM_VIEW,
       },
       {
         title: 'Analytics',
-        url: '/partner/analytics',
+        url: '/team/analytics',
         icon: BarChart3,
-        permission: WORKOS_PERMISSIONS.CLINIC_ANALYTICS,
+        permission: WORKOS_PERMISSIONS.TEAM_ANALYTICS,
       },
       {
         title: 'Settings',
-        url: '/partner/settings',
+        url: '/team/settings',
         icon: Settings,
-        permission: WORKOS_PERMISSIONS.CLINIC_MANAGE,
+        permission: WORKOS_PERMISSIONS.TEAM_MANAGE,
       },
     ],
   };
@@ -479,7 +479,7 @@ import { Leaf } from 'lucide-react';
 import { Suspense } from 'react';
 import {
   getExpertNavigation,
-  getClinicNavigation,
+  getTeamNavigation,
   getAdminNavigation,
   getSecondaryNavigation,
 } from '@/config/navigation';
@@ -490,8 +490,8 @@ export function AppSidebar() {
   const { tier } = useSubscription();
 
   // Check user context
-  const isClinicMember = false; // TODO: Implement partner membership check
-  const isClinicAdmin = false; // TODO: Implement partner admin check
+  const isTeamMember = false; // TODO: Implement team membership check
+  const isTeamAdmin = false; // TODO: Implement team admin check
   const isAdmin = role === 'admin';
 
   // Get navigation sections
@@ -500,11 +500,11 @@ export function AppSidebar() {
     return filterNavigationByPermissions(nav, hasPermission, tier);
   }, [hasPermission, tier]);
 
-  const clinicNav = React.useMemo(() => {
-    if (!isClinicMember) return null;
-    const nav = getClinicNavigation(isClinicAdmin);
+  const teamNav = React.useMemo(() => {
+    if (!isTeamMember) return null;
+    const nav = getTeamNavigation(isTeamAdmin);
     return filterNavigationByPermissions([nav], hasPermission, tier);
-  }, [isClinicMember, isClinicAdmin, hasPermission, tier]);
+  }, [isTeamMember, isTeamAdmin, hasPermission, tier]);
 
   const adminNav = React.useMemo(() => {
     if (!isAdmin) return null;
@@ -545,11 +545,11 @@ export function AppSidebar() {
             <NavMain items={expertNav[0].items} />
           </SidebarGroup>
 
-          {/* Partner Navigation (conditional) */}
-          {clinicNav && (
+          {/* Team Navigation (conditional) */}
+          {teamNav && (
             <SidebarGroup>
-              <SidebarGroupLabel>Partner</SidebarGroupLabel>
-              <NavMain items={clinicNav[0].items} />
+              <SidebarGroupLabel>Team</SidebarGroupLabel>
+              <NavMain items={teamNav[0].items} />
             </SidebarGroup>
           )}
 
@@ -766,7 +766,7 @@ export function NavMain({ items }: NavMainProps) {
 ```bash
 # Create new folders
 mkdir -p app/\(private\)/availability/{dates,limits,timezone}
-mkdir -p app/\(private\)/analytics/{revenue,patients,performance}
+mkdir -p app/\(private\)/analytics/{revenue,members,performance}
 mkdir -p app/\(private\)/profile/{expert,preview,link}
 mkdir -p app/\(private\)/billing/{subscription,payments,payouts,invoices}
 mkdir -p app/\(private\)/settings/{account,notifications,integrations,security}
@@ -774,7 +774,7 @@ mkdir -p app/\(private\)/appointments/calendar
 mkdir -p app/\(private\)/notifications
 
 # Future folders (create when ready)
-mkdir -p app/\(private\)/partner/{team,schedule,patients,analytics,settings,revenue}
+mkdir -p app/\(private\)/team/{members,schedule,analytics,settings,revenue}
 mkdir -p app/\(private\)/learn/{courses,content,students}
 ```
 
@@ -893,8 +893,8 @@ Update all E2E and integration tests with new routes.
 - [ ] Community tier sees correct menu
 - [ ] Top tier sees Analytics
 - [ ] Admin sees Admin section
-- [ ] Partner members see Partner section
-- [ ] Non-partner members don't see Partner section
+- [ ] Team members see Team section
+- [ ] Non-team members don't see Team section
 
 ### Responsive Tests
 

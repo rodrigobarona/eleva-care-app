@@ -21,7 +21,7 @@ PRIMARY NAVIGATION
 │  ├─ Upcoming
 │  ├─ Past
 │  ├─ Calendar View
-│  └─ Patients
+│  └─ Members
 │
 ├─ 🗓️ Availability
 │  ├─ Weekly Hours
@@ -36,7 +36,7 @@ PRIMARY NAVIGATION
 ├─ 📈 Analytics ⭐ (Top Tier Only)
 │  ├─ Overview
 │  ├─ Revenue
-│  ├─ Patients
+│  ├─ Members
 │  └─ Performance
 │
 ├─ 👤 Profile
@@ -70,12 +70,12 @@ FOOTER
 
 ---
 
-## 🏥 Partner Dashboard (Partner Admin)
+## 🏥 Team Dashboard (Team Admin)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  🍃 ELEVA CARE                                              │
-│     [Partner Name] ▼                   [Switch Organization] │
+│     [Team Name] ▼                      [Switch Organization] │
 └─────────────────────────────────────────────────────────────┘
 
 PERSONAL SECTION
@@ -87,8 +87,8 @@ PERSONAL SECTION
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-CLINIC SECTION
-├─ 🏥 Partner Overview
+TEAM SECTION
+├─ 🏥 Team Overview
 │
 ├─ 👥 Team
 │  ├─ Members
@@ -96,23 +96,23 @@ CLINIC SECTION
 │  ├─ Roles & Permissions
 │  └─ [Member Details]
 │
-├─ 📅 Partner Schedule
+├─ 📅 Team Schedule
 │  ├─ Multi-Practitioner Calendar
 │  ├─ Room Management 🔮
 │  └─ Capacity Planning
 │
-├─ 👨‍👩‍👧‍👦 Patients
-│  ├─ All Patients
-│  ├─ [Patient Records]
-│  └─ Patient Insights
+├─ 👨‍👩‍👧‍👦 Members
+│  ├─ All Members
+│  ├─ [Member Records]
+│  └─ Member Insights
 │
-├─ 📊 Partner Analytics
+├─ 📊 Team Analytics
 │  ├─ Revenue
 │  ├─ Performance
 │  ├─ Patient Insights
 │  └─ Custom Reports
 │
-├─ 💼 Partner Settings
+├─ 💼 Team Settings
 │  ├─ Organization Info
 │  ├─ Branding
 │  ├─ Billing
@@ -214,7 +214,7 @@ COURSE LIBRARY
    ├─ Search
    └─ [Course Details]
 
-APPOINTMENTS (If also a patient)
+APPOINTMENTS (If also a member)
 ├─ 📅 My Appointments
 └─ 👤 My Expert
 
@@ -244,12 +244,12 @@ ADMIN SECTION
 ├─ 👥 Users
 │  ├─ All Users
 │  ├─ Experts
-│  ├─ Patients
+│  ├─ Members
 │  └─ [User Management]
 │
 ├─ 🏥 Organizations
 │  ├─ All Organizations
-│  ├─ Partners
+│  ├─ Teams
 │  ├─ Solo Practices
 │  └─ [Org Details]
 │
@@ -314,7 +314,7 @@ SECONDARY NAVIGATION
 ✅ Advanced Features
 ```
 
-### Partner Member (Expert in Partner)
+### Team Member (Expert in Team)
 
 ```
 PERSONAL:
@@ -323,27 +323,27 @@ PERSONAL:
 ✅ My Availability
 ✅ My Event Types
 
-CLINIC:
-✅ Partner Overview
-✅ Partner Schedule
-✅ Shared Patients
+TEAM:
+✅ Team Overview
+✅ Team Schedule
+✅ Shared Members
 ❌ Team Management (admin only)
-❌ Partner Settings (admin only)
+❌ Team Settings (admin only)
 ```
 
-### Partner Admin
+### Team Admin
 
 ```
 PERSONAL:
 ✅ All personal features
 
-CLINIC:
-✅ Partner Overview
+TEAM:
+✅ Team Overview
 ✅ Team Management
-✅ Partner Schedule
-✅ All Patients
-✅ Partner Analytics
-✅ Partner Settings
+✅ Team Schedule
+✅ All Members
+✅ Team Analytics
+✅ Team Settings
 ✅ Revenue & Payouts
 ```
 
@@ -396,7 +396,7 @@ Home / Appointments / Patients / John Doe
 
 Home / Availability / Weekly Hours
 
-Home / Partner / Team / Jane Smith
+Home / Team / Members / Jane Smith
 
 Home / Learn / Courses / Introduction to Therapy / Edit
 
@@ -487,7 +487,7 @@ Full sidebar with labels
 
 ```
 Personal Section:     Default (Slate)
-Partner Section:       Blue tint
+Team Section:         Blue tint
 Learning Section:     Purple tint
 Admin Section:        Orange/Red tint
 ```
@@ -497,7 +497,7 @@ Admin Section:        Orange/Red tint
 ```
 Community Tier:   🌱 (Green)
 Top Tier:         ⭐ (Gold)
-Partner:           🏥 (Blue)
+Team:             🏥 (Blue)
 Admin:            🛡️ (Red)
 ```
 
@@ -583,12 +583,12 @@ User logs in
     ├─ Is Platform Admin?
     │   └─ YES → Show Admin Dashboard
     │
-    ├─ Is Partner Member?
+    ├─ Is Team Member?
     │   │
-    │   ├─ Is Partner Admin?
-    │   │   └─ YES → Show Partner Admin Dashboard + Personal
+    │   ├─ Is Team Admin?
+    │   │   └─ YES → Show Team Admin Dashboard + Personal
     │   │
-    │   └─ NO → Show Partner Member Dashboard + Personal
+    │   └─ NO → Show Team Member Dashboard + Personal
     │
     ├─ Has Learning Platform Access?
     │   └─ YES → Show Expert + Learning Sections
