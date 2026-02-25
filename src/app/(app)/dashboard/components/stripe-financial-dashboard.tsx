@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StripeConnectProvider } from '@/components/stripe/StripeConnectProvider';
@@ -56,15 +57,17 @@ function FinancialTabs() {
 
 export function StripeFinancialDashboard() {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold">Financial Overview</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <StripeConnectProvider>
-          <FinancialTabs />
-        </StripeConnectProvider>
-      </CardContent>
-    </Card>
+    <ComponentErrorBoundary fallbackMessage="Could not load financial overview">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold">Financial Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <StripeConnectProvider>
+            <FinancialTabs />
+          </StripeConnectProvider>
+        </CardContent>
+      </Card>
+    </ComponentErrorBoundary>
   );
 }

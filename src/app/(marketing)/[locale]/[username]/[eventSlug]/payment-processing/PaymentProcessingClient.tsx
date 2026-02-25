@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Icons } from '@/components/icons/icons';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -13,7 +14,7 @@ interface PaymentProcessingClientProps {
   searchParams: Promise<{ startTime: string }>;
 }
 
-export default function PaymentProcessingClient({
+function PaymentProcessingClientInner({
   params,
   searchParams,
 }: PaymentProcessingClientProps) {
@@ -84,5 +85,13 @@ export default function PaymentProcessingClient({
         <p className="mt-4 text-muted-foreground">Please wait while we confirm your payment...</p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function PaymentProcessingClient(props: PaymentProcessingClientProps) {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not process payment status">
+      <PaymentProcessingClientInner {...props} />
+    </ComponentErrorBoundary>
   );
 }

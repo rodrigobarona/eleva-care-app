@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { STRIPE_CONNECT_APPEARANCE } from '@/config/stripe-appearance';
 import { loadConnectAndInitialize } from '@stripe/connect-js';
 import { ConnectComponentsProvider } from '@stripe/react-connect-js';
@@ -24,7 +25,9 @@ export function StripeConnectProvider({ children }: { children: React.ReactNode 
 
   return (
     <ConnectComponentsProvider connectInstance={stripeConnectInstance}>
-      {children}
+      <ComponentErrorBoundary fallbackMessage="Could not load Stripe Connect">
+        {children}
+      </ComponentErrorBoundary>
     </ConnectComponentsProvider>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Using official TipTap extensions instead of custom sanitizer
@@ -60,7 +61,7 @@ interface RichTextEditorProps {
   };
 }
 
-const RichTextEditor: React.FC<RichTextEditorProps> = ({
+const RichTextEditorInner: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
   variant = 'full',
@@ -754,5 +755,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     </div>
   );
 };
+
+const RichTextEditor: React.FC<RichTextEditorProps> = (props) => (
+  <ComponentErrorBoundary fallbackMessage="Could not load the text editor">
+    <RichTextEditorInner {...props} />
+  </ComponentErrorBoundary>
+);
 
 export default RichTextEditor;

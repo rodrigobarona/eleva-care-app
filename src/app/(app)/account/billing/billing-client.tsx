@@ -7,6 +7,7 @@ import {
   ConnectNotificationBanner,
   ConnectPayouts,
 } from '@stripe/react-connect-js';
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -429,10 +430,12 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
 
 export function BillingPageClient(props: BillingPageClientProps) {
   return (
-    <Suspense
-      fallback={<div className="container mx-auto py-10">Loading billing information...</div>}
-    >
-      <BillingPageContent {...props} />
-    </Suspense>
+    <ComponentErrorBoundary fallbackMessage="Could not load billing information">
+      <Suspense
+        fallback={<div className="container mx-auto py-10">Loading billing information...</div>}
+      >
+        <BillingPageContent {...props} />
+      </Suspense>
+    </ComponentErrorBoundary>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +41,7 @@ function isToday(date: Date) {
   return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 }
 
-export function UpcomingAppointments({ meetings, role }: UpcomingAppointmentsProps) {
+function UpcomingAppointmentsInner({ meetings, role }: UpcomingAppointmentsProps) {
   if (meetings.length === 0) {
     return (
       <Card>
@@ -137,5 +138,13 @@ export function UpcomingAppointments({ meetings, role }: UpcomingAppointmentsPro
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function UpcomingAppointments(props: UpcomingAppointmentsProps) {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not load upcoming appointments">
+      <UpcomingAppointmentsInner {...props} />
+    </ComponentErrorBoundary>
   );
 }

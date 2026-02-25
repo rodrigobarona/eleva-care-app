@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { DashboardMeeting } from '@/server/actions/dashboard';
@@ -18,7 +19,7 @@ function formatDate(date: Date) {
   }).format(new Date(date));
 }
 
-export function RecentSessions({ meetings, role }: RecentSessionsProps) {
+function RecentSessionsInner({ meetings, role }: RecentSessionsProps) {
   if (meetings.length === 0) {
     return null;
   }
@@ -58,5 +59,13 @@ export function RecentSessions({ meetings, role }: RecentSessionsProps) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function RecentSessions(props: RecentSessionsProps) {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not load recent sessions">
+      <RecentSessionsInner {...props} />
+    </ComponentErrorBoundary>
   );
 }

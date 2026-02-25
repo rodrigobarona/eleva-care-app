@@ -1,15 +1,6 @@
 'use client';
 
-/**
- * Subscription Dashboard Component
- *
- * Displays current subscription status and allows experts to:
- * - View current plan details
- * - See commission savings
- * - Upgrade to annual plan
- * - Cancel subscription
- * - View billing history
- */
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,7 +17,7 @@ import { Calendar, CheckCircle2, CreditCard, TrendingUp, XCircle } from 'lucide-
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-export function SubscriptionDashboard() {
+function SubscriptionDashboardInner() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [eligibility, setEligibility] = useState<EligibilityStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -383,5 +374,13 @@ export function SubscriptionDashboard() {
         </Card>
       )}
     </div>
+  );
+}
+
+export function SubscriptionDashboard() {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not load subscription details">
+      <SubscriptionDashboardInner />
+    </ComponentErrorBoundary>
   );
 }

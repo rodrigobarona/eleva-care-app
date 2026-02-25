@@ -1,5 +1,6 @@
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { RecordDialog } from '@/components/features/appointments/RecordDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,7 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
-export function AppointmentCard({
+function AppointmentCardInner({
   appointment,
   customerId,
   expertTimezone = 'UTC',
@@ -210,5 +211,13 @@ export function AppointmentCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function AppointmentCard(props: AppointmentCardProps) {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not display this appointment">
+      <AppointmentCardInner {...props} />
+    </ComponentErrorBoundary>
   );
 }

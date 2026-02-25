@@ -1,3 +1,4 @@
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { HighlightMarkdown } from '@/components/shared/rich-text/extensions/highlight-markdown';
 import { Button } from '@/components/ui/button';
 import { BulletList } from '@tiptap/extension-bullet-list';
@@ -33,7 +34,7 @@ interface RecordEditorProps {
   autoFocus?: boolean;
 }
 
-const RecordEditor: React.FC<RecordEditorProps> = ({
+const RecordEditorInner: React.FC<RecordEditorProps> = ({
   value,
   onChange,
   readOnly = false,
@@ -425,5 +426,11 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     </div>
   );
 };
+
+const RecordEditor: React.FC<RecordEditorProps> = (props) => (
+  <ComponentErrorBoundary fallbackMessage="Could not load the record editor">
+    <RecordEditorInner {...props} />
+  </ComponentErrorBoundary>
+);
 
 export default RecordEditor;

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -73,7 +74,7 @@ interface BookingLayoutProps {
   blockedDates?: BlockedDate[];
 }
 
-export function BookingLayout({
+function BookingLayoutInner({
   expert,
   event,
   validTimes,
@@ -517,5 +518,13 @@ export function BookingLayout({
         ) : null}
       </div>
     </>
+  );
+}
+
+export function BookingLayout(props: BookingLayoutProps) {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not load the booking calendar">
+      <BookingLayoutInner {...props} />
+    </ComponentErrorBoundary>
   );
 }

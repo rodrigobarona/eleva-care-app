@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  ComponentErrorFallback,
+  handleComponentError,
+} from '@/components/shared/ComponentErrorFallback';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatInTimeZone } from 'date-fns-tz';
 import React, { Suspense } from 'react';
@@ -11,10 +15,6 @@ interface NextAvailableTimeClientProps {
   eventSlug: string;
   username: string;
   baseUrl?: string;
-}
-
-function ErrorFallback() {
-  return <div className="text-sm text-muted-foreground">No times available</div>;
 }
 
 function isToday(date: Date, now: Date) {
@@ -131,7 +131,12 @@ const NextAvailableTimeContent = React.memo(function NextAvailableTimeContent({
 
 function NextAvailableTimeClient(props: NextAvailableTimeClientProps) {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <ErrorBoundary
+      FallbackComponent={(fallbackProps) => (
+        <ComponentErrorFallback {...fallbackProps} message="No times available" />
+      )}
+      onError={handleComponentError}
+    >
       <Suspense
         fallback={
           <div className="text-sm text-muted-foreground">Loading next available time...</div>

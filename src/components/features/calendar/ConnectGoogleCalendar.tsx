@@ -17,6 +17,7 @@
 
 'use client';
 
+import { ComponentErrorBoundary } from '@/components/shared/ComponentErrorFallback';
 import {
   checkGoogleCalendarConnection,
   connectGoogleCalendar,
@@ -107,7 +108,7 @@ interface ConnectionStatus {
  * Main component for managing Google Calendar integration.
  * Displays current status and provides connect/disconnect actions.
  */
-export function ConnectGoogleCalendar() {
+function ConnectGoogleCalendarInner() {
   const [status, setStatus] = useState<ConnectionStatus>({
     isConnected: false,
     isLoading: true,
@@ -326,6 +327,14 @@ export function ConnectGoogleCalendar() {
         </p>
       </div>
     </div>
+  );
+}
+
+export function ConnectGoogleCalendar() {
+  return (
+    <ComponentErrorBoundary fallbackMessage="Could not load Google Calendar settings">
+      <ConnectGoogleCalendarInner />
+    </ComponentErrorBoundary>
   );
 }
 
