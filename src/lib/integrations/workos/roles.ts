@@ -158,7 +158,7 @@ export async function isUserExpert(workosUserId: string): Promise<boolean> {
 }
 
 /**
- * Check if user is an admin (admin or superadmin)
+ * Check if user is an admin
  *
  * @param workosUserId - WorkOS user ID
  * @returns True if user is an admin
@@ -172,7 +172,7 @@ export async function isUserExpert(workosUserId: string): Promise<boolean> {
  * ```
  */
 export async function isUserAdmin(workosUserId: string): Promise<boolean> {
-  return await hasAnyRole(workosUserId, ['admin', 'superadmin']);
+  return await hasAnyRole(workosUserId, ['admin']);
 }
 
 /**
@@ -188,7 +188,7 @@ export async function isUserAdmin(workosUserId: string): Promise<boolean> {
  * ```ts
  * // Check if user has at least expert_community level
  * const canAccessExpertFeatures = await hasPermission('user_01H...', 'expert_community');
- * // Returns true for expert_community, expert_top, admin, superadmin
+ * // Returns true for expert_community, expert_top, admin
  * ```
  */
 export async function hasPermission(

@@ -4,7 +4,7 @@
  * Admin-only page for managing Stripe subscription products and pricing.
  * Displays products in a grid with expandable price management.
  *
- * Authorization: Requires superadmin role (enforced by admin layout + proxy)
+ * Authorization: Requires admin role (enforced by admin layout + proxy)
  */
 import { listStripeProducts } from '@/server/actions/stripe-pricing';
 import { Metadata } from 'next';

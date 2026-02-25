@@ -2,7 +2,7 @@
  * Admin Layout
  *
  * Protected layout for admin dashboard pages.
- * Requires superadmin role (verified via WorkOS RBAC).
+ * Requires admin role (verified via WorkOS RBAC).
  *
  * Features:
  * - Sidebar navigation with admin sections

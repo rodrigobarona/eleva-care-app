@@ -67,7 +67,7 @@ interface RBACConfig {
 // ============================================================================
 
 /**
- * All Permissions (89 total)
+ * All Permissions (132 total)
  * Organized by category for clarity
  */
 const PERMISSIONS: Permission[] = [
@@ -141,7 +141,7 @@ const PERMISSIONS: Permission[] = [
     category: 'Sessions',
   },
 
-  // ===== Patients (6) =====
+  // ===== Patients (7) =====
   {
     slug: 'patients:view_own',
     name: 'View Own Patients',
@@ -151,7 +151,7 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'patients:view_all',
     name: 'View All Patients',
-    description: 'View all clinic patients',
+    description: 'View all team patient records',
     category: 'Patients',
   },
   {
@@ -176,6 +176,12 @@ const PERMISSIONS: Permission[] = [
     slug: 'patients:view_insights',
     name: 'View Patient Insights',
     description: 'View patient analytics',
+    category: 'Patients',
+  },
+  {
+    slug: 'patients:export',
+    name: 'Export Patient Data',
+    description: 'Export patient data',
     category: 'Patients',
   },
 
@@ -785,7 +791,7 @@ const PERMISSIONS: Permission[] = [
     category: 'Support',
   },
 
-  // ===== Team (18) - Phase 2: unified team management =====
+  // ===== Team (11) - Phase 2: unified team management =====
   {
     slug: 'team:view_dashboard',
     name: 'View Team Dashboard',
@@ -1058,6 +1064,7 @@ const ROLES: Role[] = [
       'patients:view_all',
       'patients:manage_records',
       'patients:view_insights',
+      'patients:export',
       // Revenue
       'revenue:view_overview',
       'revenue:view_splits',
@@ -1070,8 +1077,8 @@ const ROLES: Role[] = [
     ],
   },
   {
-    slug: 'superadmin',
-    name: 'Platform Admin',
+    slug: 'admin',
+    name: 'Admin',
     description: 'Platform-level administrator with full system access. For Eleva Care team only',
     priority: 100,
     permissions: [

@@ -20,15 +20,13 @@
  * - `member`: Base role for all registered users (free)
  * - `expert_community`: Standard expert -- subscription-backed
  * - `expert_top`: Premium expert -- subscription-backed
- * - `admin`: Platform administrator
- * - `superadmin`: Full system access
+ * - `admin`: Platform administrator -- full system access (WorkOS standard naming)
  */
 export type ApplicationRole =
   | 'member' // Base user -- can book appointments and access member features
   | 'expert_top' // Top-tier expert -- full expert features + priority listing
   | 'expert_community' // Community expert -- standard expert features
-  | 'admin' // Application administrator -- platform management
-  | 'superadmin'; // Super administrator -- full system access
+  | 'admin'; // Platform administrator -- full system access (WorkOS standard naming)
 
 /**
  * WorkOS organization membership roles.
@@ -56,8 +54,7 @@ export const APPLICATION_ROLE_HIERARCHY: Record<ApplicationRole, number> = {
   member: 0,
   expert_community: 10,
   expert_top: 20,
-  admin: 90,
-  superadmin: 100,
+  admin: 100,
 };
 
 /**
@@ -78,8 +75,7 @@ export const APPLICATION_ROLE_DISPLAY_NAMES: Record<ApplicationRole, string> = {
   member: 'Member',
   expert_top: 'Top Expert',
   expert_community: 'Community Expert',
-  admin: 'Application Administrator',
-  superadmin: 'Super Administrator',
+  admin: 'Admin',
 };
 
 export const ORGANIZATION_ROLE_DISPLAY_NAMES: Record<OrganizationRole, string> = {
@@ -110,8 +106,7 @@ export const APPLICATION_ROLE_DESCRIPTIONS: Record<ApplicationRole, string> = {
   member: 'Can book appointments and access member features',
   expert_top: 'Top-tier expert with full features and priority listing',
   expert_community: 'Community expert with standard expert features',
-  admin: 'Can manage platform settings and users',
-  superadmin: 'Full system access with all permissions',
+  admin: 'Full system access with all permissions',
 };
 
 export const ORGANIZATION_ROLE_DESCRIPTIONS: Record<OrganizationRole, string> = {
@@ -145,7 +140,7 @@ export function isExpertRole(role: string): boolean {
  * Check if a role is an admin role
  */
 export function isAdminRole(role: string): boolean {
-  return role === 'admin' || role === 'superadmin';
+  return role === 'admin';
 }
 
 /**

@@ -146,7 +146,7 @@ export const RolesTable = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     workosUserId: text('workos_user_id').notNull(),
-    role: text('role').notNull(), // 'user', 'expert', 'admin', 'superadmin', etc.
+    role: text('role').notNull(), // 'user', 'expert', 'admin', etc.
 
     // Metadata
     createdAt,
@@ -206,7 +206,7 @@ export const UsersTable = pgTable(
     role: text('role')
       .notNull()
       .default('member')
-      .$type<'member' | 'expert_top' | 'expert_community' | 'admin' | 'superadmin'>(),
+      .$type<'member' | 'expert_top' | 'expert_community' | 'admin'>(),
 
     // Stripe IDs
     stripeCustomerId: text('stripe_customer_id').unique(),

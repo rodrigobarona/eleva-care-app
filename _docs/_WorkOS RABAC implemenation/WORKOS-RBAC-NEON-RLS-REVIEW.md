@@ -53,7 +53,7 @@ WorkOS allows you to define roles and permissions centrally:
 // Instead of hardcoding in code, define in WorkOS Dashboard:
 
 // Roles (with priority order):
-// - superadmin
+// - admin
 // - admin
 // - expert_top
 // - expert_community
@@ -182,7 +182,7 @@ WorkOS supports custom roles per organization:
 1. Go to WorkOS Dashboard → RBAC → Roles
 2. Create roles matching your schema:
    ```
-   superadmin         (priority: 1partner_adminpartner_admin)
+   admin              (priority: 100)
    admin              (priority: 9partner_admin)
    expert_top         (priority: 8partner_admin)
    expert_community   (priority: 7partner_admin)
@@ -324,7 +324,7 @@ ON expert_applications FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM users
     WHERE users.workos_user_id = auth.user_id()
-    AND users.role IN ('admin', 'superadmin')
+    AND users.role IN ('admin')
   )
 );
 ```

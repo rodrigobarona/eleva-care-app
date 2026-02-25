@@ -11,7 +11,7 @@
  */
 
 // ============================================================================
-// PERMISSIONS DEFINITION (89 total)
+// PERMISSIONS DEFINITION (132 total)
 // ============================================================================
 
 interface Permission {
@@ -94,8 +94,8 @@ const PERMISSIONS: Permission[] = [
   },
   {
     slug: 'patients:view_all',
-    name: 'View all team patients',
-    description: 'View all patients in the team (team admin)',
+    name: 'View all team patient records',
+    description: 'View all patient records in the team (team admin)',
   },
   {
     slug: 'patients:view_history',
@@ -245,12 +245,12 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'profile:view_own',
     name: 'View own profile',
-    description: 'View your patient profile',
+    description: 'View your profile',
   },
   {
     slug: 'profile:edit_own',
     name: 'Edit own profile',
-    description: 'Edit your patient profile',
+    description: 'Edit your profile',
   },
   {
     slug: 'profile:view_expert',
@@ -265,7 +265,7 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'profile:preview',
     name: 'Preview profile',
-    description: 'Preview how patients see your profile',
+    description: 'Preview how members see your profile',
   },
   {
     slug: 'profile:manage_link',
@@ -421,7 +421,7 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'billing:manage_team_sub',
     name: 'Manage team subscription',
-    description: 'Manage team subscription (team admin)',
+    description: 'Manage team subscription plan (team admin)',
   },
   {
     slug: 'billing:view_team_billing',
@@ -483,27 +483,27 @@ const PERMISSIONS: Permission[] = [
   },
 
   // ============================================================================
-  // Partner (18) - Phase 2
+  // Team + Schedule + Revenue (19) - Phase 2
   // ============================================================================
   {
     slug: 'team:view_dashboard',
     name: 'View team dashboard',
-    description: 'View team overview (read-only for members)',
+    description: 'View team overview',
   },
   {
     slug: 'team:manage_settings',
     name: 'Manage team settings',
-    description: 'Manage team configuration (admin)',
+    description: 'Manage team settings (team admin)',
   },
   {
     slug: 'team:manage_branding',
     name: 'Manage team branding',
-    description: 'Manage team logo, colors (admin)',
+    description: 'Manage team logo and colors (team admin)',
   },
   {
     slug: 'team:view_analytics',
     name: 'View team analytics',
-    description: 'View team-wide analytics (admin)',
+    description: 'View team-wide analytics (team admin)',
   },
   {
     slug: 'team:view_patients',
@@ -513,7 +513,7 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'team:export_data',
     name: 'Export team data',
-    description: 'Export team data (admin)',
+    description: 'Export team data (team admin)',
   },
   {
     slug: 'team:view_members',
@@ -523,61 +523,66 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'team:invite_members',
     name: 'Invite team members',
-    description: 'Invite new team members (admin)',
+    description: 'Invite new team members (team admin)',
   },
   {
     slug: 'team:remove_members',
     name: 'Remove team members',
-    description: 'Remove team members (admin)',
+    description: 'Remove team members (team admin)',
   },
   {
     slug: 'team:manage_roles',
     name: 'Manage team roles',
-    description: 'Assign and change member roles (admin)',
+    description: 'Assign and change team member roles (team admin)',
   },
   {
     slug: 'team:view_performance',
     name: 'View team performance',
-    description: 'View team member performance (admin)',
+    description: 'View team member performance (team admin)',
   },
   {
     slug: 'schedule:manage_team',
     name: 'Manage team schedule',
-    description: 'Manage multi-practitioner schedule (admin)',
+    description: 'Manage multi-practitioner schedule (team admin)',
   },
   {
     slug: 'schedule:manage_rooms',
     name: 'Manage rooms',
-    description: 'Manage team rooms/locations (admin)',
+    description: 'Manage team rooms and locations (team admin)',
   },
   {
     slug: 'schedule:view_capacity',
     name: 'View capacity planning',
-    description: 'View capacity planning (admin)',
+    description: 'View capacity planning (team admin)',
   },
   {
     slug: 'revenue:view_overview',
     name: 'View revenue overview',
-    description: 'View team revenue overview (admin)',
+    description: 'View team revenue overview (team admin)',
   },
   {
     slug: 'revenue:view_splits',
     name: 'View commission splits',
-    description: 'View commission splits (admin)',
+    description: 'View commission splits (team admin)',
   },
   {
     slug: 'revenue:manage_payouts',
     name: 'Manage payouts',
-    description: 'Manage payout schedules (admin)',
+    description: 'Manage payout schedules (team admin)',
+  },
+  {
+    slug: 'revenue:view_invoices',
+    name: 'View invoices',
+    description: 'View invoices (team admin)',
   },
   {
     slug: 'revenue:export_financial',
     name: 'Export financial data',
-    description: 'Export financial reports (admin)',
+    description: 'Export financial reports (team admin)',
   },
 
   // ============================================================================
-  // Platform Admin (22)
+  // Platform Admin (32)
   // ============================================================================
   {
     slug: 'users:view_all',
@@ -689,6 +694,56 @@ const PERMISSIONS: Permission[] = [
     name: 'Export audit logs',
     description: 'Export audit logs for compliance',
   },
+  {
+    slug: 'audit:view_reports',
+    name: 'View audit reports',
+    description: 'View audit reports',
+  },
+  {
+    slug: 'audit:generate_reports',
+    name: 'Generate audit reports',
+    description: 'Generate audit reports',
+  },
+  {
+    slug: 'categories:create',
+    name: 'Create categories',
+    description: 'Create categories',
+  },
+  {
+    slug: 'categories:edit',
+    name: 'Edit categories',
+    description: 'Edit categories',
+  },
+  {
+    slug: 'categories:delete',
+    name: 'Delete categories',
+    description: 'Delete categories',
+  },
+  {
+    slug: 'categories:manage_tags',
+    name: 'Manage tags',
+    description: 'Manage tags',
+  },
+  {
+    slug: 'support:view_tickets',
+    name: 'View support tickets',
+    description: 'View support tickets',
+  },
+  {
+    slug: 'support:respond_tickets',
+    name: 'Respond to tickets',
+    description: 'Respond to support tickets',
+  },
+  {
+    slug: 'support:escalate',
+    name: 'Escalate tickets',
+    description: 'Escalate support tickets',
+  },
+  {
+    slug: 'support:close_tickets',
+    name: 'Close tickets',
+    description: 'Close support tickets',
+  },
 ];
 
 // ============================================================================
@@ -702,7 +757,7 @@ interface RoleDefinition {
   permissions: string[];
 }
 
-// Member permissions (15)
+// Member permissions (16)
 const MEMBER_PERMISSIONS = [
   'appointments:view_own',
   'appointments:create',
@@ -722,7 +777,7 @@ const MEMBER_PERMISSIONS = [
   'dashboard:view_member',
 ];
 
-// Expert Community permissions (42) = Member (16) + Expert (26)
+// Expert Community permissions (52) = Member (16) + Expert (36)
 const EXPERT_COMMUNITY_PERMISSIONS = [
   ...MEMBER_PERMISSIONS,
   'dashboard:view_expert',
@@ -763,7 +818,7 @@ const EXPERT_COMMUNITY_PERMISSIONS = [
   'settings:security',
 ];
 
-// Expert Top permissions (49) = Expert Community (42) + Top Exclusive (7)
+// Expert Top permissions (60) = Expert Community (52) + Top Exclusive (8)
 const EXPERT_TOP_PERMISSIONS = [
   ...EXPERT_COMMUNITY_PERMISSIONS,
   'analytics:view',
@@ -776,7 +831,7 @@ const EXPERT_TOP_PERMISSIONS = [
   'branding:custom_colors',
 ];
 
-// Team Member permissions (45) = Expert Community (42) + Team View (3)
+// Team Member permissions (55) = Expert Community (52) + Team View (3)
 const TEAM_MEMBER_PERMISSIONS = [
   ...EXPERT_COMMUNITY_PERMISSIONS,
   'team:view_dashboard',
@@ -784,7 +839,7 @@ const TEAM_MEMBER_PERMISSIONS = [
   'team:view_members',
 ];
 
-// Team Admin permissions (68) = Team Member (45) + Team Management (23)
+// Team Admin permissions (77) = Team Member (55) + Team Management (22)
 const TEAM_ADMIN_PERMISSIONS = [
   ...TEAM_MEMBER_PERMISSIONS,
   'team:manage_settings',
@@ -805,13 +860,14 @@ const TEAM_ADMIN_PERMISSIONS = [
   'revenue:view_overview',
   'revenue:view_splits',
   'revenue:manage_payouts',
+  'revenue:view_invoices',
   'revenue:export_financial',
   'billing:manage_team_sub',
   'billing:view_team_billing',
 ];
 
-// Platform Admin permissions (89) = ALL
-const SUPERADMIN_PERMISSIONS = PERMISSIONS.map((p) => p.slug);
+// Platform Admin permissions (132) = ALL
+const ADMIN_PERMISSIONS = PERMISSIONS.map((p) => p.slug);
 
 const ROLES: RoleDefinition[] = [
   {
@@ -847,10 +903,10 @@ const ROLES: RoleDefinition[] = [
     permissions: TEAM_ADMIN_PERMISSIONS,
   },
   {
-    slug: 'superadmin',
-    name: 'Platform Admin',
+    slug: 'admin',
+    name: 'Admin',
     description: 'Platform administrator with full system access (Eleva Care team only)',
-    permissions: SUPERADMIN_PERMISSIONS,
+    permissions: ADMIN_PERMISSIONS,
   },
 ];
 
@@ -901,7 +957,7 @@ async function printSetupInstructions(): Promise<void> {
   console.log('   Go to: https://dashboard.workos.com → RBAC\n');
 
   console.log('─────────────────────────────────────────────────────────────────────');
-  console.log('STEP 1: CREATE PERMISSIONS (89 total)');
+  console.log('STEP 1: CREATE PERMISSIONS (132 total)');
   console.log('─────────────────────────────────────────────────────────────────────');
   console.log('\nGo to RBAC → Permissions → Create Permission\n');
   console.log('Copy-paste each permission below:\n');

@@ -18,6 +18,10 @@ UPDATE "users" SET "role" = 'member' WHERE "role" = 'user';
 -- Migrate any remaining 'expert_lecturer' rows to 'expert_community'
 UPDATE "users" SET "role" = 'expert_community' WHERE "role" = 'expert_lecturer';
 
+-- Rename 'superadmin' to 'admin' (WorkOS RBAC role slug rename)
+UPDATE "users" SET "role" = 'admin' WHERE "role" = 'superadmin';
+UPDATE "roles" SET "role" = 'admin' WHERE "role" = 'superadmin';
+
 -- Rename roles in the roles table (WorkOS RBAC cache)
 UPDATE "roles" SET "role" = 'member' WHERE "role" = 'patient';
 UPDATE "roles" SET "role" = 'team_member' WHERE "role" = 'partner_member';
@@ -302,7 +306,7 @@ CREATE POLICY "Admins can view all applications"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -312,14 +316,14 @@ CREATE POLICY "Admins can update applications"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -334,7 +338,7 @@ CREATE POLICY "Admins can view all roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -344,7 +348,7 @@ CREATE POLICY "Admins can insert roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -354,14 +358,14 @@ CREATE POLICY "Admins can update roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -371,7 +375,7 @@ CREATE POLICY "Admins can delete roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -430,7 +434,7 @@ CREATE POLICY "Admins can view all subscription events"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -475,7 +479,7 @@ CREATE POLICY "Admins can view all commissions"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -547,7 +551,7 @@ CREATE POLICY "Admins can view all subscriptions"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 

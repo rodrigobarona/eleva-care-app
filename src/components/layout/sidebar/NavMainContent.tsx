@@ -218,7 +218,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
         </SidebarGroup>
 
         {/* Admin section */}
-        <RequireRole roles={WORKOS_ROLES.SUPERADMIN}>
+        <RequireRole roles={WORKOS_ROLES.ADMIN}>
           <SidebarGroup>
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarMenu>

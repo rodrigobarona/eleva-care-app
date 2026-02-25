@@ -163,7 +163,7 @@ CREATE POLICY "Admins can view all"
 ON users FOR SELECT
 USING (
   workos_user_id = auth.user_id()
-  OR auth.jwt_role() IN ('admin', 'superadmin')
+  OR auth.jwt_role() IN ('admin')
 );
 ```
 
@@ -212,8 +212,7 @@ USING (
 
 ```typescript
 WORKOS_ROLES = {
-  SUPERADMIN: 'superadmin', // Full system access
-  ADMIN: 'admin', // Admin features
+  ADMIN: 'admin', // Full system access
   EXPERT_TOP: 'expert_top', // Top expert (premium)
   EXPERT_COMMUNITY: 'expert_community', // Standard expert
   TEAM_ADMIN: 'team_admin', // Team manager

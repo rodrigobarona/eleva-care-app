@@ -63,7 +63,7 @@ export const WORKOS_ROLES = {
   EXPERT_COMMUNITY: 'expert_community', // Standard expert
   EXPERT_TOP: 'expert_top', // Premium expert
   TEAM_ADMIN: 'team_admin', // Team administrator
-  SUPERADMIN: 'superadmin', // Platform admin
+  ADMIN: 'admin', // Platform admin
 } as const;
 ```
 
@@ -77,7 +77,7 @@ const ROLE_PRIORITY: WorkOSRole[] = [
   WORKOS_ROLES.EXPERT_COMMUNITY, // Priority 70
   WORKOS_ROLES.EXPERT_TOP, // Priority 80
   WORKOS_ROLES.TEAM_ADMIN, // Priority 90
-  WORKOS_ROLES.SUPERADMIN, // Priority 100 - Highest
+  WORKOS_ROLES.ADMIN, // Priority 100 - Highest
 ];
 ```
 
@@ -91,7 +91,7 @@ export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.EXPERT_TOP]: 'Top Expert',
   [WORKOS_ROLES.TEAM_MEMBER]: 'Team Member',
   [WORKOS_ROLES.TEAM_ADMIN]: 'Team Admin',
-  [WORKOS_ROLES.SUPERADMIN]: 'Platform Admin',
+  [WORKOS_ROLES.ADMIN]: 'Admin',
 };
 ```
 
@@ -269,7 +269,7 @@ The revenue model documentation formerly used "Clinic" and "Workspace" terminolo
 | `team_admin`       | Team Admin       |
 | `expert_community` | Community Expert |
 | `expert_top`       | Top Expert       |
-| `superadmin`       | Platform Admin   |
+| `admin`            | Admin            |
 
 ---
 

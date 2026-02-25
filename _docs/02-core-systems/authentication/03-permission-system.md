@@ -17,7 +17,6 @@ export const ROLE_TOP_EXPERT = 'top_expert' as const;
 export const ROLE_COMMUNITY_EXPERT = 'community_expert' as const;
 export const ROLE_LECTURER = 'lecturer' as const;
 export const ROLE_ADMIN = 'admin' as const;
-export const ROLE_SUPERADMIN = 'superadmin' as const;
 
 // Type definitions (from lib/auth/roles.ts)
 type UserRole =
@@ -25,8 +24,7 @@ type UserRole =
   | typeof ROLE_TOP_EXPERT
   | typeof ROLE_COMMUNITY_EXPERT
   | typeof ROLE_LECTURER
-  | typeof ROLE_ADMIN
-  | typeof ROLE_SUPERADMIN;
+  | typeof ROLE_ADMIN;
 ```
 
 These constants are imported where needed to ensure consistency and prevent typos.
@@ -35,8 +33,7 @@ These constants are imported where needed to ensure consistency and prevent typo
 
 Each role grants access to specific parts of the application:
 
-- **Superadmin** (`ROLE_SUPERADMIN`): Complete system access with ability to assign any role
-- **Admin** (`ROLE_ADMIN`): Administrative access to manage users, experts, content, and view reports
+- **Admin** (`ROLE_ADMIN`): Complete system access with ability to assign any role
 - **Top Expert** (`ROLE_TOP_EXPERT`): Full expert capabilities, including premium features
 - **Community Expert** (`ROLE_COMMUNITY_EXPERT`): Standard expert capabilities
 - **Lecturer** (`ROLE_LECTURER`): Access to create and manage educational content
@@ -71,11 +68,11 @@ Examples:
 
 Each role will have a predefined set of permissions:
 
-#### Superadmin
+#### Admin (Platform)
 
 - All permissions (system-wide access)
 
-#### Admin
+#### Team Admin
 
 - `users:view`, `users:edit`
 - `experts:manage`

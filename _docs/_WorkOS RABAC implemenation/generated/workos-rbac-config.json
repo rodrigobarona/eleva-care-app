@@ -75,7 +75,7 @@
     {
       "slug": "patients:view_all",
       "name": "View All Patients",
-      "description": "View all clinic patients",
+      "description": "View all team patient records",
       "category": "Patients"
     },
     {
@@ -100,6 +100,12 @@
       "slug": "patients:view_insights",
       "name": "View Patient Insights",
       "description": "View patient analytics",
+      "category": "Patients"
+    },
+    {
+      "slug": "patients:export",
+      "name": "Export Patient Data",
+      "description": "Export patient data",
       "category": "Patients"
     },
     {
@@ -907,6 +913,7 @@
         "patients:view_all",
         "patients:manage_records",
         "patients:view_insights",
+        "patients:export",
         "revenue:view_overview",
         "revenue:view_splits",
         "revenue:manage_payouts",
@@ -917,8 +924,8 @@
       ]
     },
     {
-      "slug": "superadmin",
-      "name": "Platform Admin",
+      "slug": "admin",
+      "name": "Admin",
       "description": "Platform-level administrator with full system access. For Eleva Care team only",
       "priority": 100,
       "permissions": [
@@ -939,6 +946,7 @@
         "patients:send_notes",
         "patients:manage_records",
         "patients:view_insights",
+        "patients:export",
         "events:create",
         "events:view_own",
         "events:edit_own",
@@ -1058,8 +1066,8 @@
   ],
   "metadata": {
     "version": "1.0",
-    "lastUpdated": "2026-02-25T16:26:12.144Z",
-    "totalPermissions": 131,
+    "lastUpdated": "2026-02-25T17:40:39.568Z",
+    "totalPermissions": 132,
     "totalRoles": 6
   }
 }

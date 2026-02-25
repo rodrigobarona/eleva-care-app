@@ -119,7 +119,7 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
  * @returns Authorization context with roles, hasRole function, and loading state
  * @example
  * const { roles, hasRole, isLoading } = useAuthorization();
- * if (hasRole(WORKOS_ROLES.SUPERADMIN)) {
+ * if (hasRole(WORKOS_ROLES.ADMIN)) {
  *   // Show admin content
  * }
  */
@@ -128,9 +128,9 @@ export function useAuthorization() {
 }
 
 /**
- * Hook to check if the current user is a superadmin
+ * Hook to check if the current user is an admin
  *
- * @returns boolean indicating if user has superadmin role
+ * @returns boolean indicating if user has admin role
  * @example
  * const isAdmin = useIsAdmin();
  * if (isAdmin) {
@@ -139,7 +139,7 @@ export function useAuthorization() {
  */
 export function useIsAdmin(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole(WORKOS_ROLES.SUPERADMIN);
+  return hasRole(WORKOS_ROLES.ADMIN);
 }
 
 /**
@@ -192,7 +192,7 @@ export function useIsCommunityExpert(): boolean {
  *
  * @example
  * // Render admin-only content with fallback
- * <RequireRole roles={WORKOS_ROLES.SUPERADMIN} fallback={<AccessDenied />}>
+ * <RequireRole roles={WORKOS_ROLES.ADMIN} fallback={<AccessDenied />}>
  *   <AdminPanel />
  * </RequireRole>
  *

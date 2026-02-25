@@ -1,7 +1,7 @@
 
 🚀 WorkOS RBAC Configuration Script
 
-Total Permissions: 121
+Total Permissions: 132
 Total Roles: 6
 
 
@@ -14,7 +14,7 @@ Total Roles: 6
    Go to: https://dashboard.workos.com → RBAC
 
 ─────────────────────────────────────────────────────────────────────
-STEP 1: CREATE PERMISSIONS (121 total)
+STEP 1: CREATE PERMISSIONS (132 total)
 ─────────────────────────────────────────────────────────────────────
 
 Go to RBAC → Permissions → Create Permission
@@ -70,8 +70,8 @@ Name: View own patients
 Description: View list of patients you've worked with
 ---
 Slug: patients:view_all
-Name: View all workspace patients
-Description: View all patients in the workspace (workspace admin)
+Name: View all team patient records
+Description: View all patient records in the team (team admin)
 ---
 Slug: patients:view_history
 Name: View patient history
@@ -175,11 +175,11 @@ Description: Respond to reviews about you
 ---
 Slug: profile:view_own
 Name: View own profile
-Description: View your patient profile
+Description: View your profile
 ---
 Slug: profile:edit_own
 Name: Edit own profile
-Description: Edit your patient profile
+Description: Edit your profile
 ---
 Slug: profile:view_expert
 Name: View expert profile
@@ -191,7 +191,7 @@ Description: Edit your expert public profile
 ---
 Slug: profile:preview
 Name: Preview profile
-Description: Preview how patients see your profile
+Description: Preview how members see your profile
 ---
 Slug: profile:manage_link
 Name: Manage booking link
@@ -301,13 +301,13 @@ Slug: billing:methods_manage
 Name: Manage payment methods
 Description: Add or remove payment methods
 ---
-Slug: billing:manage_clinic_sub
-Name: Manage workspace subscription
-Description: Manage workspace subscription (workspace admin)
+Slug: billing:manage_team_sub
+Name: Manage team subscription
+Description: Manage team subscription plan (team admin)
 ---
-Slug: billing:view_clinic_billing
-Name: View workspace billing
-Description: View workspace billing history (workspace admin)
+Slug: billing:view_team_billing
+Name: View team billing
+Description: View team billing history (team admin)
 ---
 Slug: settings:view_own
 Name: View own settings
@@ -341,81 +341,85 @@ Slug: dashboard:view_expert
 Name: View expert dashboard
 Description: Access expert dashboard
 ---
-Slug: dashboard:view_patient
-Name: View patient dashboard
-Description: Access patient dashboard
+Slug: dashboard:view_member
+Name: View member dashboard
+Description: Access member dashboard
 ---
-Slug: partner:view_dashboard
-Name: View workspace dashboard
-Description: View workspace overview (read-only for members)
+Slug: team:view_dashboard
+Name: View team dashboard
+Description: View team overview
 ---
-Slug: partner:manage_settings
-Name: Manage workspace settings
-Description: Manage workspace configuration (admin)
+Slug: team:manage_settings
+Name: Manage team settings
+Description: Manage team settings (team admin)
 ---
-Slug: partner:manage_branding
-Name: Manage workspace branding
-Description: Manage workspace logo, colors (admin)
+Slug: team:manage_branding
+Name: Manage team branding
+Description: Manage team logo and colors (team admin)
 ---
-Slug: partner:view_analytics
-Name: View workspace analytics
-Description: View workspace-wide analytics (admin)
+Slug: team:view_analytics
+Name: View team analytics
+Description: View team-wide analytics (team admin)
 ---
-Slug: partner:view_patients
-Name: View workspace patients
-Description: View shared workspace patients
+Slug: team:view_patients
+Name: View team patients
+Description: View shared team patients
 ---
-Slug: partner:export_data
-Name: Export workspace data
-Description: Export workspace data (admin)
+Slug: team:export_data
+Name: Export team data
+Description: Export team data (team admin)
 ---
 Slug: team:view_members
 Name: View team members
-Description: View workspace team members
+Description: View team members
 ---
 Slug: team:invite_members
 Name: Invite team members
-Description: Invite new team members (admin)
+Description: Invite new team members (team admin)
 ---
 Slug: team:remove_members
 Name: Remove team members
-Description: Remove team members (admin)
+Description: Remove team members (team admin)
 ---
 Slug: team:manage_roles
 Name: Manage team roles
-Description: Assign and change member roles (admin)
+Description: Assign and change team member roles (team admin)
 ---
 Slug: team:view_performance
 Name: View team performance
-Description: View team member performance (admin)
+Description: View team member performance (team admin)
 ---
-Slug: schedule:manage_clinic
-Name: Manage workspace schedule
-Description: Manage multi-practitioner schedule (admin)
+Slug: schedule:manage_team
+Name: Manage team schedule
+Description: Manage multi-practitioner schedule (team admin)
 ---
 Slug: schedule:manage_rooms
 Name: Manage rooms
-Description: Manage workspace rooms/locations (admin)
+Description: Manage team rooms and locations (team admin)
 ---
 Slug: schedule:view_capacity
 Name: View capacity planning
-Description: View capacity planning (admin)
+Description: View capacity planning (team admin)
 ---
 Slug: revenue:view_overview
 Name: View revenue overview
-Description: View workspace revenue overview (admin)
+Description: View team revenue overview (team admin)
 ---
 Slug: revenue:view_splits
 Name: View commission splits
-Description: View commission splits (admin)
+Description: View commission splits (team admin)
 ---
 Slug: revenue:manage_payouts
 Name: Manage payouts
-Description: Manage payout schedules (admin)
+Description: Manage payout schedules (team admin)
+---
+Slug: revenue:view_invoices
+Name: View invoices
+Description: View invoices (team admin)
 ---
 Slug: revenue:export_financial
 Name: Export financial data
-Description: Export financial reports (admin)
+Description: Export financial reports (team admin)
 ---
 Slug: users:view_all
 Name: View all users
@@ -505,6 +509,46 @@ Slug: audit:export_logs
 Name: Export audit logs
 Description: Export audit logs for compliance
 ---
+Slug: audit:view_reports
+Name: View audit reports
+Description: View audit reports
+---
+Slug: audit:generate_reports
+Name: Generate audit reports
+Description: Generate audit reports
+---
+Slug: categories:create
+Name: Create categories
+Description: Create categories
+---
+Slug: categories:edit
+Name: Edit categories
+Description: Edit categories
+---
+Slug: categories:delete
+Name: Delete categories
+Description: Delete categories
+---
+Slug: categories:manage_tags
+Name: Manage tags
+Description: Manage tags
+---
+Slug: support:view_tickets
+Name: View support tickets
+Description: View support tickets
+---
+Slug: support:respond_tickets
+Name: Respond to tickets
+Description: Respond to support tickets
+---
+Slug: support:escalate
+Name: Escalate tickets
+Description: Escalate support tickets
+---
+Slug: support:close_tickets
+Name: Close tickets
+Description: Close support tickets
+---
 
 ─────────────────────────────────────────────────────────────────────
 STEP 2: CREATE ROLES (6 total)
@@ -513,10 +557,10 @@ STEP 2: CREATE ROLES (6 total)
 Go to RBAC → Roles → Create Role
 
 
-=== PATIENT ===
-Slug: patient
-Name: Patient
-Description: Basic patient role for booking appointments and accessing healthcare journey
+=== MEMBER ===
+Slug: member
+Name: Member
+Description: Base role for all registered users. Can book appointments and access member features
 
 Permissions to assign (16):
   ✓ appointments:view_own
@@ -534,7 +578,7 @@ Permissions to assign (16):
   ✓ profile:edit_own
   ✓ billing:view_own
   ✓ billing:methods_manage
-  ✓ dashboard:view_patient
+  ✓ dashboard:view_member
 
 === EXPERT COMMUNITY ===
 Slug: expert_community
@@ -557,7 +601,7 @@ Permissions to assign (52):
   ✓ profile:edit_own
   ✓ billing:view_own
   ✓ billing:methods_manage
-  ✓ dashboard:view_patient
+  ✓ dashboard:view_member
   ✓ dashboard:view_expert
   ✓ appointments:view_incoming
   ✓ appointments:manage_own
@@ -595,7 +639,7 @@ Permissions to assign (52):
   ✓ settings:edit_own
   ✓ settings:security
 
-=== EXPERT TOP ===-> Dez 03
+=== EXPERT TOP ===
 Slug: expert_top
 Name: Expert Top
 Description: Premium expert tier with advanced analytics and branding (18% monthly or 8% annual commission)
@@ -616,7 +660,7 @@ Permissions to assign (60):
   ✓ profile:edit_own
   ✓ billing:view_own
   ✓ billing:methods_manage
-  ✓ dashboard:view_patient
+  ✓ dashboard:view_member
   ✓ dashboard:view_expert
   ✓ appointments:view_incoming
   ✓ appointments:manage_own
@@ -662,10 +706,10 @@ Permissions to assign (60):
   ✓ branding:upload_logo
   ✓ branding:custom_colors
 
-=== PARTNER MEMBER ===
-Slug: partner_member
-Name: Workspace Member
-Description: Expert who is a member of a workspace (read-only workspace access)
+=== TEAM MEMBER ===
+Slug: team_member
+Name: Team Member
+Description: Member of a team organization with read-only team access
 
 Permissions to assign (55):
   ✓ appointments:view_own
@@ -683,7 +727,7 @@ Permissions to assign (55):
   ✓ profile:edit_own
   ✓ billing:view_own
   ✓ billing:methods_manage
-  ✓ dashboard:view_patient
+  ✓ dashboard:view_member
   ✓ dashboard:view_expert
   ✓ appointments:view_incoming
   ✓ appointments:manage_own
@@ -720,16 +764,16 @@ Permissions to assign (55):
   ✓ settings:view_own
   ✓ settings:edit_own
   ✓ settings:security
-  ✓ partner:view_dashboard
-  ✓ partner:view_patients
+  ✓ team:view_dashboard
+  ✓ team:view_patients
   ✓ team:view_members
 
-=== PARTNER ADMIN ===
-Slug: partner_admin
-Name: Workspace Admin
-Description: Administrator of a workspace with full management access
+=== TEAM ADMIN ===
+Slug: team_admin
+Name: Team Admin
+Description: Administrator of a team organization with full management access
 
-Permissions to assign (76):
+Permissions to assign (77):
   ✓ appointments:view_own
   ✓ appointments:create
   ✓ appointments:cancel_own
@@ -745,7 +789,7 @@ Permissions to assign (76):
   ✓ profile:edit_own
   ✓ billing:view_own
   ✓ billing:methods_manage
-  ✓ dashboard:view_patient
+  ✓ dashboard:view_member
   ✓ dashboard:view_expert
   ✓ appointments:view_incoming
   ✓ appointments:manage_own
@@ -782,18 +826,18 @@ Permissions to assign (76):
   ✓ settings:view_own
   ✓ settings:edit_own
   ✓ settings:security
-  ✓ partner:view_dashboard
-  ✓ partner:view_patients
+  ✓ team:view_dashboard
+  ✓ team:view_patients
   ✓ team:view_members
-  ✓ partner:manage_settings
-  ✓ partner:manage_branding
-  ✓ partner:view_analytics
-  ✓ partner:export_data
+  ✓ team:manage_settings
+  ✓ team:manage_branding
+  ✓ team:view_analytics
+  ✓ team:export_data
   ✓ team:invite_members
   ✓ team:remove_members
   ✓ team:manage_roles
   ✓ team:view_performance
-  ✓ schedule:manage_clinic
+  ✓ schedule:manage_team
   ✓ schedule:manage_rooms
   ✓ schedule:view_capacity
   ✓ patients:view_all
@@ -803,16 +847,17 @@ Permissions to assign (76):
   ✓ revenue:view_overview
   ✓ revenue:view_splits
   ✓ revenue:manage_payouts
+  ✓ revenue:view_invoices
   ✓ revenue:export_financial
-  ✓ billing:manage_clinic_sub
-  ✓ billing:view_clinic_billing
+  ✓ billing:manage_team_sub
+  ✓ billing:view_team_billing
 
-=== PLATFORM ADMIN ===
-Slug: superadmin
-Name: Platform Admin
+=== ADMIN ===
+Slug: admin
+Name: Admin
 Description: Platform administrator with full system access (Eleva Care team only)
 
-Permissions to assign (121):
+Permissions to assign (132):
   ✓ appointments:view_own
   ✓ appointments:view_incoming
   ✓ appointments:create
@@ -883,8 +928,8 @@ Permissions to assign (121):
   ✓ billing:view_subscription
   ✓ billing:manage_subscription
   ✓ billing:methods_manage
-  ✓ billing:manage_clinic_sub
-  ✓ billing:view_clinic_billing
+  ✓ billing:manage_team_sub
+  ✓ billing:view_team_billing
   ✓ settings:view_own
   ✓ settings:edit_own
   ✓ settings:security
@@ -893,24 +938,25 @@ Permissions to assign (121):
   ✓ settings:manage_features
   ✓ settings:manage_integrations
   ✓ dashboard:view_expert
-  ✓ dashboard:view_patient
-  ✓ partner:view_dashboard
-  ✓ partner:manage_settings
-  ✓ partner:manage_branding
-  ✓ partner:view_analytics
-  ✓ partner:view_patients
-  ✓ partner:export_data
+  ✓ dashboard:view_member
+  ✓ team:view_dashboard
+  ✓ team:manage_settings
+  ✓ team:manage_branding
+  ✓ team:view_analytics
+  ✓ team:view_patients
+  ✓ team:export_data
   ✓ team:view_members
   ✓ team:invite_members
   ✓ team:remove_members
   ✓ team:manage_roles
   ✓ team:view_performance
-  ✓ schedule:manage_clinic
+  ✓ schedule:manage_team
   ✓ schedule:manage_rooms
   ✓ schedule:view_capacity
   ✓ revenue:view_overview
   ✓ revenue:view_splits
   ✓ revenue:manage_payouts
+  ✓ revenue:view_invoices
   ✓ revenue:export_financial
   ✓ users:view_all
   ✓ users:create
@@ -934,13 +980,23 @@ Permissions to assign (121):
   ✓ moderation:ban_users
   ✓ audit:view_logs
   ✓ audit:export_logs
+  ✓ audit:view_reports
+  ✓ audit:generate_reports
+  ✓ categories:create
+  ✓ categories:edit
+  ✓ categories:delete
+  ✓ categories:manage_tags
+  ✓ support:view_tickets
+  ✓ support:respond_tickets
+  ✓ support:escalate
+  ✓ support:close_tickets
 
 ─────────────────────────────────────────────────────────────────────
 STEP 3: SET DEFAULT ROLE
 ─────────────────────────────────────────────────────────────────────
 
 Go to RBAC → Configuration → Default Role
-Select: patient
+Select: member
 
 ═══════════════════════════════════════════════════════════════════
 

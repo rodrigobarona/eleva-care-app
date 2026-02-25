@@ -11,7 +11,7 @@
  * - `expert_top`: Premium expert tier (subscription-backed)
  * - `team_member`: Member of a team/clinic organization
  * - `team_admin`: Administrator of a team/clinic organization
- * - `superadmin`: Platform-wide administrator
+ * - `admin`: Platform-wide administrator (WorkOS standard naming)
  *
  * Lecturer capabilities are NOT a role -- they are granted via Stripe addon
  * subscriptions and delivered as entitlements in the JWT.
@@ -30,7 +30,7 @@
  * WorkOS RBAC Role Slugs
  *
  * These slugs must match exactly what is configured in the WorkOS Dashboard.
- * Priority order: member < team_member < expert_community < expert_top < team_admin < superadmin
+ * Priority order: member < team_member < expert_community < expert_top < team_admin < admin
  *
  * Naming decisions:
  * - `member` chosen over `patient`/`user` for generality (WorkOS, Vercel, Cal.com convention)
@@ -50,8 +50,8 @@ export const WORKOS_ROLES = {
   TEAM_MEMBER: 'team_member',
   /** Administrator of a team/clinic organization (priority: 90) */
   TEAM_ADMIN: 'team_admin',
-  /** Platform-wide administrator (priority: 100) */
-  SUPERADMIN: 'superadmin',
+  /** Platform-wide administrator -- WorkOS standard naming (priority: 100) */
+  ADMIN: 'admin',
 } as const;
 
 export type WorkOSRole = (typeof WORKOS_ROLES)[keyof typeof WORKOS_ROLES];
@@ -68,7 +68,7 @@ export const WORKOS_ROLE_HIERARCHY: Record<WorkOSRole, number> = {
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 70,
   [WORKOS_ROLES.EXPERT_TOP]: 80,
   [WORKOS_ROLES.TEAM_ADMIN]: 90,
-  [WORKOS_ROLES.SUPERADMIN]: 100,
+  [WORKOS_ROLES.ADMIN]: 100,
 };
 
 /**
@@ -80,7 +80,7 @@ export const EXPERT_ROLES = [WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_
 /**
  * Admin roles for quick checking
  */
-export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
+export const ADMIN_ROLES = [WORKOS_ROLES.ADMIN] as const;
 
 /**
  * Team roles for quick checking.
@@ -91,7 +91,7 @@ export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
 export const TEAM_ROLES = [WORKOS_ROLES.TEAM_MEMBER, WORKOS_ROLES.TEAM_ADMIN] as const;
 
 // ============================================================================
-// PERMISSIONS (121 total)
+// PERMISSIONS (132 total)
 // ============================================================================
 
 /**
@@ -245,7 +245,7 @@ export const WORKOS_PERMISSIONS = {
   DASHBOARD_VIEW_MEMBER: 'dashboard:view_member',
 
   // =========================================================================
-  // Team (18) - Phase 2: team management + workspace operations
+  // Team + Schedule + Revenue (19) - Phase 2: team management + workspace
   // =========================================================================
   TEAM_VIEW_DASHBOARD: 'team:view_dashboard',
   TEAM_MANAGE_SETTINGS: 'team:manage_settings',
@@ -264,10 +264,11 @@ export const WORKOS_PERMISSIONS = {
   REVENUE_VIEW_OVERVIEW: 'revenue:view_overview',
   REVENUE_VIEW_SPLITS: 'revenue:view_splits',
   REVENUE_MANAGE_PAYOUTS: 'revenue:manage_payouts',
+  REVENUE_VIEW_INVOICES: 'revenue:view_invoices',
   REVENUE_EXPORT_FINANCIAL: 'revenue:export_financial',
 
   // =========================================================================
-  // Platform Admin (22)
+  // Platform Admin (32)
   // =========================================================================
   USERS_VIEW_ALL: 'users:view_all',
   USERS_CREATE: 'users:create',
@@ -285,12 +286,22 @@ export const WORKOS_PERMISSIONS = {
   PAYMENTS_MANAGE_DISPUTES: 'payments:manage_disputes',
   PAYMENTS_PROCESS_REFUNDS: 'payments:process_refunds',
   PAYMENTS_RETRY_FAILED: 'payments:retry_failed',
+  CATEGORIES_CREATE: 'categories:create',
+  CATEGORIES_EDIT: 'categories:edit',
+  CATEGORIES_DELETE: 'categories:delete',
+  CATEGORIES_MANAGE_TAGS: 'categories:manage_tags',
   MODERATION_VIEW_FLAGS: 'moderation:view_flags',
   MODERATION_REVIEW_CONTENT: 'moderation:review_content',
   MODERATION_REMOVE_CONTENT: 'moderation:remove_content',
   MODERATION_BAN_USERS: 'moderation:ban_users',
   AUDIT_VIEW_LOGS: 'audit:view_logs',
   AUDIT_EXPORT_LOGS: 'audit:export_logs',
+  AUDIT_VIEW_REPORTS: 'audit:view_reports',
+  AUDIT_GENERATE_REPORTS: 'audit:generate_reports',
+  SUPPORT_VIEW_TICKETS: 'support:view_tickets',
+  SUPPORT_RESPOND_TICKETS: 'support:respond_tickets',
+  SUPPORT_ESCALATE: 'support:escalate',
+  SUPPORT_CLOSE_TICKETS: 'support:close_tickets',
 } as const;
 
 export type WorkOSPermission = (typeof WORKOS_PERMISSIONS)[keyof typeof WORKOS_PERMISSIONS];
@@ -342,7 +353,7 @@ export function isExpertRole(role: string): boolean {
 }
 
 /**
- * Check if a role is an admin role (superadmin)
+ * Check if a role is an admin role (admin)
  */
 export function isAdminRole(role: string): boolean {
   return (ADMIN_ROLES as readonly string[]).includes(role);
@@ -386,7 +397,7 @@ export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.EXPERT_TOP]: 'Top Expert',
   [WORKOS_ROLES.TEAM_MEMBER]: 'Team Member',
   [WORKOS_ROLES.TEAM_ADMIN]: 'Team Admin',
-  [WORKOS_ROLES.SUPERADMIN]: 'Platform Admin',
+  [WORKOS_ROLES.ADMIN]: 'Admin',
 };
 
 /**
@@ -398,7 +409,7 @@ export const WORKOS_ROLE_DESCRIPTIONS: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.EXPERT_TOP]: 'Premium expert with analytics and branding',
   [WORKOS_ROLES.TEAM_MEMBER]: 'Member of a team organization',
   [WORKOS_ROLES.TEAM_ADMIN]: 'Administrator of a team organization',
-  [WORKOS_ROLES.SUPERADMIN]: 'Full platform access',
+  [WORKOS_ROLES.ADMIN]: 'Full platform access',
 };
 
 /**

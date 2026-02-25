@@ -3,5 +3,5 @@ Slug,Name,Description,Priority,Inherits From,Total Permissions
 "expert_community","Expert Community","Standard expert tier with core expert features. Pays 20% commission (monthly) or 12% (annual)",70,"member",52
 "expert_top","Expert Top","Premium expert tier with advanced features. Pays 18% commission (monthly) or 8% (annual)",80,"expert_community",60
 "team_member","Team Member","Member of a team organization. Can manage their own practice and view shared team resources",60,"expert_community",55
-"team_admin","Team Admin","Administrator of a team organization. Can manage team, patients, schedule, and settings",90,"team_member",76
-"superadmin","Platform Admin","Platform-level administrator with full system access. For Eleva Care team only",100,"",131
+"team_admin","Team Admin","Administrator of a team organization. Can manage team, patients, schedule, and settings",90,"team_member",77
+"admin","Admin","Platform-level administrator with full system access. For Eleva Care team only",100,"",132

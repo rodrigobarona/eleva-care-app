@@ -43,7 +43,7 @@ This document provides a **complete, production-ready list** of roles and permis
 ### Role Hierarchy & Priority
 
 ```
-Priority 100: Platform Admin (superadmin)
+Priority 100: Platform Admin (admin)
 Priority 90:  Team Admin (team_admin) [Future]
 Priority 80:  Expert Top (expert_top)
 Priority 70:  Expert Community (expert_community)
@@ -407,7 +407,7 @@ billing: view_team_billing; // View team billing history
 
 ---
 
-## 6. **Platform Admin** (superadmin)
+## 6. **Platform Admin** (admin)
 
 ### Description
 
@@ -990,8 +990,8 @@ Priority: 90
 Permissions: [All Team Member permissions + 23 team admin permissions]
 
 Role 6:
-Name: Platform Admin
-Slug: superadmin
+Name: Admin
+Slug: admin
 Priority: 100
 Permissions: [ALL 89 permissions]
 ```
@@ -1177,8 +1177,8 @@ await expect(hasPermission('analytics:view', 'expert_community')).toBe(false);
 await expect(hasPermission('analytics:view', 'expert_top')).toBe(true);
 
 // Test 5: Platform Admin has all permissions
-await expect(hasPermission('users:delete', 'superadmin')).toBe(true);
-await expect(hasPermission('analytics:view', 'superadmin')).toBe(true);
+await expect(hasPermission('users:delete', 'admin')).toBe(true);
+await expect(hasPermission('analytics:view', 'admin')).toBe(true);
 ```
 
 ### ✅ Role Assignment Tests
@@ -1209,7 +1209,7 @@ SET LOCAL request.jwt.claims = '{"sub": "user_expert_456", "role": "expert_commu
 SELECT COUNT(*) FROM appointments WHERE expert_id = 'user_expert_456'; -- Should return all
 
 -- Test 3: Admin can see all appointments
-SET LOCAL request.jwt.claims = '{"sub": "user_admin_789", "role": "superadmin"}';
+SET LOCAL request.jwt.claims = '{"sub": "user_admin_789", "role": "admin"}';
 SELECT COUNT(*) FROM appointments; -- Should return ALL appointments
 ```
 

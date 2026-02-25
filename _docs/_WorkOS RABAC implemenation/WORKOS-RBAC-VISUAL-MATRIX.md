@@ -15,7 +15,7 @@
 | 🟡 Expert Top       | `expert_top`       | 80       | Premium experts       | 49          | Expert + Analytics        |
 | 🔵 Team Member      | `team_member`      | 60       | Team practitioners    | 45          | Expert + Team (view)      |
 | 🟣 Team Admin       | `team_admin`       | 90       | Team managers         | 68          | Expert + Team (manage)    |
-| 🔴 Platform Admin   | `superadmin`       | 100      | Platform team         | 89 (ALL)    | All dashboards            |
+| 🔴 Platform Admin   | `admin`            | 100      | Platform team         | 89 (ALL)    | All dashboards            |
 
 ---
 
@@ -408,7 +408,7 @@ Dashboard: All Community routes + /analytics
 ### Platform Admin Role
 
 ```
-Role: superadmin
+Role: admin
 Priority: 100
 Permissions: 89 (ALL)
 

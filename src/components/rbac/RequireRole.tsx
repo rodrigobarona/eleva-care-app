@@ -95,7 +95,7 @@ interface RoleChildrenProps {
 }
 
 /**
- * Require admin role (superadmin)
+ * Require admin role
  */
 export function RequireAdmin({
   children,
@@ -104,7 +104,7 @@ export function RequireAdmin({
 }: RoleChildrenProps) {
   return (
     <RequireRole
-      role={WORKOS_ROLES.SUPERADMIN}
+      role={WORKOS_ROLES.ADMIN}
       fallback={fallback}
       loading={loading}
     >

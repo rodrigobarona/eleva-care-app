@@ -64,8 +64,7 @@ components/
 The platform uses Clerk for user authentication and implements a role-based authorization system:
 
 - **User Roles**:
-  - `superadmin`: Complete system access
-  - `admin`: Administrative functions
+  - `admin`: Complete system access
   - `top_expert`: Featured expert capabilities
   - `community_expert`: Standard expert functions
   - `user`: Basic client access

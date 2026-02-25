@@ -134,16 +134,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Defense-in-depth: verify admin role for financial operations
-    let isSuperAdmin: boolean;
+    let isAdmin: boolean;
     try {
-      isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+      isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
     } catch (error) {
       Sentry.captureException(error);
       logger.error('Role check error in transfer approval', { error });
       return NextResponse.json({ error: 'Role verification failed' }, { status: 500 });
     }
 
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

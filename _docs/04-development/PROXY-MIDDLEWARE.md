@@ -47,7 +47,7 @@ Request
    ▼
 ┌─────────────────────────────────────┐
 │  Authorization Check                 │
-│  - Admin route → SUPERADMIN role     │
+│  - Admin route → ADMIN role          │
 │  - Expert route → EXPERT_* role      │
 │  - Permission checks                 │
 └─────────────────────────────────────┘
@@ -78,7 +78,7 @@ SKIP_AUTH_API_PATTERNS = [
 
 ### 2. Admin Routes
 
-Routes requiring SUPERADMIN role:
+Routes requiring ADMIN role:
 
 ```typescript
 ADMIN_ROUTES = [

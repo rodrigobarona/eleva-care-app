@@ -88,7 +88,7 @@ export async function hasRole(role: WorkOSRole): Promise<boolean> {
 }
 
 /**
- * Convenience function to check if user is an admin (superadmin or admin)
+ * Convenience function to check if user is an admin
  */
 export async function isAdmin(): Promise<boolean> {
   return hasAnyRole(ADMIN_ROLES);
@@ -129,7 +129,7 @@ const ROLE_PRIORITY: WorkOSRole[] = [
   WORKOS_ROLES.EXPERT_COMMUNITY,
   WORKOS_ROLES.EXPERT_TOP,
   WORKOS_ROLES.TEAM_ADMIN,
-  WORKOS_ROLES.SUPERADMIN,
+  WORKOS_ROLES.ADMIN,
 ];
 
 /**
@@ -170,7 +170,7 @@ export async function getUserRole(): Promise<WorkOSRole> {
 }
 
 /**
- * Update a user's role (requires admin/superadmin)
+ * Update a user's role (requires admin)
  */
 export async function updateUserRole(workosUserId: string, role: WorkOSRole): Promise<void> {
   const { user: currentUser } = await withAuth();
@@ -179,10 +179,10 @@ export async function updateUserRole(workosUserId: string, role: WorkOSRole): Pr
   // Check if current user has permission to update roles
   const currentUserRoles = await getUserRolesFromDB(currentUser.id);
 
-  const isSuperAdmin = currentUserRoles.includes(WORKOS_ROLES.SUPERADMIN);
+  const isAdmin = currentUserRoles.includes(WORKOS_ROLES.ADMIN);
 
-  if (!isSuperAdmin) {
-    throw new Error('Insufficient permissions - only superadmins can update roles');
+  if (!isAdmin) {
+    throw new Error('Insufficient permissions - only admins can update roles');
   }
 
   // Use a transaction to ensure atomic delete+insert

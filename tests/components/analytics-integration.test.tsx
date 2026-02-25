@@ -99,7 +99,7 @@ describe('Analytics Integration', () => {
     it('should determine correct role priority for admin users', () => {
       const roles = ['admin', 'user'];
       const role =
-        roles.includes('admin') || roles.includes('superadmin')
+        roles.includes('admin')
           ? 'admin'
           : roles.includes('expert_top')
             ? 'expert_top'
@@ -113,7 +113,7 @@ describe('Analytics Integration', () => {
     it('should determine correct role priority for expert_top users', () => {
       const roles = ['expert_top', 'user'];
       const role =
-        roles.includes('admin') || roles.includes('superadmin')
+        roles.includes('admin')
           ? 'admin'
           : roles.includes('expert_top')
             ? 'expert_top'
@@ -127,7 +127,7 @@ describe('Analytics Integration', () => {
     it('should determine correct role priority for expert_community users', () => {
       const roles = ['expert_community', 'user'];
       const role =
-        roles.includes('admin') || roles.includes('superadmin')
+        roles.includes('admin')
           ? 'admin'
           : roles.includes('expert_top')
             ? 'expert_top'
@@ -141,7 +141,7 @@ describe('Analytics Integration', () => {
     it('should default to user role when no special roles present', () => {
       const roles = ['user'];
       const role =
-        roles.includes('admin') || roles.includes('superadmin')
+        roles.includes('admin')
           ? 'admin'
           : roles.includes('expert_top')
             ? 'expert_top'

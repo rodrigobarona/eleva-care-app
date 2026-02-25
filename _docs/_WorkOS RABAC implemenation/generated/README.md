@@ -77,7 +77,7 @@ if (permissions.includes(WORKOS_PERMISSIONS.ANALYTICS_VIEW)) {
 | **Patient**          | `patient`          | 10       | 16          | Basic user/patient role                   |
 | **Expert Community** | `expert_community` | 70       | 52          | Standard expert tier (20%/12% commission) |
 | **Expert Top**       | `expert_top`       | 80       | 60          | Premium expert tier (18%/8% commission)   |
-| **Platform Admin**   | `superadmin`       | 100      | 132         | Full system access                        |
+| **Platform Admin**   | `admin`            | 100      | 132         | Full system access                        |
 
 ### Phase 2 Roles (Future - Partner Features)
 

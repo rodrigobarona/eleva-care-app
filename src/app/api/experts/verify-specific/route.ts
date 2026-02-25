@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify if the user is an admin (superadmin in WorkOS RBAC)
-    const isAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    // Verify if the user is an admin
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Only admins can verify other experts' }, { status: 403 });

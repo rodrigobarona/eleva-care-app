@@ -203,7 +203,7 @@ Users are automatically segmented into **groups by role** for analytics comparis
 
 | Group Key          | Description                | Use Case                   |
 | ------------------ | -------------------------- | -------------------------- |
-| `admin`            | Admin and superadmin users | Internal tool usage        |
+| `admin`            | Admin users                | Internal tool usage        |
 | `expert_top`       | Top-tier experts           | Expert engagement patterns |
 | `expert_community` | Community experts          | Expert onboarding analysis |
 | `user`             | Regular users/patients     | Patient journey analysis   |

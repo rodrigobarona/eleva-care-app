@@ -19,9 +19,9 @@ Create these roles in order (priority determines hierarchy):
 ```typescript
 // Roles Configuration
 
-Superadmin
-  - Slug: superadmin
-  - Name: Super Administrator
+Admin
+  - Slug: admin
+  - Name: Admin
   - Description: Full system access with ability to assign any role
   - Priority: 1partner_adminpartner_admin
 
@@ -173,7 +173,7 @@ In WorkOS Dashboard, for each role, assign permissions:
 - reports:access
 - billing:view
 
-// Superadmin
+// Admin
 - All permissions
 ```
 
@@ -190,7 +190,7 @@ Create new types for WorkOS RBAC:
  * These match the roles defined in WorkOS Dashboard
  */
 export const WORKOS_ROLES = {
-  SUPERADMIN: 'superadmin',
+  ADMIN: 'admin',
   ADMIN: 'admin',
   EXPERT_TOP: 'expert_top',
   EXPERT_COMMUNITY: 'expert_community',
@@ -406,11 +406,11 @@ export async function requireRole(role: WorkOSRole): Promise<void> {
 // ============================================================================
 
 export async function isAdmin(): Promise<boolean> {
-  return hasAnyRole([WORKOS_ROLES.ADMIN, WORKOS_ROLES.SUPERADMIN]);
+  return hasRole(WORKOS_ROLES.ADMIN);
 }
 
-export async function isSuperAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.SUPERADMIN);
+export async function isAdmin(): Promise<boolean> {
+  return hasRole(WORKOS_ROLES.ADMIN);
 }
 
 export async function isExpert(): Promise<boolean> {
@@ -539,7 +539,7 @@ export function useRBAC() {
 // Convenience hooks
 export function useIsAdmin() {
   const { hasAnyRole } = useRBAC();
-  return hasAnyRole([WORKOS_ROLES.ADMIN, WORKOS_ROLES.SUPERADMIN]);
+  return hasRole(WORKOS_ROLES.ADMIN);
 }
 
 export function useIsExpert() {
@@ -674,7 +674,7 @@ import type { NextRequest } from 'next/server';
 // Define routes with required permissions
 const PROTECTED_ROUTES = {
   '/dashboard/admin': {
-    roles: [WORKOS_ROLES.ADMIN, WORKOS_ROLES.SUPERADMIN],
+    roles: [WORKOS_ROLES.ADMIN],
   },
   '/dashboard/expert': {
     roles: [WORKOS_ROLES.EXPERT_TOP, WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_LECTURER],
@@ -1161,10 +1161,8 @@ async function migrateRolesToWorkOS() {
       let workosRole: string;
       switch (user.role) {
         case 'admin':
+        case 'superadmin': // Legacy: superadmin renamed to admin
           workosRole = WORKOS_ROLES.ADMIN;
-          break;
-        case 'superadmin':
-          workosRole = WORKOS_ROLES.SUPERADMIN;
           break;
         case 'expert_top':
           workosRole = WORKOS_ROLES.EXPERT_TOP;

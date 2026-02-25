@@ -419,8 +419,8 @@ Plus:
 ### 🔴 Role 6: Platform Admin
 
 ```
-Name: Platform Admin
-Slug: superadmin
+Name: Admin
+Slug: admin
 Description: Platform administrator with full system access (Eleva Care team only)
 Priority: 1partner_adminpartner_admin
 

@@ -119,7 +119,7 @@ A **complete, production-ready RBAC system** with:
 - **Can:** + View analytics, custom branding
 - **Dashboard:** All Community routes + `/analytics`
 
-#### 4. 🔴 Platform Admin (`superadmin`)
+#### 4. 🔴 Platform Admin (`admin`)
 
 - **Users:** Eleva Care team
 - **Permissions:** 89 (ALL)

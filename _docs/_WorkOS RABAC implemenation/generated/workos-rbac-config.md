@@ -1,7 +1,7 @@
 # WorkOS RBAC Configuration
 
-**Generated:** 2026-02-25T16:26:12.161Z
-**Total Permissions:** 131
+**Generated:** 2026-02-25T17:40:39.576Z
+**Total Permissions:** 132
 **Total Roles:** 6
 
 ## Table of Contents
@@ -34,16 +34,17 @@
 | `sessions:view_own` | View Own Sessions | View own session notes |
 | `sessions:view_history` | View Session History | View session history |
 
-### Patients (6)
+### Patients (7)
 
 | Slug | Name | Description |
 |------|------|-------------|
 | `patients:view_own` | View Own Patients | View own patients |
-| `patients:view_all` | View All Patients | View all clinic patients |
+| `patients:view_all` | View All Patients | View all team patient records |
 | `patients:view_history` | View Patient History | View patient appointment history |
 | `patients:send_notes` | Send Patient Notes | Share session notes with patients |
 | `patients:manage_records` | Manage Patient Records | Manage patient records |
 | `patients:view_insights` | View Patient Insights | View patient analytics |
+| `patients:export` | Export Patient Data | Export patient data |
 
 ### Events (5)
 
@@ -272,12 +273,12 @@
 | **Expert Community** | 70 | member | 52 | Standard expert tier with core expert features. Pays 20% commission (monthly) or 12% (annual) |
 | **Expert Top** | 80 | expert_community | 60 | Premium expert tier with advanced features. Pays 18% commission (monthly) or 8% (annual) |
 | **Team Member** | 60 | expert_community | 55 | Member of a team organization. Can manage their own practice and view shared team resources |
-| **Team Admin** | 90 | team_member | 76 | Administrator of a team organization. Can manage team, patients, schedule, and settings |
-| **Platform Admin** | 100 | - | 131 | Platform-level administrator with full system access. For Eleva Care team only |
+| **Team Admin** | 90 | team_member | 77 | Administrator of a team organization. Can manage team, patients, schedule, and settings |
+| **Admin** | 100 | - | 132 | Platform-level administrator with full system access. For Eleva Care team only |
 
 ## Role-Permission Matrix
 
-| Permission | Member | Expert Community | Expert Top | Team Member | Team Admin | Platform Admin |
+| Permission | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 |------------|---|---|---|---|---|---|
 | `appointments:view_own` | ✓` | ✓` | ✓` | ✓` | ✓` | ✓ |
 | `appointments:view_incoming` | ` | ✓` | ✓` | ✓` | ✓` | ✓ |
@@ -296,6 +297,7 @@
 | `patients:send_notes` | ` | ✓` | ✓` | ✓` | ✓` | ✓ |
 | `patients:manage_records` | ` | ` | ` | ` | ✓` | ✓ |
 | `patients:view_insights` | ` | ` | ` | ` | ✓` | ✓ |
+| `patients:export` | ` | ` | ` | ` | ✓` | ✓ |
 | `events:create` | ` | ✓` | ✓` | ✓` | ✓` | ✓ |
 | `events:view_own` | ` | ✓` | ✓` | ✓` | ✓` | ✓ |
 | `events:edit_own` | ` | ✓` | ✓` | ✓` | ✓` | ✓ |
@@ -433,6 +435,7 @@ patients:view_history | View Patient History
 patients:send_notes | Send Patient Notes
 patients:manage_records | Manage Patient Records
 patients:view_insights | View Patient Insights
+patients:export | Export Patient Data
 events:create | Create Events
 events:view_own | View Own Events
 events:edit_own | Edit Own Events
@@ -790,6 +793,7 @@ events:toggle_active
 events:view_own
 experts:browse
 experts:view_profiles
+patients:export
 patients:manage_records
 patients:send_notes
 patients:view_all
@@ -833,7 +837,7 @@ team:view_patients
 team:view_performance
 ```
 
-### Platform Admin (superadmin)
+### Admin (admin)
 
 ```
 analytics:export
@@ -906,6 +910,7 @@ organizations:delete
 organizations:edit
 organizations:manage_settings
 organizations:view_all
+patients:export
 patients:manage_records
 patients:send_notes
 patients:view_all

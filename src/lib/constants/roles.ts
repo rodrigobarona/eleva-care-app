@@ -13,7 +13,7 @@
  */
 
 /**
- * Admin routes - require admin role (WORKOS_ROLES.SUPERADMIN)
+ * Admin routes - require admin role (WORKOS_ROLES.ADMIN)
  *
  * Access is verified in proxy.ts using JWT role claims.
  */

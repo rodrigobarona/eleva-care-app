@@ -138,7 +138,7 @@ export async function hasAnyRole(roles: WorkOSRole[]): Promise<boolean> {
  *
  * @example
  * ```ts
- * // Returns true for expert_community, expert_top, team_admin, superadmin
+ * // Returns true for expert_community, expert_top, team_admin, admin
  * if (await hasRoleLevel(WORKOS_ROLES.EXPERT_COMMUNITY)) {
  *   // Show expert features
  * }
@@ -282,17 +282,10 @@ export async function requireAllPermissions(permissions: WorkOSPermission[]): Pr
 // ============================================================================
 
 /**
- * Check if current user is an admin (superadmin)
+ * Check if current user is an admin
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.SUPERADMIN);
-}
-
-/**
- * Check if current user is a superadmin
- */
-export async function isSuperAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.SUPERADMIN);
+  return hasRole(WORKOS_ROLES.ADMIN);
 }
 
 /**

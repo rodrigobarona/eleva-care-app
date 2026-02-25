@@ -36,9 +36,9 @@ export async function GET(req: Request) {
       );
     }
 
-    // Verify admin role (only superadmin in WorkOS RBAC)
-    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-    if (!isSuperAdmin) {
+    // Verify admin role (only admin in WorkOS RBAC)
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+    if (!isAdmin) {
       return NextResponse.json(
         {
           success: false,
@@ -150,9 +150,9 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Verify admin role (only superadmin can modify roles)
-    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-    if (!isSuperAdmin) {
+    // Verify admin role (only admin can modify roles)
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+    if (!isAdmin) {
       return NextResponse.json(
         {
           success: false,

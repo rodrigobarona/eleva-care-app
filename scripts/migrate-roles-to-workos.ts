@@ -44,8 +44,7 @@ const ROLE_MAPPING: Record<string, string> = {
   expert_community: 'expert_community',
   expert_top: 'expert_top',
   // expert_lecturer was removed -- lecturer is now a Stripe addon, not a role
-  admin: 'superadmin',
-  superadmin: 'superadmin',
+  admin: 'admin',
 
   // Default for any unmapped roles
   default: 'member',

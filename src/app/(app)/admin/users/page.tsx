@@ -4,7 +4,7 @@
  * Admin-only page for managing user roles.
  * Displays a table of users with role selection.
  *
- * Authorization: Requires superadmin role (enforced by admin layout + proxy)
+ * Authorization: Requires admin role (enforced by admin layout + proxy)
  */
 import { UserRoleManager } from '@/components/features/admin/UserRoleManager';
 

@@ -18,7 +18,7 @@ const roleSchema = z.object({
 /**
  * GET /api/users/[userId]/roles
  *
- * Get a user's role. Users can only fetch their own role unless they are a superadmin.
+ * Get a user's role. Users can only fetch their own role unless they are an admin.
  */
 export async function GET(_request: NextRequest, props: { params: Promise<{ userId: string }> }) {
   try {
@@ -32,10 +32,10 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
 
-    // Users can only fetch their own role unless they are superadmin
-    if (!isSuperAdmin && user.id !== params.userId) {
+    // Users can only fetch their own role unless they are admin
+    if (!isAdmin && user.id !== params.userId) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'Insufficient permissions' },
         { status: 403 },
@@ -60,7 +60,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
 /**
  * POST /api/users/[userId]/roles
  *
- * Update a user's role. Only superadmins can update roles.
+ * Update a user's role. Only admins can update roles.
  */
 export async function POST(request: NextRequest, props: { params: Promise<{ userId: string }> }) {
   try {
@@ -76,12 +76,12 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    // Authorization check - only superadmins can update roles
-    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+    // Authorization check - only admins can update roles
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
 
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Forbidden', message: 'Only superadmins can update user roles' },
+        { error: 'Forbidden', message: 'Only admins can update user roles' },
         { status: 403 },
       );
     }

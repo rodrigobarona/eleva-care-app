@@ -143,7 +143,7 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
   );
 
   // Convenience checks
-  const isAdmin = role === WORKOS_ROLES.SUPERADMIN;
+  const isAdmin = role === WORKOS_ROLES.ADMIN;
   const isExpert = role === WORKOS_ROLES.EXPERT_COMMUNITY || role === WORKOS_ROLES.EXPERT_TOP;
   const isTopExpert = role === WORKOS_ROLES.EXPERT_TOP;
   const isTeamMember = role === WORKOS_ROLES.TEAM_MEMBER || role === WORKOS_ROLES.TEAM_ADMIN;

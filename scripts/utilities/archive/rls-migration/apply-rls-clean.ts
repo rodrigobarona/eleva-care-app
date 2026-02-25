@@ -119,12 +119,12 @@ async function applyRLSMigration() {
       {
         name: 'Admins can view all applications',
         table: 'expert_applications',
-        sql: `CREATE POLICY "Admins can view all applications" ON expert_applications FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can view all applications" ON expert_applications FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
       {
         name: 'Admins can update applications',
         table: 'expert_applications',
-        sql: `CREATE POLICY "Admins can update applications" ON expert_applications FOR UPDATE USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin'))) WITH CHECK (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can update applications" ON expert_applications FOR UPDATE USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin')) WITH CHECK (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
 
       // roles (5 policies)
@@ -136,22 +136,22 @@ async function applyRLSMigration() {
       {
         name: 'Admins can view all roles',
         table: 'roles',
-        sql: `CREATE POLICY "Admins can view all roles" ON roles FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can view all roles" ON roles FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
       {
         name: 'Admins can insert roles',
         table: 'roles',
-        sql: `CREATE POLICY "Admins can insert roles" ON roles FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can insert roles" ON roles FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
       {
         name: 'Admins can update roles',
         table: 'roles',
-        sql: `CREATE POLICY "Admins can update roles" ON roles FOR UPDATE USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin'))) WITH CHECK (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can update roles" ON roles FOR UPDATE USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin')) WITH CHECK (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
       {
         name: 'Admins can delete roles',
         table: 'roles',
-        sql: `CREATE POLICY "Admins can delete roles" ON roles FOR DELETE USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can delete roles" ON roles FOR DELETE USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
 
       // slot_reservations (6 policies)
@@ -200,7 +200,7 @@ async function applyRLSMigration() {
       {
         name: 'Admins can view all subscription events',
         table: 'subscription_events',
-        sql: `CREATE POLICY "Admins can view all subscription events" ON subscription_events FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can view all subscription events" ON subscription_events FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
 
       // transaction_commissions (4 policies)
@@ -222,7 +222,7 @@ async function applyRLSMigration() {
       {
         name: 'Admins can view all commissions',
         table: 'transaction_commissions',
-        sql: `CREATE POLICY "Admins can view all commissions" ON transaction_commissions FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role IN ('admin', 'superadmin')))`,
+        sql: `CREATE POLICY "Admins can view all commissions" ON transaction_commissions FOR SELECT USING (EXISTS (SELECT 1 FROM users WHERE users.workos_user_id = auth.user_id() AND users.role = 'admin'))`,
       },
     ];
 
