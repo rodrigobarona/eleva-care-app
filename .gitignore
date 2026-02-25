@@ -45,3 +45,6 @@ _backup_env
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# auto-generated source files
+.source/

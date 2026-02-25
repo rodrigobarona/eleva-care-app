@@ -35,8 +35,7 @@ import {
   useQueryStates,
 } from 'nuqs';
 import { Suspense } from 'react';
-import { flushSync } from 'react-dom';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useFormState, useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
 
@@ -120,13 +119,12 @@ interface Step2ContentProps {
   beforeEventBuffer: number;
   afterEventBuffer: number;
   transitionToStep: (step: '1' | '2' | '3') => void;
-  handleNextStep: (nextStep: '1' | '2' | '3') => Promise<void>;
+  handleNextStepRef: React.MutableRefObject<((nextStep: '1' | '2' | '3') => Promise<void>) | null>;
   isSubmitting: boolean;
-  isProcessing: boolean; // Use state for rendering
-  isProcessingRef: React.MutableRefObject<boolean>; // Keep ref for event handler logic
+  isProcessing: boolean;
+  isProcessingRef: React.MutableRefObject<boolean>;
   price: number;
   use24Hour: boolean;
-  debugButtonClick: (action: string) => void;
 }
 
 const Step2Content = React.memo<Step2ContentProps>(
@@ -139,14 +137,16 @@ const Step2Content = React.memo<Step2ContentProps>(
     beforeEventBuffer,
     afterEventBuffer,
     transitionToStep,
-    handleNextStep,
+    handleNextStepRef,
     isSubmitting,
     isProcessing,
     isProcessingRef,
     price,
     use24Hour,
-    debugButtonClick,
   }) => {
+    // Subscribe to root form errors so they trigger re-renders
+    const { errors } = useFormState({ control: form.control });
+
     // Get values directly from form for display
     const currentDate = form.getValues('date');
     const currentTime = form.getValues('startTime');
@@ -178,7 +178,7 @@ const Step2Content = React.memo<Step2ContentProps>(
       <div className="rounded-lg border p-6">
         <div className="mb-6">
           <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+          <div className="bg-muted/50 text-muted-foreground flex flex-col gap-1 rounded-md p-3">
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-4 w-4" />
               <span>
@@ -282,6 +282,12 @@ const Step2Content = React.memo<Step2ContentProps>(
           />
         </div>
 
+        {errors.root?.message && (
+          <div className="bg-destructive/10 text-destructive mt-4 rounded-md p-3 text-sm">
+            {errors.root.message}
+          </div>
+        )}
+
         <div className="mt-6 flex justify-between">
           <Button
             type="button"
@@ -294,14 +300,10 @@ const Step2Content = React.memo<Step2ContentProps>(
           <Button
             type="button"
             onClick={() => {
-              // **IMMEDIATE DUPLICATE PREVENTION**
               if (isSubmitting || isProcessingRef.current) {
-                console.log('🚫 Button click blocked - already processing');
                 return;
               }
-
-              debugButtonClick('Continue to Payment clicked');
-              handleNextStep('3');
+              handleNextStepRef.current?.('3');
             }}
             disabled={isSubmitting || isProcessing}
             className="relative"
@@ -320,18 +322,13 @@ const Step2Content = React.memo<Step2ContentProps>(
     );
   },
   (prevProps, nextProps) => {
-    // Custom comparison function - return true to SKIP re-render, false to re-render
-    // We need to re-render when processing state changes to update button states
-    const processingStateChanged =
+    if (
       prevProps.isSubmitting !== nextProps.isSubmitting ||
-      prevProps.isProcessing !== nextProps.isProcessing;
-
-    // Always re-render when processing state changes for immediate UI feedback
-    if (processingStateChanged) {
-      return false; // Force re-render for state changes
+      prevProps.isProcessing !== nextProps.isProcessing
+    ) {
+      return false;
     }
 
-    // For other props, only re-render if they actually changed
     const propsChanged =
       prevProps.price !== nextProps.price ||
       prevProps.timezone !== nextProps.timezone ||
@@ -341,15 +338,42 @@ const Step2Content = React.memo<Step2ContentProps>(
       prevProps.use24Hour !== nextProps.use24Hour ||
       prevProps.queryStates.date?.getTime() !== nextProps.queryStates.date?.getTime() ||
       prevProps.queryStates.time?.getTime() !== nextProps.queryStates.time?.getTime() ||
-      prevProps.queryStates.timezone !== nextProps.queryStates.timezone ||
-      prevProps.debugButtonClick !== nextProps.debugButtonClick;
+      prevProps.queryStates.timezone !== nextProps.queryStates.timezone;
 
-    return !propsChanged; // Skip re-render only if nothing important changed
+    return !propsChanged;
   },
 );
 
 // Add display name for debugging
 Step2Content.displayName = 'Step2Content';
+
+// Step3Content extracted as a stable component to avoid remounting on parent re-renders
+interface Step3ContentProps {
+  isCreatingCheckout: boolean;
+  isProcessing: boolean;
+  checkoutUrl: string | null;
+}
+
+const Step3Content = React.memo<Step3ContentProps>(
+  ({ isCreatingCheckout, isProcessing, checkoutUrl }) => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+        <p className="mt-4 text-lg font-medium">
+          {isCreatingCheckout || isProcessing
+            ? 'Creating secure checkout...'
+            : checkoutUrl
+              ? 'Redirecting to payment...'
+              : 'Preparing checkout...'}
+        </p>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Please do not close this window or navigate away
+        </p>
+      </div>
+    </div>
+  ),
+);
+Step3Content.displayName = 'Step3Content';
 
 export function MeetingFormContent({
   validTimes,
@@ -450,27 +474,10 @@ export function MeetingFormContent({
   const selectedTimeValue = watchedStartTime || queryStates.time;
   const currentStep = queryStates.step;
 
-  // **DEBUG: Add click debugging for troubleshooting**
-  const debugButtonClick = React.useCallback(
-    (action: string) => {
-      console.log(`🔍 Button click debug: ${action}`, {
-        isSubmitting,
-        isProcessingRef: isProcessingRef.current,
-        currentStep,
-        formValid: form.formState.isValid,
-        formErrors: form.formState.errors,
-        timestamp: new Date().toISOString(),
-      });
-    },
-    [isSubmitting, currentStep, form.formState.isValid, form.formState.errors],
-  );
-
-  // **IDEMPOTENCY: Generate unique request key for deduplication**
+  // **IDEMPOTENCY: Generate deterministic request key for deduplication**
   const generateRequestKey = React.useCallback(() => {
     const formValues = form.getValues();
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 15);
-    return `${eventId}-${formValues.guestEmail}-${formValues.startTime?.toISOString()}-${timestamp}-${random}`;
+    return `${eventId}-${formValues.guestEmail}-${formValues.startTime?.toISOString()}`;
   }, [eventId, form]);
 
   // Function to check if a date is blocked
@@ -701,14 +708,12 @@ export function MeetingFormContent({
     price,
     username,
     generateRequestKey,
-    isSubmitting,
   ]);
 
   // Helper to handle submission logic for both keyboard and click submissions
   const submitMeeting = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>) => {
-      // Prevent double submissions
-      if (isSubmitting || isProcessingRef.current) {
+      if (isProcessingRef.current) {
         return;
       }
 
@@ -776,7 +781,6 @@ export function MeetingFormContent({
       transitionToStep,
       username,
       eventSlug,
-      isSubmitting,
     ],
   );
 
@@ -855,53 +859,48 @@ export function MeetingFormContent({
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
     async (nextStep: typeof currentStep) => {
-      // If not going to step 3, just transition
       if (nextStep !== '3') {
         transitionToStep(nextStep);
         return;
       }
 
-      // **CRITICAL: Prevent double submissions using multiple mechanisms**
       if (isProcessingRef.current) {
         console.log('🚫 Payment flow already in progress - blocking duplicate');
         return;
       }
 
-      // **CLIENT-SIDE COOLDOWN: Prevent rapid successive clicks**
+      // Cooldown: prevent rapid successive clicks
       const now = Date.now();
       const timeSinceLastRequest = now - lastRequestTimestamp.current;
       if (timeSinceLastRequest < requestCooldownMs) {
         const remainingMs = requestCooldownMs - timeSinceLastRequest;
-        console.log(`🚫 Request cooldown active - ${remainingMs}ms remaining`);
-
-        // **USER FEEDBACK: Show brief message for too-fast clicks**
         form.setError('root', {
           message: 'Please wait a moment before trying again...',
         });
-
-        // **AUTO-CLEAR ERROR: Remove error message after cooldown**
         setTimeout(() => {
           form.clearErrors('root');
         }, remainingMs);
-
         return;
       }
       lastRequestTimestamp.current = now;
+
+      // Set processing guard BEFORE async validation for ALL paths
+      isProcessingRef.current = true;
+      setIsProcessing(true);
 
       // Validate form before processing
       const isValid = await form.trigger();
       if (!isValid) {
         console.log('❌ Form validation failed:', form.formState.errors);
-        // Form field errors are now set and will display via FormMessage components
-        // Set a root error to provide additional user feedback
         form.setError('root', {
           message: 'Please fill in all required fields correctly.',
         });
+        isProcessingRef.current = false;
+        setIsProcessing(false);
         return;
       }
 
       // For free sessions, call submitMeeting directly
-      // Note: submitMeeting handles its own processing state management
       if (price === 0) {
         try {
           const formValues = form.getValues();
@@ -911,42 +910,24 @@ export function MeetingFormContent({
           form.setError('root', {
             message: 'Failed to schedule meeting. Please try again.',
           });
+        } finally {
+          isProcessingRef.current = false;
+          setIsProcessing(false);
         }
         return;
       }
 
-      // **IMMEDIATE STATE UPDATE: Set processing flag FIRST for instant UI feedback**
-      isProcessingRef.current = true;
-      setIsProcessing(true);
+      // Paid flow: set submitting UI state
+      setIsSubmitting(true);
 
-      // **CRITICAL: Force immediate synchronous state update and re-render**
-      flushSync(() => {
-        setIsSubmitting(true);
-      });
-
-      console.log(
-        '🎯 UI state updated - isSubmitting:',
-        true,
-        'isProcessingRef:',
-        isProcessingRef.current,
-      );
-
-      // **FIX: Small delay to ensure UI updates are visible before async operations**
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // **FIX: Check if we already have a checkout URL and redirect immediately**
+      // Check if we already have a checkout URL and redirect immediately
       if (checkoutUrl) {
         console.log('✅ Using existing checkout URL for immediate redirect:', checkoutUrl);
-
-        // **SECURITY: Validate existing URL before redirect**
         try {
           validateCheckoutUrl(checkoutUrl);
-          console.log('🚀 Redirecting to existing checkout:', checkoutUrl);
 
-          // **FIX: Add timeout fallback to reset state if redirect fails**
           setTimeout(() => {
             if (!document.hidden) {
-              console.log('⚠️ Existing checkout redirect timeout - resetting state');
               isProcessingRef.current = false;
               setIsProcessing(false);
               setIsSubmitting(false);
@@ -957,7 +938,6 @@ export function MeetingFormContent({
           return;
         } catch (validationError) {
           console.error('❌ Invalid existing checkout URL:', checkoutUrl, validationError);
-          // Clear the invalid URL and reset state, then continue to create a new one
           setCheckoutUrl(null);
           isProcessingRef.current = false;
           setIsProcessing(false);
@@ -967,13 +947,14 @@ export function MeetingFormContent({
       }
 
       try {
-        // Get or create checkout URL
+        // Clear any in-flight prefetch so it doesn't block the user-initiated request
+        activeRequestId.current = null;
+
         const url = await createPaymentIntent();
 
         if (url) {
           console.log('🚀 Redirecting to checkout:', url);
 
-          // **SECURITY: Validate URL before redirect**
           try {
             validateCheckoutUrl(url);
           } catch (validationError) {
@@ -985,14 +966,8 @@ export function MeetingFormContent({
             );
           }
 
-          // **OPTIMIZED: Redirect immediately without transitioning to step 3**
-          // This reduces delay and provides a smoother user experience
-          console.log('Performing immediate redirect to Stripe checkout...');
-
-          // **FIX: Add timeout fallback to reset state if redirect fails**
           setTimeout(() => {
             if (!document.hidden) {
-              console.log('⚠️ Redirect timeout - resetting state');
               isProcessingRef.current = false;
               setIsProcessing(false);
               setIsSubmitting(false);
@@ -1000,8 +975,6 @@ export function MeetingFormContent({
           }, 3000);
 
           window.location.href = url;
-
-          // The redirect will happen immediately, so we don't need to update UI further
           return;
         } else {
           throw new Error('Failed to get checkout URL');
@@ -1011,8 +984,6 @@ export function MeetingFormContent({
         form.setError('root', {
           message: 'Failed to process request',
         });
-
-        // **ERROR RECOVERY: Reset both processing flags**
         isProcessingRef.current = false;
         setIsProcessing(false);
         setIsSubmitting(false);
@@ -1169,7 +1140,7 @@ export function MeetingFormContent({
     return (
       <div className="py-8 text-center">
         <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="mb-4 text-muted-foreground">
+        <p className="text-muted-foreground mb-4">
           We need access to your Google Calendar to show available time slots.
         </p>
         <Button
@@ -1184,25 +1155,6 @@ export function MeetingFormContent({
       </div>
     );
   }
-
-  // Content for Step 3
-  const Step3Content = () => (
-    <div className="flex items-center justify-center py-12">
-      <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-lg font-medium">
-          {isCreatingCheckout || isProcessingRef.current
-            ? 'Creating secure checkout...'
-            : checkoutUrl
-              ? 'Redirecting to payment...'
-              : 'Preparing checkout...'}
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Please do not close this window or navigate away
-        </p>
-      </div>
-    </div>
-  );
 
   return (
     <Form {...form}>
@@ -1220,7 +1172,7 @@ export function MeetingFormContent({
               Select Date & Time
             </span>
           </div>
-          <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
+          <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -1235,7 +1187,7 @@ export function MeetingFormContent({
           </div>
           {price > 0 && (
             <>
-              <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
+              <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
               <div className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -1294,16 +1246,21 @@ export function MeetingFormContent({
                   beforeEventBuffer={beforeEventBuffer}
                   afterEventBuffer={afterEventBuffer}
                   transitionToStep={transitionToStep}
-                  handleNextStep={handleNextStep}
+                  handleNextStepRef={handleNextStepRef}
                   isSubmitting={isSubmitting}
                   isProcessing={isProcessing}
                   isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}
-                  debugButtonClick={debugButtonClick}
                 />
               )}
-              {currentStep === '3' && <Step3Content />}
+              {currentStep === '3' && (
+                <Step3Content
+                  isCreatingCheckout={isCreatingCheckout}
+                  isProcessing={isProcessing}
+                  checkoutUrl={checkoutUrl}
+                />
+              )}
             </div>
           )}
         </BookingLayout>

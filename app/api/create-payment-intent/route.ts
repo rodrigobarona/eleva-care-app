@@ -12,6 +12,7 @@ import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis/manager
 import { checkBotId } from 'botid/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
+import { after } from 'next/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -459,35 +460,37 @@ export async function POST(request: NextRequest) {
       console.log('📝 Marked form submission as processing in FormCache:', formCacheKey);
     }
 
-    // **RECORD RATE LIMIT ATTEMPT: Only after validating request**
-    await recordPaymentRateLimitAttempts(guestIdentifier, clientIP);
+    // Record rate limit attempt in the background (non-blocking)
+    after(async () => {
+      await recordPaymentRateLimitAttempts(guestIdentifier, clientIP);
+    });
 
     // Extract locale for translations
     const locale = meetingData.locale || 'en';
-
-    // Get translations for the checkout messages
-    const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
 
     // Construct URLs for legal pages
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
     const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
     const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
 
-    // Get expert's Connect account
+    // Parallel fetch: translations + event details (independent operations)
     console.log('Querying event details:', { eventId });
-    const event = await db.query.EventTable.findFirst({
-      where: eq(EventTable.id, eventId),
-      with: {
-        user: {
-          columns: {
-            stripeConnectAccountId: true,
-            firstName: true,
-            lastName: true,
-            country: true,
+    const [t, event] = await Promise.all([
+      getTranslations({ locale, namespace: 'Payments.checkout' }),
+      db.query.EventTable.findFirst({
+        where: eq(EventTable.id, eventId),
+        with: {
+          user: {
+            columns: {
+              stripeConnectAccountId: true,
+              firstName: true,
+              lastName: true,
+              country: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     console.log('Event query results:', {
       eventFound: !!event,
@@ -526,20 +529,31 @@ export async function POST(request: NextRequest) {
 
     console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
 
-    // **CRITICAL: Check for existing reservations and conflicts BEFORE creating anything**
+    // Parallel fetch: slot reservation + conflicting meeting + Stripe customer (all independent)
     const appointmentStartTime = new Date(meetingData.startTime);
 
-    // Check for existing active reservations for this exact slot
-    const existingReservation = await db.query.SlotReservationTable.findFirst({
-      where: and(
-        eq(SlotReservationTable.eventId, eventId),
-        eq(SlotReservationTable.startTime, appointmentStartTime),
-        gt(SlotReservationTable.expiresAt, new Date()), // Only active reservations
-      ),
-    });
+    console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
+    const [existingReservation, conflictingMeeting, customerId] = await Promise.all([
+      db.query.SlotReservationTable.findFirst({
+        where: and(
+          eq(SlotReservationTable.eventId, eventId),
+          eq(SlotReservationTable.startTime, appointmentStartTime),
+          gt(SlotReservationTable.expiresAt, new Date()),
+        ),
+      }),
+      db.query.MeetingTable.findFirst({
+        where: and(
+          eq(MeetingTable.eventId, eventId),
+          eq(MeetingTable.startTime, appointmentStartTime),
+          eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+        ),
+      }),
+      getOrCreateStripeCustomer(undefined, meetingData.guestEmail, meetingData.guestName),
+    ]);
+
+    console.log('Customer retrieved/created:', { customerId });
 
     if (existingReservation) {
-      // Check if it's the same user (allow them to continue with existing reservation)
       if (existingReservation.guestEmail === meetingData.guestEmail) {
         console.log('User has existing active reservation, checking if we can reuse session:', {
           reservationId: existingReservation.id,
@@ -547,14 +561,12 @@ export async function POST(request: NextRequest) {
           expiresAt: existingReservation.expiresAt,
         });
 
-        // Try to retrieve the existing Stripe session
         if (existingReservation.stripeSessionId) {
           try {
             const existingSession = await stripe.checkout.sessions.retrieve(
               existingReservation.stripeSessionId,
             );
 
-            // If session is still valid and unpaid, return it
             if (existingSession.status === 'open' && existingSession.payment_status === 'unpaid') {
               console.log('Reusing existing valid session:', existingSession.id);
               return NextResponse.json({
@@ -565,21 +577,18 @@ export async function POST(request: NextRequest) {
                 status: existingSession.status,
                 paymentStatus: existingSession.payment_status,
               });
-              // Clean up the expired reservation
               await db
                 .delete(SlotReservationTable)
                 .where(eq(SlotReservationTable.id, existingReservation.id));
             }
           } catch (stripeError) {
             console.log('Failed to retrieve existing session, will create new one:', stripeError);
-            // Clean up the invalid reservation
             await db
               .delete(SlotReservationTable)
               .where(eq(SlotReservationTable.id, existingReservation.id));
           }
         }
       } else {
-        // Different user has this slot reserved
         console.warn('Slot already reserved by another user:', {
           requestingUser: meetingData.guestEmail,
           reservedBy: existingReservation.guestEmail,
@@ -595,15 +604,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-
-    // Check for confirmed meetings in this slot
-    const conflictingMeeting = await db.query.MeetingTable.findFirst({
-      where: and(
-        eq(MeetingTable.eventId, eventId),
-        eq(MeetingTable.startTime, appointmentStartTime),
-        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
-      ),
-    });
 
     if (conflictingMeeting) {
       console.error('Time slot already booked with confirmed payment:', {
@@ -623,15 +623,6 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-
-    // Get or create customer with guest name for prefilled checkout
-    console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
-    const customerId = await getOrCreateStripeCustomer(
-      undefined,
-      meetingData.guestEmail,
-      meetingData.guestName, // Pass the guest name to prefill in checkout
-    );
-    console.log('Customer retrieved/created:', { customerId });
 
     // Calculate application fee
     const applicationFeeAmount = calculateApplicationFee(price);
@@ -906,24 +897,22 @@ export async function POST(request: NextRequest) {
     console.log('✅ Checkout session created successfully - no slot reservation needed');
     console.log('📝 Slot management will be handled by webhooks based on payment method');
 
-    // **IDEMPOTENCY: Cache the successful result**
-    if (idempotencyKey && session.url) {
-      await IdempotencyCache.set(idempotencyKey, {
-        url: session.url,
-      });
-      console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
-    }
-
-    // **FORM CACHE: Mark submission as completed**
-    if (meetingData?.guestEmail && meetingData?.startTime) {
-      const formCacheKey = FormCache.generateKey(
-        eventId,
-        meetingData.guestEmail,
-        meetingData.startTime,
-      );
-      await FormCache.markCompleted(formCacheKey);
-      console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
-    }
+    // Cache results and mark form completed in background (non-blocking)
+    after(async () => {
+      if (idempotencyKey && session.url) {
+        await IdempotencyCache.set(idempotencyKey, { url: session.url });
+        console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
+      }
+      if (meetingData?.guestEmail && meetingData?.startTime) {
+        const formCacheKey = FormCache.generateKey(
+          eventId,
+          meetingData.guestEmail,
+          meetingData.startTime,
+        );
+        await FormCache.markCompleted(formCacheKey);
+        console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
+      }
+    });
 
     return NextResponse.json({
       url: session.url,
