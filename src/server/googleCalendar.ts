@@ -38,7 +38,7 @@ const { logger } = Sentry;
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
 import { getGoogleOAuthClient } from '@/lib/integrations/google/oauth-tokens';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
-import { addMinutes, endOfDay, startOfDay } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { eq } from 'drizzle-orm';
 import { google } from 'googleapis';
@@ -117,96 +117,48 @@ class GoogleCalendarService {
   }
 
   /**
-   * Fetches calendar events for a user within a specific time range
+   * Queries busy time ranges for a user's primary calendar within a time range
    *
-   * Gets all events from the user's primary calendar within the provided
-   * start and end times. Filters out cancelled events and transparent events.
-   * Handles both all-day events and timed events.
+   * Uses the Google Calendar FreeBusy API, which returns only busy/free time
+   * ranges without exposing any event content (titles, descriptions, attendees).
+   * Google handles filtering of transparent and cancelled events server-side.
    *
-   * @param workosUserId WorkOS user ID to fetch calendar events for
+   * @param workosUserId WorkOS user ID to query availability for
    * @param options Object containing start and end dates for the time range
-   * @returns Array of event objects with start and end times
+   * @returns Array of busy time ranges with start and end times
    */
   async getCalendarEventTimes(workosUserId: string, { start, end }: { start: Date; end: Date }) {
-    // Get authenticated OAuth client
     const oAuthClient = await this.getOAuthClient(workosUserId);
 
-    logger.info('Fetching calendar events', {
+    logger.info('Fetching calendar availability', {
       timeRange: { start: start.toISOString(), end: end.toISOString() },
       userId: workosUserId,
     });
 
-    // Fetch events from Google Calendar API
-    const events = await google.calendar('v3').events.list({
-      calendarId: 'primary',
-      eventTypes: ['default'],
-      singleEvents: true,
-      timeMin: start.toISOString(),
-      timeMax: end.toISOString(),
-      maxResults: 2500,
+    const response = await google.calendar('v3').freebusy.query({
       auth: oAuthClient,
-      fields: 'items(id,status,summary,start,end,transparency,eventType)',
+      requestBody: {
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+        items: [{ id: 'primary' }],
+      },
     });
 
-    logger.debug('Calendar response', {
-      totalEvents: events.data.items?.length || 0,
-      events: events.data.items?.map((event) => ({
-        summary: event.summary,
-        start: event.start,
-        end: event.end,
-        status: event.status,
-        transparency: event.transparency,
-        eventType: event.eventType,
-      })),
+    const busySlots = response.data.calendars?.['primary']?.busy ?? [];
+
+    logger.info('FreeBusy query completed', {
+      busySlots: busySlots.length,
+      userId: workosUserId,
     });
 
-    // Process and filter events
-    return (
-      events.data.items
-        ?.map((event) => {
-          // Skip "free" events (marked as transparent)
-          if (event.transparency === 'transparent') {
-            logger.debug('Skipping transparent event', { summary: event.summary });
-            return null;
-          }
-
-          // Skip cancelled events
-          if (event.status === 'cancelled') {
-            logger.debug('Skipping cancelled event', { summary: event.summary });
-            return null;
-          }
-
-          // Handle all-day events
-          if (event.start?.date != null && event.end?.date != null) {
-            logger.debug('All-day event found', {
-              summary: event.summary,
-              start: event.start.date,
-              end: event.end.date,
-            });
-            return {
-              start: startOfDay(event.start.date),
-              end: endOfDay(event.end.date),
-            };
-          }
-
-          // Handle timed events
-          if (event.start?.dateTime != null && event.end?.dateTime != null) {
-            logger.debug('Timed event found', {
-              summary: event.summary,
-              start: event.start.dateTime,
-              end: event.end.dateTime,
-            });
-            return {
-              start: new Date(event.start.dateTime),
-              end: new Date(event.end.dateTime),
-            };
-          }
-
-          logger.debug('Event skipped due to invalid date format', { event });
-          return null;
-        })
-        .filter((date): date is { start: Date; end: Date } => date != null) || []
-    );
+    return busySlots
+      .filter(
+        (slot): slot is { start: string; end: string } => slot.start != null && slot.end != null,
+      )
+      .map((slot) => ({
+        start: new Date(slot.start),
+        end: new Date(slot.end),
+      }));
   }
 
   /**

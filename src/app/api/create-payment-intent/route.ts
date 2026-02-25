@@ -19,7 +19,7 @@ import { and, eq, gt } from 'drizzle-orm';
 import type { Locale } from '@/lib/i18n/routing';
 import { locales, defaultLocale } from '@/lib/i18n/routing';
 import { getTranslations } from 'next-intl/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Payment rate limiting configuration (stricter than identity verification)
@@ -412,28 +412,29 @@ export async function POST(request: NextRequest) {
       ? (rawLocale as Locale)
       : defaultLocale;
 
-    const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
-
     // Construct URLs for legal pages
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
     const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
     const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
 
-    // Get expert's Connect account
-    logger.info('Querying event details', { eventId });
-    const event = await db.query.EventsTable.findFirst({
-      where: eq(EventsTable.id, eventId),
-      with: {
-        user: {
-          columns: {
-            stripeConnectAccountId: true,
-            username: true,
-            email: true,
-            country: true,
+    // Parallel fetch: translations + event details (independent operations)
+    logger.info('Querying event details and translations in parallel', { eventId, locale });
+    const [t, event] = await Promise.all([
+      getTranslations({ locale, namespace: 'Payments.checkout' }),
+      db.query.EventsTable.findFirst({
+        where: eq(EventsTable.id, eventId),
+        with: {
+          user: {
+            columns: {
+              stripeConnectAccountId: true,
+              username: true,
+              email: true,
+              country: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     logger.info('Event query results', {
       eventFound: !!event,
@@ -477,14 +478,23 @@ export async function POST(request: NextRequest) {
     // **CRITICAL: Check for existing reservations and conflicts BEFORE creating anything**
     const appointmentStartTime = new Date(meetingData.startTime);
 
-    // Check for existing active reservations for this exact slot
-    const existingReservation = await db.query.SlotReservationsTable.findFirst({
-      where: and(
-        eq(SlotReservationsTable.eventId, eventId),
-        eq(SlotReservationsTable.startTime, appointmentStartTime),
-        gt(SlotReservationsTable.expiresAt, new Date()), // Only active reservations
-      ),
-    });
+    // Parallel check: reservations + confirmed meetings (both depend on same inputs)
+    const [existingReservation, conflictingMeeting] = await Promise.all([
+      db.query.SlotReservationsTable.findFirst({
+        where: and(
+          eq(SlotReservationsTable.eventId, eventId),
+          eq(SlotReservationsTable.startTime, appointmentStartTime),
+          gt(SlotReservationsTable.expiresAt, new Date()),
+        ),
+      }),
+      db.query.MeetingsTable.findFirst({
+        where: and(
+          eq(MeetingsTable.eventId, eventId),
+          eq(MeetingsTable.startTime, appointmentStartTime),
+          eq(MeetingsTable.stripePaymentStatus, 'succeeded'),
+        ),
+      }),
+    ]);
 
     if (existingReservation) {
       // Check if it's the same user (allow them to continue with existing reservation)
@@ -545,15 +555,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-
-    // Check for confirmed meetings in this slot
-    const conflictingMeeting = await db.query.MeetingsTable.findFirst({
-      where: and(
-        eq(MeetingsTable.eventId, eventId),
-        eq(MeetingsTable.startTime, appointmentStartTime),
-        eq(MeetingsTable.stripePaymentStatus, 'succeeded'),
-      ),
-    });
 
     if (conflictingMeeting) {
       logger.error('Time slot already booked with confirmed payment', {
@@ -859,24 +860,23 @@ export async function POST(request: NextRequest) {
     logger.info('Checkout session created successfully - no slot reservation needed');
     logger.info('Slot management will be handled by webhooks based on payment method');
 
-    // **IDEMPOTENCY: Cache the successful result**
-    if (idempotencyKey && session.url) {
-      await IdempotencyCache.set(idempotencyKey, {
-        url: session.url,
-      });
-      logger.info(logger.fmt`Cached result for idempotency key: ${idempotencyKey}`);
-    }
+    // Non-blocking cache operations after response is sent
+    after(async () => {
+      if (idempotencyKey && session.url) {
+        await IdempotencyCache.set(idempotencyKey, { url: session.url });
+        logger.info(logger.fmt`Cached result for idempotency key: ${idempotencyKey}`);
+      }
 
-    // **FORM CACHE: Mark submission as completed**
-    if (meetingData?.guestEmail && meetingData?.startTime) {
-      const formCacheKey = FormCache.generateKey(
-        eventId,
-        meetingData.guestEmail,
-        meetingData.startTime,
-      );
-      await FormCache.markCompleted(formCacheKey);
-      logger.info(logger.fmt`Marked form submission as completed in FormCache: ${formCacheKey}`);
-    }
+      if (meetingData?.guestEmail && meetingData?.startTime) {
+        const formCacheKey = FormCache.generateKey(
+          eventId,
+          meetingData.guestEmail,
+          meetingData.startTime,
+        );
+        await FormCache.markCompleted(formCacheKey);
+        logger.info(logger.fmt`Marked form submission as completed in FormCache: ${formCacheKey}`);
+      }
+    });
 
     return NextResponse.json({
       url: session.url,

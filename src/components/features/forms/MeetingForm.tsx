@@ -36,8 +36,7 @@ import {
   useQueryStates,
 } from 'nuqs';
 import { Suspense } from 'react';
-import { flushSync } from 'react-dom';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useFormState, useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
 
@@ -121,13 +120,12 @@ interface Step2ContentProps {
   beforeEventBuffer: number;
   afterEventBuffer: number;
   transitionToStep: (step: '1' | '2' | '3') => void;
-  handleNextStep: (nextStep: '1' | '2' | '3') => Promise<void>;
+  handleNextStepRef: React.MutableRefObject<((nextStep: '1' | '2' | '3') => Promise<void>) | null>;
   isSubmitting: boolean;
-  isProcessing: boolean; // Use state for rendering
-  isProcessingRef: React.MutableRefObject<boolean>; // Keep ref for event handler logic
+  isProcessing: boolean;
+  isProcessingRef: React.MutableRefObject<boolean>;
   price: number;
   use24Hour: boolean;
-  debugButtonClick: (action: string) => void;
 }
 
 const Step2Content = React.memo<Step2ContentProps>(
@@ -140,14 +138,16 @@ const Step2Content = React.memo<Step2ContentProps>(
     beforeEventBuffer,
     afterEventBuffer,
     transitionToStep,
-    handleNextStep,
+    handleNextStepRef,
     isSubmitting,
     isProcessing,
     isProcessingRef,
     price,
     use24Hour,
-    debugButtonClick,
   }) => {
+    // Subscribe to root form errors so they trigger re-renders
+    const { errors } = useFormState({ control: form.control });
+
     // Get values directly from form for display
     const currentDate = form.getValues('date');
     const currentTime = form.getValues('startTime');
@@ -283,6 +283,12 @@ const Step2Content = React.memo<Step2ContentProps>(
           />
         </div>
 
+        {errors.root?.message && (
+          <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            {errors.root.message}
+          </div>
+        )}
+
         <div className="mt-6 flex justify-between">
           <Button
             type="button"
@@ -295,14 +301,12 @@ const Step2Content = React.memo<Step2ContentProps>(
           <Button
             type="button"
             onClick={() => {
-              // **IMMEDIATE DUPLICATE PREVENTION**
               if (isSubmitting || isProcessingRef.current) {
-                console.log('🚫 Button click blocked - already processing');
+                Sentry.logger.debug('Button click blocked - already processing');
                 return;
               }
 
-              debugButtonClick('Continue to Payment clicked');
-              handleNextStep('3');
+              handleNextStepRef.current?.('3');
             }}
             disabled={isSubmitting || isProcessing}
             className="relative"
@@ -342,8 +346,7 @@ const Step2Content = React.memo<Step2ContentProps>(
       prevProps.use24Hour !== nextProps.use24Hour ||
       prevProps.queryStates.date?.getTime() !== nextProps.queryStates.date?.getTime() ||
       prevProps.queryStates.time?.getTime() !== nextProps.queryStates.time?.getTime() ||
-      prevProps.queryStates.timezone !== nextProps.queryStates.timezone ||
-      prevProps.debugButtonClick !== nextProps.debugButtonClick;
+      prevProps.queryStates.timezone !== nextProps.queryStates.timezone;
 
     return !propsChanged; // Skip re-render only if nothing important changed
   },
@@ -351,6 +354,34 @@ const Step2Content = React.memo<Step2ContentProps>(
 
 // Add display name for debugging
 Step2Content.displayName = 'Step2Content';
+
+// Stable memoized Step3Content to prevent remounts during checkout
+interface Step3ContentProps {
+  isCreatingCheckout: boolean;
+  isProcessingRef: React.MutableRefObject<boolean>;
+  checkoutUrl: string | null;
+}
+
+const Step3Content = React.memo<Step3ContentProps>(
+  ({ isCreatingCheckout, isProcessingRef, checkoutUrl }) => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-lg font-medium">
+          {isCreatingCheckout || isProcessingRef.current
+            ? 'Creating secure checkout...'
+            : checkoutUrl
+              ? 'Redirecting to payment...'
+              : 'Preparing checkout...'}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Please do not close this window or navigate away
+        </p>
+      </div>
+    </div>
+  ),
+);
+Step3Content.displayName = 'Step3Content';
 
 export function MeetingFormContent({
   validTimes,
@@ -378,7 +409,9 @@ export function MeetingFormContent({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
+  const checkoutUrlRef = React.useRef<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
+  const isPrefetchRequest = React.useRef(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
 
   // **RENDERING STATE: Use state for UI updates**
@@ -451,27 +484,14 @@ export function MeetingFormContent({
   const selectedTimeValue = watchedStartTime || queryStates.time;
   const currentStep = queryStates.step;
 
-  // **DEBUG: Add click debugging for troubleshooting**
-  const debugButtonClick = React.useCallback(
-    (action: string) => {
-      console.log(`🔍 Button click debug: ${action}`, {
-        isSubmitting,
-        isProcessingRef: isProcessingRef.current,
-        currentStep,
-        formValid: form.formState.isValid,
-        formErrors: form.formState.errors,
-        timestamp: new Date().toISOString(),
-      });
-    },
-    [isSubmitting, currentStep, form.formState.isValid, form.formState.errors],
-  );
-
-  // **IDEMPOTENCY: Generate unique request key for deduplication**
+  // **IDEMPOTENCY: Generate deterministic request key for deduplication**
   const generateRequestKey = React.useCallback(() => {
     const formValues = form.getValues();
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 15);
-    return `${eventId}-${formValues.guestEmail}-${formValues.startTime?.toISOString()}-${timestamp}-${random}`;
+    return generateFormCacheKey(
+      eventId,
+      formValues.guestEmail,
+      formValues.startTime?.toISOString() ?? '',
+    );
   }, [eventId, form]);
 
   // Function to check if a date is blocked
@@ -553,90 +573,83 @@ export function MeetingFormContent({
   );
 
   // Function to create or get payment intent
-  const createPaymentIntent = React.useCallback(async () => {
-    // Don't recreate if already fetched
-    if (checkoutUrl) {
-      Sentry.logger.debug('Using existing checkout URL', { eventId });
-      return checkoutUrl;
-    }
-
-    const formValues = form.getValues();
-
-    // **VALIDATION: Ensure required data is present**
-    if (!formValues.guestEmail || !formValues.startTime) {
-      Sentry.logger.warn('Missing required form data for payment intent', {
-        hasEmail: !!formValues.guestEmail,
-        hasStartTime: !!formValues.startTime,
+  const createPaymentIntent = React.useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
+      Sentry.logger.debug('createPaymentIntent called', {
+        silent,
+        hasCheckoutUrl: !!checkoutUrl,
         eventId,
       });
-      throw new Error('Missing required form data');
-    }
 
-    // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
-    // Note: Email normalization is handled inside generateFormCacheKey
-    const formCacheKey = generateFormCacheKey(
-      eventId,
-      formValues.guestEmail,
-      formValues.startTime.toISOString(),
-    );
+      // Don't recreate if already fetched
+      if (checkoutUrl) {
+        Sentry.logger.debug('Using existing checkout URL', { eventId });
+        return checkoutUrl;
+      }
 
-    // **UNIQUE REQUEST ID: Generate and track current request**
-    const currentRequestId = generateRequestKey();
+      const formValues = form.getValues();
 
-    // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
-    if (activeRequestId.current === currentRequestId) {
-      Sentry.logger.debug('Same request already in progress - blocking duplicate', {
+      // **VALIDATION: Ensure required data is present**
+      if (!formValues.guestEmail || !formValues.startTime) {
+        Sentry.logger.warn('Missing required form data for payment intent', {
+          hasEmail: !!formValues.guestEmail,
+          hasStartTime: !!formValues.startTime,
+          eventId,
+        });
+        throw new Error('Missing required form data');
+      }
+
+      // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
+      const formCacheKey = generateFormCacheKey(
         eventId,
-        requestId: currentRequestId,
-      });
-      return null;
-    }
+        formValues.guestEmail,
+        formValues.startTime.toISOString(),
+      );
 
-    if (activeRequestId.current !== null) {
-      Sentry.logger.debug('Different request already active - blocking new request', {
-        eventId,
-        activeRequestId: activeRequestId.current,
-      });
-      return null;
-    }
+      // **UNIQUE REQUEST ID: Generate and track current request**
+      const currentRequestId = generateRequestKey();
 
-    // **MARK REQUEST AS ACTIVE**
-    activeRequestId.current = currentRequestId;
-    setIsCreatingCheckout(true);
+      // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
+      if (activeRequestId.current === currentRequestId) {
+        Sentry.logger.debug('Same request already in progress - blocking duplicate', {
+          eventId,
+          requestId: currentRequestId,
+        });
+        return null;
+      }
 
-    // **ADDITIONAL PROTECTION: Check if we're already in a pending state**
-    if (isSubmitting) {
-      Sentry.logger.debug('Form already in submitting state - blocking duplicate', { eventId });
-      activeRequestId.current = null;
-      setIsCreatingCheckout(false);
-      return null;
-    }
+      if (activeRequestId.current !== null) {
+        Sentry.logger.debug('Different request already active - blocking new request', {
+          eventId,
+          activeRequestId: activeRequestId.current,
+        });
+        return null;
+      }
 
-    // **SMART CACHING: If we already have a valid checkout URL, return it immediately**
-    if (checkoutUrl) {
-      Sentry.logger.debug('Reusing existing valid checkout URL', { eventId });
-      return checkoutUrl;
-    }
+      // **MARK REQUEST AS ACTIVE**
+      activeRequestId.current = currentRequestId;
+      setIsCreatingCheckout(true);
 
-    // Wrap the payment intent creation in a Sentry span for performance tracking
-    return Sentry.startSpan(
-      {
-        name: 'meeting.checkout.create',
-        op: 'http.client',
-        attributes: {
-          'meeting.event_id': eventId,
-          'meeting.price': price,
-          'meeting.guest_email': formValues.guestEmail,
-          'meeting.cache_key': formCacheKey,
+      // Wrap the payment intent creation in a Sentry span for performance tracking
+      return Sentry.startSpan(
+        {
+          name: 'meeting.checkout.create',
+          op: 'http.client',
+          attributes: {
+            'meeting.event_id': eventId,
+            'meeting.price': price,
+            'meeting.guest_email': formValues.guestEmail,
+            'meeting.cache_key': formCacheKey,
+          },
         },
-      },
-      async (span) => {
-        try {
-          Sentry.logger.info('Creating payment intent', {
-            eventId,
-            price,
-            guestEmail: formValues.guestEmail,
-          });
+        async (span) => {
+          try {
+            Sentry.logger.info('Creating payment intent', {
+              eventId,
+              price,
+              guestEmail: formValues.guestEmail,
+            });
 
           // **IDEMPOTENCY: Use the current request ID for API deduplication**
           const requestKey = currentRequestId;
@@ -726,8 +739,8 @@ export function MeetingFormContent({
             price,
           });
 
-          // **NOTE: FormCache.markCompleted() will be handled server-side**
           setCheckoutUrl(url);
+          checkoutUrlRef.current = url;
           return url;
         } catch (error) {
           span.setAttribute('meeting.checkout_url_created', false);
@@ -736,16 +749,21 @@ export function MeetingFormContent({
             error: error instanceof Error ? error.message : 'Unknown error',
           });
 
-          // **ERROR HANDLING: Reset state (server handles FormCache.markFailed)**
-          form.setError('root', {
-            message:
-              error instanceof Error ? error.message : 'There was an error creating your payment.',
-          });
+          if (!silent) {
+            form.setError('root', {
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'There was an error creating your payment.',
+            });
+          }
           return null;
         } finally {
-          // **CLEANUP: Reset creation state and clear active request ID**
           setIsCreatingCheckout(false);
-          activeRequestId.current = null;
+          if (isPrefetchRequest.current || activeRequestId.current === currentRequestId) {
+            activeRequestId.current = null;
+          }
+          Sentry.logger.debug('createPaymentIntent cleanup', { eventId });
         }
       },
     );
@@ -759,7 +777,6 @@ export function MeetingFormContent({
     price,
     username,
     generateRequestKey,
-    isSubmitting,
   ]);
 
   // Helper to handle submission logic for both keyboard and click submissions
@@ -892,7 +909,6 @@ export function MeetingFormContent({
       transitionToStep,
       username,
       eventSlug,
-      isSubmitting,
     ],
   );
 
@@ -938,28 +954,26 @@ export function MeetingFormContent({
       currentStep === '2' && hasCompletedForm && price > 0 && !checkoutUrl && !isPrefetching;
 
     if (canPrefetch) {
-      // Prefetch with a longer delay to avoid interfering with user typing
       const timer = setTimeout(() => {
-        // Don't show UI indication during prefetch - do it silently
         setIsPrefetching(true);
+        isPrefetchRequest.current = true;
         Sentry.logger.debug('Starting checkout URL prefetch', { eventId });
 
-        createPaymentIntent()
+        createPaymentIntent({ silent: true })
           .then(() => {
-            // Successfully prefetched
             Sentry.logger.info('Checkout URL prefetched successfully', { eventId });
           })
           .catch((error) => {
-            // Prefetch failed, but we don't need to show an error to the user
             Sentry.logger.warn('Prefetch failed', {
               eventId,
               error: error instanceof Error ? error.message : 'Unknown error',
             });
           })
           .finally(() => {
+            isPrefetchRequest.current = false;
             setIsPrefetching(false);
           });
-      }, 3000); // 3-second delay after user completes form
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
@@ -1055,22 +1069,19 @@ export function MeetingFormContent({
         return;
       }
 
-      // **IMMEDIATE STATE UPDATE: Set processing flag FIRST for instant UI feedback**
+      // Set processing guard before async operations to prevent double submissions
       isProcessingRef.current = true;
       setIsProcessing(true);
+      setIsSubmitting(true);
 
-      // **CRITICAL: Force immediate synchronous state update and re-render**
-      flushSync(() => {
-        setIsSubmitting(true);
-      });
-
-      Sentry.logger.debug('UI state updated for payment flow', {
-        eventId,
-        isSubmitting: true,
-      });
-
-      // **FIX: Small delay to ensure UI updates are visible before async operations**
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Clear prefetch activeRequestId before user-initiated payment
+      if (isPrefetchRequest.current) {
+        isPrefetchRequest.current = false;
+        activeRequestId.current = null;
+        Sentry.logger.debug('Cleared prefetch activeRequestId for user-initiated payment', {
+          eventId,
+        });
+      }
 
       // Track the payment redirect flow with a Sentry span
       return Sentry.startSpan(
@@ -1084,16 +1095,16 @@ export function MeetingFormContent({
           },
         },
         async (span) => {
-          // **FIX: Check if we already have a checkout URL and redirect immediately**
-          if (checkoutUrl) {
+          // Check if we already have a checkout URL and redirect immediately
+          // Use ref to avoid stale closure issues
+          const existingUrl = checkoutUrlRef.current || checkoutUrl;
+          if (existingUrl) {
             Sentry.logger.info('Using existing checkout URL for redirect', { eventId });
 
-            // **SECURITY: Validate existing URL before redirect**
             try {
-              validateCheckoutUrl(checkoutUrl);
+              validateCheckoutUrl(existingUrl);
               span.setAttribute('meeting.redirect_type', 'existing_url');
 
-              // Add breadcrumb for redirect
               Sentry.addBreadcrumb({
                 category: 'booking.redirect',
                 message: 'Redirecting to existing checkout URL',
@@ -1101,7 +1112,6 @@ export function MeetingFormContent({
                 data: { eventId },
               });
 
-              // **FIX: Add timeout fallback to reset state if redirect fails**
               setTimeout(() => {
                 if (!document.hidden) {
                   Sentry.logger.warn('Existing checkout redirect timeout - resetting state', {
@@ -1113,7 +1123,7 @@ export function MeetingFormContent({
                 }
               }, 3000);
 
-              window.location.href = checkoutUrl;
+              window.location.href = existingUrl;
               return;
             } catch (validationError) {
               span.setAttribute('meeting.redirect_error', 'invalid_existing_url');
@@ -1403,25 +1413,6 @@ export function MeetingFormContent({
     );
   }
 
-  // Content for Step 3
-  const Step3Content = () => (
-    <div className="flex items-center justify-center py-12">
-      <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-lg font-medium">
-          {isCreatingCheckout || isProcessingRef.current
-            ? 'Creating secure checkout...'
-            : checkoutUrl
-              ? 'Redirecting to payment...'
-              : 'Preparing checkout...'}
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Please do not close this window or navigate away
-        </p>
-      </div>
-    </div>
-  );
-
   return (
     <Form {...form}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
@@ -1512,16 +1503,21 @@ export function MeetingFormContent({
                   beforeEventBuffer={beforeEventBuffer}
                   afterEventBuffer={afterEventBuffer}
                   transitionToStep={transitionToStep}
-                  handleNextStep={handleNextStep}
+                  handleNextStepRef={handleNextStepRef}
                   isSubmitting={isSubmitting}
                   isProcessing={isProcessing}
                   isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}
-                  debugButtonClick={debugButtonClick}
                 />
               )}
-              {currentStep === '3' && <Step3Content />}
+              {currentStep === '3' && (
+                <Step3Content
+                  isCreatingCheckout={isCreatingCheckout}
+                  isProcessingRef={isProcessingRef}
+                  checkoutUrl={checkoutUrl}
+                />
+              )}
             </div>
           )}
         </BookingLayout>
