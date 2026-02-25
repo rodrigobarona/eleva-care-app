@@ -414,6 +414,7 @@ export function MeetingFormContent({
   const lastRequestTimestamp = React.useRef<number>(0);
   const activeRequestId = React.useRef<string | null>(null);
   const isPrefetchRequest = React.useRef(false);
+  const checkoutUrlRef = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
   // **REF: Store handleNextStep to break circular dependency**
@@ -549,67 +550,63 @@ export function MeetingFormContent({
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(
     async (options?: { silent?: boolean }) => {
-      // Don't recreate if already fetched
+      const silent = options?.silent ?? false;
+      console.log('[MeetingForm] createPaymentIntent called', {
+        silent,
+        hasCheckoutUrl: !!checkoutUrl,
+      });
+
       if (checkoutUrl) {
-        console.log('✅ Using existing checkout URL');
+        console.log('[MeetingForm] createPaymentIntent: returning cached checkout URL');
         return checkoutUrl;
       }
 
       const formValues = form.getValues();
 
-      // **VALIDATION: Ensure required data is present**
       if (!formValues.guestEmail || !formValues.startTime) {
+        console.log('[MeetingForm] createPaymentIntent: missing required form data');
         throw new Error('Missing required form data');
       }
 
-      // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
-      // Note: Email normalization is handled inside generateFormCacheKey
       const formCacheKey = generateFormCacheKey(
         eventId,
         formValues.guestEmail,
         formValues.startTime.toISOString(),
       );
 
-      // **NOTE: Redis operations are handled server-side in the API endpoint**
-      // Server-side duplicate prevention will be handled by the API endpoint
-      console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
-
-      // **UNIQUE REQUEST ID: Generate and track current request**
       const currentRequestId = generateRequestKey();
+      console.log(
+        '[MeetingForm] createPaymentIntent: requestId=%s, cacheKey=%s',
+        currentRequestId,
+        formCacheKey,
+      );
 
-      // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
       if (activeRequestId.current === currentRequestId) {
-        console.log('🚫 Same request already in progress - blocking duplicate');
+        console.log('[MeetingForm] createPaymentIntent: BLOCKED - same request already active');
         return null;
       }
 
       if (activeRequestId.current !== null) {
-        console.log('🚫 Different request already active - blocking new request');
+        console.log(
+          '[MeetingForm] createPaymentIntent: BLOCKED - different request active (id=%s)',
+          activeRequestId.current,
+        );
         return null;
       }
 
-      // **MARK REQUEST AS ACTIVE**
       activeRequestId.current = currentRequestId;
       setIsCreatingCheckout(true);
 
       try {
-        // **NOTE: Redis operations moved to server-side API endpoint**
-        // The /api/create-payment-intent endpoint will handle FormCache operations
-
-        // **IDEMPOTENCY: Use the current request ID for API deduplication**
         const requestKey = currentRequestId;
-
-        // Get the locale for multilingual emails
         const userLocale = locale || 'en';
 
-        console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
+        console.log('[MeetingForm] createPaymentIntent: sending POST /api/create-payment-intent');
 
-        // Create payment intent using the new enhanced endpoint
         const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // **IDEMPOTENCY HEADER: Prevent server-side duplicates**
             'Idempotency-Key': requestKey,
           },
           body: JSON.stringify({
@@ -631,15 +628,18 @@ export function MeetingFormContent({
             },
             username,
             eventSlug,
-            // **IDEMPOTENCY: Include request key in payload**
             requestKey,
           }),
         });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.log(
+            '[MeetingForm] createPaymentIntent: API error status=%d',
+            response.status,
+            errorData,
+          );
 
-          // Handle BotID protection responses
           if (response.status === 403 && errorData.error === 'Access denied') {
             throw new Error(errorData.message || 'Request blocked for security reasons');
           }
@@ -653,12 +653,14 @@ export function MeetingFormContent({
           throw new Error('No checkout URL received from server');
         }
 
-        // **SECURITY: Validate checkout URL before storing**
         try {
           validateCheckoutUrl(url);
-          console.log('✅ Checkout URL validated');
         } catch (validationError) {
-          console.error('❌ Invalid checkout URL received:', url, validationError);
+          console.error(
+            '[MeetingForm] createPaymentIntent: invalid checkout URL received',
+            url,
+            validationError,
+          );
           throw new Error(
             validationError instanceof Error
               ? validationError.message
@@ -666,15 +668,15 @@ export function MeetingFormContent({
           );
         }
 
-        console.log('✅ Payment intent created successfully');
+        console.log('[MeetingForm] createPaymentIntent: SUCCESS - checkout URL obtained');
 
-        // **NOTE: FormCache.markCompleted() will be handled server-side**
         setCheckoutUrl(url);
+        checkoutUrlRef.current = url;
         return url;
       } catch (error) {
-        console.error('❌ Payment creation error:', error);
+        console.error('[MeetingForm] createPaymentIntent: FAILED', error);
 
-        if (!options?.silent) {
+        if (!silent) {
           form.setError('root', {
             message:
               error instanceof Error ? error.message : 'There was an error creating your payment.',
@@ -686,6 +688,7 @@ export function MeetingFormContent({
         if (isPrefetchRequest.current || activeRequestId.current === currentRequestId) {
           activeRequestId.current = null;
         }
+        console.log('[MeetingForm] createPaymentIntent: cleanup done, activeRequestId cleared');
       }
     },
     [
@@ -701,21 +704,26 @@ export function MeetingFormContent({
     ],
   );
 
-  // Helper to handle submission logic for both keyboard and click submissions
+  // Helper to handle submission logic for Step 1 keyboard/click submissions
   const submitMeeting = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>) => {
+      console.log('[MeetingForm] submitMeeting called', {
+        price,
+        isProcessing: isProcessingRef.current,
+      });
+
       if (isProcessingRef.current) {
+        console.log('[MeetingForm] submitMeeting: BLOCKED - already processing');
         return;
       }
 
-      // **IMMEDIATE STATE UPDATE: Set processing flags**
       isProcessingRef.current = true;
       setIsProcessing(true);
       setIsSubmitting(true);
 
       try {
-        // For free meetings, create the meeting directly
         if (price === 0) {
+          console.log('[MeetingForm] submitMeeting: FREE path');
           const data = await createMeeting({
             ...values,
             eventId,
@@ -728,7 +736,6 @@ export function MeetingFormContent({
               message: 'There was an error saving your event',
             });
           } else {
-            // Redirect to success page with locale path
             router.push(
               `/${locale || 'en'}/${username}/${eventSlug}/success?startTime=${encodeURIComponent(
                 values.startTime.toISOString(),
@@ -738,7 +745,7 @@ export function MeetingFormContent({
           return;
         }
 
-        // For paid meetings, generate checkout URL first
+        console.log('[MeetingForm] submitMeeting: PAID path - creating payment intent');
         const checkoutUrl = await createPaymentIntent();
         if (checkoutUrl) {
           setCheckoutUrl(checkoutUrl);
@@ -750,12 +757,11 @@ export function MeetingFormContent({
           message: 'Could not create payment checkout',
         });
       } catch (error) {
-        console.error('Error creating meeting:', error);
+        console.error('[MeetingForm] submitMeeting: exception', error);
         form.setError('root', {
           message: 'There was an error saving your event',
         });
       } finally {
-        // **CLEANUP: Always reset processing state**
         isProcessingRef.current = false;
         setIsProcessing(false);
         setIsSubmitting(false);
@@ -780,23 +786,23 @@ export function MeetingFormContent({
     event?: React.BaseSyntheticEvent,
   ) => Promise<void> = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>, event?: React.BaseSyntheticEvent) => {
-      // Prevent default form submission behavior
       event?.preventDefault();
+      console.log('[MeetingForm] onSubmit called', { currentStep, price });
 
       if (currentStep === '3' && price > 0) {
+        console.log('[MeetingForm] onSubmit: BLOCKED - step 3 paid (Stripe handles submission)');
         return;
       }
 
-      // **STEP 2: Funnel through handleNextStep for consistent behavior**
-      // This ensures keyboard (Enter) and click submissions use the same code path
       if (currentStep === '2') {
+        console.log('[MeetingForm] onSubmit: funneling to handleNextStep("3")');
         if (handleNextStepRef.current) {
           await handleNextStepRef.current('3');
         }
         return;
       }
 
-      // **CRITICAL: This should only be reached from Step 1**
+      console.log('[MeetingForm] onSubmit: step 1 - calling submitMeeting');
       await submitMeeting(values);
     },
     [currentStep, price, submitMeeting],
@@ -822,11 +828,11 @@ export function MeetingFormContent({
         setIsPrefetching(true);
         isPrefetchRequest.current = true;
         createPaymentIntent({ silent: true })
-          .then(() => {
-            console.log('Checkout URL prefetched successfully');
+          .then((url) => {
+            console.log('[MeetingForm] prefetch: %s', url ? 'success' : 'returned null');
           })
           .catch((error) => {
-            console.error('Prefetch failed:', error);
+            console.error('[MeetingForm] prefetch: failed', error);
           })
           .finally(() => {
             isPrefetchRequest.current = false;
@@ -849,21 +855,32 @@ export function MeetingFormContent({
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
     async (nextStep: typeof currentStep) => {
+      console.log('[MeetingForm] handleNextStep called', {
+        nextStep,
+        price,
+        isProcessing: isProcessingRef.current,
+        hasCheckoutUrl: !!checkoutUrl,
+        hasCheckoutUrlRef: !!checkoutUrlRef.current,
+      });
+
       if (nextStep !== '3') {
         transitionToStep(nextStep);
         return;
       }
 
       if (isProcessingRef.current) {
-        console.log('🚫 Payment flow already in progress - blocking duplicate');
+        console.log('[MeetingForm] handleNextStep: BLOCKED - already processing');
         return;
       }
 
-      // Cooldown: prevent rapid successive clicks
       const now = Date.now();
       const timeSinceLastRequest = now - lastRequestTimestamp.current;
       if (timeSinceLastRequest < requestCooldownMs) {
         const remainingMs = requestCooldownMs - timeSinceLastRequest;
+        console.log(
+          '[MeetingForm] handleNextStep: BLOCKED - cooldown (%dms remaining)',
+          remainingMs,
+        );
         form.setError('root', {
           message: 'Please wait a moment before trying again...',
         });
@@ -873,14 +890,15 @@ export function MeetingFormContent({
         return;
       }
 
-      // Set processing guard BEFORE async validation for ALL paths
       isProcessingRef.current = true;
       setIsProcessing(true);
 
-      // Validate form before processing
       const isValid = await form.trigger();
       if (!isValid) {
-        console.log('❌ Form validation failed:', form.formState.errors);
+        console.log(
+          '[MeetingForm] handleNextStep: BLOCKED - form validation failed',
+          form.formState.errors,
+        );
         form.setError('root', {
           message: 'Please fill in all required fields correctly.',
         });
@@ -889,16 +907,38 @@ export function MeetingFormContent({
         return;
       }
 
-      // Only start the cooldown timer after validation passes
       lastRequestTimestamp.current = Date.now();
 
-      // For free sessions, call submitMeeting directly
+      // Free meeting path: create the meeting directly (not via submitMeeting,
+      // which has its own isProcessingRef guard that would conflict)
       if (price === 0) {
+        console.log('[MeetingForm] handleNextStep: FREE path - creating meeting directly');
         try {
           const formValues = form.getValues();
-          await submitMeeting(formValues);
+          const data = await createMeeting({
+            ...formValues,
+            eventId,
+            clerkUserId,
+            locale: locale || 'en',
+          });
+
+          if (data?.error) {
+            console.log('[MeetingForm] handleNextStep: FREE path - createMeeting returned error');
+            form.setError('root', {
+              message: 'There was an error saving your event',
+            });
+          } else {
+            const successUrl = `/${locale || 'en'}/${username}/${eventSlug}/success?startTime=${encodeURIComponent(
+              formValues.startTime.toISOString(),
+            )}&timezone=${encodeURIComponent(formValues.timezone)}`;
+            console.log(
+              '[MeetingForm] handleNextStep: FREE path - success, redirecting to',
+              successUrl,
+            );
+            router.push(successUrl);
+          }
         } catch (error) {
-          console.error('Error submitting free meeting:', error);
+          console.error('[MeetingForm] handleNextStep: FREE path - exception', error);
           form.setError('root', {
             message: 'Failed to schedule meeting. Please try again.',
           });
@@ -909,12 +949,13 @@ export function MeetingFormContent({
         return;
       }
 
-      // Paid flow: set submitting UI state
+      // Paid flow
+      console.log('[MeetingForm] handleNextStep: PAID path');
       setIsSubmitting(true);
 
-      // Check if we already have a checkout URL and redirect immediately
+      // Fast path: reuse existing checkout URL
       if (checkoutUrl) {
-        console.log('✅ Using existing checkout URL for immediate redirect:', checkoutUrl);
+        console.log('[MeetingForm] handleNextStep: PAID path - reusing existing checkoutUrl');
         try {
           validateCheckoutUrl(checkoutUrl);
 
@@ -926,33 +967,49 @@ export function MeetingFormContent({
             }
           }, 3000);
 
+          console.log('[MeetingForm] handleNextStep: PAID path - redirecting to', checkoutUrl);
           window.location.href = checkoutUrl;
           return;
         } catch (validationError) {
-          console.error('❌ Invalid existing checkout URL:', checkoutUrl, validationError);
+          console.error(
+            '[MeetingForm] handleNextStep: PAID path - existing checkoutUrl invalid',
+            validationError,
+          );
           setCheckoutUrl(null);
+          checkoutUrlRef.current = null;
           isProcessingRef.current = false;
           setIsProcessing(false);
           setIsSubmitting(false);
+          form.setError('root', {
+            message: 'Payment session expired. Please try again.',
+          });
           return;
         }
       }
 
+      // Slow path: create new payment intent
       try {
-        // Clear any in-flight prefetch so it doesn't block the user-initiated request
         activeRequestId.current = null;
         isPrefetchRequest.current = false;
 
+        console.log('[MeetingForm] handleNextStep: PAID path - calling createPaymentIntent');
         const url = await createPaymentIntent();
 
-        const redirectUrl = url || checkoutUrl;
-        if (redirectUrl) {
-          console.log('🚀 Redirecting to checkout:', redirectUrl);
+        const redirectUrl = url || checkoutUrlRef.current;
+        console.log('[MeetingForm] handleNextStep: PAID path - createPaymentIntent returned', {
+          directUrl: !!url,
+          refFallback: !!checkoutUrlRef.current,
+          redirectUrl: !!redirectUrl,
+        });
 
+        if (redirectUrl) {
           try {
             validateCheckoutUrl(redirectUrl);
           } catch (validationError) {
-            console.error('❌ Refusing to redirect to invalid URL:', redirectUrl, validationError);
+            console.error(
+              '[MeetingForm] handleNextStep: PAID path - redirect URL invalid',
+              validationError,
+            );
             throw new Error(
               validationError instanceof Error
                 ? validationError.message
@@ -968,13 +1025,14 @@ export function MeetingFormContent({
             }
           }, 3000);
 
+          console.log('[MeetingForm] handleNextStep: PAID path - redirecting to checkout');
           window.location.href = redirectUrl;
           return;
         } else {
           throw new Error('Failed to get checkout URL');
         }
       } catch (error) {
-        console.error('❌ Checkout flow error:', error);
+        console.error('[MeetingForm] handleNextStep: PAID path - exception', error);
         form.setError('root', {
           message: 'Failed to process request',
         });
@@ -987,10 +1045,15 @@ export function MeetingFormContent({
       form,
       price,
       createPaymentIntent,
-      submitMeeting,
       transitionToStep,
       checkoutUrl,
       setCheckoutUrl,
+      router,
+      clerkUserId,
+      eventId,
+      locale,
+      username,
+      eventSlug,
     ],
   );
 
