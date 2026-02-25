@@ -11,7 +11,7 @@
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
 import { triggerWorkflow } from '@/lib/integrations/novu/utils';
 import { createClerkClient } from '@clerk/nextjs/server';
-import { addMinutes, endOfDay, startOfDay } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { google } from 'googleapis';
 import 'use-server';
@@ -101,79 +101,40 @@ class GoogleCalendarService {
   }
 
   /**
-   * Fetches calendar events for a user within a specific time range
+   * Queries busy time ranges for a user's primary calendar within a time range
    *
-   * Gets all events from the user's primary calendar within the provided
-   * start and end times. Filters out cancelled events and transparent events.
-   * Handles both all-day events and timed events.
+   * Uses the Google Calendar FreeBusy API, which returns only busy/free time
+   * ranges without exposing any event content (titles, descriptions, attendees).
+   * Google handles filtering of transparent and cancelled events server-side.
    *
-   * @param clerkUserId Clerk user ID to fetch calendar events for
+   * @param clerkUserId Clerk user ID to query availability for
    * @param options Object containing start and end dates for the time range
-   * @returns Array of event objects with start and end times
+   * @returns Array of busy time ranges with start and end times
    */
   async getCalendarEventTimes(clerkUserId: string, { start, end }: { start: Date; end: Date }) {
-    // Get authenticated OAuth client
     const oAuthClient = await this.getOAuthClient(clerkUserId);
 
-    console.log('Fetching calendar events:', {
-      timeRange: { start: start.toISOString(), end: end.toISOString() },
-      userId: clerkUserId,
-    });
-
-    // Fetch events from Google Calendar API
-    const events = await google.calendar('v3').events.list({
-      calendarId: 'primary',
-      eventTypes: ['default'],
-      singleEvents: true,
-      timeMin: start.toISOString(),
-      timeMax: end.toISOString(),
-      maxResults: 2500,
+    const response = await google.calendar('v3').freebusy.query({
       auth: oAuthClient,
-      fields: 'items(id,status,summary,start,end,transparency,eventType)',
+      requestBody: {
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+        items: [{ id: 'primary' }],
+      },
     });
 
-    console.log(
-      '[GoogleCalendar] getCalendarEventTimes: fetched %d events',
-      events.data.items?.length || 0,
-    );
+    const busySlots = response.data.calendars?.['primary']?.busy ?? [];
 
-    // Process and filter events
-    return (
-      events.data.items
-        ?.map((event) => {
-          // Skip "free" events (marked as transparent)
-          if (event.transparency === 'transparent') {
-            return null;
-          }
+    console.log('[GoogleCalendar] getCalendarEventTimes: found %d busy slots', busySlots.length);
 
-          if (event.status === 'cancelled') {
-            return null;
-          }
-
-          // Handle all-day events
-          if (event.start?.date != null && event.end?.date != null) {
-            return {
-              start: startOfDay(event.start.date),
-              end: endOfDay(event.end.date),
-            };
-          }
-
-          // Handle timed events
-          if (event.start?.dateTime != null && event.end?.dateTime != null) {
-            return {
-              start: new Date(event.start.dateTime),
-              end: new Date(event.end.dateTime),
-            };
-          }
-
-          console.log(
-            '[GoogleCalendar] getCalendarEventTimes: skipping event with invalid date format (id=%s)',
-            event.id,
-          );
-          return null;
-        })
-        .filter((date): date is { start: Date; end: Date } => date != null) || []
-    );
+    return busySlots
+      .filter(
+        (slot): slot is { start: string; end: string } => slot.start != null && slot.end != null,
+      )
+      .map((slot) => ({
+        start: new Date(slot.start),
+        end: new Date(slot.end),
+      }));
   }
 
   /**

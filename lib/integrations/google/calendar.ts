@@ -28,17 +28,18 @@ export async function hasValidTokens(userId: string): Promise<boolean> {
 }
 
 /**
- * Gets calendar events for a user within a specific time range
+ * Queries busy time ranges for a user's primary calendar
  *
- * Fetches all events from the user's primary Google Calendar within
- * the specified start and end times. Filters out cancelled events
- * and events marked as "free" (transparent).
+ * Uses the Google Calendar FreeBusy API to return only busy/free time
+ * ranges without fetching any event content (titles, descriptions,
+ * attendees). Google handles filtering of transparent and cancelled
+ * events server-side.
  *
- * @param clerkUserId - Clerk user ID to fetch calendar events for
+ * @param clerkUserId - Clerk user ID to query availability for
  * @param options - Object containing start and end dates for the time range
  * @param options.start - Start date of the time range
  * @param options.end - End date of the time range
- * @returns Promise that resolves to an array of event objects with start and end times
+ * @returns Promise that resolves to an array of busy time ranges with start and end times
  */
 export async function getCalendarEventTimes(
   clerkUserId: string,
