@@ -132,17 +132,10 @@ class GoogleCalendarService {
       fields: 'items(id,status,summary,start,end,transparency,eventType)',
     });
 
-    console.log('Calendar response:', {
-      totalEvents: events.data.items?.length || 0,
-      events: events.data.items?.map((event) => ({
-        summary: event.summary,
-        start: event.start,
-        end: event.end,
-        status: event.status,
-        transparency: event.transparency,
-        eventType: event.eventType,
-      })),
-    });
+    console.log(
+      '[GoogleCalendar] getCalendarEventTimes: fetched %d events',
+      events.data.items?.length || 0,
+    );
 
     // Process and filter events
     return (
@@ -150,23 +143,15 @@ class GoogleCalendarService {
         ?.map((event) => {
           // Skip "free" events (marked as transparent)
           if (event.transparency === 'transparent') {
-            console.log('Skipping transparent event:', event.summary);
             return null;
           }
 
-          // Skip cancelled events
           if (event.status === 'cancelled') {
-            console.log('Skipping cancelled event:', event.summary);
             return null;
           }
 
           // Handle all-day events
           if (event.start?.date != null && event.end?.date != null) {
-            console.log('All-day event found:', {
-              summary: event.summary,
-              start: event.start.date,
-              end: event.end.date,
-            });
             return {
               start: startOfDay(event.start.date),
               end: endOfDay(event.end.date),
@@ -175,18 +160,16 @@ class GoogleCalendarService {
 
           // Handle timed events
           if (event.start?.dateTime != null && event.end?.dateTime != null) {
-            console.log('Timed event found:', {
-              summary: event.summary,
-              start: event.start.dateTime,
-              end: event.end.dateTime,
-            });
             return {
               start: new Date(event.start.dateTime),
               end: new Date(event.end.dateTime),
             };
           }
 
-          console.log('Event skipped due to invalid date format:', event);
+          console.log(
+            '[GoogleCalendar] getCalendarEventTimes: skipping event with invalid date format (id=%s)',
+            event.id,
+          );
           return null;
         })
         .filter((date): date is { start: Date; end: Date } => date != null) || []
