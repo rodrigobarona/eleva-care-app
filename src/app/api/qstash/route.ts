@@ -7,8 +7,6 @@ import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 /**

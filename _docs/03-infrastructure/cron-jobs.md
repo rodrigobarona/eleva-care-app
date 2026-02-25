@@ -127,7 +127,7 @@ All cron jobs follow this pattern:
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 
-export const preferredRegion = 'auto';
+// Region is set project-wide via "regions": ["fra1"] in vercel.json
 export const maxDuration = 60;
 
 async function handler() {

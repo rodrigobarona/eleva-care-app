@@ -8,7 +8,7 @@ import { withAuth } from '@workos-inc/authkit-nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-export const preferredRegion = 'auto';
+
 
 export async function POST(req: NextRequest) {
   try {

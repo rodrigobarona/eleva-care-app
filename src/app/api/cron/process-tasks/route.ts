@@ -18,8 +18,6 @@ const { logger } = Sentry;
 // - Handles retry logic for failed transfers
 // - Maintains system audit logs
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 // Maximum number of retries for failed transfers

@@ -34,8 +34,6 @@ const { logger } = Sentry;
 // - Transfer status tracking and notifications
 // - Detailed audit logging for compliance
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 // Maximum number of retries for failed transfers

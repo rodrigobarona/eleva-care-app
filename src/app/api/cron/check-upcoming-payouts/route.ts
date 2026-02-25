@@ -24,8 +24,6 @@ const { logger } = Sentry;
 // - Updates notification timestamps
 // - Maintains notification audit trail
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 // This CRON job runs daily and checks for payments that will be eligible for payout soon

@@ -8,8 +8,6 @@ import Stripe from 'stripe';
 
 const { logger } = Sentry;
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 // Add GET handler to quickly return 405 Method Not Allowed

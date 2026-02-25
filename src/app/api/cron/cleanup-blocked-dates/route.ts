@@ -15,8 +15,6 @@ const { logger } = Sentry;
 // - Deletes expired dates while maintaining timezone integrity
 // - Provides detailed logging and cleanup statistics
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 /**

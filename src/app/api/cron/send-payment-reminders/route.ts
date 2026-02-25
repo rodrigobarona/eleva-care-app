@@ -23,8 +23,6 @@ import Stripe from 'stripe';
 
 const { logger } = Sentry;
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 /**

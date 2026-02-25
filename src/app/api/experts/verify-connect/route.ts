@@ -6,7 +6,7 @@ import { verifyExpertConnectAccount } from '@/server/actions/experts';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
-export const preferredRegion = 'auto';
+
 
 export async function POST() {
   try {

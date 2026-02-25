@@ -19,8 +19,6 @@ import { NextResponse } from 'next/server';
 
 const { logger } = Sentry;
 
-/** Vercel region configuration for serverless function */
-export const preferredRegion = 'auto';
 
 /** Maximum execution time in seconds (1 minute for processing appointments) */
 export const maxDuration = 60;

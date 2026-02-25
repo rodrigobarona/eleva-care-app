@@ -23,8 +23,6 @@ function getPostHogClient(): PostHog | null {
   return posthog;
 }
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 /**

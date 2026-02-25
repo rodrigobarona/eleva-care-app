@@ -13,8 +13,6 @@ import type { NextRequest } from 'next/server';
 
 const { logger } = Sentry;
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 // Enhanced Cleanup for Slot Reservations - Removes expired and duplicate reservations

@@ -31,8 +31,6 @@ const { logger } = Sentry;
 // 3. Creates Stripe payouts from Connect account to expert bank account
 // 4. Updates records and sends notifications
 
-// Add route segment config
-export const preferredRegion = 'auto';
 export const maxDuration = 300; // Increased to 5 minutes for comprehensive checks
 
 // Legal requirements based on Stripe Connect best practices

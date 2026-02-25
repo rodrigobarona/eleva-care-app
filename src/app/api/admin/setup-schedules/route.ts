@@ -9,7 +9,6 @@ import { NextResponse } from 'next/server';
 
 const { logger } = Sentry;
 
-export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 /**
