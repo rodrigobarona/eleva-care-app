@@ -52,7 +52,7 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
     });
 
     const fallbackSettings: SchedulingSettings = {
-      id: 0,
+      id: '00000000-0000-0000-0000-000000000000',
       workosUserId: userId,
       orgId: null,
       beforeEventBuffer: DEFAULT_BEFORE_EVENT_BUFFER,

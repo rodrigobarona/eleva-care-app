@@ -44,7 +44,7 @@ type User = typeof UsersTable.$inferSelect;
 type SuccessResult = {
   success: true;
   payoutId: string;
-  paymentTransferId?: number;
+  paymentTransferId?: string;
   connectAccountId: string;
   amount: number;
   currency: string;
@@ -53,7 +53,7 @@ type SuccessResult = {
 
 type ErrorResult = {
   success: false;
-  paymentTransferId?: number;
+  paymentTransferId?: string;
   connectAccountId: string;
   error: string;
   retryCount: number;

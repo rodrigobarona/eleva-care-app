@@ -336,9 +336,19 @@ global.__mocks = {
   workosUser: mockWorkosUser as never,
 };
 
-// Mock Google Calendar
-vi.mock('@/server/googleCalendar', () => ({
-  createCalendarEvent: vi.fn(),
+// Mock Calendar Service (WorkOS Pipes)
+vi.mock('@/lib/integrations/calendar', () => ({
+  CalendarService: {
+    listCalendars: vi.fn().mockResolvedValue([]),
+    getFreeBusy: vi.fn().mockResolvedValue([]),
+    getAllFreeBusy: vi.fn().mockResolvedValue([]),
+    createEvent: vi.fn().mockResolvedValue(null),
+    updateEvent: vi.fn().mockResolvedValue(null),
+    deleteEvent: vi.fn().mockResolvedValue(false),
+  },
+  isCalendarConnected: vi.fn().mockResolvedValue(false),
+  getPipesWidgetToken: vi.fn().mockResolvedValue('mock-token'),
+  getCalendarToken: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock schedule validation

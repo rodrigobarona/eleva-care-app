@@ -824,19 +824,18 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 });
 
                 if (event) {
-                  // Dynamic import to avoid circular dependency with calendar service
-                  // The calendar service depends on meeting types which depend on payment types
-                  const { createCalendarEvent } = await import('@/server/googleCalendar');
+                  const { CalendarService } = await import('@/lib/integrations/calendar');
+                  const { DestinationCalendarsTable, OrganizationsTable, UserOrgMembershipsTable } =
+                    await import('@/drizzle/schema');
+                  const { eq: eqOp } = await import('drizzle-orm');
 
-                  logger.info('Calling createCalendarEvent for deferred booking:', {
+                  logger.info('Creating calendar event for deferred booking', {
                     meetingId: meeting.id,
                     workosUserId: meeting.workosUserId,
                     guestEmail: meeting.guestEmail,
-                    timezone: meeting.timezone,
                   });
 
-                  // Timeout helper to prevent calendar creation from hanging
-                  const CALENDAR_CREATION_TIMEOUT_MS = 25000; // 25 seconds
+                  const CALENDAR_CREATION_TIMEOUT_MS = 25000;
                   let timerId: ReturnType<typeof setTimeout> | undefined;
                   const timeoutPromise = new Promise<never>((_, reject) => {
                     timerId = setTimeout(() => {
@@ -845,23 +844,54 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   });
 
                   try {
-                    // Race between calendar creation and timeout
-                    const calendarEvent = await Promise.race([
-                      createCalendarEvent({
-                        workosUserId: meeting.workosUserId,
-                        guestName: meeting.guestName,
-                        guestEmail: meeting.guestEmail,
-                        startTime: meeting.startTime,
-                        guestNotes: meeting.guestNotes || undefined,
-                        durationInMinutes: event.durationInMinutes,
-                        eventName: event.name,
-                        timezone: meeting.timezone,
-                        locale: extractLocaleFromPaymentIntent(paymentIntent),
-                      }),
-                      timeoutPromise,
-                    ]);
+                    // Resolve destination calendar and org for this expert
+                    const destCal = await db.query.DestinationCalendarsTable.findFirst({
+                      where: eqOp(DestinationCalendarsTable.userId, meeting.workosUserId),
+                    });
 
-                    const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+                    let meetingUrl: string | null = null;
+
+                    if (destCal) {
+                      const mem = await db.query.UserOrgMembershipsTable.findFirst({
+                        where: eqOp(UserOrgMembershipsTable.workosUserId, meeting.workosUserId),
+                        columns: { orgId: true },
+                      });
+                      const orgRow = mem?.orgId
+                        ? await db.query.OrganizationsTable.findFirst({
+                            where: eqOp(OrganizationsTable.id, mem.orgId),
+                            columns: { workosOrgId: true },
+                          })
+                        : null;
+
+                      if (orgRow?.workosOrgId) {
+                        const calendarResult = await Promise.race([
+                          CalendarService.createEvent(
+                            destCal.provider as 'google-calendar' | 'microsoft-outlook-calendar',
+                            meeting.workosUserId,
+                            orgRow.workosOrgId,
+                            destCal.externalId,
+                            {
+                              title: event.name,
+                              startTime: meeting.startTime,
+                              endTime: meeting.endTime,
+                              attendees: [
+                                { email: meeting.guestEmail, name: meeting.guestName },
+                              ],
+                              description: meeting.guestNotes ?? undefined,
+                              timeZone: meeting.timezone,
+                              createMeetLink: true,
+                            },
+                          ),
+                          timeoutPromise,
+                        ]);
+
+                        meetingUrl = calendarResult?.meetLink ?? null;
+                      }
+                    } else {
+                      logger.info('No destination calendar configured -- skipping event creation', {
+                        meetingId: meeting.id,
+                      });
+                    }
 
                     // Update meeting with the new URL
                     if (meetingUrl) {

@@ -17,7 +17,7 @@ const { logger } = Sentry;
 
 /** Zod schema for transfer approval request */
 const approveTransferSchema = z.object({
-  transferId: z.number({ error: 'Transfer ID is required' }),
+  transferId: z.string().uuid('Transfer ID must be a valid UUID'),
 });
 
 // Admin financial operations rate limiting (very strict)

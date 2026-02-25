@@ -2,13 +2,19 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
-import { MeetingsTable } from '@/drizzle/schema';
+import {
+  DestinationCalendarsTable,
+  MeetingsTable,
+  OrganizationsTable,
+  UserOrgMembershipsTable,
+} from '@/drizzle/schema';
+import { CalendarService } from '@/lib/integrations/calendar';
 import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { createOrGetGuestUser } from '@/lib/integrations/workos/guest-users';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';
-import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
+import { eq } from 'drizzle-orm';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import type { z } from 'zod';
@@ -307,15 +313,26 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
                 startTime: startTimeUTC.toISOString(),
               });
 
-      // Get calendar events for the time slot
-      const calendarService = GoogleCalendarService.getInstance();
-              const calendarEvents = await calendarService.getCalendarEventTimes(
-                event.workosUserId,
-                {
-        start: startTimeUTC,
-        end: addMinutes(startTimeUTC, event.durationInMinutes),
-                },
-              );
+      // Get external calendar free/busy (additive -- returns [] if not connected)
+              const membership = await db.query.UserOrgMembershipsTable.findFirst({
+                where: eq(UserOrgMembershipsTable.workosUserId, event.workosUserId),
+                columns: { orgId: true },
+              });
+              const org = membership?.orgId
+                ? await db.query.OrganizationsTable.findFirst({
+                    where: eq(OrganizationsTable.id, membership.orgId),
+                    columns: { workosOrgId: true },
+                  })
+                : null;
+
+              const calendarEvents = org?.workosOrgId
+                ? await CalendarService.getAllFreeBusy(
+                    event.workosUserId,
+                    org.workosOrgId,
+                    startTimeUTC,
+                    addMinutes(startTimeUTC, event.durationInMinutes),
+                  )
+                : [];
 
               const validTimes = await getValidTimesFromSchedule(
                 [startTimeUTC],
@@ -352,7 +369,6 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
 
     try {
-      let calendarEvent: Awaited<ReturnType<typeof createCalendarEvent>> | null = null;
       let meetingUrl: string | null = null;
 
       // Only create calendar events for succeeded payments or free events
@@ -368,43 +384,72 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       });
 
       if (shouldCreateCalendarEvent) {
-        // Step 7: Create calendar event in Google Calendar
-            calendarEvent = await Sentry.startSpan(
+            const calendarResult = await Sentry.startSpan(
               {
                 name: 'meeting.create.calendar_event',
                 op: 'http.client',
-                attributes: {
-                  'calendar.provider': 'google',
-                },
               },
               async (span) => {
         try {
-                  Sentry.logger.debug('Creating Google Calendar event', {
-                    eventId: data.eventId,
-                    guestEmail: data.guestEmail,
+                  // Look up expert's destination calendar
+                  const destCal = await db.query.DestinationCalendarsTable.findFirst({
+                    where: eq(DestinationCalendarsTable.userId, data.workosUserId),
                   });
 
-                  const result = await createCalendarEvent({
-            workosUserId: data.workosUserId,
-            guestName: data.guestName,
-            guestEmail: data.guestEmail,
-            startTime: startTimeUTC,
-            guestNotes: data.guestNotes,
-            durationInMinutes: event.durationInMinutes,
-            eventName: event.name,
-            timezone: data.timezone,
-            locale: data.locale || 'en',
-          });
+                  if (!destCal) {
+                    span.setAttribute('calendar.skipped', true);
+                    Sentry.logger.debug('No destination calendar configured -- skipping', {
+                      eventId: data.eventId,
+                    });
+                    return null;
+                  }
 
-                  const url = result.conferenceData?.entryPoints?.[0]?.uri ?? null;
-                  span.setAttribute('calendar.has_meet_url', !!url);
-                  span.setAttribute('calendar.has_conference_data', !!result.conferenceData);
+                  // Resolve WorkOS org ID for Pipes token
+                  const mem = await db.query.UserOrgMembershipsTable.findFirst({
+                    where: eq(UserOrgMembershipsTable.workosUserId, data.workosUserId),
+                    columns: { orgId: true },
+                  });
+                  const orgRow = mem?.orgId
+                    ? await db.query.OrganizationsTable.findFirst({
+                        where: eq(OrganizationsTable.id, mem.orgId),
+                        columns: { workosOrgId: true },
+                      })
+                    : null;
 
-                  Sentry.logger.info('Calendar event created successfully', {
-                    eventId: data.eventId,
-            paymentStatus: data.stripePaymentStatus || 'free',
-                    hasMeetUrl: !!url,
-          });
+                  if (!orgRow?.workosOrgId) {
+                    span.setAttribute('calendar.error', true);
+                    Sentry.logger.warn('Could not resolve WorkOS org for calendar event creation');
+                    return null;
+                  }
+
+                  span.setAttribute('calendar.provider', destCal.provider);
+
+                  const result = await CalendarService.createEvent(
+                    destCal.provider as 'google-calendar' | 'microsoft-outlook-calendar',
+                    data.workosUserId,
+                    orgRow.workosOrgId,
+                    destCal.externalId,
+                    {
+                      title: event.name,
+                      startTime: startTimeUTC,
+                      endTime: new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000),
+                      attendees: [
+                        { email: data.guestEmail, name: data.guestName },
+                      ],
+                      description: data.guestNotes ?? undefined,
+                      timeZone: data.timezone,
+                      createMeetLink: true,
+                    },
+                  );
+
+                  if (result) {
+                    span.setAttribute('calendar.has_meet_url', !!result.meetLink);
+                    Sentry.logger.info('Calendar event created successfully', {
+                      eventId: data.eventId,
+                      provider: destCal.provider,
+                      hasMeetUrl: !!result.meetLink,
+                    });
+                  }
 
                   return result;
         } catch (calendarError) {
@@ -413,17 +458,13 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
                     error: calendarError instanceof Error ? calendarError.message : 'Unknown error',
             eventId: data.eventId,
             workosUserId: data.workosUserId,
-            guestEmail: data.guestEmail,
           });
-          // Don't fail the meeting creation - calendar can be created later
                   return null;
                 }
               },
             );
 
-            if (calendarEvent) {
-              meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-        }
+            meetingUrl = calendarResult?.meetLink ?? null;
       } else {
             Sentry.logger.info('Calendar event deferred', {
               paymentStatus: data.stripePaymentStatus,

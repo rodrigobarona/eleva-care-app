@@ -39,10 +39,9 @@ export default function ExpertSetupPage() {
 
   // Button text mapping by step ID
   const buttonTextMap: Record<string, string> = {
-    google_account: 'Configure',
+    calendar_connection: 'Configure',
     discount: 'Add Discount',
     payment: 'Setup Payments',
-    // Default for other steps is 'Complete'
   };
 
   const [steps, setSteps] = useState<SetupStep[]>([
@@ -71,9 +70,9 @@ export default function ExpertSetupPage() {
       position: 3,
     },
     {
-      id: 'google_account',
-      name: 'Connect Google account',
-      description: 'Connect your Google account for calendar integration',
+      id: 'calendar_connection',
+      name: 'Connect your calendar',
+      description: 'Connect Google Calendar or Outlook for scheduling (optional)',
       href: '/account/security',
       completed: false,
       position: 4,

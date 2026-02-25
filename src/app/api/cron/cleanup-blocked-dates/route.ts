@@ -35,7 +35,7 @@ async function handler() {
   try {
     // First, get all blocked dates
     const blockedDates = await db.select().from(BlockedDatesTable);
-    const expiredDateIds: number[] = [];
+    const expiredDateIds: string[] = [];
 
     // For each blocked date, check if it's expired in its own timezone
     for (const blockedDate of blockedDates) {

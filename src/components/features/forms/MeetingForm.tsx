@@ -19,7 +19,6 @@ import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
-import { hasValidTokens } from '@/lib/integrations/google/calendar';
 import { generateFormCacheKey } from '@/lib/utils/cache-keys';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
@@ -70,7 +69,7 @@ function validateCheckoutUrl(url: string): void {
 }
 
 interface BlockedDate {
-  id: number;
+  id: string;
   date: Date;
   reason?: string;
   timezone: string;
@@ -407,7 +406,6 @@ export function MeetingFormContent({
   // State management
   const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const checkoutUrlRef = React.useRef<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
@@ -1282,31 +1280,6 @@ export function MeetingFormContent({
     }
   }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
 
-  // Check if user has valid calendar access
-  React.useEffect(() => {
-    const checkCalendarAccess = async () => {
-      try {
-        const hasValidAccess = await hasValidTokens(workosUserId);
-
-        if (!hasValidAccess) {
-          setIsCalendarSynced(false);
-          router.push(
-            `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
-          );
-        }
-      } catch (error) {
-        Sentry.logger.error('Error checking calendar access', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          workosUserId,
-        });
-        setIsCalendarSynced(false);
-        router.push(`/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`);
-      }
-    };
-
-    checkCalendarAccess();
-  }, [workosUserId, router]);
-
   // Handle date selection
   const handleDateSelect = React.useCallback(
     (selectedDate: Date) => {
@@ -1391,27 +1364,6 @@ export function MeetingFormContent({
       }
     }
   }, [currentStep, queryStates.date, queryStates.time, form, transitionToStep]);
-
-  // Early return for calendar sync check
-  if (!isCalendarSynced) {
-    return (
-      <div className="py-8 text-center">
-        <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="mb-4 text-muted-foreground">
-          We need access to your Google Calendar to show available time slots.
-        </p>
-        <Button
-          onClick={() =>
-            router.push(
-              `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
-            )
-          }
-        >
-          Connect Google Calendar
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <Form {...form}>

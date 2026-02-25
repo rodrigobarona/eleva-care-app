@@ -28,6 +28,7 @@
     "type-check": "tsc --noEmit",
     "// ========== DATABASE (Drizzle ORM) ==========": "",
     "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "// ========== TESTING (Vitest) ==========": "",

@@ -19,7 +19,7 @@ const steps: { key: keyof SetupStatus; label: string; href: string }[] = [
   { key: 'events', label: 'Events', href: '/setup/events' },
   { key: 'identity', label: 'Identity', href: '/account/identity' },
   { key: 'payment', label: 'Payments', href: '/account/billing' },
-  { key: 'google_account', label: 'Google Calendar', href: '/setup/google-calendar' },
+  { key: 'calendar_connection', label: 'Calendar', href: '/account/security' },
 ];
 
 export function ExpertSetupProgress({ setupStatus, isProfilePublished }: ExpertSetupProgressProps) {

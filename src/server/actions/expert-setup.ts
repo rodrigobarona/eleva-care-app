@@ -80,7 +80,7 @@ export async function checkExpertSetupStatus(): Promise<{
         events: false,
         identity: false,
         payment: false,
-        google_account: false,
+        calendar_connection: false,
       },
       isSetupComplete: false,
       setupCompletedAt: null,
@@ -95,7 +95,7 @@ export async function checkExpertSetupStatus(): Promise<{
       events: setup.eventsCompleted,
       identity: setup.identityCompleted,
       payment: setup.paymentCompleted,
-      google_account: setup.googleAccountCompleted,
+      calendar_connection: setup.googleAccountCompleted,
     },
     isSetupComplete: setup.setupComplete,
     setupCompletedAt: setup.setupCompletedAt,
@@ -134,7 +134,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
     events: 'eventsCompleted',
     identity: 'identityCompleted',
     payment: 'paymentCompleted',
-    google_account: 'googleAccountCompleted',
+    calendar_connection: 'googleAccountCompleted',
   };
 
   const columnName = columnMap[validatedStep];
@@ -201,7 +201,7 @@ export async function markStepIncomplete(step: SetupStepType): Promise<void> {
     events: 'eventsCompleted',
     identity: 'identityCompleted',
     payment: 'paymentCompleted',
-    google_account: 'googleAccountCompleted',
+    calendar_connection: 'googleAccountCompleted',
   };
 
   const columnName = columnMap[validatedStep];
@@ -295,7 +295,7 @@ export async function getIncompleteExperts(): Promise<
       events: setup.eventsCompleted,
       identity: setup.identityCompleted,
       payment: setup.paymentCompleted,
-      google_account: setup.googleAccountCompleted,
+      calendar_connection: setup.googleAccountCompleted,
     },
     createdAt: setup.createdAt,
   }));

@@ -36,7 +36,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type PaymentTransfer = {
-  id: number;
+  id: string;
   paymentIntentId: string;
   checkoutSessionId: string;
   eventId: string;

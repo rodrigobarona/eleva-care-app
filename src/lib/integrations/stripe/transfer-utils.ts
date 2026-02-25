@@ -27,7 +27,7 @@ type CheckResult = {
 export async function checkExistingTransfer(
   stripe: Stripe,
   chargeId: string,
-  transferRecord: { id: number; paymentIntentId: string },
+  transferRecord: { id: string; paymentIntentId: string },
 ): Promise<CheckResult> {
   // Retrieve the charge to check if it has any transfers already
   const charge = await stripe.charges.retrieve(chargeId, {
@@ -79,7 +79,7 @@ export async function checkExistingTransfer(
   for (const transfer of transfersList.data) {
     // Match by payment transfer ID or payment intent ID in metadata
     const matchesPaymentTransferId =
-      transfer.metadata?.paymentTransferId === transferRecord.id.toString();
+      transfer.metadata?.paymentTransferId === transferRecord.id;
     const matchesPaymentIntentId =
       transfer.metadata?.paymentIntentId === transferRecord.paymentIntentId;
 

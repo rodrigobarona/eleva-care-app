@@ -48,9 +48,9 @@ export function ExpertSetupChecklist() {
       completed: false,
     },
     {
-      id: 'google_account',
-      name: 'Connect Google account',
-      description: 'Connect your Google account for calendar integration',
+      id: 'calendar_connection',
+      name: 'Connect your calendar',
+      description: 'Connect Google Calendar or Outlook for scheduling (optional)',
       href: '/account/security',
       completed: false,
     },

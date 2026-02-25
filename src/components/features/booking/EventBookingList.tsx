@@ -1,13 +1,15 @@
 import NextAvailableTimeClient from '@/components/features/booking/NextAvailableTimeClient';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/drizzle/db';
+import { OrganizationsTable, UserOrgMembershipsTable } from '@/drizzle/schema';
+import { CalendarService } from '@/lib/integrations/calendar';
 import { formatEventDescription } from '@/lib/utils/formatters';
 import { logger } from '@/lib/utils/logger';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
-import GoogleCalendarService from '@/server/googleCalendar';
 import { addMonths } from 'date-fns';
+import { eq } from 'drizzle-orm';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -28,38 +30,6 @@ type Event = {
 interface EventBookingListProps {
   userId: string;
   username: string;
-}
-
-async function getCalendarStatus(workosUserId: string) {
-  try {
-    logger.info('Checking calendar status', { userId: workosUserId });
-
-    const calendarService = GoogleCalendarService.getInstance();
-    const hasValidTokens = await calendarService.hasValidTokens(workosUserId);
-
-    if (!hasValidTokens) {
-      logger.info('No valid calendar tokens', { userId: workosUserId });
-      return { isConnected: false, error: 'Calendar not connected' };
-    }
-
-    const now = new Date();
-    // Just check a single day to minimize API overhead
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    await calendarService.getCalendarEventTimes(workosUserId, {
-      start: now,
-      end: tomorrow,
-    });
-
-    logger.info('Calendar connected successfully', { userId: workosUserId });
-    return { isConnected: true, error: null };
-  } catch (error) {
-    logger.error('Calendar status check failed', {
-      userId: workosUserId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return { isConnected: false, error: 'Calendar access error' };
-  }
 }
 
 async function getValidTimesForEvent(eventId: string) {
@@ -102,11 +72,26 @@ async function getValidTimesForEvent(eventId: string) {
 
     const endDate = addMonths(startTime, 2);
 
-    const calendarService = GoogleCalendarService.getInstance();
-    const calendarEvents = await calendarService.getCalendarEventTimes(event.workosUserId, {
-      start: startTime,
-      end: endDate,
+    // External calendar free/busy (additive -- returns [] if no calendar connected)
+    const membership = await db.query.UserOrgMembershipsTable.findFirst({
+      where: eq(UserOrgMembershipsTable.workosUserId, event.workosUserId),
+      columns: { orgId: true },
     });
+    const org = membership?.orgId
+      ? await db.query.OrganizationsTable.findFirst({
+          where: eq(OrganizationsTable.id, membership.orgId),
+          columns: { workosOrgId: true },
+        })
+      : null;
+
+    const calendarEvents = org?.workosOrgId
+      ? await CalendarService.getAllFreeBusy(
+          event.workosUserId,
+          org.workosOrgId,
+          startTime,
+          endDate,
+        )
+      : [];
 
     const timeSlots = [];
     let currentTime = startTime;
@@ -256,32 +241,6 @@ function LoadingEventCard() {
 
 async function EventsList({ userId, username }: { userId: string; username: string }) {
   logger.info('Loading events', { userId, username });
-
-  // Intentionally not wrapped in try/catch - getCalendarStatus handles errors internally and returns error states;
-  // any unexpected thrown errors will propagate to React error boundaries for centralized handling
-  const calendarStatus = await getCalendarStatus(userId);
-  logger.info('Calendar status retrieved', { userId, isConnected: calendarStatus.isConnected });
-
-  if (!calendarStatus.isConnected) {
-    logger.info('Calendar not connected, showing access message', {
-      userId,
-      error: calendarStatus.error,
-    });
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Calendar Access Required</CardTitle>
-          <CardDescription>
-            {calendarStatus.error === 'Calendar not connected'
-              ? 'The calendar owner needs to connect their Google Calendar to show available times.'
-              : 'Unable to access calendar. Please try again later.'}
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  logger.info('Fetching events from database', { userId });
   const events = await db.query.EventsTable.findMany({
     where: ({ workosUserId: userIdCol, isActive }, { eq, and }) =>
       and(eq(userIdCol, userId), eq(isActive, true)),

@@ -18,7 +18,7 @@ export function useExpertSetup() {
     events: false,
     identity: false,
     payment: false,
-    google_account: false,
+    calendar_connection: false,
   });
   const [setupCompletedAt, setSetupCompletedAt] = useState<Date | null>(null);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
@@ -69,8 +69,8 @@ export function useExpertSetup() {
           window.dispatchEvent(new Event('expert-setup-updated'));
 
           // Additional step-specific events
-          if (step === 'google_account') {
-            const customEvent = new CustomEvent('google-account-connected', {
+          if (step === 'calendar_connection') {
+            const customEvent = new CustomEvent('calendar-connected', {
               detail: { timestamp: new Date().toISOString() },
             });
             window.dispatchEvent(customEvent);

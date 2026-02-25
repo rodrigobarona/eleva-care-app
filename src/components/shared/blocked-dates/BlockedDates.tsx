@@ -18,7 +18,7 @@ import { CalendarIcon, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface BlockedDate {
-  id: number;
+  id: string;
   date: Date;
   reason?: string;
   timezone: string;
@@ -27,8 +27,8 @@ interface BlockedDate {
 interface BlockedDatesProps {
   blockedDates: BlockedDate[];
   onAddBlockedDates: (dates: { date: Date; reason?: string }[]) => Promise<void>;
-  onRemoveBlockedDate: (id: number) => Promise<void>;
-  onEditBlockedDate?: (id: number, updates: { date: Date; reason?: string }) => Promise<void>;
+  onRemoveBlockedDate: (id: string) => Promise<void>;
+  onEditBlockedDate?: (id: string, updates: { date: Date; reason?: string }) => Promise<void>;
 }
 
 export function BlockedDates({
@@ -69,7 +69,7 @@ export function BlockedDates({
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       setDeletingIds((prev) => [...prev, id]);
       await onRemoveBlockedDate(id);

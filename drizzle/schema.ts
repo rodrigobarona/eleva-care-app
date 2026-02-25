@@ -21,7 +21,8 @@ import {
   PAYMENT_TRANSFER_STATUSES,
 } from '@/lib/constants/payment-transfers';
 import type { SocialMediaPlatform } from '@/lib/constants/social-media';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
+import { authenticatedRole, anonymousRole } from 'drizzle-orm/neon';
 import {
   boolean,
   date,
@@ -30,8 +31,8 @@ import {
   json,
   jsonb,
   pgEnum,
+  pgPolicy,
   pgTable,
-  serial,
   text,
   timestamp,
   unique,
@@ -39,10 +40,37 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /**
+ * Neon Auth helper: resolves to the WorkOS user ID from the JWT.
+ * Used in all RLS policy expressions.
+ */
+const authUid = sql`auth.user_id()`;
+
+/**
+ * Reusable RLS fragment: checks active membership in an org.
+ * Pass the SQL column expression that holds the org_id on the target table.
+ */
+const isOrgMember = (orgColumn: string, table: string) => sql.raw(`
+  EXISTS (
+    SELECT 1 FROM user_org_memberships
+    WHERE user_org_memberships.org_id = ${table}.${orgColumn}
+    AND user_org_memberships.workos_user_id = auth.user_id()
+    AND user_org_memberships.status = 'active'
+  )
+`);
+
+const isAdmin = sql.raw(`
+  EXISTS (
+    SELECT 1 FROM users
+    WHERE users.workos_user_id = auth.user_id()
+    AND users.role = 'admin'
+  )
+`);
+
+/**
  * Common timestamp fields used across multiple tables
  */
-const createdAt = timestamp('created_at').notNull().defaultNow();
-const updatedAt = timestamp('updated_at')
+const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
+const updatedAt = timestamp('updated_at', { withTimezone: true })
   .notNull()
   .defaultNow()
   .$onUpdate(() => new Date());
@@ -128,11 +156,25 @@ export const OrganizationsTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration (drizzle/migrations-manual/001_enable_rls.sql)
-    workosOrgIdIndex: index('organizations_workos_org_id_idx').on(table.workosOrgId),
-    slugIndex: index('organizations_slug_idx').on(table.slug),
-  }),
+  (table) => [
+    index('organizations_workos_org_id_idx').on(table.workosOrgId),
+    index('organizations_slug_idx').on(table.slug),
+    pgPolicy('organizations_read', {
+      for: 'select',
+      using: isOrgMember('id', 'organizations'),
+    }),
+    pgPolicy('organizations_update', {
+      for: 'update',
+      using: sql.raw(`
+        EXISTS (
+          SELECT 1 FROM user_org_memberships
+          WHERE user_org_memberships.org_id = organizations.id
+          AND user_org_memberships.workos_user_id = auth.user_id()
+          AND user_org_memberships.role IN ('owner', 'admin')
+        )
+      `),
+    }),
+  ],
 );
 
 /**
@@ -152,11 +194,31 @@ export const RolesTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    workosUserIdIndex: index('roles_workos_user_id_idx').on(table.workosUserId),
-    // Allow multiple roles per user
-    uniqueUserRole: unique('unique_user_role').on(table.workosUserId, table.role),
-  }),
+  (table) => [
+    index('roles_workos_user_id_idx').on(table.workosUserId),
+    unique('unique_user_role').on(table.workosUserId, table.role),
+    pgPolicy('Users can view own roles', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Admins can view all roles', {
+      for: 'select',
+      using: isAdmin,
+    }),
+    pgPolicy('Admins can insert roles', {
+      for: 'insert',
+      withCheck: isAdmin,
+    }),
+    pgPolicy('Admins can update roles', {
+      for: 'update',
+      using: isAdmin,
+      withCheck: isAdmin,
+    }),
+    pgPolicy('Admins can delete roles', {
+      for: 'delete',
+      using: isAdmin,
+    }),
+  ],
 );
 
 /**
@@ -224,14 +286,14 @@ export const UsersTable = pgTable(
     stripeIdentityVerificationId: text('stripe_identity_verification_id'),
     stripeIdentityVerified: boolean('stripe_identity_verified').default(false),
     stripeIdentityVerificationStatus: text('stripe_identity_verification_status'),
-    stripeIdentityVerificationLastChecked: timestamp('stripe_identity_verification_last_checked'),
+    stripeIdentityVerificationLastChecked: timestamp('stripe_identity_verification_last_checked', { withTimezone: true }),
 
     country: text('country').default('PT'),
 
     // TODO: Remove after migration - fetch from WorkOS (Phase 5)
     imageUrl: text('image_url'),
-    welcomeEmailSentAt: timestamp('welcome_email_sent_at'),
-    onboardingCompletedAt: timestamp('onboarding_completed_at'),
+    welcomeEmailSentAt: timestamp('welcome_email_sent_at', { withTimezone: true }),
+    onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
 
     // Google OAuth integration (via WorkOS OAuth provider)
     // 🔐 Security: All tokens ENCRYPTED at rest using WorkOS Vault
@@ -246,10 +308,10 @@ export const UsersTable = pgTable(
       .default('vault')
       .$type<'vault'>(),
 
-    googleTokenExpiry: timestamp('google_token_expiry'), // When access token expires (NOT encrypted)
+    googleTokenExpiry: timestamp('google_token_expiry', { withTimezone: true }),
     googleScopes: text('google_scopes'), // Granted OAuth scopes (space-separated string)
     googleCalendarConnected: boolean('google_calendar_connected').default(false), // Quick check
-    googleCalendarConnectedAt: timestamp('google_calendar_connected_at'), // First connection timestamp
+    googleCalendarConnectedAt: timestamp('google_calendar_connected_at', { withTimezone: true }),
 
     // User preferences (merged from UserPreferencesTable for simplicity)
     // NOTE: Notification/security preferences are managed by WorkOS AuthKit and Novu
@@ -259,12 +321,20 @@ export const UsersTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    workosUserIdIndex: index('users_workos_user_id_idx').on(table.workosUserId),
-    emailIndex: index('users_email_idx').on(table.email),
-    usernameIndex: index('users_username_idx').on(table.username),
-    stripeCustomerIdIndex: index('users_stripe_customer_id_idx').on(table.stripeCustomerId),
-  }),
+  (table) => [
+    index('users_workos_user_id_idx').on(table.workosUserId),
+    index('users_email_idx').on(table.email),
+    index('users_username_idx').on(table.username),
+    index('users_stripe_customer_id_idx').on(table.stripeCustomerId),
+    pgPolicy('users_read', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('users_update', {
+      for: 'update',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -291,16 +361,19 @@ export const UserOrgMembershipsTable = pgTable(
     status: text('status').default('active'), // 'active' | 'invited' | 'suspended'
 
     // Timestamps
-    joinedAt: timestamp('joined_at').notNull().defaultNow(),
+    joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    userIdIndex: index('memberships_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('memberships_org_id_idx').on(table.orgId),
-    userOrgUnique: unique('user_org_unique').on(table.workosUserId, table.orgId),
-  }),
+  (table) => [
+    index('memberships_user_id_idx').on(table.workosUserId),
+    index('memberships_org_id_idx').on(table.orgId),
+    unique('user_org_unique').on(table.workosUserId, table.orgId),
+    pgPolicy('memberships_read', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 // ============================================================================
@@ -338,19 +411,34 @@ export const ExpertSetupTable = pgTable(
 
     // Overall status (automatically set when all steps complete)
     setupComplete: boolean('setup_complete').notNull().default(false),
-    setupCompletedAt: timestamp('setup_completed_at'),
+    setupCompletedAt: timestamp('setup_completed_at', { withTimezone: true }),
 
     // Timestamps
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration (drizzle/migrations-manual/002_phase3_enable_rls.sql)
-    // Policies: Users can only access their own setup records (matched by workos_user_id)
-    userIdIndex: index('expert_setup_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('expert_setup_org_id_idx').on(table.orgId),
-    setupCompleteIndex: index('expert_setup_complete_idx').on(table.setupComplete),
-  }),
+  (table) => [
+    index('expert_setup_user_id_idx').on(table.workosUserId),
+    index('expert_setup_org_id_idx').on(table.orgId),
+    index('expert_setup_complete_idx').on(table.setupComplete),
+    pgPolicy('Users can view own expert setup', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can create own expert setup', {
+      for: 'insert',
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can update own expert setup', {
+      for: 'update',
+      using: sql`workos_user_id = ${authUid}`,
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can delete own expert setup', {
+      for: 'delete',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -395,7 +483,7 @@ export const ExpertApplicationsTable = pgTable(
 
     // Admin review
     reviewedBy: text('reviewed_by'), // WorkOS user ID of admin who reviewed
-    reviewedAt: timestamp('reviewed_at'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
     reviewNotes: text('review_notes'), // Admin's notes about the decision
     rejectionReason: text('rejection_reason'), // If rejected, why?
 
@@ -403,12 +491,36 @@ export const ExpertApplicationsTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    workosUserIdIndex: index('expert_applications_workos_user_id_idx').on(table.workosUserId),
-    statusIndex: index('expert_applications_status_idx').on(table.status),
-    // Only one active application per user
-    uniqueActiveApplication: unique('unique_active_expert_application').on(table.workosUserId),
-  }),
+  (table) => [
+    index('expert_applications_workos_user_id_idx').on(table.workosUserId),
+    index('expert_applications_status_idx').on(table.status),
+    unique('unique_active_expert_application').on(table.workosUserId),
+    pgPolicy('Users can view own application', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can create own application', {
+      for: 'insert',
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can update own application', {
+      for: 'update',
+      using: sql.raw(`
+        workos_user_id = auth.user_id()
+        AND status IN ('pending', 'rejected')
+      `),
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Admins can view all applications', {
+      for: 'select',
+      using: isAdmin,
+    }),
+    pgPolicy('Admins can update applications', {
+      for: 'update',
+      using: isAdmin,
+      withCheck: isAdmin,
+    }),
+  ],
 );
 
 /**
@@ -458,12 +570,19 @@ export const EventsTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    orgIdIndex: index('events_org_id_idx').on(table.orgId),
-    workosUserIdIndex: index('events_workos_user_id_idx').on(table.workosUserId),
-    slugIndex: index('events_slug_idx').on(table.slug),
-  }),
+  (table) => [
+    index('events_org_id_idx').on(table.orgId),
+    index('events_workos_user_id_idx').on(table.workosUserId),
+    index('events_slug_idx').on(table.slug),
+    pgPolicy('events_read', {
+      for: 'select',
+      using: isOrgMember('org_id', 'events'),
+    }),
+    pgPolicy('events_modify', {
+      for: 'all',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -479,11 +598,24 @@ export const SchedulesTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    orgIdIndex: index('schedules_org_id_idx').on(table.orgId),
-    userIdIndex: index('schedules_user_id_idx').on(table.workosUserId),
-  }),
+  (table) => [
+    index('schedules_org_id_idx').on(table.orgId),
+    index('schedules_user_id_idx').on(table.workosUserId),
+    pgPolicy('schedules_read', {
+      for: 'select',
+      using: sql.raw(`
+        EXISTS (
+          SELECT 1 FROM user_org_memberships
+          WHERE user_org_memberships.org_id = schedules.org_id
+          AND user_org_memberships.workos_user_id = auth.user_id()
+        )
+      `),
+    }),
+    pgPolicy('schedules_modify', {
+      for: 'all',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -502,9 +634,19 @@ export const ScheduleAvailabilitiesTable = pgTable(
     endTime: text('end_time').notNull(),
     dayOfWeek: scheduleDayOfWeekEnum('day_of_week').notNull(),
   },
-  (table) => ({
-    scheduleIdIndex: index('schedule_availabilities_schedule_id_idx').on(table.scheduleId),
-  }),
+  (table) => [
+    index('schedule_availabilities_schedule_id_idx').on(table.scheduleId),
+    pgPolicy('schedule_availabilities_all', {
+      for: 'all',
+      using: sql.raw(`
+        EXISTS (
+          SELECT 1 FROM schedules
+          WHERE schedules.id = schedule_availabilities.schedule_id
+          AND schedules.workos_user_id = auth.user_id()
+        )
+      `),
+    }),
+  ],
 );
 
 /**
@@ -540,8 +682,8 @@ export const MeetingsTable = pgTable(
     guestEmail: text('guest_email').notNull(),
     guestName: text('guest_name').notNull(),
     guestNotes: text('guest_notes'),
-    startTime: timestamp('start_time').notNull(),
-    endTime: timestamp('end_time').notNull(),
+    startTime: timestamp('start_time', { withTimezone: true }).notNull(),
+    endTime: timestamp('end_time', { withTimezone: true }).notNull(),
     timezone: text('timezone').notNull(),
     meetingUrl: text('meeting_url'),
 
@@ -566,7 +708,7 @@ export const MeetingsTable = pgTable(
     stripeTransferStatus: text('stripe_transfer_status', {
       enum: ['pending', 'processing', 'succeeded', 'failed'],
     }).default('pending'),
-    stripeTransferScheduledAt: timestamp('stripe_transfer_scheduled_at'),
+    stripeTransferScheduledAt: timestamp('stripe_transfer_scheduled_at', { withTimezone: true }),
 
     // Stripe payout tracking
     stripePayoutId: text('stripe_payout_id'),
@@ -577,29 +719,51 @@ export const MeetingsTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    orgIdIndex: index('meetings_org_id_idx').on(table.orgId),
-    userIdIndex: index('meetings_user_id_idx').on(table.workosUserId),
-    eventIdIndex: index('meetings_event_id_idx').on(table.eventId),
-    paymentIntentIdIndex: index('meetings_payment_intent_id_idx').on(table.stripePaymentIntentId),
-    transferIdIndex: index('meetings_transfer_id_idx').on(table.stripeTransferId),
-    payoutIdIndex: index('meetings_payout_id_idx').on(table.stripePayoutId),
-  }),
+  (table) => [
+    index('meetings_org_id_idx').on(table.orgId),
+    index('meetings_user_id_idx').on(table.workosUserId),
+    index('meetings_event_id_idx').on(table.eventId),
+    index('meetings_payment_intent_id_idx').on(table.stripePaymentIntentId),
+    index('meetings_transfer_id_idx').on(table.stripeTransferId),
+    index('meetings_payout_id_idx').on(table.stripePayoutId),
+    pgPolicy('meetings_read', {
+      for: 'select',
+      using: isOrgMember('org_id', 'meetings'),
+    }),
+    pgPolicy('meetings_modify', {
+      for: 'all',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
  * Categories Table
  */
-export const CategoriesTable = pgTable('categories', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull().unique(),
-  description: text('description'),
-  image: text('image'),
-  parentId: uuid('parent_id'),
-  createdAt,
-  updatedAt,
-});
+export const CategoriesTable = pgTable(
+  'categories',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(),
+    description: text('description'),
+    image: text('image'),
+    parentId: uuid('parent_id'),
+    createdAt,
+    updatedAt,
+  },
+  () => [
+    pgPolicy('categories_read', {
+      for: 'select',
+      to: anonymousRole,
+      using: sql`true`,
+    }),
+    pgPolicy('categories_modify', {
+      for: 'all',
+      to: authenticatedRole,
+      using: sql`${authUid} IS NOT NULL`,
+    }),
+  ],
+);
 
 /**
  * Profiles Table - Public expert profiles
@@ -629,7 +793,7 @@ export const ProfilesTable = pgTable(
     published: boolean('published').notNull().default(false),
 
     // Practitioner Agreement (GDPR, LGPD, SOC 2)
-    practitionerAgreementAcceptedAt: timestamp('practitioner_agreement_accepted_at'),
+    practitionerAgreementAcceptedAt: timestamp('practitioner_agreement_accepted_at', { withTimezone: true }),
     practitionerAgreementVersion: text('practitioner_agreement_version'),
     practitionerAgreementIpAddress: text('practitioner_agreement_ip_address'),
     practitionerAgreementMetadata: jsonb('practitioner_agreement_metadata'), // Stores comprehensive geolocation, user-agent, etc.
@@ -638,11 +802,20 @@ export const ProfilesTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration (public read, owner write)
-    orgIdIndex: index('profiles_org_id_idx').on(table.orgId),
-    workosUserIdIndex: index('profiles_workos_user_id_idx').on(table.workosUserId),
-  }),
+  (table) => [
+    index('profiles_org_id_idx').on(table.orgId),
+    index('profiles_workos_user_id_idx').on(table.workosUserId),
+    pgPolicy('profiles_read', {
+      for: 'select',
+      to: anonymousRole,
+      using: sql`true`,
+    }),
+    pgPolicy('profiles_modify', {
+      for: 'all',
+      to: authenticatedRole,
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -669,16 +842,23 @@ export const RecordsTable = pgTable(
     vaultEncryptedMetadata: text('vault_encrypted_metadata'),
     encryptionMethod: text('encryption_method').notNull().default('vault').$type<'vault'>(),
 
-    lastModifiedAt: timestamp('last_modified_at').notNull().defaultNow(),
+    lastModifiedAt: timestamp('last_modified_at', { withTimezone: true }).notNull().defaultNow(),
     version: integer('version').default(1).notNull(),
     createdAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration (PHI protection)
-    orgIdIndex: index('records_org_id_idx').on(table.orgId),
-    meetingIdIndex: index('records_meeting_id_idx').on(table.meetingId),
-    expertIdIndex: index('records_expert_id_idx').on(table.expertId),
-  }),
+  (table) => [
+    index('records_org_id_idx').on(table.orgId),
+    index('records_meeting_id_idx').on(table.meetingId),
+    index('records_expert_id_idx').on(table.expertId),
+    pgPolicy('records_read', {
+      for: 'select',
+      using: isOrgMember('org_id', 'records'),
+    }),
+    pgPolicy('records_modify', {
+      for: 'all',
+      using: sql`expert_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -699,7 +879,7 @@ export const paymentTransferStatusEnum = pgEnum(
 export const PaymentTransfersTable = pgTable(
   'payment_transfers',
   {
-    id: serial('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     paymentIntentId: text('payment_intent_id').notNull(),
     checkoutSessionId: text('checkout_session_id').notNull(),
@@ -711,8 +891,8 @@ export const PaymentTransfersTable = pgTable(
     currency: text('currency').notNull().default('eur'),
     /** Platform fee in minor currency units (cents) */
     platformFee: integer('platform_fee').notNull(),
-    sessionStartTime: timestamp('session_start_time').notNull(),
-    scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
+    sessionStartTime: timestamp('session_start_time', { withTimezone: true }).notNull(),
+    scheduledTransferTime: timestamp('scheduled_transfer_time', { withTimezone: true }).notNull(),
     status: paymentTransferStatusEnum('status').notNull().default(PAYMENT_TRANSFER_STATUS_PENDING),
     transferId: text('transfer_id'),
     payoutId: text('payout_id'),
@@ -722,14 +902,22 @@ export const PaymentTransfersTable = pgTable(
     requiresApproval: boolean('requires_approval').default(false),
     adminUserId: text('admin_user_id'),
     adminNotes: text('admin_notes'),
-    notifiedAt: timestamp('notified_at'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    createdAt,
+    updatedAt,
   },
-  (table) => ({
-    orgIdIndex: index('payment_transfers_org_id_idx').on(table.orgId),
-    expertIdIndex: index('payment_transfers_expert_id_idx').on(table.expertConnectAccountId),
-  }),
+  (table) => [
+    index('payment_transfers_org_id_idx').on(table.orgId),
+    index('payment_transfers_expert_id_idx').on(table.expertConnectAccountId),
+    pgPolicy('payment_transfers_read', {
+      for: 'select',
+      using: isOrgMember('org_id', 'payment_transfers'),
+    }),
+    pgPolicy('payment_transfers_modify', {
+      for: 'all',
+      using: sql`expert_workos_user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -738,7 +926,7 @@ export const PaymentTransfersTable = pgTable(
 export const SchedulingSettingsTable = pgTable(
   'scheduling_settings',
   {
-    id: serial('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull(),
     beforeEventBuffer: integer('before_event_buffer').notNull().default(0),
@@ -746,13 +934,46 @@ export const SchedulingSettingsTable = pgTable(
     minimumNotice: integer('minimum_notice').notNull().default(0),
     timeSlotInterval: integer('time_slot_interval').notNull().default(15),
     bookingWindowDays: integer('booking_window_days').notNull().default(60),
-    createdAt: timestamp('created_at').defaultNow(),
-    updatedAt: timestamp('updated_at').defaultNow(),
+    createdAt,
+    updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    userIdIndex: index('scheduling_settings_user_id_idx').on(table.workosUserId),
-  }),
+  (table) => [
+    index('scheduling_settings_user_id_idx').on(table.workosUserId),
+    pgPolicy('scheduling_settings_all', {
+      for: 'all',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+  ],
+);
+
+/**
+ * Destination Calendars Table
+ *
+ * Stores the user's selected calendar where new booking events are pushed.
+ * One destination per user (upsert on userId).
+ * Calendar connection is optional -- the app works without it.
+ */
+export const DestinationCalendarsTable = pgTable(
+  'destination_calendars',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .unique()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    provider: text('provider').notNull().$type<'google-calendar' | 'microsoft-outlook-calendar'>(),
+    externalId: text('external_id').notNull(),
+    calendarName: text('calendar_name'),
+    createdAt,
+    updatedAt,
+  },
+  (table) => [
+    index('destination_calendars_user_id_idx').on(table.userId),
+    pgPolicy('destination_calendars_all', {
+      for: 'all',
+      using: sql`user_id = ${authUid}`,
+    }),
+  ],
 );
 
 /**
@@ -761,21 +982,41 @@ export const SchedulingSettingsTable = pgTable(
 export const BlockedDatesTable = pgTable(
   'blocked_dates',
   {
-    id: serial('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     orgId: uuid('org_id').references(() => OrganizationsTable.id),
     workosUserId: text('workos_user_id').notNull(),
     date: date('date').notNull(),
     timezone: text('timezone').notNull().default('UTC'),
     reason: text('reason'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+    createdAt,
+    updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    orgIdIndex: index('blocked_dates_org_id_idx').on(table.orgId),
-    userIdIndex: index('blocked_dates_user_id_idx').on(table.workosUserId),
-    dateIndex: index('blocked_dates_date_idx').on(table.date),
-  }),
+  (table) => [
+    index('blocked_dates_org_id_idx').on(table.orgId),
+    index('blocked_dates_user_id_idx').on(table.workosUserId),
+    index('blocked_dates_date_idx').on(table.date),
+    pgPolicy('Users can view own blocked dates', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can create own blocked dates', {
+      for: 'insert',
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can update own blocked dates', {
+      for: 'update',
+      using: sql`workos_user_id = ${authUid}`,
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can delete own blocked dates', {
+      for: 'delete',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Org members can view org blocked dates', {
+      for: 'select',
+      using: isOrgMember('org_id', 'blocked_dates'),
+    }),
+  ],
 );
 
 /**
@@ -795,34 +1036,57 @@ export const SlotReservationsTable = pgTable(
       .references(() => EventsTable.id, { onDelete: 'cascade' }),
     workosUserId: text('workos_user_id').notNull(),
     guestEmail: text('guest_email').notNull(),
-    startTime: timestamp('start_time').notNull(),
-    endTime: timestamp('end_time').notNull(),
-    expiresAt: timestamp('expires_at').notNull(),
+    startTime: timestamp('start_time', { withTimezone: true }).notNull(),
+    endTime: timestamp('end_time', { withTimezone: true }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
     stripeSessionId: text('stripe_session_id').unique(),
-    // Reminder tracking fields to prevent duplicate reminder emails
-    gentleReminderSentAt: timestamp('gentle_reminder_sent_at'),
-    urgentReminderSentAt: timestamp('urgent_reminder_sent_at'),
+    gentleReminderSentAt: timestamp('gentle_reminder_sent_at', { withTimezone: true }),
+    urgentReminderSentAt: timestamp('urgent_reminder_sent_at', { withTimezone: true }),
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    orgIdIndex: index('slot_reservations_org_id_idx').on(table.orgId),
-    eventIdIndex: index('slot_reservations_event_id_idx').on(table.eventId),
-    userIdIndex: index('slot_reservations_user_id_idx').on(table.workosUserId),
-    expiresAtIndex: index('slot_reservations_expires_at_idx').on(table.expiresAt),
-    paymentIntentIdIndex: index('slot_reservations_payment_intent_id_idx').on(
-      table.stripePaymentIntentId,
-    ),
-    // Unique constraint to prevent duplicate active reservations for the same slot
-    // Enforces that only one guest can reserve a specific time slot for a given event
-    activeSlotReservationUnique: unique('slot_reservations_active_slot_unique').on(
+  (table) => [
+    index('slot_reservations_org_id_idx').on(table.orgId),
+    index('slot_reservations_event_id_idx').on(table.eventId),
+    index('slot_reservations_user_id_idx').on(table.workosUserId),
+    index('slot_reservations_expires_at_idx').on(table.expiresAt),
+    index('slot_reservations_payment_intent_id_idx').on(table.stripePaymentIntentId),
+    unique('slot_reservations_active_slot_unique').on(
       table.eventId,
       table.startTime,
       table.guestEmail,
     ),
-  }),
+    pgPolicy('Users can view own reservations', {
+      for: 'select',
+      using: sql.raw(`
+        guest_email = (
+          SELECT email FROM users WHERE workos_user_id = auth.user_id()
+        )
+      `),
+    }),
+    pgPolicy('Experts can view event reservations', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Experts can create event reservations', {
+      for: 'insert',
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Experts can update event reservations', {
+      for: 'update',
+      using: sql`workos_user_id = ${authUid}`,
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Experts can delete event reservations', {
+      for: 'delete',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Org members can view org reservations', {
+      for: 'select',
+      using: isOrgMember('org_id', 'slot_reservations'),
+    }),
+  ],
 );
 
 // ============================================================================
@@ -944,8 +1208,8 @@ export const SubscriptionPlansTable = pgTable(
     billingInterval: text('billing_interval').$type<'month' | 'year'>(), // Monthly or annual billing
     monthlyFee: integer('monthly_fee'), // in cents (e.g., 4900 = $49/mo)
     annualFee: integer('annual_fee'), // in cents (e.g., 49000 = $490/year)
-    subscriptionStartDate: timestamp('subscription_start_date'),
-    subscriptionEndDate: timestamp('subscription_end_date'),
+    subscriptionStartDate: timestamp('subscription_start_date', { withTimezone: true }),
+    subscriptionEndDate: timestamp('subscription_end_date', { withTimezone: true }),
     subscriptionStatus: text('subscription_status').$type<
       'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing'
     >(),
@@ -953,26 +1217,78 @@ export const SubscriptionPlansTable = pgTable(
 
     // Upgrade/transition tracking
     previousPlanType: text('previous_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
-    upgradedAt: timestamp('upgraded_at'),
+    upgradedAt: timestamp('upgraded_at', { withTimezone: true }),
     commissionsPaidBeforeUpgrade: integer('commissions_paid_before_upgrade'), // in cents
 
     // Eligibility flags
     isEligibleForAnnual: boolean('is_eligible_for_annual').default(false),
     eligibilityNotificationSent: boolean('eligibility_notification_sent').default(false),
-    eligibilityLastChecked: timestamp('eligibility_last_checked'),
+    eligibilityLastChecked: timestamp('eligibility_last_checked', { withTimezone: true }),
 
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    orgIdIndex: index('subscription_plans_org_id_idx').on(table.orgId), // Primary lookup
-    billingAdminIndex: index('subscription_plans_billing_admin_idx').on(table.billingAdminUserId), // Secondary
-    stripeSubscriptionIdIndex: index('subscription_plans_stripe_sub_idx').on(
-      table.stripeSubscriptionId,
-    ),
-    planTypeIndex: index('subscription_plans_plan_type_idx').on(table.planType),
-  }),
+  (table) => [
+    index('subscription_plans_org_id_idx').on(table.orgId),
+    index('subscription_plans_billing_admin_idx').on(table.billingAdminUserId),
+    index('subscription_plans_stripe_sub_idx').on(table.stripeSubscriptionId),
+    index('subscription_plans_plan_type_idx').on(table.planType),
+    pgPolicy('Org members can view org subscription', {
+      for: 'select',
+      using: isOrgMember('org_id', 'subscription_plans'),
+    }),
+    pgPolicy('Billing admin can update subscription', {
+      for: 'update',
+      using: sql.raw(`
+        billing_admin_user_id = auth.user_id()
+        OR EXISTS (
+          SELECT 1 FROM user_org_memberships
+          WHERE user_org_memberships.org_id = subscription_plans.org_id
+          AND user_org_memberships.workos_user_id = auth.user_id()
+          AND user_org_memberships.role IN ('owner', 'admin')
+          AND user_org_memberships.status = 'active'
+        )
+      `),
+      withCheck: sql.raw(`
+        billing_admin_user_id = auth.user_id()
+        OR EXISTS (
+          SELECT 1 FROM user_org_memberships
+          WHERE user_org_memberships.org_id = subscription_plans.org_id
+          AND user_org_memberships.workos_user_id = auth.user_id()
+          AND user_org_memberships.role IN ('owner', 'admin')
+          AND user_org_memberships.status = 'active'
+        )
+      `),
+    }),
+    pgPolicy('Org owners can insert subscription', {
+      for: 'insert',
+      withCheck: sql.raw(`
+        EXISTS (
+          SELECT 1 FROM user_org_memberships
+          WHERE user_org_memberships.org_id = subscription_plans.org_id
+          AND user_org_memberships.workos_user_id = auth.user_id()
+          AND user_org_memberships.role IN ('owner', 'admin')
+          AND user_org_memberships.status = 'active'
+        )
+      `),
+    }),
+    pgPolicy('Org owners can delete subscription', {
+      for: 'delete',
+      using: sql.raw(`
+        EXISTS (
+          SELECT 1 FROM user_org_memberships
+          WHERE user_org_memberships.org_id = subscription_plans.org_id
+          AND user_org_memberships.workos_user_id = auth.user_id()
+          AND user_org_memberships.role = 'owner'
+          AND user_org_memberships.status = 'active'
+        )
+      `),
+    }),
+    pgPolicy('Admins can view all subscriptions', {
+      for: 'select',
+      using: isAdmin,
+    }),
+  ],
 );
 
 /**
@@ -1093,8 +1409,8 @@ export const TransactionCommissionsTable = pgTable(
 
     // Status tracking
     status: text('status').notNull().$type<'pending' | 'processed' | 'refunded' | 'disputed'>(),
-    processedAt: timestamp('processed_at'),
-    refundedAt: timestamp('refunded_at'),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+    refundedAt: timestamp('refunded_at', { withTimezone: true }),
 
     // 📸 Metadata for reporting (snapshot at transaction time)
     // These fields capture the expert's state when the transaction occurred,
@@ -1111,17 +1427,31 @@ export const TransactionCommissionsTable = pgTable(
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    userIdIndex: index('transaction_commissions_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('transaction_commissions_org_id_idx').on(table.orgId),
-    meetingIdIndex: index('transaction_commissions_meeting_id_idx').on(table.meetingId),
-    statusIndex: index('transaction_commissions_status_idx').on(table.status),
-    createdAtIndex: index('transaction_commissions_created_at_idx').on(table.createdAt),
-    paymentIntentIdIndex: index('transaction_commissions_payment_intent_idx').on(
-      table.stripePaymentIntentId,
-    ),
-  }),
+  (table) => [
+    index('transaction_commissions_user_id_idx').on(table.workosUserId),
+    index('transaction_commissions_org_id_idx').on(table.orgId),
+    index('transaction_commissions_meeting_id_idx').on(table.meetingId),
+    index('transaction_commissions_status_idx').on(table.status),
+    index('transaction_commissions_created_at_idx').on(table.createdAt),
+    index('transaction_commissions_payment_intent_idx').on(table.stripePaymentIntentId),
+    pgPolicy('Users can view org commissions', {
+      for: 'select',
+      using: isOrgMember('org_id', 'transaction_commissions'),
+    }),
+    pgPolicy('System can insert commissions', {
+      for: 'insert',
+      withCheck: sql`${authUid} IS NOT NULL`,
+    }),
+    pgPolicy('System can update commissions', {
+      for: 'update',
+      using: isOrgMember('org_id', 'transaction_commissions'),
+      withCheck: isOrgMember('org_id', 'transaction_commissions'),
+    }),
+    pgPolicy('Admins can view all commissions', {
+      for: 'select',
+      using: isAdmin,
+    }),
+  ],
 );
 
 /**
@@ -1158,7 +1488,7 @@ export const AnnualPlanEligibilityTable = pgTable(
 
     // Eligibility status
     isEligible: boolean('is_eligible').default(false),
-    eligibleSince: timestamp('eligible_since'),
+    eligibleSince: timestamp('eligible_since', { withTimezone: true }),
     tierLevel: text('tier_level').$type<'community' | 'top'>(),
 
     // Projected savings calculation
@@ -1168,19 +1498,35 @@ export const AnnualPlanEligibilityTable = pgTable(
     breakEvenMonthlyRevenue: integer('break_even_monthly_revenue'), // in cents
 
     // Calculation metadata
-    lastCalculated: timestamp('last_calculated').notNull().defaultNow(),
+    lastCalculated: timestamp('last_calculated', { withTimezone: true }).notNull().defaultNow(),
     calculationVersion: integer('calculation_version').default(1), // For formula updates
 
     createdAt,
     updatedAt,
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    userIdIndex: index('annual_eligibility_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('annual_eligibility_org_id_idx').on(table.orgId),
-    eligibleIndex: index('annual_eligibility_eligible_idx').on(table.isEligible),
-    lastCalculatedIndex: index('annual_eligibility_last_calc_idx').on(table.lastCalculated),
-  }),
+  (table) => [
+    index('annual_eligibility_user_id_idx').on(table.workosUserId),
+    index('annual_eligibility_org_id_idx').on(table.orgId),
+    index('annual_eligibility_eligible_idx').on(table.isEligible),
+    index('annual_eligibility_last_calc_idx').on(table.lastCalculated),
+    pgPolicy('Users can view own eligibility', {
+      for: 'select',
+      using: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can create own eligibility', {
+      for: 'insert',
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Users can update own eligibility', {
+      for: 'update',
+      using: sql`workos_user_id = ${authUid}`,
+      withCheck: sql`workos_user_id = ${authUid}`,
+    }),
+    pgPolicy('Org members can view org eligibility', {
+      for: 'select',
+      using: isOrgMember('org_id', 'annual_plan_eligibility'),
+    }),
+  ],
 );
 
 /**
@@ -1238,16 +1584,27 @@ export const SubscriptionEventsTable = pgTable(
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
     reason: text('reason'), // e.g., "user_requested", "payment_failed", "auto_upgrade"
 
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration
-    userIdIndex: index('subscription_events_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('subscription_events_org_id_idx').on(table.orgId),
-    subscriptionPlanIdIndex: index('subscription_events_plan_id_idx').on(table.subscriptionPlanId),
-    eventTypeIndex: index('subscription_events_type_idx').on(table.eventType),
-    createdAtIndex: index('subscription_events_created_at_idx').on(table.createdAt),
-  }),
+  (table) => [
+    index('subscription_events_user_id_idx').on(table.workosUserId),
+    index('subscription_events_org_id_idx').on(table.orgId),
+    index('subscription_events_plan_id_idx').on(table.subscriptionPlanId),
+    index('subscription_events_type_idx').on(table.eventType),
+    index('subscription_events_created_at_idx').on(table.createdAt),
+    pgPolicy('Users can view org subscription events', {
+      for: 'select',
+      using: isOrgMember('org_id', 'subscription_events'),
+    }),
+    pgPolicy('System can insert subscription events', {
+      for: 'insert',
+      withCheck: sql`${authUid} IS NOT NULL`,
+    }),
+    pgPolicy('Admins can view all subscription events', {
+      for: 'select',
+      using: isAdmin,
+    }),
+  ],
 );
 
 // ============================================================================
@@ -1379,17 +1736,24 @@ export const AuditLogsTable = pgTable(
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration (append-only, org-scoped)
-    orgIdIndex: index('audit_logs_org_id_idx').on(table.orgId),
-    userIdIndex: index('audit_logs_user_id_idx').on(table.workosUserId),
-    createdAtIndex: index('audit_logs_created_at_idx').on(table.createdAt),
-    actionIndex: index('audit_logs_action_idx').on(table.action),
-    resourceTypeIndex: index('audit_logs_resource_type_idx').on(table.resourceType),
-    orgCreatedIndex: index('audit_logs_org_created_idx').on(table.orgId, table.createdAt),
-  }),
+  (table) => [
+    index('audit_logs_org_id_idx').on(table.orgId),
+    index('audit_logs_user_id_idx').on(table.workosUserId),
+    index('audit_logs_created_at_idx').on(table.createdAt),
+    index('audit_logs_action_idx').on(table.action),
+    index('audit_logs_resource_type_idx').on(table.resourceType),
+    index('audit_logs_org_created_idx').on(table.orgId, table.createdAt),
+    pgPolicy('audit_logs_read', {
+      for: 'select',
+      using: isOrgMember('org_id', 'audit_logs'),
+    }),
+    pgPolicy('audit_logs_insert', {
+      for: 'insert',
+      withCheck: sql`${authUid} IS NOT NULL`,
+    }),
+  ],
 );
 
 // ============================================================================
@@ -1535,5 +1899,12 @@ export const subscriptionEventRelations = relations(SubscriptionEventsTable, ({ 
   subscriptionPlan: one(SubscriptionPlansTable, {
     fields: [SubscriptionEventsTable.subscriptionPlanId],
     references: [SubscriptionPlansTable.id],
+  }),
+}));
+
+export const destinationCalendarRelations = relations(DestinationCalendarsTable, ({ one }) => ({
+  user: one(UsersTable, {
+    fields: [DestinationCalendarsTable.userId],
+    references: [UsersTable.workosUserId],
   }),
 }));

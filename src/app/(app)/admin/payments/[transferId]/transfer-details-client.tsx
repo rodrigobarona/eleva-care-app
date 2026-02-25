@@ -39,7 +39,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 type PaymentTransfer = {
-  id: number;
+  id: string;
   paymentIntentId: string;
   checkoutSessionId: string;
   eventId: string;

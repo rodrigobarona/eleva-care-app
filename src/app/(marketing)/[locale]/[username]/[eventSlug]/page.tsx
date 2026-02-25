@@ -20,8 +20,10 @@ import {
 } from '@/lib/constants/scheduling';
 import { Link } from '@/lib/i18n/navigation';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
+import { OrganizationsTable, UserOrgMembershipsTable } from '@/drizzle/schema';
+import { CalendarService } from '@/lib/integrations/calendar';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
-import GoogleCalendarService from '@/server/googleCalendar';
+import { eq } from 'drizzle-orm';
 import {
   addDays,
   addMinutes,
@@ -157,23 +159,6 @@ async function CalendarWithAvailability({
   };
   locale: string;
 }) {
-  const calendarService = GoogleCalendarService.getInstance();
-
-  // Verify calendar access before fetching times
-  const hasValidTokens = await calendarService.hasValidTokens(userId);
-  if (!hasValidTokens) {
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Calendar Access Required</CardTitle>
-          <CardDescription>
-            The calendar owner needs to reconnect their Google Calendar to show available times.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   // Fetch scheduling settings for the user
   let timeSlotInterval = DEFAULT_TIME_SLOT_INTERVAL;
   let bookingWindowDays = DEFAULT_BOOKING_WINDOW_DAYS;
@@ -259,11 +244,26 @@ async function CalendarWithAvailability({
     ),
   );
 
-  // Get calendar events and calculate valid times
-  const calendarEvents = await calendarService.getCalendarEventTimes(userId, {
-    start: startDate,
-    end: endDate,
+  // External calendar free/busy (additive -- returns [] if no calendar connected)
+  const membership = await db.query.UserOrgMembershipsTable.findFirst({
+    where: eq(UserOrgMembershipsTable.workosUserId, userId),
+    columns: { orgId: true },
   });
+  const org = membership?.orgId
+    ? await db.query.OrganizationsTable.findFirst({
+        where: eq(OrganizationsTable.id, membership.orgId),
+        columns: { workosOrgId: true },
+      })
+    : null;
+
+  const calendarEvents = org?.workosOrgId
+    ? await CalendarService.getAllFreeBusy(
+        userId,
+        org.workosOrgId,
+        startDate,
+        endDate,
+      )
+    : [];
 
   // Generate time slots based on the configured interval
   const timeSlots = [];

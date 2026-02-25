@@ -4,8 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
 import { redisManager } from '@/lib/redis/manager';
-import GoogleCalendarService from '@/server/googleCalendar';
-import { gt, sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 const { logger } = Sentry;
@@ -360,69 +359,8 @@ export async function GET(request: Request) {
       });
     }
 
-    logger.info('Starting Google Calendar token refresh...');
-    const googleCalendarService = GoogleCalendarService.getInstance();
-    const batchSize = 50; // Process 50 profiles at a time
-    let lastUserId: string | undefined;
-    let hasMore = true;
-
-    while (hasMore) {
-      const query = db
-        .select({ userId: ProfilesTable.workosUserId })
-        .from(ProfilesTable)
-        .$dynamic();
-
-      if (lastUserId) {
-        query.where(gt(ProfilesTable.workosUserId, lastUserId));
-      }
-
-      const profiles = await query
-        .orderBy(ProfilesTable.workosUserId)
-        .limit(batchSize);
-
-      if (profiles.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      metrics.totalProfiles += profiles.length;
-      logger.info(
-        logger.fmt`Processing batch of ${profiles.length} profiles (after: ${lastUserId || 'start'})`,
-      );
-
-      // Process batch concurrently with limited parallelism
-      await Promise.allSettled(
-        profiles.map(async (profile) => {
-          try {
-            // Check if user has Google Calendar tokens before attempting refresh
-            const hasTokens = await googleCalendarService.hasValidTokens(profile.userId);
-            if (hasTokens) {
-              await googleCalendarService.getOAuthClient(profile.userId);
-              logger.info(logger.fmt`Token refreshed for user: ${profile.userId}`);
-              metrics.successfulRefreshes++;
-            } else {
-              metrics.skippedProfiles++;
-            }
-          } catch (error) {
-            if (!(error instanceof Error && error.message.includes('No refresh token'))) {
-              Sentry.captureException(error);
-              logger.error(logger.fmt`Failed to refresh token for user ${profile.userId}`, {
-                error: error instanceof Error ? error.message : String(error),
-              });
-              metrics.failedRefreshes++;
-              metrics.errors.push({
-                userId: profile.userId,
-                error: error instanceof Error ? error.message : 'Unknown error',
-              });
-            } else {
-              metrics.skippedProfiles++;
-            }
-          }
-        }),
-      );
-
-      lastUserId = profiles[profiles.length - 1].userId;
-    }
+    // Calendar token refresh is handled automatically by WorkOS Pipes -- no manual refresh needed.
+    logger.info('Calendar token refresh skipped (managed by WorkOS Pipes)');
 
     const duration = Date.now() - startTime;
     const summary = {
