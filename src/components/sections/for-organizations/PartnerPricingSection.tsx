@@ -64,16 +64,16 @@ export default function PartnerPricingSection({
           {/* Header */}
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold md:text-4xl">{title}</h2>
-            {subtitle && <p className="mb-2 text-lg text-muted-foreground">{subtitle}</p>}
+            {subtitle && <p className="text-muted-foreground mb-2 text-lg">{subtitle}</p>}
             {description && (
-              <p className="mx-auto max-w-3xl text-sm text-muted-foreground">{description}</p>
+              <p className="text-muted-foreground mx-auto max-w-3xl text-sm">{description}</p>
             )}
           </div>
 
           {/* Billing Toggle */}
           {hasAnnualPricing && (
             <div className="mb-8 flex items-center justify-center gap-2">
-              <div className="inline-flex items-center rounded-full border bg-muted p-1">
+              <div className="bg-muted inline-flex items-center rounded-full border p-1">
                 <button
                   type="button"
                   onClick={() => setBillingPeriod('monthly')}
@@ -95,7 +95,10 @@ export default function PartnerPricingSection({
                   }`}
                 >
                   Annual
-                  <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                  >
                     Save 2 months
                   </Badge>
                 </button>
@@ -108,7 +111,9 @@ export default function PartnerPricingSection({
             {tiers.map((tier, index) => {
               const showAnnual = billingPeriod === 'annual' && tier.annualPrice;
               const displayPrice = showAnnual ? tier.annualPrice : tier.price;
-              const displayDetail = showAnnual ? (tier.annualPriceDetail || '/year') : tier.priceDetail;
+              const displayDetail = showAnnual
+                ? tier.annualPriceDetail || '/year'
+                : tier.priceDetail;
 
               return (
                 <Card
@@ -117,7 +122,7 @@ export default function PartnerPricingSection({
                 >
                   {tier.recommended && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="flex items-center gap-1 bg-primary px-4 py-1 text-sm font-medium">
+                      <Badge className="bg-primary flex items-center gap-1 px-4 py-1 text-sm font-medium">
                         <Star className="h-3 w-3" />
                         Most Popular
                       </Badge>
@@ -140,12 +145,15 @@ export default function PartnerPricingSection({
                       <div className="flex items-baseline gap-1">
                         <span className="text-5xl font-bold tracking-tight">{displayPrice}</span>
                         {displayDetail && (
-                          <span className="text-lg text-muted-foreground">{displayDetail}</span>
+                          <span className="text-muted-foreground text-lg">{displayDetail}</span>
                         )}
                       </div>
                       {showAnnual && tier.annualSavings && (
                         <div className="mt-2">
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                          <Badge
+                            variant="secondary"
+                            className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                          >
                             💰 {tier.annualSavings}
                           </Badge>
                         </div>
@@ -157,7 +165,7 @@ export default function PartnerPricingSection({
                     <ul className="mb-8 flex-1 space-y-3">
                       {tier.features.map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-3">
-                          <Check className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                          <Check className="text-primary mt-0.5 h-5 w-5 shrink-0" />
                           <span className="text-sm leading-relaxed">{feature}</span>
                         </li>
                       ))}
@@ -178,24 +186,24 @@ export default function PartnerPricingSection({
           </div>
 
           {/* Revenue Share Info */}
-          <div className="mt-12 rounded-lg border bg-card p-6">
+          <div className="bg-card mt-12 rounded-lg border p-6">
             <h3 className="mb-4 text-center text-lg font-semibold">Revenue Share Model</h3>
             <div className="grid gap-6 md:grid-cols-3">
               <div className="text-center">
-                <div className="mb-2 text-3xl font-bold text-primary">8-15%</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-primary mb-2 text-3xl font-bold">8-15%</div>
+                <div className="text-muted-foreground text-sm">
                   Platform commission on expert bookings
                 </div>
               </div>
               <div className="text-center">
-                <div className="mb-2 text-3xl font-bold text-primary">Your Choice</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-primary mb-2 text-3xl font-bold">Your Choice</div>
+                <div className="text-muted-foreground text-sm">
                   Set your own partner marketing fee
                 </div>
               </div>
               <div className="text-center">
-                <div className="mb-2 text-3xl font-bold text-primary">60%+</div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-primary mb-2 text-3xl font-bold">60%+</div>
+                <div className="text-muted-foreground text-sm">
                   Experts always keep at least 60%
                 </div>
               </div>
@@ -212,7 +220,7 @@ export default function PartnerPricingSection({
                     <AccordionTrigger className="text-left text-sm font-medium">
                       {item.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-sm text-muted-foreground">
+                    <AccordionContent className="text-muted-foreground text-sm">
                       {item.answer}
                     </AccordionContent>
                   </AccordionItem>
@@ -222,7 +230,7 @@ export default function PartnerPricingSection({
           )}
 
           {/* Note */}
-          {note && <p className="mt-8 text-center text-sm text-muted-foreground">{note}</p>}
+          {note && <p className="text-muted-foreground mt-8 text-center text-sm">{note}</p>}
         </div>
       </div>
     </section>

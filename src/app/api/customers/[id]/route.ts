@@ -1,10 +1,10 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
 import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -43,10 +43,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
       .where(eq(EventsTable.workosUserId, userId));
 
     // Deduplicate by guestWorkosUserId (canonical identifier)
-    const uniqueGuests = new Map<
-      string,
-      { guestEmail: string; guestName: string }
-    >();
+    const uniqueGuests = new Map<string, { guestEmail: string; guestName: string }>();
     for (const m of meetingsWithGuests) {
       if (!uniqueGuests.has(m.guestWorkosUserId)) {
         uniqueGuests.set(m.guestWorkosUserId, {

@@ -3,12 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Check, HelpCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
@@ -57,100 +52,100 @@ export default function ExpertPricingSection({
   return (
     <TooltipProvider>
       <section className="bg-muted/30 py-16">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold md:text-4xl">{title}</h2>
-            {subtitle && (
-              <p className="mx-auto max-w-2xl text-lg text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-
-          {/* Community Expert Tier */}
-          <div className="mb-16">
-            <div className="mb-8 flex items-center gap-3">
-              <div className={`text-2xl text-primary`}>{communityTier.tierIcon}</div>
-              <div>
-                <h3 className="text-2xl font-bold">{communityTier.tierName}</h3>
-                <p className="text-muted-foreground">{communityTier.description}</p>
-              </div>
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-7xl">
+            {/* Header */}
+            <div className="mb-12 text-center">
+              <h2 className="mb-4 text-3xl font-bold md:text-4xl">{title}</h2>
+              {subtitle && (
+                <p className="text-muted-foreground mx-auto max-w-2xl text-lg">{subtitle}</p>
+              )}
             </div>
 
-            {/* Community Expert Plans */}
-            <div className="grid gap-6 md:grid-cols-3">
-              {communityTier.plans.map((plan, index) => (
-                <PlanCard
-                  key={index}
-                  plan={plan}
-                  tierColor="primary"
-                  isRecommended={plan.recommended}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Top Expert Tier */}
-          <div className="mb-16">
-            <div className="mb-8 flex items-center gap-3">
-              <div className={`text-2xl text-amber-500`}>{topTier.tierIcon}</div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-2xl font-bold">{topTier.tierName}</h3>
-                  {topTier.tierBadge && (
-                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-500">
-                      {topTier.tierBadge}
-                    </Badge>
-                  )}
+            {/* Community Expert Tier */}
+            <div className="mb-16">
+              <div className="mb-8 flex items-center gap-3">
+                <div className={`text-primary text-2xl`}>{communityTier.tierIcon}</div>
+                <div>
+                  <h3 className="text-2xl font-bold">{communityTier.tierName}</h3>
+                  <p className="text-muted-foreground">{communityTier.description}</p>
                 </div>
-                <p className="text-muted-foreground">{topTier.description}</p>
+              </div>
+
+              {/* Community Expert Plans */}
+              <div className="grid gap-6 md:grid-cols-3">
+                {communityTier.plans.map((plan, index) => (
+                  <PlanCard
+                    key={index}
+                    plan={plan}
+                    tierColor="primary"
+                    isRecommended={plan.recommended}
+                  />
+                ))}
               </div>
             </div>
 
-            {/* Top Expert Requirements */}
-            {topTier.requirements && topTier.requirements.length > 0 && (
-              <Card className="mb-6 border-amber-500/20 bg-amber-500/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Info className="h-5 w-5 text-amber-500" />
-                    How to Qualify for Top Expert
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="grid gap-2 sm:grid-cols-2">
-                    {topTier.requirements.map((req, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                        <span>{req}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+            {/* Top Expert Tier */}
+            <div className="mb-16">
+              <div className="mb-8 flex items-center gap-3">
+                <div className={`text-2xl text-amber-500`}>{topTier.tierIcon}</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-2xl font-bold">{topTier.tierName}</h3>
+                    {topTier.tierBadge && (
+                      <Badge variant="secondary" className="bg-amber-500/10 text-amber-500">
+                        {topTier.tierBadge}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground">{topTier.description}</p>
+                </div>
+              </div>
+
+              {/* Top Expert Requirements */}
+              {topTier.requirements && topTier.requirements.length > 0 && (
+                <Card className="mb-6 border-amber-500/20 bg-amber-500/5">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Info className="h-5 w-5 text-amber-500" />
+                      How to Qualify for Top Expert
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="grid gap-2 sm:grid-cols-2">
+                      {topTier.requirements.map((req, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                          <span>{req}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Top Expert Plans */}
+              <div className="grid gap-6 md:grid-cols-3">
+                {topTier.plans.map((plan, index) => (
+                  <PlanCard
+                    key={index}
+                    plan={plan}
+                    tierColor="amber"
+                    isRecommended={plan.recommended}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Note */}
+            {note && (
+              <div className="bg-muted/50 rounded-lg border p-4">
+                <p className="text-muted-foreground text-center text-sm">{note}</p>
+              </div>
             )}
-
-            {/* Top Expert Plans */}
-            <div className="grid gap-6 md:grid-cols-3">
-              {topTier.plans.map((plan, index) => (
-                <PlanCard
-                  key={index}
-                  plan={plan}
-                  tierColor="amber"
-                  isRecommended={plan.recommended}
-                />
-              ))}
-            </div>
           </div>
-
-          {/* Note */}
-          {note && (
-            <div className="rounded-lg border bg-muted/50 p-4">
-              <p className="text-center text-sm text-muted-foreground">{note}</p>
-            </div>
-          )}
         </div>
-      </div>
-    </section>
+      </section>
     </TooltipProvider>
   );
 }
@@ -220,19 +215,19 @@ function PlanCard({
           )}
 
           {/* Commission Rate */}
-          <div className="rounded-lg bg-muted/50 p-3">
+          <div className="bg-muted/50 rounded-lg p-3">
             <div className="flex items-center justify-between">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="flex cursor-help items-center gap-1 text-sm text-muted-foreground">
+                  <span className="text-muted-foreground flex cursor-help items-center gap-1 text-sm">
                     Commission per booking
                     <HelpCircle className="h-3.5 w-3.5" />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">
                   <p className="text-xs">
-                    This is the platform fee deducted from each booking payment. The remaining amount
-                    is paid directly to you.
+                    This is the platform fee deducted from each booking payment. The remaining
+                    amount is paid directly to you.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -263,7 +258,7 @@ function PlanCard({
         {/* CTA Button */}
         <Button
           asChild
-          className={`w-full ${isRecommended ? `ring-2 ring-offset-2 ring-offset-background shadow-md ${tierColor === 'amber' ? 'ring-amber-500' : 'ring-primary'}` : ''}`}
+          className={`w-full ${isRecommended ? `ring-offset-background shadow-md ring-2 ring-offset-2 ${tierColor === 'amber' ? 'ring-amber-500' : 'ring-primary'}` : ''}`}
           variant={isRecommended ? 'default' : 'outline'}
           size="lg"
         >

@@ -22,9 +22,9 @@ export default function HeroSection({
   features,
 }: HeroSectionProps) {
   return (
-    <section className="container relative mx-auto px-4 py-20 md:py-32">
+    <section className="relative container mx-auto px-4 py-20 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
-        <div className="mb-6 inline-block rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+        <div className="bg-primary/10 text-primary mb-6 inline-block rounded-full px-4 py-2 text-sm font-medium">
           <Sparkles className="mr-2 inline h-4 w-4" />
           {badge}
         </div>
@@ -32,12 +32,12 @@ export default function HeroSection({
         <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl lg:text-6xl">
           {title}
           <br />
-          <span className="bg-linear-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <span className="from-primary bg-linear-to-r to-purple-600 bg-clip-text text-transparent">
             {subtitle}
           </span>
         </h1>
 
-        <p className="mb-8 text-lg text-muted-foreground md:text-xl">{description}</p>
+        <p className="text-muted-foreground mb-8 text-lg md:text-xl">{description}</p>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Button asChild size="lg" className="text-lg">
@@ -50,7 +50,7 @@ export default function HeroSection({
           </Button>
         </div>
 
-        <p className="mt-6 text-sm text-muted-foreground">{features}</p>
+        <p className="text-muted-foreground mt-6 text-sm">{features}</p>
       </div>
     </section>
   );

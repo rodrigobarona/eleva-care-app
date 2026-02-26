@@ -23,7 +23,7 @@ export default function HowItWorksSection({ title, steps, ctaButton }: HowItWork
           <div className="space-y-8">
             {steps.map((step, index) => (
               <div key={index} className="flex gap-6">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
+                <div className="bg-primary text-primary-foreground flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-xl font-bold">
                   {index + 1}
                 </div>
                 <div>

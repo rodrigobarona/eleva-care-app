@@ -38,7 +38,11 @@ function isWithinHour(date: Date) {
 function isToday(date: Date) {
   const now = new Date();
   const d = new Date(date);
-  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  return (
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  );
 }
 
 function UpcomingAppointmentsInner({ meetings, role }: UpcomingAppointmentsProps) {
@@ -53,8 +57,8 @@ function UpcomingAppointmentsInner({ meetings, role }: UpcomingAppointmentsProps
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Calendar className="mb-3 h-10 w-10 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">No upcoming appointments</p>
+            <Calendar className="text-muted-foreground/50 mb-3 h-10 w-10" />
+            <p className="text-muted-foreground text-sm">No upcoming appointments</p>
             {role === 'patient' && (
               <Button variant="link" size="sm" asChild className="mt-2">
                 <Link href={'/experts' as any}>Find an Expert</Link>
@@ -70,24 +74,25 @@ function UpcomingAppointmentsInner({ meetings, role }: UpcomingAppointmentsProps
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-semibold">Upcoming Appointments</CardTitle>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href={'/appointments' as any}>View All</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={'/appointments' as any}>View All</Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
         <div className="space-y-3">
           {meetings.map((meeting) => {
             const startingSoon = isWithinHour(meeting.startTime);
             const today = isToday(meeting.startTime);
             const personName =
               role === 'patient'
-                ? [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert'
+                ? [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') ||
+                  'Expert'
                 : meeting.guestInfo.fullName;
 
             return (
               <div
                 key={meeting.id}
-                className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2">
@@ -103,10 +108,10 @@ function UpcomingAppointmentsInner({ meetings, role }: UpcomingAppointmentsProps
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {role === 'patient' ? 'with' : 'Patient:'} {personName}
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex items-center gap-3 text-xs">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       {formatDate(meeting.startTime)}

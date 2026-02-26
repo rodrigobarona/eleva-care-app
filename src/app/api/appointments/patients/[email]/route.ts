@@ -1,7 +1,7 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { MeetingsTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import * as Sentry from '@sentry/nextjs';
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -41,7 +41,10 @@ export async function GET(request: Request, props: { params: Promise<{ email: st
     const emailResult = emailParamSchema.safeParse(identifier);
     if (!emailResult.success) {
       return NextResponse.json(
-        { error: 'Invalid format: provide a valid email or WorkOS user ID', details: emailResult.error.flatten() },
+        {
+          error: 'Invalid format: provide a valid email or WorkOS user ID',
+          details: emailResult.error.flatten(),
+        },
         { status: 400 },
       );
     }

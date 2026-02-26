@@ -8,9 +8,9 @@ import {
   ProfilesTable,
   TransactionCommissionsTable,
 } from '@/drizzle/schema';
-import { and, count, countDistinct, desc, eq, gt, gte, lt, sql, sum } from 'drizzle-orm';
 import type { GuestInfo } from '@/lib/integrations/workos/guest-resolver';
 import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
+import { and, count, countDistinct, desc, eq, gt, gte, lt, sql, sum } from 'drizzle-orm';
 
 const { logger } = Sentry;
 
@@ -74,7 +74,10 @@ export async function getUpcomingMeetings(
         const whereCondition =
           role === 'expert'
             ? and(eq(MeetingsTable.workosUserId, workosUserId), gt(MeetingsTable.startTime, now))
-            : and(eq(MeetingsTable.guestWorkosUserId, workosUserId), gt(MeetingsTable.startTime, now));
+            : and(
+                eq(MeetingsTable.guestWorkosUserId, workosUserId),
+                gt(MeetingsTable.startTime, now),
+              );
 
         const rows = await db
           .select({
@@ -144,7 +147,10 @@ export async function getRecentMeetings(
         const whereCondition =
           role === 'expert'
             ? and(eq(MeetingsTable.workosUserId, workosUserId), lt(MeetingsTable.startTime, now))
-            : and(eq(MeetingsTable.guestWorkosUserId, workosUserId), lt(MeetingsTable.startTime, now));
+            : and(
+                eq(MeetingsTable.guestWorkosUserId, workosUserId),
+                lt(MeetingsTable.startTime, now),
+              );
 
         const rows = await db
           .select({
@@ -254,7 +260,8 @@ export async function getPatientStats(workosUserId: string): Promise<PatientStat
           nextAppointment: next
             ? {
                 eventName: next.eventName,
-                expertName: [next.expertFirstName, next.expertLastName].filter(Boolean).join(' ') || 'Expert',
+                expertName:
+                  [next.expertFirstName, next.expertLastName].filter(Boolean).join(' ') || 'Expert',
                 startTime: next.startTime,
               }
             : null,

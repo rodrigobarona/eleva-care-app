@@ -10,9 +10,9 @@ export const metadata = {
   },
 };
 
+import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
 import BenefitsSection from '@/components/sections/for-organizations/BenefitsSection';
 import FinalCTASection from '@/components/sections/for-organizations/FinalCTASection';
@@ -241,7 +241,8 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
       price: 'Personalizado',
       priceDetail: '',
       teamSize: 'Expertos ilimitados',
-      description: 'Para organizaciones grandes con necesidades específicas y crecimiento ilimitado',
+      description:
+        'Para organizaciones grandes con necesidades específicas y crecimiento ilimitado',
       features: [
         'Perfiles de expertas ilimitados',
         'Opciones de marca blanca',
@@ -263,23 +264,28 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
   faq={[
     {
       question: '¿Puedo cambiar de plan en cualquier momento?',
-      answer: '¡Sí! Puedes mejorar o reducir tu plan en cualquier momento. Al mejorar, se te cobrará la diferencia prorrateada. Al reducir, el crédito se aplicará a tu próximo ciclo de facturación.',
+      answer:
+        '¡Sí! Puedes mejorar o reducir tu plan en cualquier momento. Al mejorar, se te cobrará la diferencia prorrateada. Al reducir, el crédito se aplicará a tu próximo ciclo de facturación.',
     },
     {
       question: '¿Qué incluye la tarifa de la plataforma?',
-      answer: 'La tarifa de la plataforma cubre la infraestructura tecnológica que incluye programación, videoconsultas seguras, procesamiento de pagos, análisis y herramientas de gestión de clientes. No hay tarifas ocultas.',
+      answer:
+        'La tarifa de la plataforma cubre la infraestructura tecnológica que incluye programación, videoconsultas seguras, procesamiento de pagos, análisis y herramientas de gestión de clientes. No hay tarifas ocultas.',
     },
     {
       question: '¿Cómo funciona el modelo de reparto de ingresos?',
-      answer: 'Eleva Care cobra una comisión del 8-15% en cada reserva de experto realizada a través de la plataforma. Esto cubre el procesamiento de pagos, mantenimiento de la plataforma y soporte. Los expertos siempre mantienen al menos el 60% de sus tarifas de reserva.',
+      answer:
+        'Eleva Care cobra una comisión del 8-15% en cada reserva de experto realizada a través de la plataforma. Esto cubre el procesamiento de pagos, mantenimiento de la plataforma y soporte. Los expertos siempre mantienen al menos el 60% de sus tarifas de reserva.',
     },
     {
       question: '¿Puedo añadir más expertos de los que permite mi plan?',
-      answer: 'Puedes mejorar a un plan superior en cualquier momento para añadir más expertos. Para organizaciones que necesiten más de 10 expertos, nuestro plan Enterprise ofrece asientos ilimitados con precios personalizados.',
+      answer:
+        'Puedes mejorar a un plan superior en cualquier momento para añadir más expertos. Para organizaciones que necesiten más de 10 expertos, nuestro plan Enterprise ofrece asientos ilimitados con precios personalizados.',
     },
     {
       question: '¿Hay una prueba gratuita disponible?',
-      answer: 'Ofrecemos una demostración personalizada y experiencia de incorporación. Contacta con nuestro equipo para discutir tus necesidades y explorar cómo Eleva Care puede funcionar para tu organización.',
+      answer:
+        'Ofrecemos una demostración personalizada y experiencia de incorporación. Contacta con nuestro equipo para discutir tus necesidades y explorar cómo Eleva Care puede funcionar para tu organización.',
     },
   ]}
 />
@@ -298,4 +304,3 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
     linkHref: '/contact?demo=true',
   }}
 />
-

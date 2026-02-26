@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
 import { logSecurityError } from '@/lib/constants/security';
@@ -7,7 +8,6 @@ import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 const { logger } = Sentry;

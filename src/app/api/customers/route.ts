@@ -1,9 +1,9 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
 import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
-import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -17,7 +17,7 @@ const { logger } = Sentry;
 export async function GET() {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

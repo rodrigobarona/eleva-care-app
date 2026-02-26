@@ -1,7 +1,7 @@
 'use client';
 
 import { Pipes } from '@workos-inc/widgets';
-import '@workos-inc/widgets/dist/css/widgets.css';
+import '@workos-inc/widgets/styles.css';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchPipesWidgetToken, getCalendarConnectionStatus } from '@/server/actions/calendar';

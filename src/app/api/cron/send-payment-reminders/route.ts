@@ -1,23 +1,18 @@
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { getServerStripe } from '@/lib/integrations/stripe';
-import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
-import {
-  EventsTable,
-  ProfilesTable,
-  SlotReservationsTable,
-  UsersTable,
-} from '@/drizzle/schema';
+import { EventsTable, ProfilesTable, SlotReservationsTable, UsersTable } from '@/drizzle/schema';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
 import { triggerWorkflow } from '@/lib/integrations/novu';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
-import * as Sentry from '@sentry/nextjs';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import Stripe from 'stripe';
@@ -181,7 +176,9 @@ async function handler(request: NextRequest) {
           ),
         );
 
-      logger.info(logger.fmt`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`);
+      logger.info(
+        logger.fmt`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`,
+      );
 
       // Batch-resolve guest emails from WorkOS (fall back to DB guestEmail if resolution fails)
       const guestIds = reservationsNeedingReminders
@@ -195,7 +192,9 @@ async function handler(request: NextRequest) {
         const { reservation, event, expert, profile } = item;
 
         if (!event || !expert) {
-          logger.warn(logger.fmt`Skipping reservation ${reservation.id} - missing event or expert data`);
+          logger.warn(
+            logger.fmt`Skipping reservation ${reservation.id} - missing event or expert data`,
+          );
           continue;
         }
 
@@ -275,9 +274,12 @@ async function handler(request: NextRequest) {
               }
             } catch (stripeError) {
               Sentry.captureException(stripeError);
-              logger.error(logger.fmt`Failed to fetch Stripe payment intent for reservation ${reservation.id}`, {
-                error: stripeError instanceof Error ? stripeError.message : String(stripeError),
-              });
+              logger.error(
+                logger.fmt`Failed to fetch Stripe payment intent for reservation ${reservation.id}`,
+                {
+                  error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+                },
+              );
               // Continue with placeholder values
             }
           }

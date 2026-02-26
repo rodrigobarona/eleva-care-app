@@ -27,6 +27,7 @@
  * }
  * ```
  */
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import {
   EventsTable,
@@ -36,7 +37,6 @@ import {
   UsersTable,
 } from '@/drizzle/schema';
 import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
-import * as Sentry from '@sentry/nextjs';
 import { and, between, eq } from 'drizzle-orm';
 
 const { logger } = Sentry;
@@ -373,7 +373,9 @@ export async function getUpcomingAppointments(
     );
 
     // Batch-resolve guest info from WorkOS (fall back to DB columns if resolution fails)
-    const uniqueGuestIds = [...new Set(upcomingMeetings.map((m) => m.guestWorkosUserId).filter(Boolean))];
+    const uniqueGuestIds = [
+      ...new Set(upcomingMeetings.map((m) => m.guestWorkosUserId).filter(Boolean)),
+    ];
     const guestInfoMap = await resolveGuestInfoBatch(uniqueGuestIds);
 
     // Transform the data to match the expected interface
@@ -389,7 +391,7 @@ export async function getUpcomingAppointments(
         ? guestInfoMap.get(meeting.guestWorkosUserId)
         : undefined;
       const guestEmail = (guestInfo?.email || meeting.guestEmail) ?? '';
-      const customerName = (guestInfo?.fullName || meeting.guestName) || 'Guest';
+      const customerName = guestInfo?.fullName || meeting.guestName || 'Guest';
 
       return {
         id: meeting.meetingId,
