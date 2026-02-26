@@ -18,11 +18,13 @@
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
 import { db, invalidateCache } from '@/drizzle/db';
 import {
+  OrganizationsTable,
   SubscriptionEventsTable,
   SubscriptionPlansTable,
   UserOrgMembershipsTable,
   UsersTable,
 } from '@/drizzle/schema';
+import { workos } from '@/lib/integrations/workos/client';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import * as Sentry from '@sentry/nextjs';
@@ -374,6 +376,37 @@ export async function createSubscription(
         .update(UsersTable)
         .set({ stripeCustomerId: customerId })
         .where(eq(UsersTable.workosUserId, user.id));
+    }
+
+    // Sync Stripe customer ID to WorkOS organization
+    const orgId = await getUserOrgId(user.id);
+    if (orgId && customerId) {
+      try {
+        const orgRecord = await db.query.OrganizationsTable.findFirst({
+          where: eq(OrganizationsTable.id, orgId),
+          columns: { workosOrgId: true, stripeCustomerId: true },
+        });
+
+        if (orgRecord && !orgRecord.stripeCustomerId) {
+          await workos.organizations.updateOrganization({
+            organization: orgRecord.workosOrgId,
+            stripeCustomerId: customerId,
+          });
+
+          await db
+            .update(OrganizationsTable)
+            .set({ stripeCustomerId: customerId })
+            .where(eq(OrganizationsTable.id, orgId));
+
+          logger.info('Synced Stripe customer ID to WorkOS organization', {
+            orgId,
+            stripeCustomerId: customerId,
+          });
+        }
+      } catch (syncError) {
+        // Non-fatal: sync can be retried later
+        logger.warn('Failed to sync Stripe customer ID to WorkOS org', { syncError });
+      }
     }
 
     // Resolve price ID from lookup key (if needed)

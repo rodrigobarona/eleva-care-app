@@ -75,6 +75,13 @@ interface BlockedDate {
   timezone: string;
 }
 
+interface AuthenticatedUser {
+  workosUserId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 interface MeetingFormProps {
   validTimes: Date[];
   eventId: string;
@@ -93,6 +100,7 @@ interface MeetingFormProps {
   beforeEventBuffer?: number;
   afterEventBuffer?: number;
   blockedDates?: BlockedDate[];
+  authenticatedUser?: AuthenticatedUser;
 }
 
 // Define the query state type for reuse
@@ -125,6 +133,7 @@ interface Step2ContentProps {
   isProcessingRef: React.MutableRefObject<boolean>;
   price: number;
   use24Hour: boolean;
+  isAuthenticated: boolean;
 }
 
 const Step2Content = React.memo<Step2ContentProps>(
@@ -143,6 +152,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     isProcessingRef,
     price,
     use24Hour,
+    isAuthenticated,
   }) => {
     // Subscribe to root form errors so they trigger re-renders
     const { errors } = useFormState({ control: form.control });
@@ -232,9 +242,11 @@ const Step2Content = React.memo<Step2ContentProps>(
                   <Input
                     placeholder="Enter your full name"
                     {...field}
+                    readOnly={isAuthenticated}
+                    className={isAuthenticated ? 'bg-muted' : ''}
                     onBlur={() => {
                       field.onBlur();
-                      updateURLOnBlur();
+                      if (!isAuthenticated) updateURLOnBlur();
                     }}
                   />
                 </FormControl>
@@ -253,9 +265,11 @@ const Step2Content = React.memo<Step2ContentProps>(
                     type="email"
                     placeholder="you@example.com"
                     {...field}
+                    readOnly={isAuthenticated}
+                    className={isAuthenticated ? 'bg-muted' : ''}
                     onBlur={() => {
                       field.onBlur();
-                      updateURLOnBlur();
+                      if (!isAuthenticated) updateURLOnBlur();
                     }}
                   />
                 </FormControl>
@@ -345,7 +359,8 @@ const Step2Content = React.memo<Step2ContentProps>(
       prevProps.use24Hour !== nextProps.use24Hour ||
       prevProps.queryStates.date?.getTime() !== nextProps.queryStates.date?.getTime() ||
       prevProps.queryStates.time?.getTime() !== nextProps.queryStates.time?.getTime() ||
-      prevProps.queryStates.timezone !== nextProps.queryStates.timezone;
+      prevProps.queryStates.timezone !== nextProps.queryStates.timezone ||
+      prevProps.isAuthenticated !== nextProps.isAuthenticated;
 
     return !propsChanged; // Skip re-render only if nothing important changed
   },
@@ -400,7 +415,9 @@ export function MeetingFormContent({
   beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER,
   afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER,
   blockedDates,
+  authenticatedUser,
 }: MeetingFormProps) {
+  const isAuthenticated = !!authenticatedUser;
   const router = useRouter();
 
   // State management
@@ -455,18 +472,21 @@ export function MeetingFormContent({
   });
 
   // Form initialization with enhanced defaults from URL including date and time
+  // Pre-fill name/email from authenticated user when available
+  const authFullName = authenticatedUser
+    ? `${authenticatedUser.firstName ?? ''} ${authenticatedUser.lastName ?? ''}`.trim()
+    : '';
+
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
       timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      guestName: queryStates.name || '',
-      guestEmail: queryStates.email || '',
-      guestNotes: '', // Initialize with empty string
-      // Initialize with date and time from URL if they exist
+      guestName: authFullName || queryStates.name || '',
+      guestEmail: authenticatedUser?.email || queryStates.email || '',
+      guestNotes: '',
       ...(queryStates.date && { date: queryStates.date }),
       ...(queryStates.time && { startTime: queryStates.time }),
     },
-    // Don't validate on mount to avoid confusion
     mode: 'onBlur',
   });
 
@@ -818,6 +838,7 @@ export function MeetingFormContent({
                 eventId,
                 workosUserId: workosUserId,
                 locale: locale || 'en',
+                ...(authenticatedUser && { authenticatedWorkosUserId: authenticatedUser.workosUserId }),
               });
 
               if (data?.error) {
@@ -1461,6 +1482,7 @@ export function MeetingFormContent({
                   isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}
+                  isAuthenticated={isAuthenticated}
                 />
               )}
               {currentStep === '3' && (

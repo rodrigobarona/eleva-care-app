@@ -23,6 +23,7 @@ import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { OrganizationsTable, UserOrgMembershipsTable } from '@/drizzle/schema';
 import { CalendarService } from '@/lib/integrations/calendar';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import {
   addDays,
@@ -113,6 +114,17 @@ async function BookEventPageContent({
     return notFound();
   }
 
+  // Non-blocking auth check for pre-filling guest data
+  const { user: authUser } = await withAuth({ ensureSignedIn: false });
+  const authenticatedUser = authUser
+    ? {
+        workosUserId: authUser.id,
+        email: authUser.email,
+        firstName: authUser.firstName ?? undefined,
+        lastName: authUser.lastName ?? undefined,
+      }
+    : undefined;
+
   return (
     <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
       <CardContent className="p-0 pt-8">
@@ -127,6 +139,7 @@ async function BookEventPageContent({
             event={event}
             calendarUser={calendarUser}
             locale={locale}
+            authenticatedUser={authenticatedUser}
           />
         </Suspense>
       </CardContent>
@@ -144,6 +157,7 @@ async function CalendarWithAvailability({
   event,
   calendarUser: _calendarUser,
   locale,
+  authenticatedUser,
 }: {
   userId: string;
   eventId: string;
@@ -158,6 +172,12 @@ async function CalendarWithAvailability({
     imageUrl: string | null;
   };
   locale: string;
+  authenticatedUser?: {
+    workosUserId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }) {
   // Fetch scheduling settings for the user
   let timeSlotInterval = DEFAULT_TIME_SLOT_INTERVAL;
@@ -307,6 +327,7 @@ async function CalendarWithAvailability({
       beforeEventBuffer={beforeEventBuffer}
       afterEventBuffer={afterEventBuffer}
       blockedDates={blockedDates}
+      authenticatedUser={authenticatedUser}
     />
   );
 }

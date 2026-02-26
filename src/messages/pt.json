@@ -14,7 +14,8 @@
   },
   "Header": {
     "findExpert": "Encontrar um Especialista",
-    "mission": "A nossa Missão"
+    "mission": "A nossa Missão",
+    "signIn": "Entrar"
   },
   "NotFound": {
     "title": "Página não encontrada",

@@ -35,6 +35,7 @@ import {
   SchedulesTable,
   UsersTable,
 } from '@/drizzle/schema';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import * as Sentry from '@sentry/nextjs';
 import { and, between, eq } from 'drizzle-orm';
 
@@ -371,6 +372,10 @@ export async function getUpcomingAppointments(
       logger.fmt`Found ${upcomingMeetings.length} appointments in window (${startOffsetMinutes}-${endOffsetMinutes} min)`,
     );
 
+    // Batch-resolve guest info from WorkOS (fall back to DB columns if resolution fails)
+    const uniqueGuestIds = [...new Set(upcomingMeetings.map((m) => m.guestWorkosUserId).filter(Boolean))];
+    const guestInfoMap = await resolveGuestInfoBatch(uniqueGuestIds);
+
     // Transform the data to match the expected interface
     const appointments: Appointment[] = upcomingMeetings.map((meeting) => {
       const expertName =
@@ -379,12 +384,19 @@ export async function getUpcomingAppointments(
       // Use expert's schedule timezone if available, otherwise fall back to meeting timezone
       const expertTimezone = meeting.expertScheduleTimezone || meeting.timezone;
 
+      // Resolve guest email/name from WorkOS, fall back to deprecated DB columns
+      const guestInfo = meeting.guestWorkosUserId
+        ? guestInfoMap.get(meeting.guestWorkosUserId)
+        : undefined;
+      const guestEmail = (guestInfo?.email || meeting.guestEmail) ?? '';
+      const customerName = (guestInfo?.fullName || meeting.guestName) || 'Guest';
+
       return {
         id: meeting.meetingId,
-        guestEmail: meeting.guestEmail,
+        guestEmail,
         customerWorkosId: meeting.guestWorkosUserId || 'guest', // Use guest WorkOS ID if available
         expertWorkosId: meeting.expertWorkosId,
-        customerName: meeting.guestName,
+        customerName,
         expertName,
         appointmentType: meeting.eventName,
         startTime: meeting.startTime,

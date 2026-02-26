@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
 import { logSecurityError } from '@/lib/constants/security';
+import { resolveGuestInfo, resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { decryptForOrg, encryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -131,6 +132,11 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         })
       : null;
 
+    // Resolve guest email from WorkOS, fall back to deprecated DB column
+    const guestEmail = meeting.guestWorkosUserId
+      ? (await resolveGuestInfo(meeting.guestWorkosUserId)).email || meeting.guestEmail
+      : meeting.guestEmail;
+
     // Create the record with orgId for RLS
     const [record] = await db
       .insert(RecordsTable)
@@ -138,7 +144,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         orgId: meeting.orgId,
         meetingId: params.meetingId,
         expertId: workosUserId,
-        guestEmail: meeting.guestEmail,
+        guestWorkosUserId: meeting.guestWorkosUserId,
+        guestEmail,
         vaultEncryptedContent,
         vaultEncryptedMetadata: vaultEncryptedMetadata || undefined,
         encryptionMethod: 'vault',
@@ -152,7 +159,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
           recordId: record.id,
           meetingId: params.meetingId,
           expertId: workosUserId,
-          guestEmail: meeting.guestEmail,
+          guestEmail,
           contentProvided: !!content,
           metadataProvided: !!metadata,
           encryptionMethod: 'vault',
@@ -228,6 +235,10 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
+    // Batch-resolve guest emails from WorkOS (fall back to DB guestEmail if resolution fails)
+    const uniqueGuestIds = [...new Set(records.map((r) => r.guestWorkosUserId).filter(Boolean))];
+    const guestInfoMap = await resolveGuestInfoBatch(uniqueGuestIds);
+
     // Decrypt the records using WorkOS Vault
     // Failed decryptions are filtered out (not returned with error placeholders)
     // to avoid information leakage about internal failure modes.
@@ -250,13 +261,19 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
               )
             : null;
 
+          // Resolve guest email from WorkOS, fall back to deprecated DB column
+          const guestInfo = record.guestWorkosUserId
+            ? guestInfoMap.get(record.guestWorkosUserId)
+            : undefined;
+          const guestEmail = guestInfo?.email || record.guestEmail;
+
           // Return typed decrypted record (omit encrypted fields)
           const decryptedRecord: DecryptedRecord = {
             id: record.id,
             orgId: record.orgId,
             meetingId: record.meetingId,
             expertId: record.expertId,
-            guestEmail: record.guestEmail,
+            guestEmail,
             content,
             metadata,
             createdAt: record.createdAt,

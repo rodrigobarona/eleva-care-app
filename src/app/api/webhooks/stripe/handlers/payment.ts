@@ -1682,10 +1682,20 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const endDateTime = new Date(startDateTime);
             endDateTime.setMinutes(endDateTime.getMinutes() + event[0].durationInMinutes);
 
-            // Create slot reservation
+            // Resolve guest WorkOS user for reservation
+            const { createOrGetGuestUser } = await import('@/lib/integrations/workos/guest-users');
+            const guestResult = customerEmail
+              ? await createOrGetGuestUser({
+                  email: customerEmail,
+                  name: paymentIntent.metadata.guestName || 'Guest',
+                  metadata: { registrationSource: 'multibanco_reservation' },
+                })
+              : null;
+
             await db.insert(SlotReservationsTable).values({
               eventId,
               workosUserId,
+              guestWorkosUserId: guestResult?.userId ?? '',
               guestEmail: customerEmail || '',
               startTime: startDateTime,
               endTime: endDateTime,

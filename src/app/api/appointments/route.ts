@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { MeetingsTable, SlotReservationsTable } from '@/drizzle/schema';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import * as Sentry from '@sentry/nextjs';
 import { and, eq, gt } from 'drizzle-orm';
@@ -46,34 +47,49 @@ export async function GET() {
       timezone: expertTimezone,
     });
 
+    // Resolve guest info from WorkOS for appointments and reservations
+    const guestIds = [
+      ...new Set([
+        ...appointments.map((a) => a.guestWorkosUserId).filter(Boolean),
+        ...reservations.map((r) => r.guestWorkosUserId).filter(Boolean),
+      ]),
+    ];
+    const guestInfoMap = await resolveGuestInfoBatch(guestIds);
+
     return NextResponse.json({
       expertTimezone, // Include expert's timezone in response
-      appointments: appointments.map((appointment) => ({
-        id: appointment.id,
-        type: 'appointment' as const,
-        guestName: appointment.guestName,
-        guestEmail: appointment.guestEmail,
-        startTime: appointment.startTime,
-        endTime: appointment.endTime,
-        timezone: appointment.timezone, // This is the guest's timezone (kept for reference)
-        meetingUrl: appointment.meetingUrl,
-        guestNotes: appointment.guestNotes,
-        stripePaymentStatus: appointment.stripePaymentStatus,
-        stripeTransferStatus: appointment.stripeTransferStatus,
-      })),
-      reservations: reservations.map((reservation) => ({
-        id: reservation.id,
-        type: 'reservation' as const,
-        guestName: reservation.guestEmail,
-        guestEmail: reservation.guestEmail,
-        startTime: reservation.startTime,
-        endTime: reservation.endTime,
-        timezone: 'UTC', // Reservations don't have a timezone yet
-        expiresAt: reservation.expiresAt,
-        stripeSessionId: reservation.stripeSessionId,
-        stripePaymentIntentId: reservation.stripePaymentIntentId,
-        eventId: reservation.eventId,
-      })),
+      appointments: appointments.map((appointment) => {
+        const guestInfo = guestInfoMap.get(appointment.guestWorkosUserId);
+        return {
+          id: appointment.id,
+          type: 'appointment' as const,
+          guestName: guestInfo?.fullName ?? appointment.guestName,
+          guestEmail: guestInfo?.email ?? appointment.guestEmail,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
+          timezone: appointment.timezone, // This is the guest's timezone (kept for reference)
+          meetingUrl: appointment.meetingUrl,
+          guestNotes: appointment.guestNotes,
+          stripePaymentStatus: appointment.stripePaymentStatus,
+          stripeTransferStatus: appointment.stripeTransferStatus,
+        };
+      }),
+      reservations: reservations.map((reservation) => {
+        const guestInfo = guestInfoMap.get(reservation.guestWorkosUserId);
+        return {
+          id: reservation.id,
+          type: 'reservation' as const,
+          guestName: guestInfo?.fullName ?? reservation.guestEmail,
+          guestEmail: guestInfo?.email ?? reservation.guestEmail,
+          startTime: reservation.startTime,
+          endTime: reservation.endTime,
+          timezone: 'UTC', // Reservations don't have a timezone yet
+          expiresAt: reservation.expiresAt,
+          stripeSessionId: reservation.stripeSessionId,
+          stripePaymentIntentId: reservation.stripePaymentIntentId,
+          eventId: reservation.eventId,
+        };
+      }),
     });
   } catch (error) {
     Sentry.captureException(error);

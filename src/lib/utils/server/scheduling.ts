@@ -56,7 +56,7 @@ export async function getValidTimesFromSchedule(
         expertId: event.workosUserId,
         reservedSlots: activeReservations.map((r) => ({
           startTime: r.startTime.toISOString(),
-          guestEmail: r.guestEmail,
+          guestWorkosUserId: r.guestWorkosUserId ?? r.guestEmail,
           expiresAt: r.expiresAt.toISOString(),
         })),
       },

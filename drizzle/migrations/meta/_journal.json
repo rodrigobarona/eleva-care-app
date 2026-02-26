@@ -162,6 +162,20 @@
       "when": 1772062007160,
       "tag": "0022_nifty_cerise",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772066533296,
+      "tag": "0023_nice_dragon_lord",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772067835495,
+      "tag": "0024_parched_unicorn",
+      "breakpoints": true
     }
   ]
 }

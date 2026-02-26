@@ -22,8 +22,10 @@ import {
   OrganizationsTable,
   type OrganizationType,
   UserOrgMembershipsTable,
+  UsersTable,
 } from '@/drizzle/schema';
 import { workos } from '@/lib/integrations/workos/client';
+import { eq } from 'drizzle-orm';
 
 /**
  * Auto-Organization Creation for New Users
@@ -156,6 +158,32 @@ export async function autoCreateUserOrganization(params: {
       .returning();
 
     console.log(`✅ Organization synced to database: ${org.name}`);
+
+    // Sync Stripe customer ID to WorkOS org if user already has one
+    try {
+      const userRecord = await db.query.UsersTable.findFirst({
+        where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, workosUserId),
+        columns: { stripeCustomerId: true },
+      });
+
+      if (userRecord?.stripeCustomerId) {
+        await workos.organizations.updateOrganization({
+          organization: workosOrg.id,
+          stripeCustomerId: userRecord.stripeCustomerId,
+        });
+
+        // Also update local DB
+        await db
+          .update(OrganizationsTable)
+          .set({ stripeCustomerId: userRecord.stripeCustomerId })
+          .where(eq(OrganizationsTable.id, org.id));
+
+        console.log(`✅ Stripe customer ID synced to organization: ${userRecord.stripeCustomerId}`);
+      }
+    } catch (syncError) {
+      // Non-fatal: Stripe sync can be retried later
+      console.warn('⚠️ Failed to sync Stripe customer ID to organization:', syncError);
+    }
 
     // Create WorkOS membership (user as owner)
     console.log(`👤 Creating WorkOS membership for user: ${email}`);

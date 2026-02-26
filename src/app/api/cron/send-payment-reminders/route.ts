@@ -1,6 +1,7 @@
 import { ENV_CONFIG } from '@/config/env';
-import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import {
   EventsTable,
   ProfilesTable,
@@ -182,6 +183,12 @@ async function handler(request: NextRequest) {
 
       logger.info(logger.fmt`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`);
 
+      // Batch-resolve guest emails from WorkOS (fall back to DB guestEmail if resolution fails)
+      const guestIds = reservationsNeedingReminders
+        .map((r) => r.reservation.guestWorkosUserId)
+        .filter(Boolean);
+      const guestInfoMap = await resolveGuestInfoBatch(guestIds);
+
       let stageRemindersSent = 0;
 
       for (const item of reservationsNeedingReminders) {
@@ -285,12 +292,25 @@ async function handler(request: NextRequest) {
           const voucherExpiresFormatted = format(reservation.expiresAt, 'PPP p');
           const customerFullName = `${customerFirstName} ${customerLastName}`.trim();
 
+          // Resolve guest email from WorkOS, fall back to deprecated DB column
+          const guestInfo = reservation.guestWorkosUserId
+            ? guestInfoMap.get(reservation.guestWorkosUserId)
+            : undefined;
+          const recipientEmail = guestInfo?.email || reservation.guestEmail;
+
+          if (!recipientEmail) {
+            logger.error(
+              logger.fmt`Cannot send reminder: reservation ${reservation.id} has no guest email (WorkOS or DB)`,
+            );
+            continue;
+          }
+
           // Trigger Novu workflow for payment reminder
           const workflowResult = await triggerWorkflow({
             workflowId: 'multibanco-payment-reminder',
             to: {
-              subscriberId: reservation.guestEmail,
-              email: reservation.guestEmail,
+              subscriberId: recipientEmail,
+              email: recipientEmail,
               firstName: customerFirstName,
               lastName: customerLastName,
               data: {
@@ -318,7 +338,7 @@ async function handler(request: NextRequest) {
 
           if (workflowResult) {
             logger.info(
-              logger.fmt`${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
+              logger.fmt`${stage.description} sent to ${recipientEmail} for reservation ${reservation.id}`,
             );
 
             // Mark reminder as sent to prevent duplicates
@@ -333,7 +353,7 @@ async function handler(request: NextRequest) {
             stageRemindersSent++;
           } else {
             logger.error(
-              logger.fmt`Failed to trigger workflow for ${stage.description} to ${reservation.guestEmail}`,
+              logger.fmt`Failed to trigger workflow for ${stage.description} to ${recipientEmail}`,
             );
           }
         } catch (reminderError) {

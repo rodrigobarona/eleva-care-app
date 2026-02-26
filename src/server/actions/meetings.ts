@@ -95,70 +95,97 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       });
 
   try {
-    // Step 1.5: Auto-create WorkOS user for guest (transparently during booking)
-    const guestUserResult = await Sentry.startSpan(
-          {
-            name: 'meeting.create.guest_user',
-            op: 'db.query',
-            attributes: {
-              'guest.email': data.guestEmail,
-            },
-          },
-          async (span) => {
-            Sentry.logger.debug('Auto-registering guest user in WorkOS', {
-              email: data.guestEmail,
-            });
+    // Step 1.5: Resolve guest identity
+    // Authenticated path: use real WorkOS user ID directly
+    // Guest path: auto-create shadow WorkOS user
+    let guestWorkosUserId: string;
+    let guestOrgId: string;
 
-            try {
-              const result = await createOrGetGuestUser({
-        email: data.guestEmail,
-        name: data.guestName,
-        metadata: {
-          bookingEventId: data.eventId,
-          bookingStartTime: data.startTime.toISOString(),
-          registrationSource: 'meeting_booking',
-        },
+    if (data.authenticatedWorkosUserId) {
+      guestWorkosUserId = data.authenticatedWorkosUserId;
+
+      // Resolve the authenticated user's org
+      const membership = await db.query.UserOrgMembershipsTable.findFirst({
+        where: eq(UserOrgMembershipsTable.workosUserId, data.authenticatedWorkosUserId),
+        columns: { orgId: true },
       });
+      const orgRow = membership?.orgId
+        ? await db.query.OrganizationsTable.findFirst({
+            where: eq(OrganizationsTable.id, membership.orgId),
+            columns: { id: true },
+          })
+        : null;
+      guestOrgId = orgRow?.id ?? '';
 
-              span.setAttribute('guest.is_new_user', result.isNewUser);
+      Sentry.logger.info('Authenticated user booking', {
+        workosUserId: data.authenticatedWorkosUserId,
+        eventId: data.eventId,
+      });
+    } else {
+      const guestUserResult = await Sentry.startSpan(
+            {
+              name: 'meeting.create.guest_user',
+              op: 'db.query',
+              attributes: {
+                'guest.email': data.guestEmail,
+              },
+            },
+            async (span) => {
+              Sentry.logger.debug('Auto-registering guest user in WorkOS', {
+                email: data.guestEmail,
+              });
 
-              if (result.isNewUser) {
-                Sentry.logger.info('New guest user created', {
+              try {
+                const result = await createOrGetGuestUser({
           email: data.guestEmail,
-                  workosUserId: result.userId,
-                  organizationId: result.organizationId,
+          name: data.guestName,
+          metadata: {
+            bookingEventId: data.eventId,
+            bookingStartTime: data.startTime.toISOString(),
+            registrationSource: 'meeting_booking',
+          },
         });
-      } else {
-                Sentry.logger.debug('Existing guest user found', {
+
+                span.setAttribute('guest.is_new_user', result.isNewUser);
+
+                if (result.isNewUser) {
+                  Sentry.logger.info('New guest user created', {
+            email: data.guestEmail,
+                    workosUserId: result.userId,
+                    organizationId: result.organizationId,
+          });
+        } else {
+                  Sentry.logger.debug('Existing guest user found', {
+            email: data.guestEmail,
+                    workosUserId: result.userId,
+          });
+        }
+
+                return result;
+      } catch (guestUserError) {
+                span.setAttribute('guest.error', true);
+                Sentry.logger.error('Failed to create/get guest user', {
+          error: guestUserError instanceof Error ? guestUserError.message : 'Unknown error',
           email: data.guestEmail,
-                  workosUserId: result.userId,
         });
+                throw guestUserError;
+              }
+            },
+          );
+
+          if (!guestUserResult) {
+            parentSpan.setAttribute('meeting.success', false);
+            parentSpan.setAttribute('meeting.error_code', 'GUEST_USER_CREATION_ERROR');
+        return {
+          error: true,
+          code: 'GUEST_USER_CREATION_ERROR',
+          message: 'Failed to register guest user',
+        };
       }
 
-              return result;
-    } catch (guestUserError) {
-              span.setAttribute('guest.error', true);
-              Sentry.logger.error('Failed to create/get guest user', {
-        error: guestUserError instanceof Error ? guestUserError.message : 'Unknown error',
-        email: data.guestEmail,
-      });
-              throw guestUserError;
-            }
-          },
-        );
-
-        if (!guestUserResult) {
-          parentSpan.setAttribute('meeting.success', false);
-          parentSpan.setAttribute('meeting.error_code', 'GUEST_USER_CREATION_ERROR');
-      return {
-        error: true,
-        code: 'GUEST_USER_CREATION_ERROR',
-        message: 'Failed to register guest user',
-      };
+      guestWorkosUserId = guestUserResult.userId;
+      guestOrgId = guestUserResult.organizationId;
     }
-
-    const guestWorkosUserId = guestUserResult.userId;
-    const guestOrgId = guestUserResult.organizationId;
 
     // Step 2: Check for duplicate booking from the same user first
         const existingUserMeeting = await Sentry.startSpan(
@@ -179,7 +206,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           operators.and(
             operators.eq(fields.eventId, data.eventId),
             operators.eq(fields.startTime, data.startTime),
-            operators.eq(fields.guestEmail, data.guestEmail),
+            operators.eq(fields.guestWorkosUserId, guestWorkosUserId),
           ),
         ),
     });
@@ -208,7 +235,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         operators.and(
           operators.eq(fields.eventId, data.eventId),
           operators.eq(fields.startTime, data.startTime),
-          operators.ne(fields.guestEmail, data.guestEmail),
+          operators.ne(fields.guestWorkosUserId, guestWorkosUserId),
         ),
     });
           },
@@ -243,8 +270,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         operators.and(
           operators.eq(fields.eventId, data.eventId),
           operators.eq(fields.startTime, data.startTime),
-          operators.ne(fields.guestEmail, data.guestEmail),
-          operators.gt(fields.expiresAt, new Date()), // Only active reservations
+          operators.ne(fields.guestWorkosUserId, guestWorkosUserId),
+          operators.gt(fields.expiresAt, new Date()),
         ),
     });
           },

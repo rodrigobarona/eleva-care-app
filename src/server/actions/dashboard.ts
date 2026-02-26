@@ -9,6 +9,8 @@ import {
   TransactionCommissionsTable,
 } from '@/drizzle/schema';
 import { and, count, countDistinct, desc, eq, gt, gte, lt, sql, sum } from 'drizzle-orm';
+import type { GuestInfo } from '@/lib/integrations/workos/guest-resolver';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 
 const { logger } = Sentry;
 
@@ -23,8 +25,8 @@ export interface DashboardMeeting {
   endTime: Date;
   timezone: string;
   meetingUrl: string | null;
-  guestName: string;
-  guestEmail: string;
+  /** Resolved from WorkOS via guestWorkosUserId; falls back to DB columns during migration */
+  guestInfo: GuestInfo;
   expertFirstName: string | null;
   expertLastName: string | null;
 }
@@ -74,7 +76,7 @@ export async function getUpcomingMeetings(
             ? and(eq(MeetingsTable.workosUserId, workosUserId), gt(MeetingsTable.startTime, now))
             : and(eq(MeetingsTable.guestWorkosUserId, workosUserId), gt(MeetingsTable.startTime, now));
 
-        const meetings = await db
+        const rows = await db
           .select({
             id: MeetingsTable.id,
             eventName: EventsTable.name,
@@ -82,6 +84,7 @@ export async function getUpcomingMeetings(
             endTime: MeetingsTable.endTime,
             timezone: MeetingsTable.timezone,
             meetingUrl: MeetingsTable.meetingUrl,
+            guestWorkosUserId: MeetingsTable.guestWorkosUserId,
             guestName: MeetingsTable.guestName,
             guestEmail: MeetingsTable.guestEmail,
             expertFirstName: ProfilesTable.firstName,
@@ -94,7 +97,31 @@ export async function getUpcomingMeetings(
           .orderBy(MeetingsTable.startTime)
           .limit(limit);
 
-        return meetings;
+        const guestIds = [...new Set(rows.map((r) => r.guestWorkosUserId).filter(Boolean))];
+        const guestInfoMap = await resolveGuestInfoBatch(guestIds);
+
+        return rows.map((r) => {
+          const resolved = guestInfoMap.get(r.guestWorkosUserId);
+          const guestInfo: GuestInfo = resolved
+            ? resolved
+            : {
+                email: r.guestEmail ?? '',
+                firstName: r.guestName?.split(' ')[0] ?? 'Guest',
+                lastName: r.guestName?.split(' ').slice(1).join(' ') ?? '',
+                fullName: r.guestName ?? 'Guest',
+              };
+          return {
+            id: r.id,
+            eventName: r.eventName,
+            startTime: r.startTime,
+            endTime: r.endTime,
+            timezone: r.timezone,
+            meetingUrl: r.meetingUrl,
+            guestInfo,
+            expertFirstName: r.expertFirstName,
+            expertLastName: r.expertLastName,
+          };
+        });
       } catch (error) {
         logger.error('Failed to fetch upcoming meetings', { error, workosUserId, role });
         return [];
@@ -119,7 +146,7 @@ export async function getRecentMeetings(
             ? and(eq(MeetingsTable.workosUserId, workosUserId), lt(MeetingsTable.startTime, now))
             : and(eq(MeetingsTable.guestWorkosUserId, workosUserId), lt(MeetingsTable.startTime, now));
 
-        const meetings = await db
+        const rows = await db
           .select({
             id: MeetingsTable.id,
             eventName: EventsTable.name,
@@ -127,6 +154,7 @@ export async function getRecentMeetings(
             endTime: MeetingsTable.endTime,
             timezone: MeetingsTable.timezone,
             meetingUrl: MeetingsTable.meetingUrl,
+            guestWorkosUserId: MeetingsTable.guestWorkosUserId,
             guestName: MeetingsTable.guestName,
             guestEmail: MeetingsTable.guestEmail,
             expertFirstName: ProfilesTable.firstName,
@@ -139,7 +167,31 @@ export async function getRecentMeetings(
           .orderBy(desc(MeetingsTable.startTime))
           .limit(limit);
 
-        return meetings;
+        const guestIds = [...new Set(rows.map((r) => r.guestWorkosUserId).filter(Boolean))];
+        const guestInfoMap = await resolveGuestInfoBatch(guestIds);
+
+        return rows.map((r) => {
+          const resolved = guestInfoMap.get(r.guestWorkosUserId);
+          const guestInfo: GuestInfo = resolved
+            ? resolved
+            : {
+                email: r.guestEmail ?? '',
+                firstName: r.guestName?.split(' ')[0] ?? 'Guest',
+                lastName: r.guestName?.split(' ').slice(1).join(' ') ?? '',
+                fullName: r.guestName ?? 'Guest',
+              };
+          return {
+            id: r.id,
+            eventName: r.eventName,
+            startTime: r.startTime,
+            endTime: r.endTime,
+            timezone: r.timezone,
+            meetingUrl: r.meetingUrl,
+            guestInfo,
+            expertFirstName: r.expertFirstName,
+            expertLastName: r.expertLastName,
+          };
+        });
       } catch (error) {
         logger.error('Failed to fetch recent meetings', { error, workosUserId, role });
         return [];

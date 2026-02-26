@@ -284,6 +284,63 @@ export const SUBSCRIPTION_PRICING = {
       minRating: 4.5,
     },
   },
+
+  team_subscription: {
+    starter: {
+      tier: 'starter' as const,
+      planType: 'team' as const,
+      monthlyFee: 9900, // EUR 99/mo
+      annualFee: 99000, // EUR 990/yr (save 2 months)
+      monthlyEquivalent: 8250, // EUR 82.50/mo
+      maxExperts: 3,
+      features: [
+        'Up to 3 experts',
+        'Basic analytics',
+        'Scheduling & video consultations',
+        'Payment processing',
+        'Client management',
+        'Email support',
+        'Team branding',
+      ],
+      stripeLookupKey: 'team-starter-monthly',
+    },
+    professional: {
+      tier: 'professional' as const,
+      planType: 'team' as const,
+      monthlyFee: 19900, // EUR 199/mo
+      annualFee: 199000, // EUR 1,990/yr (save 2 months)
+      monthlyEquivalent: 16583, // EUR 165.83/mo
+      maxExperts: 10,
+      features: [
+        'Up to 10 experts',
+        'Advanced analytics',
+        'Customizable booking pages',
+        'Priority support',
+        'Marketing support',
+        'Team dashboard',
+        'Multi-location support',
+        'Custom domain',
+      ],
+      stripeLookupKey: 'team-professional-monthly',
+    },
+    enterprise: {
+      tier: 'enterprise' as const,
+      planType: 'team' as const,
+      monthlyFee: 0, // Custom pricing
+      maxExperts: -1, // Unlimited
+      features: [
+        'Unlimited experts',
+        'White-label solution',
+        'API & webhooks',
+        'Dedicated account manager',
+        '24/7 priority support',
+        'Custom integrations',
+        'Advanced reporting',
+        'Custom SLA',
+      ],
+      stripeLookupKey: 'team-enterprise-monthly',
+    },
+  },
 } as const;
 
 /**
@@ -425,3 +482,5 @@ export type MonthlySubscriptionPlan = typeof SUBSCRIPTION_PRICING.monthly_subscr
 export type AnnualSubscriptionPlan = typeof SUBSCRIPTION_PRICING.annual_subscription;
 export type Addons = typeof SUBSCRIPTION_PRICING.addons;
 export type EligibilityConfig = typeof SUBSCRIPTION_PRICING.eligibility;
+export type TeamSubscriptionPlan = typeof SUBSCRIPTION_PRICING.team_subscription;
+export type TeamTier = keyof typeof SUBSCRIPTION_PRICING.team_subscription;

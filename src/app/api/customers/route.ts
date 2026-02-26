@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
 import * as Sentry from '@sentry/nextjs';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -28,43 +29,46 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden: Expert role required' }, { status: 403 });
     }
 
-    // Find all unique customers who have booked appointments with this expert
+    // Find all unique customers who have booked appointments with this expert (group by WorkOS user ID)
     const customersWithAppointmentsQuery = db
       .select({
-        email: MeetingsTable.guestEmail,
-        name: MeetingsTable.guestName,
-        // Count appointments per customer
+        guestWorkosUserId: MeetingsTable.guestWorkosUserId,
+        email: sql<string>`max(${MeetingsTable.guestEmail})`.as('email'),
+        name: sql<string>`max(${MeetingsTable.guestName})`.as('name'),
         appointmentsCount: sql<number>`count(${MeetingsTable.id})`.as('appointment_count'),
-        // Calculate total spend
         totalSpend: sql<number>`sum(${EventsTable.price})`.as('total_spend'),
-        // Get most recent appointment date
         lastAppointment: sql<string>`max(${MeetingsTable.startTime})`.as('last_appointment'),
-        // Get first appointment to calculate customer since date
         firstAppointment: sql<string>`min(${MeetingsTable.startTime})`.as('first_appointment'),
       })
       .from(MeetingsTable)
       .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
       .where(eq(EventsTable.workosUserId, userId))
-      .groupBy(MeetingsTable.guestEmail, MeetingsTable.guestName)
+      .groupBy(MeetingsTable.guestWorkosUserId)
       .orderBy(desc(sql`last_appointment`));
 
     const customersWithAppointments = await customersWithAppointmentsQuery;
 
+    // Resolve guest info from WorkOS for display
+    const guestIds = customersWithAppointments.map((c) => c.guestWorkosUserId).filter(Boolean);
+    const guestInfoMap = await resolveGuestInfoBatch(guestIds);
+
     // Format the response with secure customer IDs
     const customers = customersWithAppointments.map((customer) => {
-      // Create a secure, deterministic customer ID based on email hash and expert ID
-      // This ensures consistent IDs without exposing email directly
-      const customerId = generateCustomerId(userId, customer.email);
+      const guestInfo = guestInfoMap.get(customer.guestWorkosUserId);
+      const email = guestInfo?.email ?? customer.email ?? '';
+      const name = guestInfo?.fullName ?? customer.name ?? '';
+
+      const customerId = generateCustomerId(userId, email);
 
       return {
-        id: customerId, // Secure, non-email-based ID
-        email: customer.email,
-        name: customer.name,
+        id: customerId,
+        email,
+        name,
         appointmentsCount: customer.appointmentsCount,
         totalSpend: customer.totalSpend || 0,
         lastAppointment: customer.lastAppointment,
         firstAppointment: customer.firstAppointment,
-        stripeCustomerId: null, // We don't have a way to get this without PaymentIntentTable
+        stripeCustomerId: null,
       };
     });
 

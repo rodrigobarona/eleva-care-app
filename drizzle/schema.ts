@@ -26,6 +26,7 @@ import { authenticatedRole, anonymousRole } from 'drizzle-orm/neon';
 import {
   boolean,
   date,
+  foreignKey,
   index,
   integer,
   json,
@@ -36,6 +37,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -152,6 +154,9 @@ export const OrganizationsTable = pgTable(
     name: text('name').notNull(),
     type: text('type').notNull().$type<OrganizationType>(),
 
+    // Stripe integration (denormalized from WorkOS org for quick lookups)
+    stripeCustomerId: text('stripe_customer_id'),
+
     // Metadata
     createdAt,
     updatedAt,
@@ -159,6 +164,7 @@ export const OrganizationsTable = pgTable(
   (table) => [
     index('organizations_workos_org_id_idx').on(table.workosOrgId),
     index('organizations_slug_idx').on(table.slug),
+    index('organizations_stripe_customer_id_idx').on(table.stripeCustomerId),
     pgPolicy('organizations_read', {
       for: 'select',
       using: isOrgMember('id', 'organizations'),
@@ -295,28 +301,12 @@ export const UsersTable = pgTable(
     welcomeEmailSentAt: timestamp('welcome_email_sent_at', { withTimezone: true }),
     onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
 
-    // Google OAuth integration (via WorkOS OAuth provider)
-    // 🔐 Security: All tokens ENCRYPTED at rest using WorkOS Vault
-    //
-    // Encryption:
-    // - WorkOS Vault with org-scoped keys
-    // - Automatic key rotation by WorkOS
-    // - Built-in audit trail for compliance
-    vaultGoogleAccessToken: text('vault_google_access_token'), // Encrypted access token (WorkOS Vault JSON)
-    vaultGoogleRefreshToken: text('vault_google_refresh_token'), // Encrypted refresh token (WorkOS Vault JSON)
-    googleTokenEncryptionMethod: text('google_token_encryption_method')
-      .default('vault')
-      .$type<'vault'>(),
-
-    googleTokenExpiry: timestamp('google_token_expiry', { withTimezone: true }),
-    googleScopes: text('google_scopes'), // Granted OAuth scopes (space-separated string)
-    googleCalendarConnected: boolean('google_calendar_connected').default(false), // Quick check
-    googleCalendarConnectedAt: timestamp('google_calendar_connected_at', { withTimezone: true }),
-
-    // User preferences (merged from UserPreferencesTable for simplicity)
-    // NOTE: Notification/security preferences are managed by WorkOS AuthKit and Novu
+    // User preferences
     theme: text('theme').notNull().default('light').$type<'light' | 'dark' | 'system'>(),
     language: text('language').notNull().default('en').$type<'en' | 'es' | 'pt' | 'br'>(),
+
+    // GDPR Art. 17 — soft delete
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
 
     createdAt,
     updatedAt,
@@ -675,13 +665,21 @@ export const MeetingsTable = pgTable(
     workosUserId: text('workos_user_id').notNull(),
 
     // Guest (patient/customer) - WorkOS Integration
-    guestWorkosUserId: text('guest_workos_user_id'), // New: Guest's WorkOS ID (nullable for legacy meetings)
-    guestOrgId: uuid('guest_org_id'), // New: Guest's organization ID (nullable for legacy meetings)
+    // NOTE: Nullable during migration. After running backfill-guest-workos-users.ts, make NOT NULL.
+    guestWorkosUserId: text('guest_workos_user_id'),
+    guestOrgId: uuid('guest_org_id'),
 
-    // Guest legacy fields (kept for backward compatibility during migration)
+    // @deprecated — PII columns retained for backfill migration only; will be dropped after migration script runs
     guestEmail: text('guest_email').notNull(),
     guestName: text('guest_name').notNull(),
     guestNotes: text('guest_notes'),
+
+    // Encrypted guest notes via WorkOS Vault (replaces plaintext guestNotes)
+    vaultEncryptedGuestNotes: text('vault_encrypted_guest_notes'),
+
+    // GDPR Art. 17 — soft delete
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+
     startTime: timestamp('start_time', { withTimezone: true }).notNull(),
     endTime: timestamp('end_time', { withTimezone: true }).notNull(),
     timezone: text('timezone').notNull(),
@@ -799,6 +797,10 @@ export const ProfilesTable = pgTable(
     practitionerAgreementMetadata: jsonb('practitioner_agreement_metadata'), // Stores comprehensive geolocation, user-agent, etc.
 
     order: integer('order').notNull().default(0),
+
+    // GDPR Art. 17 — soft delete
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+
     createdAt,
     updatedAt,
   },
@@ -835,6 +837,9 @@ export const RecordsTable = pgTable(
       .notNull()
       .references(() => MeetingsTable.id, { onDelete: 'cascade' }),
     expertId: text('expert_id').notNull(), // workosUserId
+    // NOTE: Nullable during migration. After running backfill, make NOT NULL.
+    guestWorkosUserId: text('guest_workos_user_id'),
+    // @deprecated — retained for backfill migration only
     guestEmail: text('guest_email').notNull(),
 
     // WorkOS Vault encrypted content (org-scoped encryption)
@@ -1035,6 +1040,9 @@ export const SlotReservationsTable = pgTable(
       .notNull()
       .references(() => EventsTable.id, { onDelete: 'cascade' }),
     workosUserId: text('workos_user_id').notNull(),
+    // NOTE: Nullable during migration. After running backfill, make NOT NULL.
+    guestWorkosUserId: text('guest_workos_user_id'),
+    // @deprecated — retained for backfill migration only
     guestEmail: text('guest_email').notNull(),
     startTime: timestamp('start_time', { withTimezone: true }).notNull(),
     endTime: timestamp('end_time', { withTimezone: true }).notNull(),
@@ -1052,18 +1060,14 @@ export const SlotReservationsTable = pgTable(
     index('slot_reservations_user_id_idx').on(table.workosUserId),
     index('slot_reservations_expires_at_idx').on(table.expiresAt),
     index('slot_reservations_payment_intent_id_idx').on(table.stripePaymentIntentId),
-    unique('slot_reservations_active_slot_unique').on(
+    uniqueIndex('slot_reservations_active_slot_unique').on(
       table.eventId,
       table.startTime,
-      table.guestEmail,
+      table.guestWorkosUserId,
     ),
     pgPolicy('Users can view own reservations', {
       for: 'select',
-      using: sql.raw(`
-        guest_email = (
-          SELECT email FROM users WHERE workos_user_id = auth.user_id()
-        )
-      `),
+      using: sql`guest_workos_user_id = ${authUid}`,
     }),
     pgPolicy('Experts can view event reservations', {
       for: 'select',
@@ -1190,9 +1194,7 @@ export const SubscriptionPlansTable = pgTable(
     // 👤 SECONDARY: Billing Administrator
     // User who manages the subscription (can be transferred to another org member)
     // Uses 'restrict' to prevent accidental deletion if admin leaves org
-    billingAdminUserId: text('billing_admin_user_id')
-      .notNull()
-      .references(() => UsersTable.workosUserId, { onDelete: 'restrict' }),
+    billingAdminUserId: text('billing_admin_user_id').notNull(),
 
     // Plan configuration
     planType: text('plan_type').notNull().$type<'commission' | 'monthly' | 'annual'>(), // Current plan type
@@ -1229,6 +1231,11 @@ export const SubscriptionPlansTable = pgTable(
     updatedAt,
   },
   (table) => [
+    foreignKey({
+      name: 'sub_plans_billing_admin_fk',
+      columns: [table.billingAdminUserId],
+      foreignColumns: [UsersTable.workosUserId],
+    }).onDelete('restrict'),
     index('subscription_plans_org_id_idx').on(table.orgId),
     index('subscription_plans_billing_admin_idx').on(table.billingAdminUserId),
     index('subscription_plans_stripe_sub_idx').on(table.stripeSubscriptionId),
@@ -1401,9 +1408,7 @@ export const TransactionCommissionsTable = pgTable(
     currency: text('currency').notNull().default('eur'),
 
     // Stripe references
-    stripePaymentIntentId: text('stripe_payment_intent_id')
-      .notNull()
-      .references(() => MeetingsTable.stripePaymentIntentId),
+    stripePaymentIntentId: text('stripe_payment_intent_id').notNull(),
     stripeTransferId: text('stripe_transfer_id'), // Stripe Connect transfer ID
     stripeApplicationFeeId: text('stripe_application_fee_id'), // Application fee ID
 
@@ -1428,6 +1433,11 @@ export const TransactionCommissionsTable = pgTable(
     updatedAt,
   },
   (table) => [
+    foreignKey({
+      name: 'tx_commissions_payment_intent_fk',
+      columns: [table.stripePaymentIntentId],
+      foreignColumns: [MeetingsTable.stripePaymentIntentId],
+    }),
     index('transaction_commissions_user_id_idx').on(table.workosUserId),
     index('transaction_commissions_org_id_idx').on(table.orgId),
     index('transaction_commissions_meeting_id_idx').on(table.meetingId),
@@ -1549,9 +1559,7 @@ export const SubscriptionEventsTable = pgTable(
     orgId: uuid('org_id')
       .notNull()
       .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
-    subscriptionPlanId: uuid('subscription_plan_id').references(() => SubscriptionPlansTable.id, {
-      onDelete: 'set null',
-    }),
+    subscriptionPlanId: uuid('subscription_plan_id'),
 
     // Event details
     eventType: text('event_type')
@@ -1587,6 +1595,11 @@ export const SubscriptionEventsTable = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    foreignKey({
+      name: 'sub_events_plan_id_fk',
+      columns: [table.subscriptionPlanId],
+      foreignColumns: [SubscriptionPlansTable.id],
+    }).onDelete('set null'),
     index('subscription_events_user_id_idx').on(table.workosUserId),
     index('subscription_events_org_id_idx').on(table.orgId),
     index('subscription_events_plan_id_idx').on(table.subscriptionPlanId),
@@ -1736,6 +1749,20 @@ export const AuditLogsTable = pgTable(
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+
+    // HIPAA Security Rule enhancements
+    outcome: text('outcome').notNull().default('success').$type<'success' | 'failure' | 'denied'>(),
+    phiAccessed: boolean('phi_accessed').notNull().default(false),
+    sessionId: text('session_id'),
+    severity: text('severity').notNull().default('info').$type<'info' | 'warning' | 'error' | 'critical'>(),
+    retainUntil: timestamp('retain_until', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() + 7);
+        return d;
+      }),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -1752,6 +1779,113 @@ export const AuditLogsTable = pgTable(
     pgPolicy('audit_logs_insert', {
       for: 'insert',
       withCheck: sql`${authUid} IS NOT NULL`,
+    }),
+  ],
+);
+
+// ============================================================================
+// COMPLIANCE & GOVERNANCE TABLES
+// ============================================================================
+
+/**
+ * Consent Records Table — GDPR Art. 7
+ *
+ * Append-only log of user consent events. Revocation is tracked via revokedAt,
+ * never by updating or deleting a row.
+ */
+export const ConsentRecordsTable = pgTable(
+  'consent_records',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => OrganizationsTable.id),
+    consentType: text('consent_type')
+      .notNull()
+      .$type<'terms_of_service' | 'privacy_policy' | 'marketing' | 'calendar_data_processing' | 'cookie'>(),
+    version: text('version').notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('consent_records_user_id_idx').on(table.userId),
+    index('consent_records_org_id_idx').on(table.orgId),
+    index('consent_records_type_idx').on(table.consentType),
+    pgPolicy('consent_records_read', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`user_id = ${authUid}`,
+    }),
+    pgPolicy('consent_records_insert', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`user_id = ${authUid}`,
+    }),
+  ],
+);
+
+/**
+ * Data Subject Requests Table — GDPR Art. 15
+ *
+ * Tracks data access, erasure, rectification, portability, restriction, and
+ * objection requests. 30-day response deadline is set automatically.
+ */
+export const DataSubjectRequestsTable = pgTable(
+  'data_subject_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id').notNull(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => OrganizationsTable.id),
+    requestType: text('request_type')
+      .notNull()
+      .$type<'access' | 'erasure' | 'rectification' | 'portability' | 'restriction' | 'objection'>(),
+    status: text('status')
+      .notNull()
+      .default('pending')
+      .$type<'pending' | 'in_progress' | 'completed' | 'rejected'>(),
+    requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    responseDeadline: timestamp('response_deadline', { withTimezone: true })
+      .notNull()
+      .$defaultFn(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        return d;
+      }),
+    adminUserId: text('admin_user_id'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('dsar_user_id_idx').on(table.userId),
+    index('dsar_org_id_idx').on(table.orgId),
+    index('dsar_status_idx').on(table.status),
+    index('dsar_deadline_idx').on(table.responseDeadline),
+    pgPolicy('dsar_read_own', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`user_id = ${authUid}`,
+    }),
+    pgPolicy('dsar_insert_own', {
+      for: 'insert',
+      to: authenticatedRole,
+      withCheck: sql`user_id = ${authUid}`,
+    }),
+    pgPolicy('dsar_admin_manage', {
+      for: 'all',
+      to: authenticatedRole,
+      using: isAdmin,
     }),
   ],
 );

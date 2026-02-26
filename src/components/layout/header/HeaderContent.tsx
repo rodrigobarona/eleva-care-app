@@ -84,7 +84,17 @@ const ElevaCareLogo = ({ className, variant = 'default' }: ElevaLogoProps) => (
   </svg>
 );
 
-export function HeaderContent() {
+interface AuthUser {
+  firstName?: string;
+  lastName?: string;
+  profilePictureUrl?: string;
+}
+
+interface HeaderContentProps {
+  user?: AuthUser | null;
+}
+
+export function HeaderContent({ user }: HeaderContentProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const t = useTranslations('Header');
@@ -143,6 +153,33 @@ export function HeaderContent() {
           <NavLink href="/about" isScrolled={isScrolled} isRootPath={isRootPath}>
             {t('mission')}
           </NavLink>
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-80"
+            >
+              {user.profilePictureUrl ? (
+                <img
+                  src={user.profilePictureUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{user.firstName?.[0]?.toUpperCase() ?? 'U'}</span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                isRootPath && !isScrolled
+                  ? 'bg-white/20 text-white hover:bg-white/30'
+                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
+              }`}
+            >
+              {t('signIn')}
+            </Link>
+          )}
         </nav>
       </div>
     </header>

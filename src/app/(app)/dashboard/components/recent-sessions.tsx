@@ -35,7 +35,7 @@ function RecentSessionsInner({ meetings, role }: RecentSessionsProps) {
             const personName =
               role === 'patient'
                 ? [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert'
-                : meeting.guestName;
+                : meeting.guestInfo.fullName;
 
             return (
               <div

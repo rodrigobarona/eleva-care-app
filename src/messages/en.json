@@ -14,7 +14,8 @@
   },
   "Header": {
     "findExpert": "Find an Expert",
-    "mission": "Our Mission"
+    "mission": "Our Mission",
+    "signIn": "Sign In"
   },
   "NotFound": {
     "title": "Page Not Found",

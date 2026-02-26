@@ -425,3 +425,55 @@ export function getRoleDisplayName(role: string): string {
 export function getRoleDescription(role: string): string {
   return WORKOS_ROLE_DESCRIPTIONS[role as WorkOSRole] ?? '';
 }
+
+// ============================================================================
+// STRIPE ENTITLEMENTS
+// ============================================================================
+
+/**
+ * Stripe Entitlement Lookup Keys
+ *
+ * These entitlements are automatically included in the JWT access token
+ * via the WorkOS Stripe Add-on when a user's organization has an active
+ * Stripe subscription with these entitlements attached.
+ *
+ * Entitlements provide zero-DB-query feature gating, identical to how
+ * RBAC permissions work but driven by Stripe subscriptions instead of roles.
+ *
+ * @see https://workos.com/docs/integrations/stripe
+ */
+export const STRIPE_ENTITLEMENTS = {
+  /** Create unlimited services/events (Top Expert all plans) */
+  UNLIMITED_SERVICES: 'unlimited_services',
+  /** Daily payout frequency (Top Expert all plans) */
+  DAILY_PAYOUTS: 'daily_payouts',
+  /** Advanced analytics dashboard (Top Expert all plans) */
+  ADVANCED_ANALYTICS: 'advanced_analytics',
+  /** Priority support access (Top Expert all plans) */
+  PRIORITY_SUPPORT: 'priority_support',
+  /** Featured in search/listings (Top Expert all plans) */
+  FEATURED_PLACEMENT: 'featured_placement',
+  /** Custom branding options (Top Expert all plans) */
+  CUSTOM_BRANDING: 'custom_branding',
+  /** Group session capability (Top Expert all plans) */
+  GROUP_SESSIONS: 'group_sessions',
+  /** Lower commission rate (Monthly/Annual plans) */
+  REDUCED_COMMISSION: 'reduced_commission',
+  /** Lecturer module access (Lecturer addon) */
+  LECTURER_MODULE: 'lecturer_module',
+  /** Team starter plan - up to 3 experts */
+  TEAM_STARTER: 'team_starter',
+  /** Team professional plan - up to 10 experts */
+  TEAM_PROFESSIONAL: 'team_professional',
+  /** Team enterprise plan - unlimited experts */
+  TEAM_ENTERPRISE: 'team_enterprise',
+} as const;
+
+export type StripeEntitlement = (typeof STRIPE_ENTITLEMENTS)[keyof typeof STRIPE_ENTITLEMENTS];
+
+/**
+ * Extended user type that includes entitlements from Stripe via WorkOS JWT.
+ */
+export interface WorkOSUserWithEntitlements extends WorkOSUserWithRBAC {
+  entitlements?: StripeEntitlement[];
+}

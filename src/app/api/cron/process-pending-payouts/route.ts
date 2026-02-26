@@ -14,6 +14,7 @@ import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
+import { resolveGuestInfo } from '@/lib/integrations/workos/guest-resolver';
 import * as Sentry from '@sentry/nextjs';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { createPayoutCompletedNotification } from '@/lib/notifications/payment';
@@ -619,8 +620,8 @@ async function sendPayoutNotification(
     // Get real appointment and client data
     const meetingData = await db
       .select({
-        // Note: Use guest name from MeetingsTable, not from UsersTable (guest may not have account)
-        clientName: MeetingsTable.guestName,
+        guestWorkosUserId: MeetingsTable.guestWorkosUserId,
+        guestName: MeetingsTable.guestName,
         serviceName: EventsTable.name,
         appointmentDate: MeetingsTable.startTime,
       })
@@ -634,7 +635,14 @@ async function sendPayoutNotification(
       .limit(1);
 
     const meeting = meetingData[0];
-    const clientName = meeting?.clientName || 'Client';
+    // Resolve client name from WorkOS, fall back to deprecated DB column
+    let clientName = 'Client';
+    if (meeting?.guestWorkosUserId) {
+      const guestInfo = await resolveGuestInfo(meeting.guestWorkosUserId);
+      clientName = guestInfo.fullName || meeting.guestName || 'Client';
+    } else if (meeting?.guestName) {
+      clientName = meeting.guestName;
+    }
     const serviceName = meeting?.serviceName || 'Consultation';
     const appointmentDate = meeting?.appointmentDate || transfer.sessionStartTime;
     const appointmentTime = appointmentDate.toLocaleTimeString('en-GB', {
