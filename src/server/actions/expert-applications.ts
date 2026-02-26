@@ -23,6 +23,14 @@ const { logger } = Sentry;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -131,7 +139,7 @@ export async function submitExpertApplication(
       sendEmail({
         to: user.email,
         subject: 'Application Received — Eleva Care',
-        html: `<p>Hi ${user.firstName || 'there'},</p>
+        html: `<p>Hi ${escapeHtml(user.firstName || 'there')},</p>
 <p>Thank you for applying to become an expert on Eleva Care! We've received your application and our team will review it shortly.</p>
 <p>You'll receive an email once a decision has been made.</p>
 <p>Best regards,<br/>The Eleva Care Team</p>`,
@@ -262,8 +270,8 @@ export async function approveExpertApplication(
         sendEmail({
           to: applicantUser.email,
           subject: 'Application Approved — Welcome to Eleva Care!',
-          html: `<p>Hi ${applicantUser.firstName || 'there'},</p>
-<p>Great news! Your application to become an expert on Eleva Care has been approved. You've been assigned the <strong>${tierName}</strong> tier.</p>
+          html: `<p>Hi ${escapeHtml(applicantUser.firstName || 'there')},</p>
+<p>Great news! Your application to become an expert on Eleva Care has been approved. You've been assigned the <strong>${escapeHtml(tierName)}</strong> tier.</p>
 <p>You can now complete your expert profile setup:</p>
 <p><a href="${APP_URL}/setup">Complete Your Setup →</a></p>
 <p>Best regards,<br/>The Eleva Care Team</p>`,
@@ -332,9 +340,9 @@ export async function rejectExpertApplication(
         sendEmail({
           to: applicantUser.email,
           subject: 'Application Update — Eleva Care',
-          html: `<p>Hi ${applicantUser.firstName || 'there'},</p>
+          html: `<p>Hi ${escapeHtml(applicantUser.firstName || 'there')},</p>
 <p>Thank you for your interest in becoming an expert on Eleva Care. After careful review, we're unable to approve your application at this time.</p>
-<p><strong>Reason:</strong> ${rejectionReason}</p>
+<p><strong>Reason:</strong> ${escapeHtml(rejectionReason)}</p>
 <p>You're welcome to update your application and reapply:</p>
 <p><a href="${APP_URL}/apply">Update Your Application →</a></p>
 <p>Best regards,<br/>The Eleva Care Team</p>`,

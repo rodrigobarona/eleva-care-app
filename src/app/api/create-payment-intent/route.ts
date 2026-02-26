@@ -776,7 +776,18 @@ export async function POST(request: NextRequest) {
                 timeZoneName: 'short',
               })}`,
             },
-            unit_amount: price,
+            unit_amount: expertAmount,
+          },
+          quantity: 1,
+        },
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: t('serviceFee'),
+              description: t('serviceFeeDescription'),
+            },
+            unit_amount: platformFee,
           },
           quantity: 1,
         },

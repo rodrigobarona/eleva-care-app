@@ -251,7 +251,9 @@
   "Payments": {
     "checkout": {
       "multibancoNotice": "⚠️ **Aviso de Pago Multibanco:** Si elige Multibanco como método de pago, su horario de cita será reservado por 24 horas mientras esperamos la confirmación del pago. Después de 24 horas, si no se recibe el pago, no podemos garantizar que la cita siga disponible. Para confirmación inmediata, use una tarjeta de crédito/débito. [Ver Políticas de Pago]({paymentPoliciesUrl})",
-      "termsOfService": "Al proceder con el pago, acepta nuestros [Términos de Servicio]({termsUrl}) y [Políticas de Pago]({paymentPoliciesUrl})."
+      "termsOfService": "Al proceder con el pago, acepta nuestros [Términos de Servicio]({termsUrl}) y [Políticas de Pago]({paymentPoliciesUrl}).",
+      "serviceFee": "Tarifa de Servicio de la Plataforma",
+      "serviceFeeDescription": "Tarifa de reserva y procesamiento de pago de Eleva Care"
     }
   },
   "notifications": {

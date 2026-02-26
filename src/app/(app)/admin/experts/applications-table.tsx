@@ -13,7 +13,7 @@ import {
 import type { ApplicationStatus, ExpertApplication } from '@/server/actions/expert-applications';
 import { Link } from '@/lib/i18n/navigation';
 import { Eye } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const STATUS_BADGE: Record<ApplicationStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pending: { label: 'Pending', variant: 'secondary' },

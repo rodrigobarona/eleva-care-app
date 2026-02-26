@@ -32,6 +32,7 @@ import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import Stripe from 'stripe';
+import { recordCommission, markCommissionRefunded, markCommissionDisputed } from '@/server/actions/commissions';
 
 const { logger } = Sentry;
 
@@ -1229,6 +1230,43 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           }
         }
 
+          // 💰 COMMISSION TRACKING: Record commission for this payment
+          // Non-blocking: commission recording failure must not break the webhook
+          if (meeting) {
+            try {
+              const commissionResult = await recordCommission(
+                meeting.id,
+                paymentIntent.amount,
+                paymentIntent.currency,
+                paymentIntent.id,
+              );
+
+              if (commissionResult) {
+                logger.info('Commission recorded for payment', {
+                  meetingId: meeting.id,
+                  paymentIntentId: paymentIntent.id,
+                  commissionAmount: commissionResult.commissionAmount,
+                  commissionRate: commissionResult.commissionRate,
+                  netAmount: commissionResult.netAmount,
+                });
+              } else {
+                logger.warn('Commission recording returned null', {
+                  meetingId: meeting.id,
+                  paymentIntentId: paymentIntent.id,
+                  note: 'Meeting may be missing orgId or commission already recorded',
+                });
+              }
+            } catch (commissionError) {
+              logger.error('Failed to record commission (non-blocking)', {
+                meetingId: meeting.id,
+                paymentIntentId: paymentIntent.id,
+                error: commissionError instanceof Error ? commissionError.message : String(commissionError),
+              });
+              // Do NOT fail the webhook for commission recording errors
+            }
+          }
+        }
+
         span.setAttribute('stripe.payment.success', true);
       } catch (error) {
         span.setAttribute('stripe.payment.success', false);
@@ -1526,6 +1564,30 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
         // Notify the expert about the refund
         await notifyExpertOfPaymentRefund(transfer);
 
+        // 💰 COMMISSION TRACKING: Mark commission as refunded
+        if (updatedMeeting.length > 0) {
+          try {
+            const refundResult = await markCommissionRefunded(updatedMeeting[0].id);
+            if (refundResult) {
+              Sentry.logger.info('Commission marked as refunded', {
+                meetingId: updatedMeeting[0].id,
+                paymentIntentId,
+              });
+            } else {
+              Sentry.logger.warn('No commission found to refund', {
+                meetingId: updatedMeeting[0].id,
+                paymentIntentId,
+                note: 'Commission may not have been recorded yet',
+              });
+            }
+          } catch (commissionError) {
+            Sentry.logger.error('Failed to mark commission as refunded (non-blocking)', {
+              paymentIntentId,
+              error: commissionError instanceof Error ? commissionError.message : String(commissionError),
+            });
+          }
+        }
+
         span.setAttribute('stripe.refund.handled', true);
       } catch (error) {
         Sentry.logger.error('Error in handleChargeRefunded', {
@@ -1602,6 +1664,28 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
 
         // Create notification for the expert
         await notifyExpertOfPaymentDispute(transfer);
+
+        // 💰 COMMISSION TRACKING: Mark commission as disputed
+        try {
+          const disputeResult = await markCommissionDisputed(paymentIntentId);
+          if (disputeResult) {
+            Sentry.logger.info('Commission marked as disputed', {
+              paymentIntentId,
+              disputeId: dispute.id,
+            });
+          } else {
+            Sentry.logger.warn('No commission found for disputed payment', {
+              paymentIntentId,
+              disputeId: dispute.id,
+            });
+          }
+        } catch (commissionError) {
+          Sentry.logger.error('Failed to mark commission as disputed (non-blocking)', {
+            paymentIntentId,
+            disputeId: dispute.id,
+            error: commissionError instanceof Error ? commissionError.message : String(commissionError),
+          });
+        }
 
         span.setAttribute('stripe.dispute.handled', true);
       } catch (error) {
