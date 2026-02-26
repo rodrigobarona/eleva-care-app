@@ -61,6 +61,7 @@ const applicationSchema = z.object({
 });
 
 type ApplicationFormValues = z.input<typeof applicationSchema>;
+type ApplicationFormOutput = z.output<typeof applicationSchema>;
 
 interface ApplicationFormProps {
   defaultValues?: Pick<
@@ -73,7 +74,7 @@ export function ApplicationForm({ defaultValues }: ApplicationFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<ApplicationFormValues>({
+  const form = useForm<ApplicationFormValues, unknown, ApplicationFormOutput>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
       expertise: defaultValues?.expertise ?? '',
@@ -86,18 +87,17 @@ export function ApplicationForm({ defaultValues }: ApplicationFormProps) {
     },
   });
 
-  async function onSubmit(data: ApplicationFormValues) {
+  async function onSubmit(data: ApplicationFormOutput) {
     setIsSubmitting(true);
     try {
-      const parsed = applicationSchema.parse(data);
       const result = await submitExpertApplication({
-        expertise: parsed.expertise,
-        credentials: parsed.credentials,
-        experience: parsed.experience,
-        motivation: parsed.motivation,
-        hourlyRate: parsed.hourlyRate,
-        website: parsed.website,
-        linkedIn: parsed.linkedIn,
+        expertise: data.expertise,
+        credentials: data.credentials,
+        experience: data.experience,
+        motivation: data.motivation,
+        hourlyRate: data.hourlyRate,
+        website: data.website,
+        linkedIn: data.linkedIn,
       });
 
       if (result.success) {
