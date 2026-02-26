@@ -7,15 +7,16 @@
  * 3. Updates the meeting with guestWorkosUserId and guestOrgId
  * 4. Also backfills SlotReservationsTable and RecordsTable
  *
- * Run with: bun drizzle/backfill-guest-workos-users.ts
+ * Originally at: drizzle/backfill-guest-workos-users.ts
+ * Run with: bun scripts/utilities/archive/backfill/backfill-guest-workos-users.ts
  *
  * IMPORTANT: Run this BEFORE making guestWorkosUserId NOT NULL in the schema,
  * or use the schema with the column still nullable.
  */
 
-import { db } from '../src/drizzle/db';
-import { MeetingsTable, SlotReservationsTable, RecordsTable } from '../src/drizzle/schema';
-import { createOrGetGuestUser } from '../src/lib/integrations/workos/guest-users';
+import { db } from '@/drizzle/db';
+import { MeetingsTable, SlotReservationsTable, RecordsTable } from '@/drizzle/schema';
+import { createOrGetGuestUser } from '@/lib/integrations/workos/guest-users';
 import { isNull, eq, sql } from 'drizzle-orm';
 
 async function backfillMeetings() {
