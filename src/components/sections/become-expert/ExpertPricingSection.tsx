@@ -3,7 +3,13 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Check, HelpCircle, Info } from 'lucide-react';
 import Link from 'next/link';
 import React from 'react';
 
@@ -49,7 +55,8 @@ export default function ExpertPricingSection({
   note,
 }: ExpertPricingSectionProps) {
   return (
-    <section className="bg-muted/30 py-16">
+    <TooltipProvider>
+      <section className="bg-muted/30 py-16">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-7xl">
           {/* Header */}
@@ -144,6 +151,7 @@ export default function ExpertPricingSection({
         </div>
       </div>
     </section>
+    </TooltipProvider>
   );
 }
 
@@ -214,7 +222,20 @@ function PlanCard({
           {/* Commission Rate */}
           <div className="rounded-lg bg-muted/50 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Commission per booking:</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex cursor-help items-center gap-1 text-sm text-muted-foreground">
+                    Commission per booking
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-xs">
+                    This is the platform fee deducted from each booking payment. The remaining amount
+                    is paid directly to you.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
               <span
                 className={`text-xl font-bold ${tierColor === 'amber' ? 'text-amber-500' : 'text-primary'}`}
               >
@@ -242,7 +263,7 @@ function PlanCard({
         {/* CTA Button */}
         <Button
           asChild
-          className="w-full"
+          className={`w-full ${isRecommended ? `ring-2 ring-offset-2 ring-offset-background shadow-md ${tierColor === 'amber' ? 'ring-amber-500' : 'ring-primary'}` : ''}`}
           variant={isRecommended ? 'default' : 'outline'}
           size="lg"
         >

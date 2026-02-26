@@ -61,10 +61,6 @@ const PERMISSION_PROTECTED_ROUTES: Record<string, WorkOSPermission[]> = {
   '/dashboard/analytics': [WORKOS_PERMISSIONS.ANALYTICS_VIEW],
   '/api/analytics': [WORKOS_PERMISSIONS.ANALYTICS_VIEW],
 
-  // Expert approval requires experts:approve permission (Admin only)
-  '/admin/experts/approve': [WORKOS_PERMISSIONS.EXPERTS_APPROVE],
-  '/api/admin/experts/approve': [WORKOS_PERMISSIONS.EXPERTS_APPROVE],
-
   // Platform settings require settings:edit_platform permission
   '/admin/settings': [WORKOS_PERMISSIONS.SETTINGS_EDIT_PLATFORM],
 

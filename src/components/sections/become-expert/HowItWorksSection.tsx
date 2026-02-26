@@ -36,7 +36,7 @@ export default function HowItWorksSection({ title, steps, ctaButton }: HowItWork
 
           <div className="mt-12 text-center">
             <Button asChild size="lg" className="text-lg">
-              <Link href="/register?expert=true">
+              <Link href="/apply">
                 {ctaButton} <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>

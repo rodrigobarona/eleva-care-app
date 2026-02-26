@@ -23,13 +23,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Link } from '@/lib/i18n/navigation';
 import type { ExpertApplication } from '@/server/actions/expert-applications';
 import {
   approveExpertApplication,
+  markApplicationUnderReview,
   rejectExpertApplication,
 } from '@/server/actions/expert-applications';
-import { ArrowLeft, CheckCircle2, ExternalLink, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ExternalLink, Eye, Loader2, XCircle } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -46,8 +47,26 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
   const [rejectNotes, setRejectNotes] = useState('');
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isMarkingReview, setIsMarkingReview] = useState(false);
 
   const isPending = application.status === 'pending' || application.status === 'under_review';
+
+  async function handleMarkUnderReview() {
+    setIsMarkingReview(true);
+    try {
+      const result = await markApplicationUnderReview(application.id);
+      if (result.success) {
+        toast.success('Application marked as under review');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Failed to update');
+      }
+    } catch {
+      toast.error('Something went wrong');
+    } finally {
+      setIsMarkingReview(false);
+    }
+  }
 
   async function handleApprove() {
     setIsApproving(true);
@@ -95,7 +114,7 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
     <>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={'/admin/experts' as any}>
+          <Link href="/admin/experts">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
@@ -192,6 +211,21 @@ export function ApplicationDetail({ application }: ApplicationDetailProps) {
 
         {isPending && (
           <div className="space-y-4">
+            {application.status === 'pending' && (
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={isMarkingReview}
+                onClick={handleMarkUnderReview}
+              >
+                {isMarkingReview ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Eye className="mr-2 h-4 w-4" />
+                )}
+                Mark as Under Review
+              </Button>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

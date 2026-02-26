@@ -110,7 +110,7 @@ export async function autoCreateUserOrganization(params: {
   try {
     console.log(`🏢 Auto-creating organization for user: ${email}`);
 
-    // Check if user already has an organization
+    // Check if user already has an active membership
     const existingMembership = await db.query.UserOrgMembershipsTable.findFirst({
       where: (fields, { and, eq: eqOp }) =>
         and(eqOp(fields.workosUserId, workosUserId), eqOp(fields.status, 'active')),
@@ -129,22 +129,34 @@ export async function autoCreateUserOrganization(params: {
       };
     }
 
+    // Check if org row already exists (from a previous partial run) but membership is missing
+    const orgSlug = `user-${workosUserId}`;
+    const existingOrg = await db.query.OrganizationsTable.findFirst({
+      where: (fields, { eq: eqOp }) => eqOp(fields.slug, orgSlug),
+    });
+
+    if (existingOrg) {
+      console.log(`♻️ Found orphaned organization for slug ${orgSlug}, re-linking membership`);
+      return await relinkOrganizationMembership({
+        org: existingOrg,
+        workosUserId,
+        email,
+      });
+    }
+
     // Generate organization name based on type
     const fullName = `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0];
     const orgName =
       orgType === 'expert_individual' ? `${fullName}'s Practice` : `${fullName}'s Account`;
 
-    // Create organization in WorkOS first (source of truth)
+    // Create organization in WorkOS (source of truth)
     console.log(`🚀 Creating WorkOS organization: ${orgName}`);
     const workosOrg = await workos.organizations.createOrganization({
       name: orgName,
-      domainData: [], // No domain verification for personal orgs
+      domainData: [],
     });
 
     console.log(`✅ WorkOS organization created: ${workosOrg.id}`);
-
-    // Generate unique slug
-    const orgSlug = `user-${workosUserId}`;
 
     // Insert organization into database
     const [org] = await db
@@ -160,50 +172,11 @@ export async function autoCreateUserOrganization(params: {
     console.log(`✅ Organization synced to database: ${org.name}`);
 
     // Sync Stripe customer ID to WorkOS org if user already has one
-    try {
-      const userRecord = await db.query.UsersTable.findFirst({
-        where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, workosUserId),
-        columns: { stripeCustomerId: true },
-      });
-
-      if (userRecord?.stripeCustomerId) {
-        await workos.organizations.updateOrganization({
-          organization: workosOrg.id,
-          stripeCustomerId: userRecord.stripeCustomerId,
-        });
-
-        // Also update local DB
-        await db
-          .update(OrganizationsTable)
-          .set({ stripeCustomerId: userRecord.stripeCustomerId })
-          .where(eq(OrganizationsTable.id, org.id));
-
-        console.log(`✅ Stripe customer ID synced to organization: ${userRecord.stripeCustomerId}`);
-      }
-    } catch (syncError) {
-      // Non-fatal: Stripe sync can be retried later
-      console.warn('⚠️ Failed to sync Stripe customer ID to organization:', syncError);
-    }
+    await syncStripeCustomerId({ workosUserId, workosOrgId: workosOrg.id, internalOrgId: org.id });
 
     // Create WorkOS membership (user as owner)
-    console.log(`👤 Creating WorkOS membership for user: ${email}`);
-    const workOSMembership = await workos.userManagement.createOrganizationMembership({
-      userId: workosUserId,
-      organizationId: workosOrg.id,
-      roleSlug: 'owner', // User owns their personal organization
-    });
+    await createMembership({ workosUserId, email, workosOrgId: workosOrg.id, internalOrgId: org.id });
 
-    console.log(`✅ WorkOS membership created: ${workOSMembership.id}`);
-
-    // Insert membership into database
-    await db.insert(UserOrgMembershipsTable).values({
-      workosUserId: workosUserId,
-      orgId: org.id,
-      role: 'owner',
-      status: 'active',
-    });
-
-    console.log(`✅ Membership synced to database`);
     console.log(`🎉 Auto-organization complete for: ${email}`);
 
     return {
@@ -222,6 +195,111 @@ export async function autoCreateUserOrganization(params: {
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
+}
+
+/**
+ * Re-link a user to an existing organization that lost its membership.
+ * Handles the case where a previous auto-creation partially completed
+ * (org row exists but membership was never created or was deactivated).
+ */
+async function relinkOrganizationMembership(params: {
+  org: { id: string; workosOrgId: string; name: string };
+  workosUserId: string;
+  email: string;
+}): Promise<{
+  organizationId: string;
+  internalOrgId: string;
+  isNewOrg: boolean;
+  success: boolean;
+}> {
+  const { org, workosUserId, email } = params;
+
+  await syncStripeCustomerId({
+    workosUserId,
+    workosOrgId: org.workosOrgId,
+    internalOrgId: org.id,
+  });
+
+  await createMembership({
+    workosUserId,
+    email,
+    workosOrgId: org.workosOrgId,
+    internalOrgId: org.id,
+  });
+
+  console.log(`🎉 Re-linked organization for: ${email}`);
+
+  return {
+    organizationId: org.workosOrgId,
+    internalOrgId: org.id,
+    isNewOrg: false,
+    success: true,
+  };
+}
+
+/**
+ * Sync Stripe customer ID from the user record to the organization.
+ * Non-fatal — failures are logged as warnings and can be retried later.
+ */
+async function syncStripeCustomerId(params: {
+  workosUserId: string;
+  workosOrgId: string;
+  internalOrgId: string;
+}): Promise<void> {
+  const { workosUserId, workosOrgId, internalOrgId } = params;
+
+  try {
+    const userRecord = await db.query.UsersTable.findFirst({
+      where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, workosUserId),
+      columns: { stripeCustomerId: true },
+    });
+
+    if (userRecord?.stripeCustomerId) {
+      await workos.organizations.updateOrganization({
+        organization: workosOrgId,
+        stripeCustomerId: userRecord.stripeCustomerId,
+      });
+
+      await db
+        .update(OrganizationsTable)
+        .set({ stripeCustomerId: userRecord.stripeCustomerId })
+        .where(eq(OrganizationsTable.id, internalOrgId));
+
+      console.log(`✅ Stripe customer ID synced to organization: ${userRecord.stripeCustomerId}`);
+    }
+  } catch (syncError) {
+    console.warn('⚠️ Failed to sync Stripe customer ID to organization:', syncError);
+  }
+}
+
+/**
+ * Create a WorkOS membership and sync it to the local database.
+ */
+async function createMembership(params: {
+  workosUserId: string;
+  email: string;
+  workosOrgId: string;
+  internalOrgId: string;
+}): Promise<void> {
+  const { workosUserId, email, workosOrgId, internalOrgId } = params;
+
+  console.log(`👤 Creating WorkOS membership for user: ${email}`);
+  const workOSMembership = await workos.userManagement.createOrganizationMembership({
+    userId: workosUserId,
+    organizationId: workosOrgId,
+    roleSlug: 'owner',
+  });
+
+  console.log(`✅ WorkOS membership created: ${workOSMembership.id}`);
+
+  await db.insert(UserOrgMembershipsTable).values({
+    workosUserId: workosUserId,
+    orgId: internalOrgId,
+    role: 'owner',
+    status: 'active',
+  });
+
+  console.log(`✅ Membership synced to database`);
 }
 
 /**

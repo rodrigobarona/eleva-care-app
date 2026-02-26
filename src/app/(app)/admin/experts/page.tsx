@@ -4,6 +4,7 @@
  * Lists all expert applications with status filtering.
  * Admin-only (enforced by admin layout + proxy).
  */
+import type { ApplicationStatus } from '@/server/actions/expert-applications';
 import {
   getApplicationCounts,
   listExpertApplications,
@@ -24,9 +25,9 @@ export default async function ExpertApplicationsPage({
 }) {
   const { status } = await searchParams;
 
-  const validStatuses = ['pending', 'under_review', 'approved', 'rejected'] as const;
-  const statusFilter = validStatuses.includes(status as any)
-    ? (status as (typeof validStatuses)[number])
+  const validStatuses: readonly string[] = ['pending', 'under_review', 'approved', 'rejected'];
+  const statusFilter = status && validStatuses.includes(status)
+    ? (status as ApplicationStatus)
     : undefined;
 
   const [applicationsResult, counts] = await Promise.all([

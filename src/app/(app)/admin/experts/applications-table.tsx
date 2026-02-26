@@ -11,8 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { ApplicationStatus, ExpertApplication } from '@/server/actions/expert-applications';
-import { Link } from '@/lib/i18n/navigation';
 import { Eye } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 const STATUS_BADGE: Record<ApplicationStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -107,7 +107,7 @@ export function ApplicationsTable({ applications, counts, currentFilter }: Appli
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/admin/experts/${app.id}` as any}>
+                        <Link href={`/admin/experts/${app.id}`}>
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>

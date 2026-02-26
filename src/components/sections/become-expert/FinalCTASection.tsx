@@ -25,7 +25,7 @@ export default function FinalCTASection({
           <h2 className="mb-4 text-3xl font-bold md:text-4xl">{title}</h2>
           <p className="mb-8 text-lg text-muted-foreground">{description}</p>
           <Button asChild size="lg" className="text-lg">
-            <Link href="/register?expert=true">
+            <Link href="/apply">
               {button} <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>

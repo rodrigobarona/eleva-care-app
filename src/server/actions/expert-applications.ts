@@ -291,6 +291,58 @@ export async function approveExpertApplication(
 }
 
 /**
+ * Transition an application to "under_review".
+ *
+ * Only pending applications can be moved to under_review.
+ * This is an intermediate status indicating an admin has started reviewing.
+ */
+export async function markApplicationUnderReview(
+  applicationId: string,
+  reviewNotes?: string,
+): Promise<{ success: boolean; error?: string }> {
+  return Sentry.withServerActionInstrumentation('markApplicationUnderReview', { recordResponse: true }, async () => {
+    try {
+      const { user: adminUser } = await withAuth({ ensureSignedIn: true });
+      const userIsAdmin = await isAdmin();
+      if (!userIsAdmin) {
+        return { success: false, error: 'Unauthorized: admin role required' };
+      }
+
+      const application = await db.query.ExpertApplicationsTable.findFirst({
+        where: eq(ExpertApplicationsTable.id, applicationId),
+      });
+
+      if (!application) {
+        return { success: false, error: 'Application not found' };
+      }
+
+      if (application.status !== 'pending') {
+        return { success: false, error: `Cannot mark as under review: application is ${application.status}` };
+      }
+
+      await db
+        .update(ExpertApplicationsTable)
+        .set({
+          status: 'under_review',
+          reviewedBy: adminUser.id,
+          reviewNotes: reviewNotes ?? null,
+        })
+        .where(eq(ExpertApplicationsTable.id, applicationId));
+
+      logger.info(logger.fmt`Expert application marked as under review: ${applicationId}`);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to mark application as under review', { error });
+      Sentry.captureException(error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update application',
+      };
+    }
+  });
+}
+
+/**
  * Reject an expert application with a reason.
  */
 export async function rejectExpertApplication(

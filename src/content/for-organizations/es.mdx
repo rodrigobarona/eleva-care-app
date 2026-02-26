@@ -18,7 +18,7 @@ import BenefitsSection from '@/components/sections/for-organizations/BenefitsSec
 import FinalCTASection from '@/components/sections/for-organizations/FinalCTASection';
 import HeroSection from '@/components/sections/for-organizations/HeroSection';
 import HowItWorksSection from '@/components/sections/for-organizations/HowItWorksSection';
-import PricingPreviewSection from '@/components/sections/for-organizations/PricingPreviewSection';
+import PartnerPricingSection from '@/components/sections/for-organizations/PartnerPricingSection';
 import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoinSection';
 
 <HeroSection
@@ -182,14 +182,19 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
   }}
 />
 
-<PricingPreviewSection
+<PartnerPricingSection
   title="Precios de Asociación"
   subtitle="Elige el plan que se adapte al tamaño y necesidades de tu práctica"
-  note="Todos los planes incluyen: Acceso a la plataforma, procesamiento de pagos, panel de análisis y soporte para partners. Se aplica reparto de ingresos en las reservas de expertas."
+  description="Todos los planes incluyen: Acceso a la plataforma, procesamiento de pagos, panel de análisis y soporte para partners. Se aplica reparto de ingresos en las reservas de expertas (8-15% comisión de plataforma)."
   tiers={[
     {
       name: 'Inicial',
-      price: '€99/mes',
+      price: '€99',
+      priceDetail: '/mes',
+      annualPrice: '€990',
+      annualPriceDetail: '/año',
+      annualSavings: 'Ahorra €198 — ¡2 meses gratis!',
+      teamSize: 'Hasta 3 expertos',
       description: 'Perfecto para prácticas pequeñas que empiezan',
       features: [
         'Hasta 3 perfiles de expertas',
@@ -198,36 +203,83 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
         'Plataforma de consulta por video',
         'Soporte por correo electrónico',
         'Branding de práctica',
+        'Herramientas de gestión de clientas',
+        'Procesamiento de pagos incluido',
       ],
+      cta: {
+        text: 'Empezar con Inicial',
+        href: '/contact?partner=true&plan=starter',
+      },
     },
     {
       name: 'Profesional',
-      price: '€199/mes',
+      price: '€199',
+      priceDetail: '/mes',
+      annualPrice: '€1,990',
+      annualPriceDetail: '/año',
+      annualSavings: 'Ahorra €398 — ¡2 meses gratis!',
+      teamSize: 'Hasta 10 expertos',
       description: 'Ideal para prácticas en crecimiento y centros de bienestar',
       recommended: true,
       features: [
         'Hasta 10 perfiles de expertas',
         'Análisis e insights avanzados',
-        'Herramientas de gestión de clientas',
         'Páginas de reserva personalizables',
         'Soporte prioritario',
-        'Soporte de marketing',
+        'Soporte de marketing y recursos',
         'Panel de gestión de equipo',
+        'Soporte multi-ubicación',
+        'Integración de dominio personalizado',
       ],
+      cta: {
+        text: 'Ir a Profesional',
+        href: '/contact?partner=true&plan=professional',
+      },
     },
     {
       name: 'Enterprise',
       price: 'Personalizado',
-      description: 'Para organizaciones grandes con necesidades específicas',
+      priceDetail: '',
+      teamSize: 'Expertos ilimitados',
+      description: 'Para organizaciones grandes con necesidades específicas y crecimiento ilimitado',
       features: [
         'Perfiles de expertas ilimitados',
         'Opciones de marca blanca',
-        'Acceso API',
+        'Acceso API y webhooks',
         'Gerente de cuenta dedicado',
         'Soporte prioritario 24/7',
         'Integraciones personalizadas',
         'Informes y exportaciones avanzadas',
+        'SLA y cumplimiento personalizados',
       ],
+      cta: {
+        text: 'Contactar Ventas',
+        href: '/contact?partner=true&plan=enterprise',
+      },
+    },
+  ]}
+  note="Descuentos por volumen disponibles para organizaciones con 20+ expertas. Contáctanos para precios personalizados."
+  faqTitle="Preguntas Frecuentes"
+  faq={[
+    {
+      question: '¿Puedo cambiar de plan en cualquier momento?',
+      answer: '¡Sí! Puedes mejorar o reducir tu plan en cualquier momento. Al mejorar, se te cobrará la diferencia prorrateada. Al reducir, el crédito se aplicará a tu próximo ciclo de facturación.',
+    },
+    {
+      question: '¿Qué incluye la tarifa de la plataforma?',
+      answer: 'La tarifa de la plataforma cubre la infraestructura tecnológica que incluye programación, videoconsultas seguras, procesamiento de pagos, análisis y herramientas de gestión de clientes. No hay tarifas ocultas.',
+    },
+    {
+      question: '¿Cómo funciona el modelo de reparto de ingresos?',
+      answer: 'Eleva Care cobra una comisión del 8-15% en cada reserva de experto realizada a través de la plataforma. Esto cubre el procesamiento de pagos, mantenimiento de la plataforma y soporte. Los expertos siempre mantienen al menos el 60% de sus tarifas de reserva.',
+    },
+    {
+      question: '¿Puedo añadir más expertos de los que permite mi plan?',
+      answer: 'Puedes mejorar a un plan superior en cualquier momento para añadir más expertos. Para organizaciones que necesiten más de 10 expertos, nuestro plan Enterprise ofrece asientos ilimitados con precios personalizados.',
+    },
+    {
+      question: '¿Hay una prueba gratuita disponible?',
+      answer: 'Ofrecemos una demostración personalizada y experiencia de incorporación. Contacta con nuestro equipo para discutir tus necesidades y explorar cómo Eleva Care puede funcionar para tu organización.',
     },
   ]}
 />

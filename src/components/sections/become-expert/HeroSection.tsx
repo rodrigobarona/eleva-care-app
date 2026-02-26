@@ -41,7 +41,7 @@ export default function HeroSection({
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
           <Button asChild size="lg" className="text-lg">
-            <Link href="/register?expert=true">
+            <Link href="/apply">
               {ctaButton} <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>

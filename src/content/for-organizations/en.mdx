@@ -19,7 +19,6 @@ import FinalCTASection from '@/components/sections/for-organizations/FinalCTASec
 import HeroSection from '@/components/sections/for-organizations/HeroSection';
 import HowItWorksSection from '@/components/sections/for-organizations/HowItWorksSection';
 import PartnerPricingSection from '@/components/sections/for-organizations/PartnerPricingSection';
-import PricingPreviewSection from '@/components/sections/for-organizations/PricingPreviewSection';
 import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoinSection';
 
 <HeroSection
@@ -192,6 +191,10 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
       name: 'Starter',
       price: '€99',
       priceDetail: '/month',
+      annualPrice: '€990',
+      annualPriceDetail: '/year',
+      annualSavings: 'Save €198 — 2 months free!',
+      teamSize: 'Up to 3 experts',
       description: 'Perfect for small practices and wellness centers getting started',
       features: [
         'Up to 3 expert profiles',
@@ -212,6 +215,10 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
       name: 'Professional',
       price: '€199',
       priceDetail: '/month',
+      annualPrice: '€1,990',
+      annualPriceDetail: '/year',
+      annualSavings: 'Save €398 — 2 months free!',
+      teamSize: 'Up to 10 experts',
       description: 'Ideal for growing practices and established wellness centers',
       recommended: true,
       features: [
@@ -233,6 +240,7 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
       name: 'Enterprise',
       price: 'Custom',
       priceDetail: '',
+      teamSize: 'Unlimited experts',
       description: 'For large organizations with specific needs and unlimited growth',
       features: [
         'Unlimited expert profiles',
@@ -251,6 +259,28 @@ import WhoCanJoinSection from '@/components/sections/for-organizations/WhoCanJoi
     },
   ]}
   note="Volume discounts available for organizations with 20+ experts. Contact us for custom pricing."
+  faq={[
+    {
+      question: 'Can I switch plans at any time?',
+      answer: 'Yes! You can upgrade or downgrade your plan at any time. When upgrading, you will be charged the prorated difference. When downgrading, the credit will be applied to your next billing cycle.',
+    },
+    {
+      question: "What's included in the platform fee?",
+      answer: 'The platform fee covers the technology infrastructure including scheduling, secure video consultations, payment processing, analytics, and client management tools. There are no hidden fees.',
+    },
+    {
+      question: 'How does the revenue share model work?',
+      answer: 'Eleva Care takes an 8-15% commission on each expert booking made through the platform. This covers payment processing, platform maintenance, and support. Experts always keep at least 60% of their booking fees.',
+    },
+    {
+      question: 'Can I add more experts than my plan allows?',
+      answer: 'You can upgrade to a higher plan at any time to add more experts. For organizations needing more than 10 experts, our Enterprise plan offers unlimited seats with custom pricing.',
+    },
+    {
+      question: 'Is there a free trial available?',
+      answer: 'We offer a personalized demo and onboarding experience. Contact our team to discuss your needs and explore how Eleva Care can work for your organization.',
+    },
+  ]}
 />
 
 <FinalCTASection
