@@ -31,7 +31,7 @@ import {
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { workos } from '@/lib/integrations/workos/client';
 import * as Sentry from '@sentry/nextjs';
-import { withAuth } from '@workos-inc/authkit-nextjs';
+import { switchToOrganization, withAuth } from '@workos-inc/authkit-nextjs';
 import { and, eq } from 'drizzle-orm';
 
 const { logger } = Sentry;
@@ -477,4 +477,19 @@ export async function getUserOrganizations(): Promise<UserOrganization[]> {
       role: m.role,
       isCurrent: m.organization.workosOrgId === organizationId,
     }));
+}
+
+/**
+ * Switch the current session to a different organization
+ *
+ * Refreshes the WorkOS session with the new organizationId,
+ * updating role, permissions, and entitlements in the JWT.
+ *
+ * @param workosOrgId - WorkOS organization ID to switch to
+ */
+export async function switchOrganization(workosOrgId: string): Promise<void> {
+  await switchToOrganization(workosOrgId, {
+    revalidationStrategy: 'tag',
+    revalidationTags: ['user-data', 'org-settings'],
+  });
 }

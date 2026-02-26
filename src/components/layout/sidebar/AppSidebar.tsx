@@ -3,6 +3,7 @@
 import { NavMain } from '@/components/layout/sidebar/NavMain';
 import { NavSecondary } from '@/components/layout/sidebar/NavSecondary';
 import { NavUser } from '@/components/layout/sidebar/NavUser';
+import { OrgSwitcher } from '@/components/layout/sidebar/OrgSwitcher';
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +16,8 @@ import {
 } from '@/components/layout/sidebar/sidebar';
 import { useIsExpert } from '@/components/shared/providers/AuthorizationProvider';
 import { useUsername } from '@/hooks/use-user-profile';
+import type { UserOrganization } from '@/server/actions/teams';
+import { switchOrganization } from '@/server/actions/teams';
 import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -61,7 +64,11 @@ const mainItems: SidebarItem[] = [
   },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  organizations?: UserOrganization[];
+}
+
+export function AppSidebar({ organizations = [] }: AppSidebarProps) {
   const isExpert = useIsExpert();
   const { username } = useUsername(); // Centralized hook with caching
 
@@ -107,6 +114,14 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {organizations.length > 0 && (
+              <SidebarMenuItem>
+                <OrgSwitcher
+                  organizations={organizations}
+                  onSwitch={switchOrganization}
+                />
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>

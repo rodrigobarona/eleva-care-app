@@ -21,6 +21,11 @@
  * @see https://workos.com/docs/user-management/webhooks
  */
 import { ENV_CONFIG } from '@/config/env';
+import { db } from '@/drizzle/db';
+import {
+  OrganizationsTable,
+  UserOrgMembershipsTable,
+} from '@/drizzle/schema';
 import {
   deleteUserFromDatabase,
   fullUserSync,
@@ -30,6 +35,7 @@ import {
 import type { Event, OrganizationMembership } from '@workos-inc/node';
 import { WorkOS } from '@workos-inc/node';
 import * as Sentry from '@sentry/nextjs';
+import { and, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 const { logger } = Sentry;
@@ -154,14 +160,38 @@ export async function POST(request: NextRequest) {
 
       case 'organization_membership.deleted': {
         const membership = event.data as OrganizationMembership;
-        logger.info(
-          logger.fmt`Membership deleted: user ${membership.userId} -> org ${membership.organizationId}`,
-        );
+        logger.info('Organization membership deleted', {
+          userId: membership.userId,
+          organizationId: membership.organizationId,
+        });
 
-        // TODO: Delete membership from database
-        // This will be implemented in Phase 5
-        logger.warn('Membership deletion not yet implemented');
+        try {
+          // Find the internal org ID
+          const org = await db.query.OrganizationsTable.findFirst({
+            where: eq(OrganizationsTable.workosOrgId, membership.organizationId),
+            columns: { id: true },
+          });
 
+          if (org) {
+            // Remove the membership from the database
+            await db
+              .delete(UserOrgMembershipsTable)
+              .where(
+                and(
+                  eq(UserOrgMembershipsTable.workosUserId, membership.userId),
+                  eq(UserOrgMembershipsTable.orgId, org.id),
+                ),
+              );
+
+            logger.info('Membership removed from database', {
+              userId: membership.userId,
+              orgId: org.id,
+            });
+          }
+        } catch (error) {
+          logger.error('Failed to handle membership deletion', { error });
+          Sentry.captureException(error);
+        }
         break;
       }
 
