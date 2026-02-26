@@ -1228,7 +1228,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               );
             }
           }
-        }
 
           // 💰 COMMISSION TRACKING: Record commission for this payment
           // Non-blocking: commission recording failure must not break the webhook
