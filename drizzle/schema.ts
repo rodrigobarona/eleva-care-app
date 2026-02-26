@@ -1136,7 +1136,7 @@ export const SlotReservationsTable = pgTable(
  *    │       • Annual ($1,774/yr): 15% → 8% discount             │
  *    └─────────────────────────────────────────────────────────────┘
  *
- * 2️⃣ CLINICS (type: 'clinic') - Future Phase (Three-Party Model):
+ * 2️⃣ TEAMS (type: 'team') - Future Phase (Three-Party Model):
  *    ┌─────────────────────────────────────────────────────────────────┐
  *    │ Multi-Expert Clinic (Option B: Marketplace Model)              │
  *    │   ├─ Clinic Org (multiple members)                            │
@@ -1197,8 +1197,8 @@ export const SubscriptionPlansTable = pgTable(
     billingAdminUserId: text('billing_admin_user_id').notNull(),
 
     // Plan configuration
-    planType: text('plan_type').notNull().$type<'commission' | 'monthly' | 'annual'>(), // Current plan type
-    tierLevel: text('tier_level').notNull().$type<'community' | 'top'>(), // Expert tier
+    planType: text('plan_type').notNull().$type<'commission' | 'monthly' | 'annual' | 'team'>(), // Current plan type
+    tierLevel: text('tier_level').notNull().$type<'community' | 'top' | 'starter' | 'professional' | 'enterprise'>(), // Expert tier
 
     // Commission-based plan details
     commissionRate: integer('commission_rate'), // Store as basis points (e.g., 2000 = 20%)
@@ -1208,24 +1208,14 @@ export const SubscriptionPlansTable = pgTable(
     stripeCustomerId: text('stripe_customer_id'), // Denormalized for quick access
     stripePriceId: text('stripe_price_id'), // The specific price they're subscribed to
     billingInterval: text('billing_interval').$type<'month' | 'year'>(), // Monthly or annual billing
-    monthlyFee: integer('monthly_fee'), // in cents (e.g., 4900 = $49/mo)
-    annualFee: integer('annual_fee'), // in cents (e.g., 49000 = $490/year)
+    monthlyFee: integer('monthly_fee'), // in cents (e.g., 4900 = €49/mo)
+    annualFee: integer('annual_fee'), // in cents (e.g., 49000 = €490/year)
     subscriptionStartDate: timestamp('subscription_start_date', { withTimezone: true }),
     subscriptionEndDate: timestamp('subscription_end_date', { withTimezone: true }),
     subscriptionStatus: text('subscription_status').$type<
       'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing'
     >(),
     autoRenew: boolean('auto_renew').default(true),
-
-    // Upgrade/transition tracking
-    previousPlanType: text('previous_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
-    upgradedAt: timestamp('upgraded_at', { withTimezone: true }),
-    commissionsPaidBeforeUpgrade: integer('commissions_paid_before_upgrade'), // in cents
-
-    // Eligibility flags
-    isEligibleForAnnual: boolean('is_eligible_for_annual').default(false),
-    eligibilityNotificationSent: boolean('eligibility_notification_sent').default(false),
-    eligibilityLastChecked: timestamp('eligibility_last_checked', { withTimezone: true }),
 
     createdAt,
     updatedAt,
@@ -1425,9 +1415,9 @@ export const TransactionCommissionsTable = pgTable(
     //          on Feb 1. All Jan transactions show planTypeAtTransaction: 'commission'
     //          for accurate historical reporting and eligibility calculations.
     planTypeAtTransaction: text('plan_type_at_transaction').$type<
-      'commission' | 'monthly' | 'annual'
+      'commission' | 'monthly' | 'annual' | 'team'
     >(), // What subscription plan they were on when this transaction occurred
-    tierLevelAtTransaction: text('tier_level_at_transaction').$type<'community' | 'top'>(), // Their expert level at transaction time
+    tierLevelAtTransaction: text('tier_level_at_transaction').$type<'community' | 'top' | 'starter' | 'professional' | 'enterprise'>(), // Their expert level at transaction time
 
     createdAt,
     updatedAt,
@@ -1579,10 +1569,10 @@ export const SubscriptionEventsTable = pgTable(
       >(),
 
     // Plan state before/after
-    previousPlanType: text('previous_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
-    newPlanType: text('new_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
-    previousTierLevel: text('previous_tier_level').$type<'community' | 'top'>(),
-    newTierLevel: text('new_tier_level').$type<'community' | 'top'>(),
+    previousPlanType: text('previous_plan_type').$type<'commission' | 'monthly' | 'annual' | 'team'>(),
+    newPlanType: text('new_plan_type').$type<'commission' | 'monthly' | 'annual' | 'team'>(),
+    previousTierLevel: text('previous_tier_level').$type<'community' | 'top' | 'starter' | 'professional' | 'enterprise'>(),
+    newTierLevel: text('new_tier_level').$type<'community' | 'top' | 'starter' | 'professional' | 'enterprise'>(),
 
     // Stripe event reference
     stripeEventId: text('stripe_event_id'),

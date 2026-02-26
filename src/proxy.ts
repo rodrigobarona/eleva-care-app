@@ -354,6 +354,7 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'unauthorized' ||
     firstSegment === 'dashboard' ||
     firstSegment === 'setup' ||
+    firstSegment === 'apply' ||
     firstSegment === 'account' ||
     firstSegment === 'appointments' ||
     firstSegment === 'booking' ||

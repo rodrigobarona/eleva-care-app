@@ -11,6 +11,7 @@
  * - `expert_top`: Premium expert tier (subscription-backed)
  * - `team_member`: Member of a team/clinic organization
  * - `team_admin`: Administrator of a team/clinic organization
+ * - `owner`: Owner of a team organization (WorkOS system default for creators)
  * - `admin`: Platform-wide administrator (WorkOS standard naming)
  *
  * Lecturer capabilities are NOT a role -- they are granted via Stripe addon
@@ -30,7 +31,7 @@
  * WorkOS RBAC Role Slugs
  *
  * These slugs must match exactly what is configured in the WorkOS Dashboard.
- * Priority order: member < team_member < expert_community < expert_top < team_admin < admin
+ * Priority order: member < team_member < expert_community < expert_top < team_admin < owner < admin
  *
  * Naming decisions:
  * - `member` chosen over `patient`/`user` for generality (WorkOS, Vercel, Cal.com convention)
@@ -50,6 +51,8 @@ export const WORKOS_ROLES = {
   TEAM_MEMBER: 'team_member',
   /** Administrator of a team/clinic organization (priority: 90) */
   TEAM_ADMIN: 'team_admin',
+  /** Owner of a team organization -- inherits all team_admin permissions + billing (priority: 95) */
+  OWNER: 'owner',
   /** Platform-wide administrator -- WorkOS standard naming (priority: 100) */
   ADMIN: 'admin',
 } as const;
@@ -68,12 +71,13 @@ export const WORKOS_ROLE_HIERARCHY: Record<WorkOSRole, number> = {
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 70,
   [WORKOS_ROLES.EXPERT_TOP]: 80,
   [WORKOS_ROLES.TEAM_ADMIN]: 90,
+  [WORKOS_ROLES.OWNER]: 95,
   [WORKOS_ROLES.ADMIN]: 100,
 };
 
 /**
  * Expert roles for quick checking.
- * Both tiers are subscription-backed (even $0 invite-only plans).
+ * Both tiers are subscription-backed (even €0 invite-only plans).
  */
 export const EXPERT_ROLES = [WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_TOP] as const;
 
@@ -88,7 +92,7 @@ export const ADMIN_ROLES = [WORKOS_ROLES.ADMIN] as const;
  *
  * @see _docs/02-core-systems/NAMING-CONVENTIONS-GLOSSARY.md
  */
-export const TEAM_ROLES = [WORKOS_ROLES.TEAM_MEMBER, WORKOS_ROLES.TEAM_ADMIN] as const;
+export const TEAM_ROLES = [WORKOS_ROLES.TEAM_MEMBER, WORKOS_ROLES.TEAM_ADMIN, WORKOS_ROLES.OWNER] as const;
 
 // ============================================================================
 // PERMISSIONS (132 total)
@@ -360,7 +364,7 @@ export function isAdminRole(role: string): boolean {
 }
 
 /**
- * Check if a role is a team role (team_member or team_admin)
+ * Check if a role is a team role (team_member, team_admin, or owner)
  */
 export function isTeamRole(role: string): boolean {
   return (TEAM_ROLES as readonly string[]).includes(role);
@@ -397,6 +401,7 @@ export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.EXPERT_TOP]: 'Top Expert',
   [WORKOS_ROLES.TEAM_MEMBER]: 'Team Member',
   [WORKOS_ROLES.TEAM_ADMIN]: 'Team Admin',
+  [WORKOS_ROLES.OWNER]: 'Owner',
   [WORKOS_ROLES.ADMIN]: 'Admin',
 };
 
@@ -409,6 +414,7 @@ export const WORKOS_ROLE_DESCRIPTIONS: Record<WorkOSRole, string> = {
   [WORKOS_ROLES.EXPERT_TOP]: 'Premium expert with analytics and branding',
   [WORKOS_ROLES.TEAM_MEMBER]: 'Member of a team organization',
   [WORKOS_ROLES.TEAM_ADMIN]: 'Administrator of a team organization',
+  [WORKOS_ROLES.OWNER]: 'Owner of a team organization with full control',
   [WORKOS_ROLES.ADMIN]: 'Full platform access',
 };
 

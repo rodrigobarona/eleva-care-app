@@ -747,7 +747,7 @@ const PERMISSIONS: Permission[] = [
 ];
 
 // ============================================================================
-// ROLES DEFINITION (6 total)
+// ROLES DEFINITION (7 total)
 // ============================================================================
 
 interface RoleDefinition {
@@ -866,6 +866,10 @@ const TEAM_ADMIN_PERMISSIONS = [
   'billing:view_team_billing',
 ];
 
+// Owner permissions (77) = Team Admin (77) -- same as team_admin but with higher priority
+// Owner is a WorkOS system default role for organization creators
+const OWNER_PERMISSIONS = [...TEAM_ADMIN_PERMISSIONS];
+
 // Platform Admin permissions (132) = ALL
 const ADMIN_PERMISSIONS = PERMISSIONS.map((p) => p.slug);
 
@@ -901,6 +905,12 @@ const ROLES: RoleDefinition[] = [
     name: 'Team Admin',
     description: 'Administrator of a team organization with full management access',
     permissions: TEAM_ADMIN_PERMISSIONS,
+  },
+  {
+    slug: 'owner',
+    name: 'Owner',
+    description: 'Owner of a team organization with full management, billing, and deletion access',
+    permissions: OWNER_PERMISSIONS,
   },
   {
     slug: 'admin',
@@ -970,7 +980,7 @@ async function printSetupInstructions(): Promise<void> {
   }
 
   console.log('\n─────────────────────────────────────────────────────────────────────');
-  console.log('STEP 2: CREATE ROLES (6 total)');
+  console.log('STEP 2: CREATE ROLES (7 total)');
   console.log('─────────────────────────────────────────────────────────────────────');
   console.log('\nGo to RBAC → Roles → Create Role\n');
 

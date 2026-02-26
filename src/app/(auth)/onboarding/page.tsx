@@ -57,9 +57,21 @@ export default async function OnboardingPage() {
     }
 
     // Route based on organization type
-    if (orgType === 'expert_individual' || orgType === 'team') {
-      // Expert/team flow - guided onboarding
-      console.log('🎓 Expert/team user detected - redirecting to setup');
+    if (orgType === 'expert_individual') {
+      // Expert flow: check if they have an expert role already
+      // If not, they need to apply first (the current role won't grant /setup access)
+      const { isUserExpert } = await import('@/lib/integrations/workos/roles');
+      const hasExpertRole = await isUserExpert(user.id);
+      if (hasExpertRole) {
+        console.log('🎓 Approved expert - redirecting to setup');
+        redirect('/setup');
+      } else {
+        console.log('📝 Expert org but no role yet - redirecting to apply');
+        redirect('/apply');
+      }
+    } else if (orgType === 'team') {
+      // Team flow - guided onboarding
+      console.log('🎓 Team user detected - redirecting to setup');
       redirect('/setup');
     } else {
       // Member flow - direct to dashboard

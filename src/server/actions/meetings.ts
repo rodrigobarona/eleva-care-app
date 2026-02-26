@@ -318,6 +318,13 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           return { error: true, code: 'EVENT_NOT_FOUND' };
         }
 
+    // Resolve expert's organization for commission tracking
+    const expertMembership = await db.query.UserOrgMembershipsTable.findFirst({
+      where: eq(UserOrgMembershipsTable.workosUserId, data.workosUserId),
+      columns: { orgId: true },
+    });
+    const expertOrgId = expertMembership?.orgId ?? null;
+
     // Step 5: Verify the requested time slot is valid according to the schedule
     const startTimeUTC = data.startTime;
 
@@ -511,6 +518,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         .values({
           eventId: data.eventId,
           workosUserId: data.workosUserId, // Expert's WorkOS ID
+          orgId: expertOrgId, // Expert's organization ID (for commission tracking)
           guestWorkosUserId, // Guest's WorkOS ID (auto-created)
           guestOrgId, // Guest's organization ID (auto-created)
           guestEmail: data.guestEmail, // Keep for backward compatibility

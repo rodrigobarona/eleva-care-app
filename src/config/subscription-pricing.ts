@@ -4,6 +4,8 @@
  * Defines pricing tiers, commission rates, and eligibility criteria
  * for the Eleva expert platform pricing model.
  *
+ * All amounts are in EUR (euros).
+ *
  * 🏗️ BUSINESS MODEL ARCHITECTURE:
  *
  * 1️⃣ SOLO EXPERTS (Current - Phase 1):
@@ -12,20 +14,20 @@
  *
  *    Community Expert:
  *      • Commission-only: 20% per booking
- *      • Monthly ($49/mo): 12% commission (40% savings)
- *      • Annual ($490/yr): 12% commission (40% savings)
+ *      • Monthly (€49/mo): 12% commission (40% savings)
+ *      • Annual (€490/yr): 12% commission (40% savings)
  *
  *    Top Expert:
  *      • Commission-only: 15% per booking
- *      • Monthly ($177/mo): 8% commission (47% savings)
- *      • Annual ($1,774/yr): 8% commission (47% savings)
+ *      • Monthly (€155/mo): 8% commission (47% savings)
+ *      • Annual (€1,490/yr): 8% commission (47% savings)
  *
  * 2️⃣ TEAMS (Future - Phase 2):
  *    Multi-expert organizations (type: 'team') where each expert
  *    maintains their individual commission rate based on their role.
  *
  *    Example:
- *      Team Organization ($99/month team fee)
+ *      Team Organization (€99/month team fee)
  *        ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *        ├─ Dr. João (expert_community) → 12% on his bookings
  *        └─ Dr. Ana (expert_community) → 12% on her bookings
@@ -44,8 +46,8 @@
  * @see drizzle/schema.ts - OrganizationType documentation
  */
 
-export type PlanType = 'commission' | 'monthly' | 'annual';
-export type TierLevel = 'community' | 'top';
+export type PlanType = 'commission' | 'monthly' | 'annual' | 'team';
+export type TierLevel = 'community' | 'top' | 'starter' | 'professional' | 'enterprise';
 export type BillingInterval = 'month' | 'year';
 
 export interface PricingPlan {
@@ -57,7 +59,8 @@ export interface PricingPlan {
   commissionRate: number; // decimal (e.g., 0.20 for 20%)
   commissionDiscount?: number; // decimal (e.g., 0.08 for 8% reduction)
   stripePriceId?: string;
-  breakEvenMonthlyRevenue?: number; // in dollars
+  stripeLookupKey?: string;
+  breakEvenMonthlyRevenue?: number; // in EUR
   features: string[];
   limits: {
     maxServices: number; // -1 for unlimited
@@ -73,7 +76,8 @@ export interface AddonPricing {
   annualFee?: number; // in cents
   commissionRate: number; // decimal
   stripePriceId?: string;
-  breakEvenAnnualSales?: number; // in dollars
+  stripeLookupKey?: string;
+  breakEvenAnnualSales?: number; // in EUR
 }
 
 export interface EligibilityCriteria {
@@ -84,9 +88,9 @@ export interface EligibilityCriteria {
 }
 
 /**
- * Optimized Subscription Pricing Configuration
+ * Optimized Subscription Pricing Configuration (EUR)
  * Commission rates: 20% Community, 15% Top Expert
- * Annual subscriptions: $490/$1,490 with reduced commission (12%/8%)
+ * Annual subscriptions: €490/€1,490 with reduced commission (12%/8%)
  */
 export const SUBSCRIPTION_PRICING = {
   commission_based: {
@@ -95,6 +99,7 @@ export const SUBSCRIPTION_PRICING = {
       planType: 'commission' as const,
       monthlyFee: 0,
       commissionRate: 0.2, // 20% - Updated from 15%
+      stripeLookupKey: 'community-expert-invite',
       features: [
         'List up to 5 services',
         'Basic calendar integration',
@@ -116,6 +121,7 @@ export const SUBSCRIPTION_PRICING = {
       planType: 'commission' as const,
       monthlyFee: 0,
       commissionRate: 0.15, // 15% - Kept at current rate
+      stripeLookupKey: 'top-expert-invite',
       features: [
         'All Community Expert features',
         'Unlimited services',
@@ -140,11 +146,12 @@ export const SUBSCRIPTION_PRICING = {
     community_expert: {
       tier: 'community' as const,
       planType: 'monthly' as const,
-      monthlyFee: 4900, // $49/month ($588/year total)
+      monthlyFee: 4900, // €49/month (€588/year total)
       commissionRate: 0.12, // 12% commission
       commissionDiscount: 0.08, // 8% reduction (from 20% to 12%)
-      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY || 'price_1SQbV5K5Ap4Um3SpD65qOwZB',
-      breakEvenMonthlyRevenue: 510, // $510/month
+      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY,
+      stripeLookupKey: 'community-expert-monthly',
+      breakEvenMonthlyRevenue: 510, // €510/month
       features: [
         'List up to 5 services',
         'Basic calendar integration',
@@ -154,8 +161,8 @@ export const SUBSCRIPTION_PRICING = {
         'Community forum',
         '✨ Commission reduced to 12% (was 20%)',
         '✨ Cancel anytime flexibility',
-        '✨ Low monthly commitment ($49/mo)',
-        '✨ Save vs annual: $98/year with annual plan',
+        '✨ Low monthly commitment (€49/mo)',
+        '✨ Save vs annual: €98/year with annual plan',
       ],
       limits: {
         maxServices: 5,
@@ -165,11 +172,12 @@ export const SUBSCRIPTION_PRICING = {
     top_expert: {
       tier: 'top' as const,
       planType: 'monthly' as const,
-      monthlyFee: 15500, // $155/month ($1,860/year total)
+      monthlyFee: 15500, // €155/month (€1,860/year total)
       commissionRate: 0.08, // 8% commission
       commissionDiscount: 0.07, // 7% reduction (from 15% to 8%)
-      stripePriceId: process.env.STRIPE_PRICE_TOP_MONTHLY || 'price_1SQbV6K5Ap4Um3SpwFKRCoJo',
-      breakEvenMonthlyRevenue: 1774, // $1,774/month
+      stripePriceId: process.env.STRIPE_PRICE_TOP_MONTHLY,
+      stripeLookupKey: 'top-expert-monthly',
+      breakEvenMonthlyRevenue: 1774, // €1,774/month
       features: [
         'All Top Expert features',
         'Unlimited services',
@@ -182,7 +190,7 @@ export const SUBSCRIPTION_PRICING = {
         'Direct messaging',
         '✨ Commission reduced to 8% (was 15%)',
         '✨ Cancel anytime flexibility',
-        '✨ Save vs annual: $370/year with annual plan',
+        '✨ Save vs annual: €370/year with annual plan',
         '✨ VIP subscriber benefits',
       ],
       limits: {
@@ -197,12 +205,13 @@ export const SUBSCRIPTION_PRICING = {
       tier: 'community' as const,
       planType: 'annual' as const,
       monthlyFee: 0,
-      annualFee: 49000, // $490/year - Updated from $290
-      monthlyEquivalent: 4083, // $40.83/month
-      commissionRate: 0.12, // 12% - Updated from 8%
+      annualFee: 49000, // €490/year
+      monthlyEquivalent: 4083, // €40.83/month
+      commissionRate: 0.12, // 12%
       commissionDiscount: 0.08, // 8% reduction (from 20% to 12%)
-      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_ANNUAL || 'price_1SQXF5K5Ap4Um3SpekZpC9fQ',
-      breakEvenMonthlyRevenue: 510, // $510/month - Updated break-even
+      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_ANNUAL,
+      stripeLookupKey: 'community-expert-annual',
+      breakEvenMonthlyRevenue: 510, // €510/month
       features: [
         'List up to 5 services',
         'Basic calendar integration',
@@ -225,12 +234,13 @@ export const SUBSCRIPTION_PRICING = {
       tier: 'top' as const,
       planType: 'annual' as const,
       monthlyFee: 0,
-      annualFee: 149000, // $1,490/year - Updated from $990
-      monthlyEquivalent: 12417, // $124.17/month
-      commissionRate: 0.08, // 8% - Updated from 5%
+      annualFee: 149000, // €1,490/year
+      monthlyEquivalent: 12417, // €124.17/month
+      commissionRate: 0.08, // 8%
       commissionDiscount: 0.07, // 7% reduction (from 15% to 8%)
-      stripePriceId: process.env.STRIPE_PRICE_TOP_ANNUAL || 'price_1SQXF5K5Ap4Um3SpzT4S3agl',
-      breakEvenMonthlyRevenue: 1774, // $1,774/month - Updated break-even
+      stripePriceId: process.env.STRIPE_PRICE_TOP_ANNUAL,
+      stripeLookupKey: 'top-expert-annual',
+      breakEvenMonthlyRevenue: 1774, // €1,774/month
       features: [
         'All Top Expert features',
         'Unlimited services',
@@ -262,24 +272,24 @@ export const SUBSCRIPTION_PRICING = {
     },
     lecturer_annual: {
       name: 'Lecturer Module (Annual)',
-      annualFee: 49000, // $490/year
+      annualFee: 49000, // €490/year
       commissionRate: 0.03, // 3% on course sales
-      stripePriceId:
-        process.env.STRIPE_PRICE_LECTURER_ADDON_ANNUAL || 'price_1SQXF5K5Ap4Um3SpQCBwSFml',
-      breakEvenAnnualSales: 14000, // $14,000 in course sales
+      stripePriceId: process.env.STRIPE_PRICE_LECTURER_ADDON_ANNUAL,
+      stripeLookupKey: 'lecturer-module-annual',
+      breakEvenAnnualSales: 14000, // €14,000 in course sales
     },
   },
 
   eligibility: {
     community_expert: {
       minMonthsActive: 3,
-      minAvgMonthlyRevenue: 51000, // $510 in cents - Updated break-even
+      minAvgMonthlyRevenue: 51000, // €510 in cents
       minCompletedAppointments: 15,
       minRating: 4.0,
     },
     top_expert: {
       minMonthsActive: 3,
-      minAvgMonthlyRevenue: 177400, // $1,774 in cents - Updated break-even
+      minAvgMonthlyRevenue: 177400, // €1,774 in cents
       minCompletedAppointments: 50,
       minRating: 4.5,
     },
@@ -381,7 +391,7 @@ export function calculateAnnualSubscriptionCost(
   commissionRate: number,
 ): number {
   const annualCommissions = monthlyRevenue * 12 * commissionRate;
-  return annualFee / 100 + annualCommissions; // Convert cents to dollars
+  return annualFee / 100 + annualCommissions; // Convert cents to EUR
 }
 
 /**
@@ -439,7 +449,7 @@ export function checkAnnualEligibility(
 
   if (avgMonthlyRevenue < criteria.minAvgMonthlyRevenue) {
     failedCriteria.push(
-      `Need $${criteria.minAvgMonthlyRevenue / 100}/month avg revenue (have $${avgMonthlyRevenue / 100})`,
+      `Need €${criteria.minAvgMonthlyRevenue / 100}/month avg revenue (have €${avgMonthlyRevenue / 100})`,
     );
   }
 

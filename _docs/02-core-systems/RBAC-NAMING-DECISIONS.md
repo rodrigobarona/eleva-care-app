@@ -48,7 +48,15 @@ Removed as a WorkOS role. Now a Stripe addon subscription granting entitlements:
 - An expert can be expert + lecturer addon
 - Permissions come via Stripe Entitlements in JWT
 
-### 5. 4-Concept Model
+### 5. Owner Role (WorkOS System Default)
+
+- **Role:** `owner`
+- **Assignment:** WorkOS automatically assigns `owner` to the user who creates an organization
+- **Hierarchy:** 95 (highest org-level role)
+- **Permissions:** Inherits all `team_admin` permissions
+- **Use case:** Org creators have full control; they can promote others to `team_admin` or `team_member`
+
+### 6. 4-Concept Model
 
 | Concept | Purpose              | System           |
 | ------- | -------------------- | ---------------- |
@@ -64,7 +72,7 @@ Layer          | Old Term                      | New Term
 -------------- | ----------------------------- | ------------------------------
 Marketing      | "For Organizations"           | "For Teams"
 Product UI     | "Workspace"                   | "Team"
-RBAC Roles     | partner_member, partner_admin  | team_member, team_admin
+RBAC Roles     | partner_member, partner_admin  | team_member, team_admin, owner
 RBAC Roles     | patient                       | member
 RBAC Roles     | expert_lecturer               | (removed -- Stripe addon)
 Permissions    | partner:* prefix               | team:* prefix

@@ -1,7 +1,10 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from '@/lib/i18n/navigation';
 import type { DashboardMeeting, PatientStats } from '@/server/actions/dashboard';
-import { Calendar, CalendarCheck, Stethoscope, Users } from 'lucide-react';
+import { ArrowRight, Calendar, CalendarCheck, Stethoscope, Users } from 'lucide-react';
 import { QuickActions } from './components/quick-actions';
 import { RecentSessions } from './components/recent-sessions';
 import { StatCard } from './components/stat-card';
@@ -65,6 +68,23 @@ export function PatientDashboard({
       <QuickActions role="patient" />
 
       <RecentSessions meetings={recentMeetings} role="patient" />
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle>Are you a healthcare professional?</CardTitle>
+          <CardDescription>
+            Join our expert network and start helping patients on Eleva Care.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild>
+            <Link href={'/apply' as any}>
+              Become an Expert
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

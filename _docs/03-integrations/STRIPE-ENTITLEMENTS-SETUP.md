@@ -12,13 +12,21 @@ lookup keys appear in the `entitlements` claim of the access token.
 2. "Use Stripe entitlements" toggle enabled
 3. Stripe customer ID set on each WorkOS organization (Phase 1 bridge)
 
+## Team Products (Created via Stripe MCP)
+
+| Product | Product ID | Price IDs | Lookup Keys |
+|---------|------------|-----------|-------------|
+| Team Starter | `prod_U2zEf2kM2vrumY` | Monthly: `price_1T4tGMK5Ap4Um3SpiU1Xlubw` (€99/mo)<br>Annual: `price_1T4tGNK5Ap4Um3Spi1NIveBR` (€990/yr) | `team-starter-monthly`, `team-starter-annual` |
+| Team Professional | `prod_U2zEWE9S9arlXH` | Monthly: `price_1T4tGSK5Ap4Um3SpeusHgw07` (€199/mo)<br>Annual: `price_1T4tGTK5Ap4Um3SpljXwRJON` (€1,990/yr) | `team-professional-monthly`, `team-professional-annual` |
+| Team Enterprise | `prod_U2zFGcLqAfYuzp` | No price (custom/sales-led) | N/A |
+
 ## Step 1: Create Entitlements in Stripe
 
-In Stripe Dashboard > Product Catalog > Entitlements, create the following lookup keys:
+**Note:** The Stripe MCP does not have entitlement/feature tools. Create these in Stripe Dashboard > Product Catalog > Features.
 
 | Lookup Key | Description | Plans |
 |---|---|---|
-| `unlimited_services` | Create unlimited services/events | Top Expert (all) |
+| `unlimited_services` | Create unlimited services/events | Top Expert (all) | 
 | `daily_payouts` | Daily payout frequency | Top Expert (all) |
 | `advanced_analytics` | Advanced analytics dashboard | Top Expert (all) |
 | `priority_support` | Priority support access | Top Expert (all) |
@@ -38,7 +46,7 @@ For each Stripe product/price:
 2. Under "Entitlements", add the relevant lookup keys
 3. Save
 
-Example: "Top Expert Monthly" product should have:
+Example: "Top Expert Subscription" (`prod_U2zjuGKxWGZH0U`) monthly/annual prices should have:
 - `unlimited_services`
 - `daily_payouts`
 - `advanced_analytics`
@@ -47,6 +55,11 @@ Example: "Top Expert Monthly" product should have:
 - `custom_branding`
 - `group_sessions`
 - `reduced_commission`
+
+Team products (attach to each product):
+- **Team Starter** (`prod_U2zEf2kM2vrumY`): `team_starter`
+- **Team Professional** (`prod_U2zEWE9S9arlXH`): `team_professional`
+- **Team Enterprise** (`prod_U2zFGcLqAfYuzp`): `team_enterprise`
 
 ## Step 3: Verify in Application
 

@@ -87,11 +87,39 @@ export function getMinimumPayoutDelay(countryCode: string): number {
 }
 
 // Shared helper functions for fee calculations
+
+/**
+ * Calculate application fee using a dynamic commission rate
+ *
+ * Uses the expert's subscription-based commission rate instead of a flat percentage.
+ * The rate comes from getCurrentCommissionRate() which considers:
+ * - Expert tier (community vs top)
+ * - Subscription plan (commission-only, monthly, annual)
+ *
+ * @param amount - Payment amount in cents
+ * @param commissionRate - Commission rate as a decimal (e.g., 0.20 for 20%)
+ * @returns Application fee in cents (rounded down to avoid overcharging)
+ */
+export function calculateDynamicApplicationFee(amount: number | null, commissionRate: number): number {
+  if (!amount) return 0;
+  return Math.floor(amount * commissionRate);
+}
+
+/**
+ * Calculate application fee using the fixed platform fee percentage
+ *
+ * @deprecated Use calculateDynamicApplicationFee() with the expert's subscription rate.
+ * This function uses a fixed rate from STRIPE_PLATFORM_FEE_PERCENTAGE env var (default 15%).
+ * Kept as a fallback when subscription rate lookup fails.
+ */
 export function calculateApplicationFee(amount: number | null): number {
   if (!amount) return 0;
   return Math.floor(amount * STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE);
 }
 
+/**
+ * @deprecated Use calculateDynamicApplicationFee() and subtract from amount.
+ */
 export function calculateExpertAmount(amount: number | null): number {
   if (!amount) return 0;
   return Math.floor(amount * (1 - STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE));

@@ -1,3 +1,4 @@
+import { getUserOrganizationType } from '@/lib/integrations/workos/auto-organization';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
@@ -8,14 +9,17 @@ export const metadata = {
 };
 
 export default async function SetupLayout({ children }: { children: React.ReactNode }) {
-  // Require authentication with WorkOS
   const { user } = await withAuth({ ensureSignedIn: true });
 
-  // Check if user has an expert role
   const hasExpertRole = await isUserExpert(user.id);
 
-  // Only allow experts to access this page
   if (!hasExpertRole) {
+    // If the user has an expert_individual org but no role,
+    // they need to apply first (or wait for approval)
+    const orgType = await getUserOrganizationType(user.id);
+    if (orgType === 'expert_individual') {
+      return redirect('/apply');
+    }
     return redirect('/unauthorized');
   }
 

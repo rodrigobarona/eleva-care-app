@@ -26,7 +26,7 @@
  * based on their own role, regardless of the team's subscription.
  *
  * Example:
- *   Team subscribes to team plan ($99/month)
+ *   Team subscribes to team plan (€99/month)
  *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
  *   ├─ Dr. João (expert_community) → 12% on his bookings
  *   └─ Commission per expert ensures fair compensation
@@ -68,207 +68,6 @@ import { eq } from 'drizzle-orm';
 const { logger } = Sentry;
 
 import { getCurrentCommissionRate } from './subscriptions';
-
-/**
- * Commission Tracking Server Actions
- *
- * Records and tracks commission transactions for all expert bookings.
- * Integrates with subscription system to apply correct commission rates.
- *
- * 💰 COMMISSION RATE DETERMINATION:
- *
- * Solo Experts (type: 'expert_individual'):
- * ----------------------------------------
- * Commission rate = f(Expert Role, Subscription Plan)
- *
- * Community Expert (role: 'expert_community'):
- *   • Commission-only plan → 20%
- *   • Monthly subscription → 12% (saves 40%)
- *   • Annual subscription → 12% (saves 40%)
- *
- * Top Expert (role: 'expert_top'):
- *   • Commission-only plan → 15%
- *   • Monthly subscription → 8% (saves 47%)
- *   • Annual subscription → 8% (saves 47%)
- *
- * Teams (type: 'team') - Future:
- * ----------------------------------
- * Each expert in the team keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the team's subscription.
- *
- * Example:
- *   Team subscribes to team plan ($99/month)
- *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
- *   ├─ Dr. João (expert_community) → 12% on his bookings
- *   └─ Commission per expert ensures fair compensation
- *
- * 🎯 WHY PER-EXPERT RATES IN CLINICS?
- * - Fair compensation (top experts earned their lower rates)
- * - Talent retention (experts keep benefits when joining clinics)
- * - Growth incentive (community → top progression)
- * - Industry standard (Cal.com, Vercel use similar models)
- *
- * 📊 CALCULATION LOGIC:
- * 1. Patient books appointment → Payment succeeds
- * 2. recordCommission() called with booking details
- * 3. Lookup expert's role from UsersTable
- * 4. Lookup org subscription from SubscriptionPlansTable
- * 5. Determine commission rate based on role + plan type
- * 6. Calculate: commission = bookingAmount × rate
- * 7. Record transaction with metadata (tierLevel, planType)
- * 8. Expert receives: bookingAmount - commission
- *
- * Used by:
- * - Stripe webhook (when payment_intent.succeeded)
- * - Financial reporting and analytics
- * - Eligibility calculations for subscription upgrades
- */
-
-/**
- * Commission Tracking Server Actions
- *
- * Records and tracks commission transactions for all expert bookings.
- * Integrates with subscription system to apply correct commission rates.
- *
- * 💰 COMMISSION RATE DETERMINATION:
- *
- * Solo Experts (type: 'expert_individual'):
- * ----------------------------------------
- * Commission rate = f(Expert Role, Subscription Plan)
- *
- * Community Expert (role: 'expert_community'):
- *   • Commission-only plan → 20%
- *   • Monthly subscription → 12% (saves 40%)
- *   • Annual subscription → 12% (saves 40%)
- *
- * Top Expert (role: 'expert_top'):
- *   • Commission-only plan → 15%
- *   • Monthly subscription → 8% (saves 47%)
- *   • Annual subscription → 8% (saves 47%)
- *
- * Teams (type: 'team') - Future:
- * ----------------------------------
- * Each expert in the team keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the team's subscription.
- *
- * Example:
- *   Team subscribes to team plan ($99/month)
- *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
- *   ├─ Dr. João (expert_community) → 12% on his bookings
- *   └─ Commission per expert ensures fair compensation
- *
- * 🎯 WHY PER-EXPERT RATES IN CLINICS?
- * - Fair compensation (top experts earned their lower rates)
- * - Talent retention (experts keep benefits when joining clinics)
- * - Growth incentive (community → top progression)
- * - Industry standard (Cal.com, Vercel use similar models)
- *
- * 📊 CALCULATION LOGIC:
- * 1. Patient books appointment → Payment succeeds
- * 2. recordCommission() called with booking details
- * 3. Lookup expert's role from UsersTable
- * 4. Lookup org subscription from SubscriptionPlansTable
- * 5. Determine commission rate based on role + plan type
- * 6. Calculate: commission = bookingAmount × rate
- * 7. Record transaction with metadata (tierLevel, planType)
- * 8. Expert receives: bookingAmount - commission
- *
- * Used by:
- * - Stripe webhook (when payment_intent.succeeded)
- * - Financial reporting and analytics
- * - Eligibility calculations for subscription upgrades
- */
-
-/**
- * Commission Tracking Server Actions
- *
- * Records and tracks commission transactions for all expert bookings.
- * Integrates with subscription system to apply correct commission rates.
- *
- * 💰 COMMISSION RATE DETERMINATION:
- *
- * Solo Experts (type: 'expert_individual'):
- * ----------------------------------------
- * Commission rate = f(Expert Role, Subscription Plan)
- *
- * Community Expert (role: 'expert_community'):
- *   • Commission-only plan → 20%
- *   • Monthly subscription → 12% (saves 40%)
- *   • Annual subscription → 12% (saves 40%)
- *
- * Top Expert (role: 'expert_top'):
- *   • Commission-only plan → 15%
- *   • Monthly subscription → 8% (saves 47%)
- *   • Annual subscription → 8% (saves 47%)
- *
- * Teams (type: 'team') - Future:
- * ----------------------------------
- * Each expert in the team keeps their INDIVIDUAL commission rate
- * based on their own role, regardless of the team's subscription.
- *
- * Example:
- *   Team subscribes to team plan ($99/month)
- *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
- *   ├─ Dr. João (expert_community) → 12% on his bookings
- *   └─ Commission per expert ensures fair compensation
- *
- * 🎯 WHY PER-EXPERT RATES IN CLINICS?
- * - Fair compensation (top experts earned their lower rates)
- * - Talent retention (experts keep benefits when joining clinics)
- * - Growth incentive (community → top progression)
- * - Industry standard (Cal.com, Vercel use similar models)
- *
- * 📊 CALCULATION LOGIC:
- * 1. Patient books appointment → Payment succeeds
- * 2. recordCommission() called with booking details
- * 3. Lookup expert's role from UsersTable
- * 4. Lookup org subscription from SubscriptionPlansTable
- * 5. Determine commission rate based on role + plan type
- * 6. Calculate: commission = bookingAmount × rate
- * 7. Record transaction with metadata (tierLevel, planType)
- * 8. Expert receives: bookingAmount - commission
- *
- * Used by:
- * - Stripe webhook (when payment_intent.succeeded)
- * - Financial reporting and analytics
- * - Eligibility calculations for subscription upgrades
- */
-
-/**
- * Commission Tracking Server Actions
- *
- * Records and tracks commission transactions for all expert bookings.
- * Integrates with subscription system to apply correct commission rates.
- *
- * Used by:
- * - Payment processing (when booking payment succeeds)
- * - Financial reporting
- * - Eligibility calculations
- */
-
-/**
- * Commission Tracking Server Actions
- *
- * Records and tracks commission transactions for all expert bookings.
- * Integrates with subscription system to apply correct commission rates.
- *
- * Used by:
- * - Payment processing (when booking payment succeeds)
- * - Financial reporting
- * - Eligibility calculations
- */
-
-/**
- * Commission Tracking Server Actions
- *
- * Records and tracks commission transactions for all expert bookings.
- * Integrates with subscription system to apply correct commission rates.
- *
- * Used by:
- * - Payment processing (when booking payment succeeds)
- * - Financial reporting
- * - Eligibility calculations
- */
 
 // ============================================================================
 // Types
@@ -372,7 +171,7 @@ export async function recordCommission(
     const commissionRateBasisPoints = Math.round(commissionRateDecimal * 10000); // Convert to basis points
 
     // Calculate commission and net amounts
-    const commissionAmount = Math.round((grossAmount * commissionRateDecimal) / 100) * 100; // Round to nearest dollar
+    const commissionAmount = Math.round(grossAmount * commissionRateDecimal); // Round to nearest cent
     const netAmount = grossAmount - commissionAmount;
 
     // Get expert's role to determine their tier level
@@ -579,6 +378,48 @@ export async function markCommissionRefunded(meetingId: string): Promise<boolean
       return true;
     } catch (error) {
       logger.error('Error marking commission as refunded', { error });
+      return false;
+    }
+  });
+}
+
+// ============================================================================
+// Mark Commission as Disputed
+// ============================================================================
+
+/**
+ * Mark a commission as disputed (when a chargeback is filed)
+ *
+ * @param paymentIntentId - The Stripe Payment Intent ID
+ * @returns Success status
+ */
+export async function markCommissionDisputed(paymentIntentId: string): Promise<boolean> {
+  return Sentry.withServerActionInstrumentation('markCommissionDisputed', { recordResponse: true }, async () => {
+    try {
+      const commission = await db.query.TransactionCommissionsTable.findFirst({
+        where: eq(TransactionCommissionsTable.stripePaymentIntentId, paymentIntentId),
+      });
+
+      if (!commission) {
+        logger.warn('No commission found for disputed payment', { paymentIntentId });
+        return false;
+      }
+
+      await db
+        .update(TransactionCommissionsTable)
+        .set({
+          status: 'disputed',
+          updatedAt: new Date(),
+        })
+        .where(eq(TransactionCommissionsTable.id, commission.id));
+
+      logger.info('Commission marked as disputed', {
+        commissionId: commission.id,
+        paymentIntentId,
+      });
+      return true;
+    } catch (error) {
+      logger.error('Error marking commission as disputed', { error });
       return false;
     }
   });

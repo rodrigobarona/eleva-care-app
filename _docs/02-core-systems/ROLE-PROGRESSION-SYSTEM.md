@@ -110,8 +110,8 @@ const COMMUNITY_EXPERT_NAVIGATION = [
 
 - **Tier:** Community Expert
 - **Pricing Options:**
-  - **Commission-Based:** $0/month + 20% commission per booking
-  - **Annual Subscription:** $490/year + 12% commission per booking
+  - **Commission-Based:** €0/month + 20% commission per booking
+  - **Annual Subscription:** €490/year + 12% commission per booking
 - **Benefits:**
   - List up to 5 services
   - Basic analytics
@@ -189,8 +189,8 @@ const TOP_EXPERT_NAVIGATION = [
 
 - **Tier:** Top Expert
 - **Pricing Options:**
-  - **Commission-Based:** $0/month + 15% commission per booking
-  - **Annual Subscription:** $1,490/year + 8% commission per booking
+  - **Commission-Based:** €0/month + 15% commission per booking
+  - **Annual Subscription:** €1,490/year + 8% commission per booking
 - **Benefits:**
   - Unlimited services
   - Advanced analytics & insights
@@ -269,7 +269,7 @@ const LECTURER_NAVIGATION = [
 
 - **Add-on:** eLearning Module
   - **Commission-Based:** +5% on course sales
-  - **Annual Subscription:** +$490/year + 3% on course sales
+  - **Annual Subscription:** +€490/year + 3% on course sales
 
 **WorkOS Role:** None — lecturer permissions come via Stripe Entitlements in JWT
 
@@ -319,7 +319,7 @@ const ENTERPRISE_NAVIGATION = [
 - **Tier:** Enterprise (Custom pricing)
 - **Benefits:** Everything + API access, dedicated support, SLA
 
-**WorkOS Organization:** Yes (Multi-tenant with `team_admin` and `team_member` roles)
+**WorkOS Organization:** Yes (Multi-tenant with `owner`, `team_admin`, and `team_member` roles). The `owner` role is the WorkOS system default for org creators (hierarchy 95) and inherits all `team_admin` permissions.
 
 ---
 
@@ -335,10 +335,11 @@ export type UserRole =
   | 'expert_community' // Approved community expert
   | 'expert_top' // Achievement-based top expert
   | 'expert_lecturer' // Expert with teaching capability
-  | 'enterprise_admin' // B2B clinic administrator
   | 'enterprise_member' // B2B clinic staff
-  | 'admin' // Platform administrator
-  | 'moderator'; // Content moderation
+  | 'enterprise_admin' // B2B clinic administrator
+  | 'owner' // WorkOS org creator (inherits all team_admin permissions)
+  | 'moderator' // Content moderation
+  | 'admin'; // Platform administrator
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   patient: 0,
@@ -347,13 +348,14 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   expert_lecturer: 2,
   enterprise_member: 3,
   enterprise_admin: 4,
+  owner: 95,
   moderator: 5,
   admin: 10,
 };
 
 export const EXPERT_ROLES = ['expert_community', 'expert_top', 'expert_lecturer'] as const;
 
-export const ENTERPRISE_ROLES = ['enterprise_admin', 'enterprise_member'] as const;
+export const ENTERPRISE_ROLES = ['enterprise_admin', 'enterprise_member', 'owner'] as const;
 ```
 
 ### Permission System
@@ -386,10 +388,10 @@ export const PERMISSIONS = {
   'students.manage': ['expert_lecturer'],
   'webinars.host': ['expert_lecturer'],
 
-  // Enterprise permissions
-  'organization.manage': ['enterprise_admin'],
-  'team.manage': ['enterprise_admin'],
-  'api.access': ['enterprise_admin'],
+  // Enterprise permissions (owner inherits all team_admin/enterprise_admin)
+  'organization.manage': ['enterprise_admin', 'owner'],
+  'team.manage': ['enterprise_admin', 'owner'],
+  'api.access': ['enterprise_admin', 'owner'],
 
   // Admin permissions
   'users.manage': ['admin'],
@@ -472,7 +474,7 @@ export const STRIPE_PLANS = {
 
   community_expert_annual: {
     priceId: 'price_community_annual',
-    amount: 49000, // $490/year
+    amount: 49000, // €490/year
     commissionRate: 0.12, // 12%
     features: [
       'List up to 5 services',
@@ -505,7 +507,7 @@ export const STRIPE_PLANS = {
 
   top_expert_annual: {
     priceId: 'price_top_annual',
-    amount: 149000, // $1,490/year
+    amount: 149000, // €1,490/year
     commissionRate: 0.08, // 8%
     features: [
       'All Top Expert features',
@@ -531,7 +533,7 @@ export const STRIPE_PLANS = {
 
   lecturer_addon_annual: {
     priceId: 'price_lecturer_addon_annual',
-    amount: 49000, // $490/year
+    amount: 49000, // €490/year
     commissionRate: 0.03, // 3% on course sales
     features: [
       'Create & sell courses',
@@ -815,7 +817,7 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     label: 'Team',
     path: '/enterprise',
     icon: BuildingOfficeIcon,
-    requiredRole: ['team_admin'],
+    requiredRole: ['team_admin', 'owner'],
   },
 
   // Account (all users)
@@ -1015,7 +1017,7 @@ export async function GET(request: Request) {
 ### Revenue Metrics
 
 - **Subscription MRR Growth:** Target 15% MoM
-- **Average Revenue Per Expert:** Target $150/month
+- **Average Revenue Per Expert:** Target €150/month
 - **Churn Rate:** Target < 5%
 
 ---

@@ -330,19 +330,17 @@ export async function getTeamSeatInfo(teamOrgId: string): Promise<TeamSeatInfo> 
   });
 
   let tier: TeamTier | null = null;
-  let maxSeats = 3; // Default to starter limit
+  let maxSeats = 3; // Default to starter limit (free teams get 3 seats)
 
-  if (subscription) {
-    // Determine tier from subscription metadata or lookup key
-    const pricingConfig = SUBSCRIPTION_PRICING.team_subscription;
-    if (subscription.stripePriceId) {
-      // Match by looking at tier levels
-      for (const [tierKey, config] of Object.entries(pricingConfig)) {
-        if ('stripeLookupKey' in config && subscription.stripePriceId.includes(tierKey)) {
-          tier = tierKey as TeamTier;
-          maxSeats = 'maxExperts' in config ? config.maxExperts : 3;
-          break;
-        }
+  if (subscription && subscription.planType === 'team') {
+    // Use tierLevel directly from the subscription record (set by webhook)
+    const subscriptionTier = subscription.tierLevel as TeamTier;
+    if (['starter', 'professional', 'enterprise'].includes(subscriptionTier)) {
+      tier = subscriptionTier;
+      const pricingConfig = SUBSCRIPTION_PRICING.team_subscription;
+      if (tier in pricingConfig) {
+        const tierConfig = pricingConfig[tier as keyof typeof pricingConfig];
+        maxSeats = 'maxExperts' in tierConfig ? tierConfig.maxExperts : 3;
       }
     }
   }

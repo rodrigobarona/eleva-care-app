@@ -2,7 +2,7 @@
 🚀 WorkOS RBAC Configuration Script
 
 Total Permissions: 132
-Total Roles: 6
+Total Roles: 7
 
 
 
@@ -551,7 +551,7 @@ Description: Close support tickets
 ---
 
 ─────────────────────────────────────────────────────────────────────
-STEP 2: CREATE ROLES (6 total)
+STEP 2: CREATE ROLES (7 total)
 ─────────────────────────────────────────────────────────────────────
 
 Go to RBAC → Roles → Create Role
@@ -772,6 +772,90 @@ Permissions to assign (55):
 Slug: team_admin
 Name: Team Admin
 Description: Administrator of a team organization with full management access
+
+Permissions to assign (77):
+  ✓ appointments:view_own
+  ✓ appointments:create
+  ✓ appointments:cancel_own
+  ✓ appointments:reschedule_own
+  ✓ sessions:view_own
+  ✓ reviews:create
+  ✓ reviews:view_own
+  ✓ reviews:edit_own
+  ✓ reviews:delete_own
+  ✓ experts:browse
+  ✓ experts:view_profiles
+  ✓ profile:view_own
+  ✓ profile:edit_own
+  ✓ billing:view_own
+  ✓ billing:methods_manage
+  ✓ dashboard:view_member
+  ✓ dashboard:view_expert
+  ✓ appointments:view_incoming
+  ✓ appointments:manage_own
+  ✓ appointments:view_calendar
+  ✓ appointments:confirm
+  ✓ appointments:complete
+  ✓ patients:view_own
+  ✓ patients:view_history
+  ✓ patients:send_notes
+  ✓ events:create
+  ✓ events:view_own
+  ✓ events:edit_own
+  ✓ events:delete_own
+  ✓ events:toggle_active
+  ✓ availability:view_own
+  ✓ availability:create
+  ✓ availability:edit_own
+  ✓ availability:delete_own
+  ✓ availability:set_limits
+  ✓ calendars:connect
+  ✓ calendars:view_own
+  ✓ calendars:edit_own
+  ✓ calendars:disconnect
+  ✓ profile:view_expert
+  ✓ profile:edit_expert
+  ✓ profile:preview
+  ✓ profile:manage_link
+  ✓ billing:view_earnings
+  ✓ billing:view_payouts
+  ✓ billing:view_subscription
+  ✓ billing:manage_subscription
+  ✓ reviews:view_about_me
+  ✓ reviews:respond
+  ✓ settings:view_own
+  ✓ settings:edit_own
+  ✓ settings:security
+  ✓ team:view_dashboard
+  ✓ team:view_patients
+  ✓ team:view_members
+  ✓ team:manage_settings
+  ✓ team:manage_branding
+  ✓ team:view_analytics
+  ✓ team:export_data
+  ✓ team:invite_members
+  ✓ team:remove_members
+  ✓ team:manage_roles
+  ✓ team:view_performance
+  ✓ schedule:manage_team
+  ✓ schedule:manage_rooms
+  ✓ schedule:view_capacity
+  ✓ patients:view_all
+  ✓ patients:manage_records
+  ✓ patients:view_insights
+  ✓ patients:export
+  ✓ revenue:view_overview
+  ✓ revenue:view_splits
+  ✓ revenue:manage_payouts
+  ✓ revenue:view_invoices
+  ✓ revenue:export_financial
+  ✓ billing:manage_team_sub
+  ✓ billing:view_team_billing
+
+=== OWNER ===
+Slug: owner
+Name: Owner
+Description: Owner of a team organization with full management, billing, and deletion access
 
 Permissions to assign (77):
   ✓ appointments:view_own

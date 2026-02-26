@@ -1,11 +1,13 @@
 import * as Sentry from '@sentry/nextjs';
 import {
   calculateApplicationFee,
+  calculateDynamicApplicationFee,
   DEFAULT_COUNTRY,
   getMinimumPayoutDelay,
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { getServerStripe } from '@/lib/integrations/stripe';
+import { getCurrentCommissionRate } from '@/server/actions/subscriptions';
 
 const { logger } = Sentry;
 import { db } from '@/drizzle/db';
@@ -163,6 +165,8 @@ function createSharedMetadata({
   scheduledTransferTime,
   appointmentEndTime,
   requiresApproval,
+  commissionRateBps,
+  commissionSource,
   meetingData,
 }: {
   eventId: string;
@@ -182,6 +186,8 @@ function createSharedMetadata({
   scheduledTransferTime: Date;
   appointmentEndTime: Date;
   requiresApproval: boolean;
+  commissionRateBps?: number;
+  commissionSource?: string;
   meetingData: {
     timezone?: string;
     locale?: string;
@@ -205,6 +211,8 @@ function createSharedMetadata({
       amount: price.toString(),
       fee: platformFee.toString(),
       expert: expertAmount.toString(),
+      commissionRateBps: commissionRateBps?.toString() || '',
+      commissionSource: commissionSource || 'unknown',
     }),
     transfer: JSON.stringify({
       status: PAYMENT_TRANSFER_STATUS_PENDING,
@@ -586,14 +594,33 @@ export async function POST(request: NextRequest) {
     );
     logger.info('Customer retrieved/created', { customerId });
 
-    // Calculate application fee
-    const applicationFeeAmount = calculateApplicationFee(price);
+    // Calculate application fee using expert's subscription-based commission rate
+    let commissionRate: number;
+    let commissionSource: 'subscription' | 'fallback';
+    try {
+      commissionRate = await getCurrentCommissionRate(event.workosUserId);
+      commissionSource = 'subscription';
+    } catch (error) {
+      logger.warn('Failed to get subscription commission rate, using fallback', {
+        expertId: event.workosUserId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      commissionRate = STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE;
+      commissionSource = 'fallback';
+    }
+
+    const applicationFeeAmount = calculateDynamicApplicationFee(price, commissionRate);
     const expertAmount = price - applicationFeeAmount;
-    logger.info('Calculated application fee', {
+    const commissionRateBps = Math.round(commissionRate * 10000); // basis points for metadata
+
+    logger.info('Calculated dynamic application fee', {
       originalPrice: price,
       feeAmount: applicationFeeAmount,
-      expertAmount: expertAmount,
-      feePercentage: STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE,
+      expertAmount,
+      commissionRate,
+      commissionRateBps,
+      commissionSource,
+      fixedRateComparison: calculateApplicationFee(price),
     });
 
     // Get the expert's country code for country-specific payout delay
@@ -723,6 +750,8 @@ export async function POST(request: NextRequest) {
       scheduledTransferTime,
       appointmentEndTime,
       requiresApproval,
+      commissionRateBps,
+      commissionSource,
       meetingData,
     });
 

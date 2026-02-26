@@ -31,10 +31,10 @@ export const EXPERT_LOOKUP_KEYS = {
 } as const;
 
 /**
- * $0 Invite-Only Expert Lookup Keys
+ * €0 Invite-Only Expert Lookup Keys
  *
  * Used for early experts who are approved by admin and get free access.
- * These create a $0 Stripe subscription to trigger the webhook flow
+ * These create a €0 Stripe subscription to trigger the webhook flow
  * that automatically assigns the correct WorkOS role.
  *
  * Format: {tier}-expert-invite
