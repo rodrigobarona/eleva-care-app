@@ -40,28 +40,21 @@ const applicationSchema = z.object({
     .string()
     .min(20, 'Please tell us more about why you want to join')
     .max(2000, 'Please keep this under 2000 characters'),
-  hourlyRate: z
-    .string()
-    .transform((val) => (val === '' ? undefined : Number(val)))
-    .pipe(
-      z
-        .number()
-        .min(0, 'Hourly rate must be positive')
-        .max(100000, 'Please enter a valid rate')
-        .optional(),
-    ),
-  website: z
-    .string()
-    .transform((val) => (val === '' ? undefined : val))
-    .pipe(z.string().url('Please enter a valid URL').optional()),
-  linkedIn: z
-    .string()
-    .transform((val) => (val === '' ? undefined : val))
-    .pipe(z.string().url('Please enter a valid LinkedIn URL').optional()),
+  hourlyRate: z.string().refine(
+    (val) => val === '' || (!Number.isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 100000),
+    'Please enter a valid rate (0–100,000)',
+  ),
+  website: z.string().refine(
+    (val) => val === '' || z.string().url().safeParse(val).success,
+    'Please enter a valid URL',
+  ),
+  linkedIn: z.string().refine(
+    (val) => val === '' || z.string().url().safeParse(val).success,
+    'Please enter a valid LinkedIn URL',
+  ),
 });
 
-type ApplicationFormValues = z.input<typeof applicationSchema>;
-type ApplicationFormOutput = z.output<typeof applicationSchema>;
+type ApplicationFormValues = z.infer<typeof applicationSchema>;
 
 interface ApplicationFormProps {
   defaultValues?: Pick<
@@ -74,7 +67,7 @@ export function ApplicationForm({ defaultValues }: ApplicationFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<ApplicationFormValues, unknown, ApplicationFormOutput>({
+  const form = useForm<ApplicationFormValues>({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
       expertise: defaultValues?.expertise ?? '',
@@ -87,7 +80,7 @@ export function ApplicationForm({ defaultValues }: ApplicationFormProps) {
     },
   });
 
-  async function onSubmit(data: ApplicationFormOutput) {
+  async function onSubmit(data: ApplicationFormValues) {
     setIsSubmitting(true);
     try {
       const result = await submitExpertApplication({
@@ -95,9 +88,9 @@ export function ApplicationForm({ defaultValues }: ApplicationFormProps) {
         credentials: data.credentials,
         experience: data.experience,
         motivation: data.motivation,
-        hourlyRate: data.hourlyRate,
-        website: data.website,
-        linkedIn: data.linkedIn,
+        hourlyRate: data.hourlyRate ? Number(data.hourlyRate) : undefined,
+        website: data.website || undefined,
+        linkedIn: data.linkedIn || undefined,
       });
 
       if (result.success) {
