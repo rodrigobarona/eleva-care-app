@@ -39,15 +39,15 @@ const workos = new WorkOS(process.env.WORKOS_API_KEY);
  */
 const ROLE_MAPPING: Record<string, string> = {
   // Old role → New WorkOS role slug
-  user: 'patient',
+  user: 'member',
+  member: 'member',
   expert_community: 'expert_community',
   expert_top: 'expert_top',
-  expert_lecturer: 'expert_community', // Lecturers become community experts
-  admin: 'superadmin',
-  superadmin: 'superadmin',
+  // expert_lecturer was removed -- lecturer is now a Stripe addon, not a role
+  admin: 'admin',
 
   // Default for any unmapped roles
-  default: 'patient',
+  default: 'member',
 };
 
 /**
@@ -178,7 +178,7 @@ async function migrate(dryRun: boolean): Promise<MigrationResult> {
 
   // Process each user
   for (const user of users) {
-    const oldRole = user.role || 'user';
+    const oldRole = user.role || 'member';
     const newRole = mapRole(oldRole);
 
     // Skip if no WorkOS ID

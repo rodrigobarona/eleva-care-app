@@ -112,8 +112,7 @@ export async function hasRole(workosUserId: string, role: Role): Promise<boolean
  * ```ts
  * const isAnyExpert = await hasAnyRole('user_01H...', [
  *   'expert_top',
- *   'expert_community',
- *   'expert_lecturer'
+ *   'expert_community'
  * ]);
  * ```
  */
@@ -159,7 +158,7 @@ export async function isUserExpert(workosUserId: string): Promise<boolean> {
 }
 
 /**
- * Check if user is an admin (admin or superadmin)
+ * Check if user is an admin
  *
  * @param workosUserId - WorkOS user ID
  * @returns True if user is an admin
@@ -173,7 +172,7 @@ export async function isUserExpert(workosUserId: string): Promise<boolean> {
  * ```
  */
 export async function isUserAdmin(workosUserId: string): Promise<boolean> {
-  return await hasAnyRole(workosUserId, ['admin', 'superadmin']);
+  return await hasAnyRole(workosUserId, ['admin']);
 }
 
 /**
@@ -189,7 +188,7 @@ export async function isUserAdmin(workosUserId: string): Promise<boolean> {
  * ```ts
  * // Check if user has at least expert_community level
  * const canAccessExpertFeatures = await hasPermission('user_01H...', 'expert_community');
- * // Returns true for expert_community, expert_lecturer, expert_top, admin, superadmin
+ * // Returns true for expert_community, expert_top, admin
  * ```
  */
 export async function hasPermission(
@@ -207,7 +206,7 @@ export async function hasPermission(
  * Get user's application role (from database)
  *
  * @param workosUserId - WorkOS user ID
- * @returns Application role or 'user' as default
+ * @returns Application role or 'member' as default
  *
  * @example
  * ```ts
@@ -224,10 +223,10 @@ export async function getUserApplicationRole(workosUserId: string): Promise<Appl
       },
     });
 
-    return (user?.role as ApplicationRole) || 'user';
+    return (user?.role as ApplicationRole) || 'member';
   } catch (error) {
     console.error('Error fetching user application role:', error);
-    return 'user';
+    return 'member';
   }
 }
 

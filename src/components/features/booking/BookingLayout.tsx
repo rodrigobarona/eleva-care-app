@@ -29,7 +29,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
 interface BlockedDate {
-  id: number;
+  id: string;
   date: Date;
   reason?: string;
   timezone: string;

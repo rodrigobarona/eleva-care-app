@@ -19,7 +19,6 @@ import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
-import { hasValidTokens } from '@/lib/integrations/google/calendar';
 import { generateFormCacheKey } from '@/lib/utils/cache-keys';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
@@ -70,10 +69,17 @@ function validateCheckoutUrl(url: string): void {
 }
 
 interface BlockedDate {
-  id: number;
+  id: string;
   date: Date;
   reason?: string;
   timezone: string;
+}
+
+interface AuthenticatedUser {
+  workosUserId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface MeetingFormProps {
@@ -94,6 +100,7 @@ interface MeetingFormProps {
   beforeEventBuffer?: number;
   afterEventBuffer?: number;
   blockedDates?: BlockedDate[];
+  authenticatedUser?: AuthenticatedUser;
 }
 
 // Define the query state type for reuse
@@ -126,6 +133,7 @@ interface Step2ContentProps {
   isProcessingRef: React.MutableRefObject<boolean>;
   price: number;
   use24Hour: boolean;
+  isAuthenticated: boolean;
 }
 
 const Step2Content = React.memo<Step2ContentProps>(
@@ -144,6 +152,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     isProcessingRef,
     price,
     use24Hour,
+    isAuthenticated,
   }) => {
     // Subscribe to root form errors so they trigger re-renders
     const { errors } = useFormState({ control: form.control });
@@ -233,9 +242,11 @@ const Step2Content = React.memo<Step2ContentProps>(
                   <Input
                     placeholder="Enter your full name"
                     {...field}
+                    readOnly={isAuthenticated}
+                    className={isAuthenticated ? 'bg-muted' : ''}
                     onBlur={() => {
                       field.onBlur();
-                      updateURLOnBlur();
+                      if (!isAuthenticated) updateURLOnBlur();
                     }}
                   />
                 </FormControl>
@@ -254,9 +265,11 @@ const Step2Content = React.memo<Step2ContentProps>(
                     type="email"
                     placeholder="you@example.com"
                     {...field}
+                    readOnly={isAuthenticated}
+                    className={isAuthenticated ? 'bg-muted' : ''}
                     onBlur={() => {
                       field.onBlur();
-                      updateURLOnBlur();
+                      if (!isAuthenticated) updateURLOnBlur();
                     }}
                   />
                 </FormControl>
@@ -346,7 +359,8 @@ const Step2Content = React.memo<Step2ContentProps>(
       prevProps.use24Hour !== nextProps.use24Hour ||
       prevProps.queryStates.date?.getTime() !== nextProps.queryStates.date?.getTime() ||
       prevProps.queryStates.time?.getTime() !== nextProps.queryStates.time?.getTime() ||
-      prevProps.queryStates.timezone !== nextProps.queryStates.timezone;
+      prevProps.queryStates.timezone !== nextProps.queryStates.timezone ||
+      prevProps.isAuthenticated !== nextProps.isAuthenticated;
 
     return !propsChanged; // Skip re-render only if nothing important changed
   },
@@ -401,13 +415,14 @@ export function MeetingFormContent({
   beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER,
   afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER,
   blockedDates,
+  authenticatedUser,
 }: MeetingFormProps) {
+  const isAuthenticated = !!authenticatedUser;
   const router = useRouter();
 
   // State management
   const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const checkoutUrlRef = React.useRef<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
@@ -457,18 +472,21 @@ export function MeetingFormContent({
   });
 
   // Form initialization with enhanced defaults from URL including date and time
+  // Pre-fill name/email from authenticated user when available
+  const authFullName = authenticatedUser
+    ? `${authenticatedUser.firstName ?? ''} ${authenticatedUser.lastName ?? ''}`.trim()
+    : '';
+
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
       timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      guestName: queryStates.name || '',
-      guestEmail: queryStates.email || '',
-      guestNotes: '', // Initialize with empty string
-      // Initialize with date and time from URL if they exist
+      guestName: authFullName || queryStates.name || '',
+      guestEmail: authenticatedUser?.email || queryStates.email || '',
+      guestNotes: '',
       ...(queryStates.date && { date: queryStates.date }),
       ...(queryStates.time && { startTime: queryStates.time }),
     },
-    // Don't validate on mount to avoid confusion
     mode: 'onBlur',
   });
 
@@ -820,6 +838,7 @@ export function MeetingFormContent({
                 eventId,
                 workosUserId: workosUserId,
                 locale: locale || 'en',
+                ...(authenticatedUser && { authenticatedWorkosUserId: authenticatedUser.workosUserId }),
               });
 
               if (data?.error) {
@@ -1282,31 +1301,6 @@ export function MeetingFormContent({
     }
   }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
 
-  // Check if user has valid calendar access
-  React.useEffect(() => {
-    const checkCalendarAccess = async () => {
-      try {
-        const hasValidAccess = await hasValidTokens(workosUserId);
-
-        if (!hasValidAccess) {
-          setIsCalendarSynced(false);
-          router.push(
-            `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
-          );
-        }
-      } catch (error) {
-        Sentry.logger.error('Error checking calendar access', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          workosUserId,
-        });
-        setIsCalendarSynced(false);
-        router.push(`/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`);
-      }
-    };
-
-    checkCalendarAccess();
-  }, [workosUserId, router]);
-
   // Handle date selection
   const handleDateSelect = React.useCallback(
     (selectedDate: Date) => {
@@ -1391,27 +1385,6 @@ export function MeetingFormContent({
       }
     }
   }, [currentStep, queryStates.date, queryStates.time, form, transitionToStep]);
-
-  // Early return for calendar sync check
-  if (!isCalendarSynced) {
-    return (
-      <div className="py-8 text-center">
-        <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="mb-4 text-muted-foreground">
-          We need access to your Google Calendar to show available time slots.
-        </p>
-        <Button
-          onClick={() =>
-            router.push(
-              `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
-            )
-          }
-        >
-          Connect Google Calendar
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <Form {...form}>
@@ -1509,6 +1482,7 @@ export function MeetingFormContent({
                   isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}
+                  isAuthenticated={isAuthenticated}
                 />
               )}
               {currentStep === '3' && (

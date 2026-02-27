@@ -123,7 +123,7 @@ function PostHogUserTracker() {
         if (data?.roles?.length > 0) {
           // Use the highest privilege role for grouping
           const role =
-            data.roles.includes('admin') || data.roles.includes('superadmin')
+            data.roles.includes('admin')
               ? 'admin'
               : data.roles.includes('expert_top')
                 ? 'expert_top'

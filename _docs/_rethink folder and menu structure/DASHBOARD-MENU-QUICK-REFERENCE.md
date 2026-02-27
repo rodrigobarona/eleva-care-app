@@ -15,7 +15,7 @@
 ### Why?
 
 - User-facing names (not developer terminology)
-- Scalable for partners and LMS
+- Scalable for teams and LMS
 - Industry best practices (Cal.com, Dub, Vercel)
 - Role-aware navigation
 - Clearer feature grouping
@@ -23,7 +23,7 @@
 ### When?
 
 - **Phase 1:** Restructure (2 weeks) - Current features
-- **Phase 2:** Partner features (Future)
+- **Phase 2:** Team features (Future)
 - **Phase 3:** LMS features (Future)
 
 ---
@@ -34,7 +34,7 @@
 
 ```
 📊 Overview
-📅 Appointments → Upcoming | Past | Calendar (Built-in) | Patients
+📅 Appointments → Upcoming | Past | Calendar (Built-in) | Members
 🗓️ Availability → Schedules (Multiple) | Limits | Calendar Connections
 🔗 Event Types → All Events | Create
 👤 Profile → Expert Profile | Preview | Link
@@ -50,7 +50,7 @@
 + 📚 Resources (future)
 ```
 
-### Partner Admin
+### Team Admin
 
 ```
 PERSONAL
@@ -59,11 +59,11 @@ PERSONAL
   🗓️ My Availability
   🔗 My Event Types
 
-CLINIC
-  🏥 Partner Overview
+TEAM
+  🏥 Team Overview
   👥 Team → Members, Invite, Roles
   📅 Schedule → Multi-calendar, Rooms
-  👨‍👩‍👧‍👦 Patients → All, Records, Insights
+  👨‍👩‍👧‍👦 Members → All, Records, Insights
   📊 Analytics → Revenue, Performance, Reports
   💼 Settings → Org Info, Branding, Billing
   💳 Revenue → Overview, Splits, Payouts
@@ -73,8 +73,8 @@ CLINIC
 
 ```
 🏢 Platform Overview
-👥 Users → All, Experts, Patients
-🏥 Organizations → All, Partners, Details
+👥 Users → All, Experts, Members
+🏥 Organizations → All, Teams, Details
 📊 Analytics → Growth, Revenue, Engagement
 💳 Payments → Transactions, Transfers, Disputes
 🏷️ Categories → Specialties, Services, Tags
@@ -113,8 +113,8 @@ CLINIC
 /appointments                    # Upcoming (default)
 /appointments?tab=past          # Past appointments
 /appointments/calendar          # 🆕 Built-in calendar (Day/Week/Month)
-/appointments/patients          # Patient list
-/appointments/patients/[id]     # Patient detail
+/appointments/members           # Member list
+/appointments/members/[id]      # Member detail
 ```
 
 **Built-in Calendar Features:**
@@ -142,7 +142,7 @@ CLINIC
 
 **New Features:**
 
-- ✅ Multiple schedules (Remote, In-person, Partner, etc.)
+- ✅ Multiple schedules (Remote, In-person, Team, etc.)
 - ✅ Each schedule has own hours, location, timezone
 - ✅ Assign schedule to event types
 - ✅ Calendar integration is OPTIONAL (not mandatory)
@@ -162,7 +162,7 @@ CLINIC
 ```
 /analytics                     # Overview & KPIs
 /analytics/revenue            # Financial insights
-/analytics/patients           # Patient demographics
+/analytics/members            # Member demographics
 /analytics/performance        # Booking trends
 ```
 
@@ -170,7 +170,7 @@ CLINIC
 
 ```
 /profile/expert               # Edit public profile
-/profile/preview              # Preview as patient sees
+/profile/preview              # Preview as member sees
 /profile/link                 # Booking link settings
 ```
 
@@ -192,18 +192,18 @@ CLINIC
 /settings/security           # 2FA, sessions
 ```
 
-### Partner (Future)
+### Team (Future)
 
 ```
-/partner                      # Partner overview
-/partner/team                # Team management
-/partner/team/invite         # Invite member
-/partner/team/[id]           # Member details
-/partner/schedule            # Multi-practitioner calendar
-/partner/patients            # All partner patients
-/partner/analytics           # Partner-wide analytics
-/partner/settings            # Partner configuration
-/partner/revenue             # Revenue & payouts
+/team                        # Team overview
+/team/members                # Team management
+/team/members/invite         # Invite member
+/team/members/[id]           # Member details
+/team/schedule               # Multi-practitioner calendar
+/team/members                # All team members
+/team/analytics              # Team-wide analytics
+/team/settings               # Team configuration
+/team/revenue                # Revenue & payouts
 ```
 
 ### Learning (Future)
@@ -236,7 +236,7 @@ CLINIC
 
 ## 🔑 Role & Permission Matrix
 
-| Feature             | Community | Top | Partner Member | Partner Admin | Platform Admin |
+| Feature             | Community | Top | Team Member | Team Admin | Platform Admin |
 | ------------------- | --------- | --- | -------------- | ------------- | -------------- |
 | Overview            | ✅        | ✅  | ✅             | ✅            | ✅             |
 | Appointments        | ✅        | ✅  | ✅             | ✅            | ✅             |
@@ -245,7 +245,7 @@ CLINIC
 | **Analytics**       | ❌        | ✅  | ❌             | ✅ (partner)  | ✅             |
 | Profile             | ✅        | ✅  | ✅             | ✅            | ✅             |
 | Billing             | ✅        | ✅  | ✅             | ✅            | ✅             |
-| **Partner Section** | ❌        | ❌  | ✅ (view)      | ✅ (full)     | ✅             |
+| **Team Section**    | ❌        | ❌  | ✅ (view)      | ✅ (full)     | ✅             |
 | **Admin Section**   | ❌        | ❌  | ❌             | ❌            | ✅             |
 
 ---
@@ -274,7 +274,7 @@ import {
   ExternalLink,
   // 🔔 Notifications
   FileText,
-  // 🏥 Partner
+  // 🏥 Team
   GraduationCap,
   // 🛡️ Admin, Security
   HelpCircle,
@@ -305,7 +305,7 @@ import {
 ```bash
 cd app/(private)
 mkdir -p availability/{dates,limits,timezone}
-mkdir -p analytics/{revenue,patients,performance}
+mkdir -p analytics/{revenue,members,performance}
 mkdir -p profile/{expert,preview,link}
 mkdir -p billing/{subscription,payments,payouts,invoices}
 mkdir -p settings/{account,notifications,integrations,security}
@@ -382,7 +382,7 @@ Navigation
 Permissions
   [ ] Community tier sees correct menu
   [ ] Top tier sees Analytics
-  [ ] Partner members see partner section
+  [ ] Team members see team section
   [ ] Admins see admin section
 
 Redirects
@@ -466,7 +466,7 @@ A: "Booking" is developer terminology. "Events" and "Availability" are clearer t
 **Q: Will old URLs break?**  
 A: No, we'll add redirects for backward compatibility.
 
-**Q: When will partner features be available?**  
+**Q: When will team features be available?**  
 A: Phase 2, timeline TBD after Phase 1 stabilizes.
 
 **Q: Can I hide features I don't use?**  
@@ -475,7 +475,7 @@ A: Future enhancement - Phase 4 will add customizable navigation.
 **Q: How do I test the new navigation?**  
 A: Run locally, check all routes, verify permissions per role.
 
-**Q: What if a user is in multiple partners?**  
+**Q: What if a user is in multiple teams?**  
 A: Organization switcher will be added (Phase 2).
 
 ---
@@ -508,5 +508,5 @@ A: Organization switcher will be added (Phase 2).
 
 - v1.0 (Nov 12, 2025) - Initial design
 - v1.1 (TBD) - Post Phase 1 updates
-- v2.0 (TBD) - Partner features
+- v2.0 (TBD) - Team features
 - v3.0 (TBD) - LMS features

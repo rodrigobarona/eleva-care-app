@@ -15,125 +15,23 @@
 
 'use server';
 
+import { EXPERT_INVITE_LOOKUP_KEYS } from '@/config/subscription-lookup-keys';
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
 import { db, invalidateCache } from '@/drizzle/db';
 import {
+  OrganizationsTable,
   SubscriptionEventsTable,
   SubscriptionPlansTable,
   UserOrgMembershipsTable,
   UsersTable,
 } from '@/drizzle/schema';
+import { workos } from '@/lib/integrations/workos/client';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import * as Sentry from '@sentry/nextjs';
 import { eq } from 'drizzle-orm';
 
 const { logger } = Sentry;
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
-
-/**
- * Subscription Management Server Actions
- *
- * Handles all subscription-related operations:
- * - Creating new subscriptions (annual plans)
- * - Canceling subscriptions
- * - Updating subscription plans
- * - Fetching subscription status
- *
- * Integrates with:
- * - Stripe Subscriptions API
- * - Database (SubscriptionPlansTable)
- * - Audit logging
- */
 
 // ============================================================================
 // Types
@@ -143,8 +41,8 @@ export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' |
 
 export interface SubscriptionInfo {
   id: string;
-  planType: 'commission' | 'monthly' | 'annual';
-  tierLevel: 'community' | 'top';
+  planType: 'commission' | 'monthly' | 'annual' | 'team';
+  tierLevel: 'community' | 'top' | 'starter' | 'professional' | 'enterprise';
   billingInterval: 'month' | 'year' | null;
   status: SubscriptionStatus | null;
   currentPeriodStart: Date | null;
@@ -236,10 +134,7 @@ export async function getSubscriptionStatus(
         columns: { role: true },
       });
 
-      const tierLevel =
-        userRecord?.role === 'expert_top' || userRecord?.role === 'expert_lecturer'
-          ? 'top'
-          : 'community';
+      const tierLevel = userRecord?.role === 'expert_top' ? 'top' : 'community';
 
       const commissionRate =
         tierLevel === 'top'
@@ -377,6 +272,37 @@ export async function createSubscription(
         .update(UsersTable)
         .set({ stripeCustomerId: customerId })
         .where(eq(UsersTable.workosUserId, user.id));
+    }
+
+    // Sync Stripe customer ID to WorkOS organization
+    const orgId = await getUserOrgId(user.id);
+    if (orgId && customerId) {
+      try {
+        const orgRecord = await db.query.OrganizationsTable.findFirst({
+          where: eq(OrganizationsTable.id, orgId),
+          columns: { workosOrgId: true, stripeCustomerId: true },
+        });
+
+        if (orgRecord && !orgRecord.stripeCustomerId) {
+          await workos.organizations.updateOrganization({
+            organization: orgRecord.workosOrgId,
+            stripeCustomerId: customerId,
+          });
+
+          await db
+            .update(OrganizationsTable)
+            .set({ stripeCustomerId: customerId })
+            .where(eq(OrganizationsTable.id, orgId));
+
+          logger.info('Synced Stripe customer ID to WorkOS organization', {
+            orgId,
+            stripeCustomerId: customerId,
+          });
+        }
+      } catch (syncError) {
+        // Non-fatal: sync can be retried later
+        logger.warn('Failed to sync Stripe customer ID to WorkOS org', { syncError });
+      }
     }
 
     // Resolve price ID from lookup key (if needed)
@@ -618,5 +544,166 @@ export async function getCurrentCommissionRate(workosUserId: string): Promise<nu
     // Return default commission rate on error
     return SUBSCRIPTION_PRICING.commission_based.community_expert.commissionRate;
   }
+  });
+}
+
+// ============================================================================
+// Create Invite Subscription
+// ============================================================================
+
+/**
+ * Create a €0 invite subscription for admin-approved experts
+ *
+ * When an admin approves an expert application, this creates a free Stripe
+ * subscription using the invite lookup key. This triggers the webhook flow
+ * that creates a SubscriptionPlansTable entry with planType='commission'
+ * and delivers WorkOS entitlements via the JWT.
+ *
+ * @param workosUserId - The expert's WorkOS user ID
+ * @param tierLevel - The expert tier ('community' or 'top')
+ * @returns Success status with subscription ID
+ */
+export async function createInviteSubscription(
+  workosUserId: string,
+  tierLevel: 'community' | 'top',
+): Promise<CreateSubscriptionResult> {
+  return Sentry.withServerActionInstrumentation('createInviteSubscription', { recordResponse: true }, async () => {
+    try {
+      const stripe = await getServerStripe();
+
+      // Get user record
+      const userRecord = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.workosUserId, workosUserId),
+        columns: {
+          stripeCustomerId: true,
+          email: true,
+        },
+      });
+
+      if (!userRecord) {
+        return { success: false, error: 'User not found' };
+      }
+
+      // Get or create Stripe customer
+      let customerId = userRecord.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: userRecord.email,
+          metadata: {
+            workosUserId,
+            type: 'expert_invite',
+          },
+        });
+        customerId = customer.id;
+
+        await db
+          .update(UsersTable)
+          .set({ stripeCustomerId: customerId })
+          .where(eq(UsersTable.workosUserId, workosUserId));
+      }
+
+      // Get user's organization
+      const membership = await db.query.UserOrgMembershipsTable.findFirst({
+        where: eq(UserOrgMembershipsTable.workosUserId, workosUserId),
+        columns: { orgId: true },
+      });
+
+      if (!membership?.orgId) {
+        return { success: false, error: 'Organization not found for user' };
+      }
+
+      // Sync Stripe customer to WorkOS org if needed
+      const orgRecord = await db.query.OrganizationsTable.findFirst({
+        where: eq(OrganizationsTable.id, membership.orgId),
+        columns: { workosOrgId: true, stripeCustomerId: true },
+      });
+
+      if (orgRecord && !orgRecord.stripeCustomerId && customerId) {
+        try {
+          await workos.organizations.updateOrganization({
+            organization: orgRecord.workosOrgId,
+            stripeCustomerId: customerId,
+          });
+          await db
+            .update(OrganizationsTable)
+            .set({ stripeCustomerId: customerId })
+            .where(eq(OrganizationsTable.id, membership.orgId));
+        } catch (syncError) {
+          logger.warn('Failed to sync Stripe customer ID to WorkOS org', { syncError });
+        }
+      }
+
+      // Check for existing subscription
+      const existingSubscription = await db.query.SubscriptionPlansTable.findFirst({
+        where: eq(SubscriptionPlansTable.orgId, membership.orgId),
+      });
+
+      if (existingSubscription && existingSubscription.subscriptionStatus === 'active') {
+        return { success: false, error: 'Organization already has an active subscription' };
+      }
+
+      // Resolve invite price by lookup key
+      const lookupKey = tierLevel === 'top'
+        ? EXPERT_INVITE_LOOKUP_KEYS.top
+        : EXPERT_INVITE_LOOKUP_KEYS.community;
+
+      const prices = await stripe.prices.list({
+        lookup_keys: [lookupKey],
+        active: true,
+        limit: 1,
+      });
+
+      if (prices.data.length === 0) {
+        return { success: false, error: `No price found for invite lookup key: ${lookupKey}` };
+      }
+
+      // Create €0 subscription directly (no checkout needed for free plans)
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: prices.data[0].id }],
+        metadata: {
+          workosUserId,
+          orgId: membership.orgId,
+          tierLevel,
+          billingInterval: 'month',
+          type: 'expert_invite',
+        },
+      });
+
+      logger.info('Created invite subscription for expert', {
+        workosUserId,
+        tierLevel,
+        subscriptionId: subscription.id,
+        lookupKey,
+      });
+
+      // Log subscription event
+      await db.insert(SubscriptionEventsTable).values({
+        workosUserId,
+        orgId: membership.orgId,
+        eventType: 'plan_created',
+        newPlanType: 'commission',
+        newTierLevel: tierLevel,
+        stripeEventId: null,
+        stripeSubscriptionId: subscription.id,
+        reason: 'admin_invite',
+        metadata: {
+          lookupKey,
+          inviteSubscription: true,
+        },
+      });
+
+      return {
+        success: true,
+        subscriptionId: subscription.id,
+      };
+    } catch (error) {
+      logger.error('Error creating invite subscription', { error });
+      Sentry.captureException(error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create invite subscription',
+      };
+    }
   });
 }

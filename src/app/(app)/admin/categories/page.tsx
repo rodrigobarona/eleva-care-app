@@ -4,7 +4,7 @@
  * Admin-only page for managing expert profile categories.
  * Allows creating, editing, and organizing categories and subcategories.
  *
- * Authorization: Requires superadmin role (enforced by admin layout + proxy)
+ * Authorization: Requires admin role (enforced by admin layout + proxy)
  */
 import { CategoryList } from '@/components/features/categories/CategoryList';
 import type { Metadata } from 'next';

@@ -11,9 +11,9 @@ export {
   RequireAnyPermission,
   RequireBranding,
   RequireExpertApproval,
-  RequirePartnerAdmin,
-  RequirePartnerDashboard,
   RequirePermission,
+  RequireTeamAdmin,
+  RequireTeamDashboard,
   RequireUserManagement,
 } from './RequirePermission';
 
@@ -25,10 +25,10 @@ export {
   RequireAdmin,
   RequireCommunityExpert,
   RequireExpert,
-  RequirePartner,
-  RequirePartnerAdminRole,
-  RequirePatient,
+  RequireMember,
   RequireRole,
+  RequireTeamAdmin as RequireTeamAdminRole,
+  RequireTeamMember,
   RequireTopExpert,
 } from './RequireRole';
 

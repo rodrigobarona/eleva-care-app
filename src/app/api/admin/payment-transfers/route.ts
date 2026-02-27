@@ -16,7 +16,7 @@ const { logger } = Sentry;
 
 /** Zod schema for transfer update request */
 const patchTransferSchema = z.object({
-  transferId: z.number({ error: 'Transfer ID is required' }),
+  transferId: z.string().uuid('Transfer ID must be a valid UUID'),
   requiresApproval: z.boolean().optional(),
   adminNotes: z.string().optional(),
 });
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-    if (!isSuperAdmin) {
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         case 'amount':
           return PaymentTransfersTable.amount;
         case 'created':
-          return PaymentTransfersTable.created;
+          return PaymentTransfersTable.createdAt;
         case 'status':
           return PaymentTransfersTable.status;
         case 'sessionStartTime':
@@ -165,8 +165,8 @@ export async function PATCH(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-    if (!isSuperAdmin) {
+    const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const userId = user.id;
@@ -198,7 +198,7 @@ export async function PATCH(request: NextRequest) {
 
     // Only allow updates to certain fields
     const updates: Record<string, unknown> = {
-      updated: new Date(),
+      updatedAt: new Date(),
       adminUserId: userId,
     };
 

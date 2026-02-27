@@ -39,8 +39,8 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-  if (!isSuperAdmin) {
+  const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+  if (!isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   // Use our validation helper to check configuration
@@ -151,8 +151,8 @@ export async function POST() {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-  if (!isSuperAdmin) {
+  const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+  if (!isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   // Check if QStash is available

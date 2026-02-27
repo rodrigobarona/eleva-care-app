@@ -8,7 +8,7 @@
  * 1. User lands on /become-expert (or /[locale]/become-expert)
  * 2. Sees benefits, requirements, and CTA in their language from MDX
  * 3. Clicks "Get Started" → redirects to /register?expert=true
- * 4. After registration → auto-creates expert_individual organization
+ * 4. After registration → auto-creates 'expert_individual' organization
  * 5. Redirects to /setup for guided expert onboarding
  */
 import { isValidLocale } from '@/app/i18n';

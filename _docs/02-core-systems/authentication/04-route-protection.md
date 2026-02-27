@@ -26,7 +26,7 @@ import { NextResponse } from 'next/server';
 const protectedRoutes = [
   {
     path: '/admin',
-    roles: ['admin', 'superadmin'],
+    roles: ['admin'],
     redirectUrl: '/',
   },
   {

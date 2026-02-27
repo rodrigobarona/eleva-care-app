@@ -1,5 +1,6 @@
 'use client';
 
+import { CalendarIntegrations } from '@/components/features/calendar/CalendarIntegrations';
 import { SecurityPreferencesForm } from '@/components/features/profile/SecurityPreferencesForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,6 +93,9 @@ export default function SecurityPage() {
           </CardContent>
         </Card>
 
+        {/* Calendar Integrations */}
+        <CalendarIntegrations />
+
         {/* Password & Authentication */}
         <Card>
           <CardHeader>
@@ -169,14 +173,6 @@ export default function SecurityPage() {
 
         <Separator />
 
-        {/* Migration Notice */}
-        <div className="rounded-lg bg-muted p-4">
-          <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> This page has been simplified during the migration to WorkOS AuthKit.
-            Advanced session management features will be restored in a future update.
-            The original Clerk-based security page is backed up for reference.
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@
 
 | **Before (Custom)**                        | **After (WorkOS RBAC)**               |
 | ------------------------------------------ | ------------------------------------- |
-| 3 database queries per check               | partner_admin queries (read from JWT) |
+| 3 database queries per check               | 0 queries (read from JWT) |
 | `await db.query.UsersTable.findFirst(...)` | `const { user } = await withAuth()`   |
 | Role stored in 3 tables                    | Role in JWT only                      |
 | Manual role sync                           | Automatic via WorkOS                  |
@@ -23,7 +23,7 @@
 
 | **Before**                                     | **After**                                                 |
 | ---------------------------------------------- | --------------------------------------------------------- |
-| `lib/integrations/workos/roles.ts` (217 lines) | `lib/integrations/workos/rbac.ts` (12partner_admin lines) |
+| `lib/integrations/workos/roles.ts` (217 lines) | `lib/integrations/workos/rbac.ts` (120 lines) |
 | Multiple database tables                       | JWT claims only                                           |
 | Complex role merging logic                     | Simple JWT extraction                                     |
 
@@ -70,12 +70,12 @@ export async function POST(request: Request) {
   // Get user from JWT
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 4partner_admin1 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // Check permission
   if (!await hasPermission(WORKOS_PERMISSIONS.USERS_WRITE)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 4partner_admin3 });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Process request
@@ -163,7 +163,7 @@ CREATE POLICY "Admins can view all"
 ON users FOR SELECT
 USING (
   workos_user_id = auth.user_id()
-  OR auth.jwt_role() IN ('admin', 'superadmin')
+  OR auth.jwt_role() IN ('admin')
 );
 ```
 
@@ -212,12 +212,12 @@ USING (
 
 ```typescript
 WORKOS_ROLES = {
-  SUPERADMIN: 'superadmin', // Full system access
-  ADMIN: 'admin', // Admin features
+  ADMIN: 'admin', // Full system access
   EXPERT_TOP: 'expert_top', // Top expert (premium)
   EXPERT_COMMUNITY: 'expert_community', // Standard expert
-  EXPERT_LECTURER: 'expert_lecturer', // Lecturer
-  USER: 'user', // Patient/customer
+  TEAM_ADMIN: 'team_admin', // Team manager
+  TEAM_MEMBER: 'team_member', // Team practitioner
+  MEMBER: 'member', // Base role (was patient/user)
 };
 ```
 
@@ -279,7 +279,7 @@ fetch('/api/user/rbac')
 
 // Should show:
 // {
-//   id: "user_partner_admin1H...",
+//   id: "user_member_1H...",
 //   email: "user@example.com",
 //   role: "expert_top",
 //   permissions: ["events:create", "events:manage", ...]

@@ -4,7 +4,7 @@
  * Admin-only page for managing and monitoring expert payment transfers.
  * Supports filtering, sorting, and paginated display of payment records.
  *
- * Authorization: Requires superadmin role (enforced by admin layout + proxy)
+ * Authorization: Requires admin role (enforced by admin layout + proxy)
  */
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { headers } from 'next/headers';

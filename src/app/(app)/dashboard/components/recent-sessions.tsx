@@ -34,8 +34,9 @@ function RecentSessionsInner({ meetings, role }: RecentSessionsProps) {
           {meetings.map((meeting) => {
             const personName =
               role === 'patient'
-                ? [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') || 'Expert'
-                : meeting.guestName;
+                ? [meeting.expertFirstName, meeting.expertLastName].filter(Boolean).join(' ') ||
+                  'Expert'
+                : meeting.guestInfo.fullName;
 
             return (
               <div
@@ -44,10 +45,10 @@ function RecentSessionsInner({ meetings, role }: RecentSessionsProps) {
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="truncate text-sm font-medium">{meeting.eventName}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {role === 'patient' ? 'with' : 'Patient:'} {personName}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatDate(meeting.startTime)}</p>
+                  <p className="text-muted-foreground text-xs">{formatDate(meeting.startTime)}</p>
                 </div>
                 <Badge variant="secondary" className="ml-3 shrink-0 gap-1">
                   <CheckCircle2 className="h-3 w-3" />

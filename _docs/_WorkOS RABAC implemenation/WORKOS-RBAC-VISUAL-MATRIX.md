@@ -1,21 +1,21 @@
 # WorkOS RBAC: Visual Permissions Matrix
 
-**Version:** 1.partner_admin  
-**Date:** November 13, 2partner_admin25  
+**Version:** 1.0  
+**Date:** November 13, 2025  
 **Purpose:** Visual reference for roles and permissions
 
 ---
 
 ## 🎯 Role Overview
 
-| Role                | Slug               | Priority                    | Users                 | Permissions | Dashboard Access          |
-| ------------------- | ------------------ | --------------------------- | --------------------- | ----------- | ------------------------- |
-| 🔵 Patient          | `patient`          | 1partner_admin              | All users initially   | 15          | Patient Portal            |
-| 🟢 Expert Community | `expert_community` | 7partner_admin              | Standard experts      | 42          | Expert Dashboard          |
-| 🟡 Expert Top       | `expert_top`       | 8partner_admin              | Premium experts       | 49          | Expert + Analytics        |
-| 🔵 Partner Member   | `partner_member`   | 6partner_admin              | Partner practitioners | 45          | Expert + Partner (view)   |
-| 🟣 Partner Admin    | `partner_admin`    | 9partner_admin              | Partner managers      | 68          | Expert + Partner (manage) |
-| 🔴 Platform Admin   | `superadmin`       | 1partner_adminpartner_admin | Platform team         | 89 (ALL)    | All dashboards            |
+| Role                | Slug               | Priority | Users                 | Permissions | Dashboard Access          |
+| ------------------- | ------------------ | -------- | --------------------- | ----------- | ------------------------- |
+| 🔵 Member           | `member`           | 10       | All users initially   | 15          | Member Portal             |
+| 🟢 Expert Community | `expert_community` | 70       | Standard experts      | 42          | Expert Dashboard          |
+| 🟡 Expert Top       | `expert_top`       | 80       | Premium experts       | 49          | Expert + Analytics        |
+| 🔵 Team Member      | `team_member`      | 60       | Team practitioners    | 45          | Expert + Team (view)      |
+| 🟣 Team Admin       | `team_admin`       | 90       | Team managers         | 68          | Expert + Team (manage)    |
+| 🔴 Platform Admin   | `admin`            | 100      | Platform team         | 89 (ALL)    | All dashboards            |
 
 ---
 
@@ -25,7 +25,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Appointments (9 permissions)
 
-| Permission                    | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                    | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ----------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `appointments:view_own`       | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `appointments:create`         | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -39,14 +39,14 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Sessions (2 permissions)
 
-| Permission              | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission              | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ----------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `sessions:view_own`     | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `sessions:view_history` | ❌      | ❌               | ❌         | ❌             | ❌            | ✅    |
 
 ### Patients (7 permissions)
 
-| Permission                | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `patients:view_own`       | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `patients:view_history`   | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -57,7 +57,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Events (5 permissions)
 
-| Permission             | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission             | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ---------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `events:create`        | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `events:view_own`      | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -67,7 +67,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Availability (5 permissions)
 
-| Permission                | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `availability:view_own`   | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `availability:create`     | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -77,7 +77,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Calendars (4 permissions)
 
-| Permission             | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission             | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ---------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `calendars:connect`    | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `calendars:view_own`   | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -86,7 +86,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Reviews (6 permissions)
 
-| Permission              | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission              | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ----------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `reviews:create`        | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `reviews:view_own`      | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -97,7 +97,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Profile (6 permissions)
 
-| Permission            | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission            | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | --------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `profile:view_own`    | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `profile:edit_own`    | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -108,7 +108,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Experts (7 permissions)
 
-| Permission                  | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                  | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | --------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `experts:browse`            | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `experts:view_profiles`     | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -118,9 +118,9 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 | `experts:suspend`           | ❌      | ❌               | ❌         | ❌             | ❌            | ✅    |
 | `experts:verify`            | ❌      | ❌               | ❌         | ❌             | ❌            | ✅    |
 
-### Analytics (1partner_admin permissions)
+### Analytics (10 permissions)
 
-| Permission                      | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                      | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ------------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `analytics:view`                | ❌      | ❌               | ✅         | ❌             | 🔮 ✅         | ✅    |
 | `analytics:revenue`             | ❌      | ❌               | ✅         | ❌             | 🔮 ✅         | ✅    |
@@ -135,7 +135,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Branding (3 permissions)
 
-| Permission               | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission               | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ------------------------ | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `branding:customize`     | ❌      | ❌               | ✅         | ❌             | 🔮 ✅         | ✅    |
 | `branding:upload_logo`   | ❌      | ❌               | ✅         | ❌             | 🔮 ✅         | ✅    |
@@ -143,7 +143,7 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Billing (8 permissions)
 
-| Permission                    | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                    | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ----------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `billing:view_own`            | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `billing:methods_manage`      | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -151,12 +151,12 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 | `billing:view_payouts`        | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `billing:view_subscription`   | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `billing:manage_subscription` | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
-| `billing:manage_clinic_sub`   | ❌      | ❌               | ❌         | 🔮             | 🔮 ✅         | ✅    |
-| `billing:view_clinic_billing` | ❌      | ❌               | ❌         | 🔮             | 🔮 ✅         | ✅    |
+| `billing:manage_team_sub`     | ❌      | ❌               | ❌         | 🔮             | 🔮 ✅         | ✅    |
+| `billing:view_team_billing`   | ❌      | ❌               | ❌         | 🔮             | 🔮 ✅         | ✅    |
 
 ### Settings (7 permissions)
 
-| Permission                     | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission                     | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ------------------------------ | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | `settings:view_own`            | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `settings:edit_own`            | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -168,28 +168,28 @@ Legend: ✅ = Has Permission | ❌ = No Permission | 🔮 = Phase 2
 
 ### Dashboard (2 permissions)
 
-| Permission               | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Permission               | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ------------------------ | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
-| `dashboard:view_patient` | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
+| `dashboard:view_member` | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | `dashboard:view_expert`  | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 
-### Partner (18 permissions) 🔮 Phase 2
+### Team (18 permissions) 🔮 Phase 2
 
-| Permission                 | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
-| -------------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
-| `partner:view_dashboard`   | ❌      | ❌               | ❌         | 🔮 ✅          | 🔮 ✅         | ✅    |
-| `partner:view_patients`    | ❌      | ❌               | ❌         | 🔮 ✅          | 🔮 ✅         | ✅    |
-| `partner:view_schedule`    | ❌      | ❌               | ❌         | 🔮 ✅          | 🔮 ✅         | ✅    |
-| `partner:manage_settings`  | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `partner:manage_branding`  | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `partner:view_analytics`   | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `partner:export_data`      | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `team:view_members`        | ❌      | ❌               | ❌         | 🔮 ✅          | 🔮 ✅         | ✅    |
-| `team:invite_members`      | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `team:remove_members`      | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `team:manage_roles`        | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `team:view_performance`    | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
-| `schedule:manage_clinic`   | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
+| Permission                 | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
+| -------------------------- | ------ | ---------------- | ---------- | ----------- | ---------- | ----- |
+| `team:view_dashboard`      | ❌      | ❌               | ❌         | 🔮 ✅       | 🔮 ✅      | ✅    |
+| `team:view_patients`       | ❌      | ❌               | ❌         | 🔮 ✅       | 🔮 ✅      | ✅    |
+| `team:view_schedule`       | ❌      | ❌               | ❌         | 🔮 ✅       | 🔮 ✅      | ✅    |
+| `team:manage_settings`     | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:manage_branding`     | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:view_analytics`      | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:export_data`         | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:view_members`        | ❌      | ❌               | ❌         | 🔮 ✅       | 🔮 ✅      | ✅    |
+| `team:invite_members`      | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:remove_members`      | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:manage_roles`        | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `team:view_performance`    | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
+| `schedule:manage_team`     | ❌      | ❌               | ❌         | 🔮 ❌       | 🔮 ✅      | ✅    |
 | `schedule:manage_rooms`    | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
 | `schedule:view_capacity`   | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
 | `revenue:view_overview`    | ❌      | ❌               | ❌         | 🔮 ❌          | 🔮 ✅         | ✅    |
@@ -210,16 +210,16 @@ All admin-only permissions (users:\*, organizations:\*, payments:\*, categories:
 
 | Role              | Own Permissions | Inherited      | Total  |
 | ----------------- | --------------- | -------------- | ------ |
-| Patient           | 15              | partner_admin  | **15** |
-| Expert Community  | 27              | 15 (Patient)   | **42** |
+| Member            | 15              | 0              | **15** |
+| Expert Community  | 27              | 15 (Member)    | **42** |
 | Expert Top        | 7               | 42 (Community) | **49** |
-| Partner Member 🔮 | 4               | 42 (Community) | **46** |
-| Partner Admin 🔮  | 22              | 46 (Member)    | **68** |
-| Platform Admin    | 89              | partner_admin  | **89** |
+| Team Member 🔮    | 4               | 42 (Community) | **46** |
+| Team Admin 🔮     | 22              | 46 (Member)    | **68** |
+| Platform Admin    | 89              | 0              | **89** |
 
 ### Feature Access
 
-| Feature                 | Patient | Expert Community | Expert Top | Partner Member | Partner Admin | Admin |
+| Feature                 | Member | Expert Community | Expert Top | Team Member | Team Admin | Admin |
 | ----------------------- | ------- | ---------------- | ---------- | -------------- | ------------- | ----- |
 | Book Appointments       | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | Browse Experts          | ✅      | ✅               | ✅         | ✅             | ✅            | ✅    |
@@ -231,7 +231,6 @@ All admin-only permissions (users:\*, organizations:\*, payments:\*, categories:
 | **View Patients**       | ❌      | ✅               | ✅         | ✅             | ✅            | ✅    |
 | **View Analytics**      | ❌      | ❌               | ✅         | ❌             | ✅ 🔮         | ✅    |
 | **Custom Branding**     | ❌      | ❌               | ✅         | ❌             | ✅ 🔮         | ✅    |
-| **Manage Partner**      | ❌      | ❌               | ❌         | View 🔮        | ✅ 🔮         | ✅    |
 | **Manage Team**         | ❌      | ❌               | ❌         | View 🔮        | ✅ 🔮         | ✅    |
 | **Platform Admin**      | ❌      | ❌               | ❌         | ❌             | ❌            | ✅    |
 
@@ -239,19 +238,19 @@ All admin-only permissions (users:\*, organizations:\*, payments:\*, categories:
 
 ## 🚀 User Journey: Role Transitions
 
-### New User → Patient
+### New User → Member
 
 ```
 Sign Up
   ↓
-✅ Default role: patient
+✅ Default role: member
   ↓
 Can book appointments
 Can browse experts
 Can leave reviews
 ```
 
-### Patient → Expert Community
+### Member → Expert Community
 
 ```
 Submit Expert Application
@@ -279,31 +278,31 @@ Payment Successful
 + Premium features
 ```
 
-### Expert → Partner Member 🔮
+### Expert → Team Member 🔮
 
 ```
-Receive Partner Invitation
+Receive Team Invitation
   ↓
 Accept Invitation
   ↓
-✅ Added to partner org with role: partner_member
+✅ Added to team org with role: team_member
   ↓
-+ View partner dashboard
++ View team dashboard
 + View shared patients
-+ View partner schedule
++ View team schedule
 (Maintains personal expert practice)
 ```
 
-### Partner Member → Partner Admin 🔮
+### Team Member → Team Admin 🔮
 
 ```
-Partner Owner promotes member
+Team Owner promotes member
   ↓
-Role updated in partner org
+Role updated in team org
   ↓
-✅ New role: partner_admin
+✅ New role: team_admin
   ↓
-+ Manage partner settings
++ Manage team settings
 + Invite/remove members
 + Manage revenue & payouts
 ```
@@ -314,19 +313,19 @@ Role updated in partner org
 
 ### Design Philosophy
 
-1. **Start Minimal:** Everyone starts as `patient` (15 permissions)
+1. **Start Minimal:** Everyone starts as `member` (15 permissions)
 2. **Progressive Enhancement:** Unlock features as users grow
 3. **Clear Value Propositions:**
    - Community → Top: Analytics & Branding
-   - Expert → Partner: Team collaboration
+   - Expert → Team: Team collaboration
    - Any Role → Admin: Platform management
 
 ### Permission Patterns
 
 ```typescript
 // Pattern 1: Own Data (Scope: Self)
-appointments: view_own; // ✅ Patient has this
-appointments: view_incoming; // ❌ Patient doesn't need this
+appointments: view_own; // ✅ Member has this
+appointments: view_incoming; // ❌ Member doesn't need this
 
 // Pattern 2: Resource Management (Scope: Created Resources)
 events: create; // ✅ Expert Community+
@@ -334,8 +333,8 @@ events: view_own; // ✅ Only own events
 events: view_all; // ❌ No one except admin
 
 // Pattern 3: Organization-Wide (Scope: Organization)
-partner: view_patients; // ✅ Partner Member+ (read-only)
-partner: manage_settings; // ✅ Partner Admin only (write)
+team: view_patients; // ✅ Team Member+ (read-only)
+team: manage_settings; // ✅ Team Admin only (write)
 
 // Pattern 4: Platform-Wide (Scope: All Organizations)
 users: view_all; // ✅ Platform Admin only
@@ -348,18 +347,18 @@ analytics: platform_growth; // ✅ Platform Admin only
 | --------------------- | ------------------ | ------------------------------------------------------ |
 | 📊 Analytics          | Expert Top         | "Want to see your revenue trends? Upgrade to Top tier" |
 | 🎨 Custom Branding    | Expert Top         | "Stand out with your own logo and colors"              |
-| 👥 Partner Management | Partner Admin      | "Ready to grow your team? Create a partner"            |
-| 🎓 Course Creation    | Expert Lecturer 🔮 | "Share your knowledge at scale"                        |
+| 👥 Team Management    | Team Admin         | "Ready to grow your team? Create a team"              |
+| 🎓 Course Creation    | Stripe Lecturer Addon | "Share your knowledge at scale"                        |
 
 ---
 
 ## 📋 Quick Reference Cards
 
-### Patient Role
+### Member Role
 
 ```
-Role: patient
-Priority: 1partner_admin
+Role: member
+Priority: 10
 Permissions: 15
 
 Core Actions:
@@ -369,18 +368,18 @@ Core Actions:
 ✅ Browse experts
 ✅ Manage billing
 
-Dashboard: /patient/*
+Dashboard: /member/*
 ```
 
 ### Expert Community Role
 
 ```
 Role: expert_community
-Priority: 7partner_admin
+Priority: 70
 Permissions: 42
 
 Core Actions:
-✅ All Patient actions
+✅ All Member actions
 ✅ Accept bookings
 ✅ Create event types
 ✅ Manage availability
@@ -394,7 +393,7 @@ Dashboard: /dashboard, /appointments, /events, /availability
 
 ```
 Role: expert_top
-Priority: 8partner_admin
+Priority: 80
 Permissions: 49
 
 Core Actions:
@@ -409,8 +408,8 @@ Dashboard: All Community routes + /analytics
 ### Platform Admin Role
 
 ```
-Role: superadmin
-Priority: 1partner_adminpartner_admin
+Role: admin
+Priority: 100
 Permissions: 89 (ALL)
 
 Core Actions:
@@ -428,27 +427,26 @@ Dashboard: ALL routes + /admin/*
 
 ## 🎯 Implementation Priority
 
-### Phase 1: Core Roles (Q4 2partner_admin25) ✅
+### Phase 1: Core Roles (Q4 2025) ✅
 
-1. Patient (15 permissions)
+1. Member (15 permissions)
 2. Expert Community (42 permissions)
 3. Expert Top (49 permissions)
 4. Platform Admin (89 permissions)
 
 **Status:** Ready for implementation
 
-### Phase 2: Partner Roles (Q1 2partner_admin26) 🔮
+### Phase 2: Team Roles (Q1 2026) 🔮
 
-5. Partner Member (46 permissions)
-6. Partner Admin (68 permissions)
+5. Team Member (46 permissions)
+6. Team Admin (68 permissions)
 
-**Prerequisite:** Multi-org support, partner dashboard
+**Prerequisite:** Multi-org support, team dashboard
 
-### Phase 3: Learning Roles (Q2 2partner_admin26) 🔮
+### Phase 3: Learning Roles (Q2 2026) 🔮
 
-7. Expert Lecturer (Course creators)
-8. Student (Course learners)
-9. Content Creator (Resource library)
+7. Student (Course learners)
+8. Content Creator (Resource library)
 
 **Prerequisite:** LMS platform, content management
 
@@ -464,6 +462,6 @@ Dashboard: ALL routes + /admin/*
 ---
 
 **Built for:** Eleva Care Platform  
-**Version:** 1.partner_admin  
-**Last Updated:** November 13, 2partner_admin25  
+**Version:** 1.0  
+**Last Updated:** November 13, 2025  
 **Next Review:** After Phase 1 deployment

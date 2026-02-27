@@ -36,7 +36,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 type PaymentTransfer = {
-  id: number;
+  id: string;
   paymentIntentId: string;
   checkoutSessionId: string;
   eventId: string;
@@ -55,8 +55,8 @@ type PaymentTransfer = {
   requiresApproval: boolean;
   adminUserId: string | null;
   adminNotes: string | null;
-  created: string;
-  updated: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type PaymentTransfersResponse = {

@@ -52,7 +52,7 @@ type Availability = {
 };
 
 interface BlockedDate {
-  id: number;
+  id: string;
   date: Date;
   reason?: string;
   timezone: string;
@@ -128,7 +128,7 @@ export function ScheduleForm({
     [form],
   );
 
-  const handleRemoveBlockedDate = useCallback(async (id: number) => {
+  const handleRemoveBlockedDate = useCallback(async (id: string) => {
     try {
       await removeBlockedDate(id);
       // Refresh blocked dates after removing
@@ -143,7 +143,7 @@ export function ScheduleForm({
 
   // Add handlers for blocked dates
   const handleEditBlockedDate = useCallback(
-    async (id: number, updates: { date: Date; reason?: string }) => {
+    async (id: string, updates: { date: Date; reason?: string }) => {
       const timezone = form.getValues('timezone');
 
       // Store the original for rollback

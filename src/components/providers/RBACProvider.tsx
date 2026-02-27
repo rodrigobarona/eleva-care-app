@@ -53,9 +53,9 @@ interface RBACContextValue {
   isAdmin: boolean;
   isExpert: boolean;
   isTopExpert: boolean;
-  isPartner: boolean;
-  isPartnerAdmin: boolean;
-  isPatient: boolean;
+  isTeamMember: boolean;
+  isTeamAdmin: boolean;
+  isMember: boolean;
 
   // Refresh function
   refresh: () => Promise<void>;
@@ -118,7 +118,7 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
   }, [fetchRBAC, initialUser]);
 
   // Derived values with proper memoization
-  const role = user?.role || WORKOS_ROLES.PATIENT;
+  const role = user?.role || WORKOS_ROLES.MEMBER;
   const permissions = useMemo(() => user?.permissions || [], [user?.permissions]);
 
   // Role checking functions
@@ -143,12 +143,12 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
   );
 
   // Convenience checks
-  const isAdmin = role === WORKOS_ROLES.SUPERADMIN;
+  const isAdmin = role === WORKOS_ROLES.ADMIN;
   const isExpert = role === WORKOS_ROLES.EXPERT_COMMUNITY || role === WORKOS_ROLES.EXPERT_TOP;
   const isTopExpert = role === WORKOS_ROLES.EXPERT_TOP;
-  const isPartner = role === WORKOS_ROLES.PARTNER_MEMBER || role === WORKOS_ROLES.PARTNER_ADMIN;
-  const isPartnerAdmin = role === WORKOS_ROLES.PARTNER_ADMIN;
-  const isPatient = role === WORKOS_ROLES.PATIENT;
+  const isTeamMember = role === WORKOS_ROLES.TEAM_MEMBER || role === WORKOS_ROLES.TEAM_ADMIN;
+  const isTeamAdmin = role === WORKOS_ROLES.TEAM_ADMIN;
+  const isMember = role === WORKOS_ROLES.MEMBER;
 
   // Context value
   const value = useMemo<RBACContextValue>(
@@ -166,9 +166,9 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
       isAdmin,
       isExpert,
       isTopExpert,
-      isPartner,
-      isPartnerAdmin,
-      isPatient,
+      isTeamMember,
+      isTeamAdmin,
+      isMember,
       refresh: fetchRBAC,
     }),
     [
@@ -185,9 +185,9 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
       isAdmin,
       isExpert,
       isTopExpert,
-      isPartner,
-      isPartnerAdmin,
-      isPatient,
+      isTeamMember,
+      isTeamAdmin,
+      isMember,
       fetchRBAC,
     ],
   );
@@ -242,19 +242,19 @@ export function useIsTopExpert(): boolean {
 }
 
 /**
- * Check if user is partner (member or admin)
+ * Check if user is a team member (member or admin of a team)
  */
-export function useIsPartner(): boolean {
-  const { isPartner, isLoading } = useRBAC();
-  return !isLoading && isPartner;
+export function useIsTeamMember(): boolean {
+  const { isTeamMember, isLoading } = useRBAC();
+  return !isLoading && isTeamMember;
 }
 
 /**
- * Check if user is partner admin
+ * Check if user is a team admin
  */
-export function useIsPartnerAdmin(): boolean {
-  const { isPartnerAdmin, isLoading } = useRBAC();
-  return !isLoading && isPartnerAdmin;
+export function useIsTeamAdmin(): boolean {
+  const { isTeamAdmin, isLoading } = useRBAC();
+  return !isLoading && isTeamAdmin;
 }
 
 /**

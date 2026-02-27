@@ -1,9 +1,10 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
-import { findEmailByCustomerId } from '@/lib/utils/customerUtils';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
+import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import * as Sentry from '@sentry/nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -17,7 +18,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
   try {
     const params = await props.params;
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
     const customerId = params.id;
 
     if (!user || !userId) {
@@ -30,28 +31,53 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Forbidden: Expert role required' }, { status: 403 });
     }
 
-    // First, get all customers for this expert to find the matching ID
-    const allCustomersQuery = db
+    // Get all meetings for this expert with guest identifiers
+    const meetingsWithGuests = await db
       .select({
-        email: MeetingsTable.guestEmail,
-        name: MeetingsTable.guestName,
+        guestWorkosUserId: MeetingsTable.guestWorkosUserId,
+        guestEmail: MeetingsTable.guestEmail,
+        guestName: MeetingsTable.guestName,
       })
       .from(MeetingsTable)
       .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
-      .where(eq(EventsTable.workosUserId, userId))
-      .groupBy(MeetingsTable.guestEmail, MeetingsTable.guestName);
+      .where(eq(EventsTable.workosUserId, userId));
 
-    const allCustomers = await allCustomersQuery;
+    // Deduplicate by guestWorkosUserId (canonical identifier)
+    const uniqueGuests = new Map<string, { guestEmail: string; guestName: string }>();
+    for (const m of meetingsWithGuests) {
+      if (!uniqueGuests.has(m.guestWorkosUserId)) {
+        uniqueGuests.set(m.guestWorkosUserId, {
+          guestEmail: m.guestEmail,
+          guestName: m.guestName,
+        });
+      }
+    }
 
-    // Find the customer email that matches the provided ID using the shared utility
-    const customerEmails = allCustomers.map((customer) => customer.email);
-    const customerEmail = findEmailByCustomerId(userId, customerId, customerEmails);
+    // Batch-resolve guest info from WorkOS (fall back to DB columns if resolution fails)
+    const guestIds = [...uniqueGuests.keys()];
+    const guestInfoMap = await resolveGuestInfoBatch(guestIds);
 
-    if (!customerEmail) {
+    // Build customer list: (guestWorkosUserId, email, name) - email/name from WorkOS or DB
+    const customers: { guestWorkosUserId: string; email: string; name: string }[] = [];
+    for (const [workosUserId, dbFallback] of uniqueGuests) {
+      const guestInfo = guestInfoMap.get(workosUserId);
+      const email = guestInfo?.email || dbFallback.guestEmail;
+      const name = guestInfo?.fullName || dbFallback.guestName || 'Guest';
+      customers.push({ guestWorkosUserId: workosUserId, email, name });
+    }
+
+    // Find the customer that matches the provided customerId
+    const matchedCustomer = customers.find(
+      (c) => generateCustomerId(userId, c.email) === customerId,
+    );
+
+    if (!matchedCustomer) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    // Now get all appointments for this customer
+    const { guestWorkosUserId, email: customerEmail, name: customerName } = matchedCustomer;
+
+    // Get all appointments for this customer (filter by guestWorkosUserId - canonical)
     const appointments = await db
       .select({
         id: MeetingsTable.id,
@@ -70,7 +96,12 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
       })
       .from(MeetingsTable)
       .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
-      .where(and(eq(EventsTable.workosUserId, userId), eq(MeetingsTable.guestEmail, customerEmail)))
+      .where(
+        and(
+          eq(EventsTable.workosUserId, userId),
+          eq(MeetingsTable.guestWorkosUserId, guestWorkosUserId),
+        ),
+      )
       .orderBy(desc(MeetingsTable.startTime));
 
     if (appointments.length === 0) {
@@ -83,11 +114,11 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
       0,
     );
 
-    // Create customer object with secure ID
+    // Create customer object with secure ID (use resolved name from WorkOS)
     const customer = {
       id: customerId, // Use the provided secure ID
       email: customerEmail,
-      name: appointments[0].guestName || '',
+      name: customerName,
       stripeCustomerId: appointments[0]?.stripePaymentIntentId
         ? `cus_${appointments[0].stripePaymentIntentId.substring(3, 11)}`
         : null,

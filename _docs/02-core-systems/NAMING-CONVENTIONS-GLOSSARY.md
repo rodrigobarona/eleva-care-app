@@ -1,7 +1,7 @@
 # Naming Conventions & Glossary
 
-**Date:** January 14, 2026  
-**Status:** ✅ Active  
+**Date:** February 25, 2026
+**Status:** Active
 **Owner:** Product & Engineering Teams
 
 ---
@@ -12,36 +12,41 @@ This document establishes consistent naming conventions across marketing, produc
 
 **Key Principle:** Different audiences need different terminology, but internal systems must map consistently.
 
+**Authoritative source:** `_docs/02-core-systems/RBAC-NAMING-DECISIONS.md`
+
 ---
 
 ## Terminology Matrix
 
-| Layer | Term | Slug/ID | Audience | Example |
-|-------|------|---------|----------|---------|
-| **Marketing** | Organization | `/for-organizations` | Public, B2B prospects | "For Organizations" landing page |
-| **Product UI** | Workspace | `/workspace` | Users, admins | "Workspace Dashboard" |
-| **Documentation** | Workspace | `/docs/workspace` | Users learning the product | "Workspace Portal" docs |
-| **RBAC Roles** | Partner | `partner_member`, `partner_admin` | Technical, WorkOS | Role assignments |
-| **Database** | Workspace | `workspace_*` tables | Internal, developers | `workspace_settings` |
-| **Revenue Model** | Workspace | `workspace_commission_*` | Business logic | Commission calculations |
+| Layer             | Term                    | Slug/ID                     | Audience                   | Example                  |
+| ----------------- | ----------------------- | --------------------------- | -------------------------- | ------------------------ |
+| **Marketing**     | For Teams               | `/organizations`            | Public, B2B prospects      | "For Teams" landing page |
+| **Product UI**    | Team                    | `/team`                     | Users, admins              | "Team Dashboard"         |
+| **Documentation** | Team                    | `/docs/team`                | Users learning the product | "Team Portal" docs       |
+| **RBAC Roles**    | team_member, team_admin | `team_member`, `team_admin` | Technical, WorkOS          | Role assignments         |
+| **Database**      | team                    | `type: 'team'`              | Internal, developers       | OrganizationType         |
+| **Revenue Model** | Team                    | `team_commission_*`         | Business logic             | Commission calculations  |
 
 ---
 
 ## Why Different Terms?
 
-### Marketing: "Organization"
+### Marketing: "For Teams"
+
 - **Audience:** B2B decision-makers, procurement teams
-- **Reason:** Generic, professional, appeals to clinics, employers, institutions
+- **Reason:** People-focused, modern, friendly (inspired by Cal.com, Vercel)
 - **Usage:** Landing pages, sales materials, external communications
 
-### Product: "Workspace"
+### Product: "Team"
+
 - **Audience:** Daily users (admins, team members)
-- **Reason:** Modern SaaS term (Slack, Notion), implies collaboration
+- **Reason:** Modern SaaS term, implies collaboration without being too formal
 - **Usage:** Dashboard, settings, team management
 
-### Technical: "Partner"
+### Technical: "team\_\*"
+
 - **Audience:** Developers, WorkOS configuration
-- **Reason:** Distinguishes from WorkOS "Organization" (which is our tenant container)
+- **Reason:** Avoids collision with WorkOS "Organization" (our tenant container)
 - **Usage:** RBAC roles, permissions, API endpoints
 
 ---
@@ -53,12 +58,12 @@ This document establishes consistent naming conventions across marketing, produc
 ```typescript
 // src/types/workos-rbac.ts
 export const WORKOS_ROLES = {
-  PATIENT: 'patient',           // Basic user
-  PARTNER_MEMBER: 'partner_member',   // Workspace team member
+  MEMBER: 'member', // Base user (free)
+  TEAM_MEMBER: 'team_member', // Team member
   EXPERT_COMMUNITY: 'expert_community', // Standard expert
-  EXPERT_TOP: 'expert_top',         // Premium expert
-  PARTNER_ADMIN: 'partner_admin',    // Workspace administrator
-  SUPERADMIN: 'superadmin',        // Platform admin
+  EXPERT_TOP: 'expert_top', // Premium expert
+  TEAM_ADMIN: 'team_admin', // Team administrator
+  ADMIN: 'admin', // Platform admin
 } as const;
 ```
 
@@ -67,12 +72,12 @@ export const WORKOS_ROLES = {
 ```typescript
 // src/lib/auth/roles.server.ts
 const ROLE_PRIORITY: WorkOSRole[] = [
-  WORKOS_ROLES.PATIENT,        // Priority 10 - Lowest
-  WORKOS_ROLES.PARTNER_MEMBER, // Priority 60
+  WORKOS_ROLES.MEMBER, // Priority 10 - Lowest
+  WORKOS_ROLES.TEAM_MEMBER, // Priority 60
   WORKOS_ROLES.EXPERT_COMMUNITY, // Priority 70
-  WORKOS_ROLES.EXPERT_TOP,     // Priority 80
-  WORKOS_ROLES.PARTNER_ADMIN,  // Priority 90
-  WORKOS_ROLES.SUPERADMIN,     // Priority 100 - Highest
+  WORKOS_ROLES.EXPERT_TOP, // Priority 80
+  WORKOS_ROLES.TEAM_ADMIN, // Priority 90
+  WORKOS_ROLES.ADMIN, // Priority 100 - Highest
 ];
 ```
 
@@ -81,13 +86,26 @@ const ROLE_PRIORITY: WorkOSRole[] = [
 ```typescript
 // src/types/workos-rbac.ts
 export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
-  [WORKOS_ROLES.PATIENT]: 'Patient',
+  [WORKOS_ROLES.MEMBER]: 'Member',
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 'Community Expert',
   [WORKOS_ROLES.EXPERT_TOP]: 'Top Expert',
-  [WORKOS_ROLES.PARTNER_MEMBER]: 'Workspace Member',  // User sees "Workspace"
-  [WORKOS_ROLES.PARTNER_ADMIN]: 'Workspace Admin',    // User sees "Workspace"
-  [WORKOS_ROLES.SUPERADMIN]: 'Platform Admin',
+  [WORKOS_ROLES.TEAM_MEMBER]: 'Team Member',
+  [WORKOS_ROLES.TEAM_ADMIN]: 'Team Admin',
+  [WORKOS_ROLES.ADMIN]: 'Admin',
 };
+```
+
+---
+
+## Organization Types
+
+```typescript
+// drizzle/schema.ts
+export type OrganizationType =
+  | 'member_personal' // Individual member's personal organization
+  | 'expert_individual' // Solo expert's organization (1 expert = 1 org)
+  | 'team' // Multi-expert team (multiple experts, mixed levels)
+  | 'educational_institution'; // For courses/lectures (future)
 ```
 
 ---
@@ -95,31 +113,35 @@ export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
 ## URL Structure
 
 ### Marketing Routes
+
 ```
-/for-organizations          → B2B landing page
-/contact?partner=true       → Partnership inquiry
+/for-teams                 → B2B landing page
+/contact?team=true         → Team inquiry
 ```
 
 ### Documentation Routes
+
 ```
-/docs/workspace             → Workspace Portal documentation
-/docs/workspace/team        → Team management docs
-/docs/workspace/pricing     → Workspace pricing docs
+/docs/team                 → Team Portal documentation
+/docs/team/members         → Team management docs
+/docs/team/pricing         → Team pricing docs
 ```
 
 ### App Routes
+
 ```
-/workspace                  → Workspace dashboard (future)
-/workspace/team             → Team management
-/workspace/settings         → Workspace settings
-/workspace/analytics        → Workspace analytics
+/team                      → Team dashboard (future)
+/team/members              → Team management
+/team/settings             → Team settings
+/team/analytics            → Team analytics
 ```
 
 ### API Routes
+
 ```
-/api/workspace              → Workspace CRUD
-/api/workspace/team         → Team management
-/api/workspace/invitations  → Team invitations
+/api/team                  → Team CRUD
+/api/team/members          → Member management
+/api/team/invitations      → Team invitations
 ```
 
 ---
@@ -129,22 +151,22 @@ export const WORKOS_ROLE_DISPLAY_NAMES: Record<WorkOSRole, string> = {
 ### Tables (Future Implementation)
 
 ```sql
--- Workspace settings (replaces clinic_settings)
-workspace_settings
+-- Team settings
+team_settings
   - id
   - org_id (WorkOS organization)
-  - workspace_name
-  - workspace_commission_rate
-  - workspace_branding_enabled
+  - team_name
+  - team_commission_rate
+  - team_branding_enabled
   - created_at
   - updated_at
 
--- Workspace invitations
-workspace_invitations
+-- Team invitations
+team_invitations
   - id
-  - workspace_id
+  - team_id
   - email
-  - role (partner_member | partner_admin)
+  - role (team_member | team_admin)
   - status
   - invited_by
   - created_at
@@ -156,68 +178,71 @@ workspace_invitations
 ```sql
 -- Transaction commissions
 transaction_commissions
-  - workspace_commission_rate    -- NOT clinic_commission_rate
-  - workspace_commission_amount  -- NOT clinic_commission_amount
-  - organization_type: 'workspace' | 'expert_individual'
+  - team_commission_rate       -- Team's marketing fee percentage
+  - team_commission_amount     -- Team's marketing fee amount
+  - organization_type: 'team' | 'expert_individual'
 ```
+
+---
+
+## 4-Concept Model
+
+| Concept   | Purpose            | System              | Example                        |
+| --------- | ------------------ | ------------------- | ------------------------------ |
+| **Role**  | What you can DO    | WorkOS RBAC         | member, expert_top, team_admin |
+| **Tier**  | What you PAY       | Stripe Subscription | community, top, team           |
+| **Addon** | Extra capabilities | Stripe Addon Sub    | Lecturer Module                |
+| **Badge** | What you EARNED    | Future system       | "Top Rated", "Verified"        |
 
 ---
 
 ## Migration Notes
 
-### From "Clinic" to "Workspace"
+### From "Clinic/Partner/Workspace" to "Team"
 
-The revenue model documentation uses "Clinic" terminology. When implementing:
+The revenue model documentation formerly used "Clinic" and "Workspace" terminology. The mapping:
 
-1. **Database:** Use `workspace_*` naming
-2. **Code:** Use `workspace*` variables
-3. **UI:** Display "Workspace"
-4. **Docs:** Reference "Workspace"
-
-### Mapping Table
-
-| Old Term (Docs) | New Term (Implementation) |
-|-----------------|---------------------------|
-| `clinic` | `workspace` |
-| `clinic_settings` | `workspace_settings` |
-| `clinic_commission_rate` | `workspace_commission_rate` |
-| `clinic_fee` | `workspace_fee` |
-| `ClinicSettingsTable` | `WorkspaceSettingsTable` |
+| Old Term                      | New Term                     |
+| ----------------------------- | ---------------------------- |
+| `clinic`                      | `team`                       |
+| `clinic_settings`             | `team_settings`              |
+| `clinic_commission_rate`      | `team_commission_rate`       |
+| `clinic_fee`                  | `team_fee`                   |
+| `partner_member`              | `team_member`                |
+| `partner_admin`               | `team_admin`                 |
+| `workspace` (UI)              | `team` (UI)                  |
+| `patient` (role)              | `member` (role)              |
+| `patient_personal` (org type) | `member_personal` (org type) |
 
 ---
 
 ## Validation Checklist
 
 ### Marketing Alignment
-- [ ] Landing page uses "For Organizations"
-- [ ] CTAs use "Partner with Us" or "Create Workspace"
+
+- [ ] Landing page uses "For Teams"
+- [ ] CTAs use "Create a Team" or "Get Started"
 - [ ] Sales materials consistent
 
 ### Documentation Alignment
-- [ ] Docs portal named "Workspace Portal"
-- [ ] All docs reference "workspace" not "clinic"
-- [ ] Getting started guides use "workspace"
+
+- [ ] Docs portal named "Team Portal"
+- [ ] All docs reference "team" not "clinic" or "workspace"
+- [ ] Getting started guides use "team"
 
 ### Technical Alignment
-- [ ] RBAC roles use `partner_*` prefix
-- [ ] Database tables use `workspace_*` prefix
-- [ ] API endpoints use `/workspace/`
-- [ ] Display names show "Workspace Member/Admin"
+
+- [ ] RBAC roles use `team_*` prefix
+- [ ] Database tables use `team_*` prefix
+- [ ] API endpoints use `/team/`
+- [ ] Display names show "Team Member/Admin"
 
 ### Code Alignment
-- [ ] `WORKOS_ROLE_DISPLAY_NAMES` shows "Workspace"
-- [ ] UI components use "Workspace" terminology
-- [ ] Error messages use "Workspace"
 
----
-
-## Related Documentation
-
-- `_docs/_WorkOS RABAC implemenation/WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md` - Full RBAC config
-- `_docs/02-core-systems/THREE-PARTY-CLINIC-REVENUE-MODEL.md` - Revenue model (uses "Clinic", migrate to "Workspace")
-- `src/types/workos-rbac.ts` - Role definitions
-- `src/lib/auth/roles.server.ts` - Role priority logic
-- `src/content/docs/workspace/` - Workspace documentation
+- [ ] `WORKOS_ROLE_DISPLAY_NAMES` shows "Team"
+- [ ] UI components use "Team" terminology
+- [ ] Error messages use "Team"
+- [ ] OrganizationType uses `'team'` not `'clinic'`
 
 ---
 
@@ -225,24 +250,39 @@ The revenue model documentation uses "Clinic" terminology. When implementing:
 
 ### When to Use Each Term
 
-| Situation | Use |
-|-----------|-----|
-| Talking to prospects | "Organization" |
-| In the product UI | "Workspace" |
-| In documentation | "Workspace" |
-| In code/RBAC | "Partner" (roles) |
-| In database | "Workspace" (tables) |
-| In API endpoints | "Workspace" |
+| Situation            | Use                                           |
+| -------------------- | --------------------------------------------- |
+| Talking to prospects | "For Teams"                                   |
+| In the product UI    | "Team"                                        |
+| In documentation     | "Team"                                        |
+| In code/RBAC         | `team_member`, `team_admin`                   |
+| In database org type | `'team'`                                      |
+| In API endpoints     | `/team/`                                      |
+| For the base user    | "Member" (role), "member_personal" (org type) |
 
 ### Role Slug → Display Name
 
-| Slug | Display |
-|------|---------|
-| `partner_member` | Workspace Member |
-| `partner_admin` | Workspace Admin |
+| Slug               | Display          |
+| ------------------ | ---------------- |
+| `member`           | Member           |
+| `team_member`      | Team Member      |
+| `team_admin`       | Team Admin       |
+| `expert_community` | Community Expert |
+| `expert_top`       | Top Expert       |
+| `admin`            | Admin            |
 
 ---
 
-**Last Updated:** January 14, 2026  
-**Next Review:** Before Workspace feature launch
+## Related Documentation
 
+- `_docs/02-core-systems/RBAC-NAMING-DECISIONS.md` - ADR with full rationale
+- `_docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md` - Role progression
+- `_docs/_WorkOS RABAC implemenation/WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md` - Full RBAC config
+- `_docs/02-core-systems/THREE-PARTY-CLINIC-REVENUE-MODEL.md` - Revenue model (uses "Team")
+- `src/types/workos-rbac.ts` - Role definitions
+- `src/lib/auth/roles.server.ts` - Role priority logic
+
+---
+
+**Last Updated:** February 25, 2026
+**Next Review:** Before Team feature launch

@@ -103,7 +103,7 @@ async function applySubscriptionPlansRLS() {
             EXISTS (
               SELECT 1 FROM users
               WHERE users.workos_user_id = auth.user_id()
-              AND users.role IN ('admin', 'superadmin')
+              AND users.role = 'admin'
             )
           )`,
       },

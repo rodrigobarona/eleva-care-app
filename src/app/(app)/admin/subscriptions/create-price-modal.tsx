@@ -249,7 +249,7 @@ export function CreatePriceModal({ open, onOpenChange, product }: CreatePriceMod
                           <SelectItem value="community">Community</SelectItem>
                           <SelectItem value="top">Top</SelectItem>
                           <SelectItem value="lecturer">Lecturer</SelectItem>
-                          <SelectItem value="partner">Partner</SelectItem>
+                          <SelectItem value="team">Team</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

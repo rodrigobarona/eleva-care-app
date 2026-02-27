@@ -30,41 +30,41 @@ export function AppSidebar() {
       title: 'Dashboard',
       url: `${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`,
       icon: HomeIcon,
-      roles: ['user', 'community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
+      roles: ['user', 'community_expert', 'top_expert', 'admin'] as UserRole[],
     },
     {
       title: 'Appointments',
       url: '/appointments',
       icon: CalendarIcon,
-      roles: ['community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
+      roles: ['community_expert', 'top_expert', 'admin'] as UserRole[],
     },
     {
       title: 'Patients',
       url: '/appointments/patients',
       icon: UsersIcon,
-      roles: ['community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
+      roles: ['community_expert', 'top_expert', 'admin'] as UserRole[],
     },
     {
       title: 'Events',
       url: '/booking/events',
       icon: CalendarIcon,
-      roles: ['community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
+      roles: ['community_expert', 'top_expert', 'admin'] as UserRole[],
     },
     {
       title: 'Admin',
       url: '/admin',
       icon: ShieldIcon,
-      roles: ['admin', 'superadmin'] as UserRole[],
+      roles: ['admin'] as UserRole[],
       items: [
         {
           title: 'Users',
           url: '/admin/users',
-          roles: ['admin', 'superadmin'] as UserRole[],
+          roles: ['admin'] as UserRole[],
         },
         {
           title: 'Settings',
           url: '/admin/settings',
-          roles: ['superadmin'] as UserRole[],
+          roles: ['admin'] as UserRole[],
         },
       ],
     },
@@ -151,7 +151,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
 
                   {/* Admin-only header elements */}
                   <div className="ml-auto flex items-center gap-2">
-                    <RequireRole role={['admin', 'superadmin']}>
+                    <RequireRole role={['admin']}>
                       <AdminHeaderActions />
                     </RequireRole>
                   </div>
@@ -199,7 +199,7 @@ export function AppBreadcrumb() {
   const pathname = usePathname();
 
   // Custom breadcrumb items for admin sections
-  if (pathname.startsWith('/admin') && !hasRole('admin') && !hasRole('superadmin')) {
+  if (pathname.startsWith('/admin') && !hasRole('admin')) {
     // User doesn't have admin role but somehow reached admin path
     return (
       <div className="flex items-center gap-1 text-sm text-destructive">
@@ -275,12 +275,12 @@ export default function DashboardPage() {
       </RequireRole>
 
       {/* Only admins see the admin section */}
-      <RequireRole role={['admin', 'superadmin']}>
+      <RequireRole role={['admin']}>
         <AdminSection />
       </RequireRole>
 
-      {/* Only superadmins see the system section */}
-      <RequireRole role="superadmin">
+      {/* Only admins see the system section */}
+      <RequireRole role="admin">
         <SystemSection />
       </RequireRole>
     </div>

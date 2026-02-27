@@ -9,7 +9,7 @@ The application implements a robust role-based access control (RBAC) system usin
 The system supports the following roles:
 
 ```typescript
-type UserRole = 'user' | 'community_expert' | 'top_expert' | 'lecturer' | 'admin' | 'superadmin';
+type UserRole = 'user' | 'community_expert' | 'top_expert' | 'lecturer' | 'admin';
 ```
 
 ## Centralized Role Management
@@ -80,7 +80,7 @@ For protecting entire routes based on roles:
 const protectedRoutes = [
   {
     path: '/admin',
-    roles: ['admin', 'superadmin'],
+    roles: ['admin'],
     redirectUrl: '/',
   },
   {
@@ -163,7 +163,7 @@ Protected routes are defined in middleware.ts and applied automatically:
 const protectedRoutes = [
   {
     path: '/admin',
-    roles: ['admin', 'superadmin'],
+    roles: ['admin'],
     redirectUrl: '/',
   },
 ];
@@ -292,7 +292,7 @@ await updateUserRole(userId, 'admin');
 await updateUserRole(userId, ['admin', 'top_expert']);
 ```
 
-Note that only admin or superadmin users can update roles, and only superadmins can assign the superadmin role.
+Note that only admin users can update roles and assign the admin role.
 
 ## Security Considerations
 

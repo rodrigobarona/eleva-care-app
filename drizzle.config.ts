@@ -46,11 +46,16 @@ function getDatabaseUrl(): string {
 
 export default defineConfig({
   out: './drizzle/migrations',
-  schema: './drizzle/schema.ts', // Updated to WorkOS schema
+  schema: './drizzle/schema.ts',
   dialect: 'postgresql',
   verbose: true,
   strict: true,
   dbCredentials: {
     url: getDatabaseUrl(),
+  },
+  entities: {
+    roles: {
+      provider: 'neon',
+    },
   },
 });

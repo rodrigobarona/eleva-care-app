@@ -2,12 +2,12 @@
  * Onboarding Page
  *
  * Smart routing based on user organization type (Airbnb-style pattern):
- * - patient_personal → Redirect to /dashboard (fast, frictionless)
+ * - member_personal → Redirect to /dashboard (fast, frictionless)
  * - expert_individual → Redirect to /setup (guided expert onboarding)
- * - No organization → Auto-create patient_personal org and redirect to /dashboard
+ * - No organization → Auto-create member_personal org and redirect to /dashboard
  *
  * This mirrors Airbnb's approach:
- * - Most users (patients) get instant access to the platform
+ * - Most users (members) get instant access to the platform
  * - Experts ("hosts") get guided through their setup process
  */
 import {
@@ -35,19 +35,19 @@ export default async function OnboardingPage() {
     const orgType = await getUserOrganizationType(user.id);
     console.log('🏢 Organization type:', orgType || 'None');
 
-    // If no organization exists, auto-create patient_personal (fallback)
+    // If no organization exists, auto-create member_personal (fallback)
     if (!orgType) {
-      console.log('🏢 No organization found - auto-creating patient organization');
+      console.log('🏢 No organization found - auto-creating member organization');
       const result = await autoCreateUserOrganization({
         workosUserId: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        orgType: 'patient_personal',
+        orgType: 'member_personal',
       });
 
       if (result.success) {
-        console.log('✅ Fallback patient organization created:', result.organizationId);
+        console.log('✅ Fallback member organization created:', result.organizationId);
       } else {
         console.error('❌ Failed to create fallback organization:', result.error);
       }
@@ -57,13 +57,25 @@ export default async function OnboardingPage() {
     }
 
     // Route based on organization type
-    if (orgType === 'expert_individual' || orgType === 'clinic') {
-      // Expert flow - guided onboarding
-      console.log('🎓 Expert user detected - redirecting to setup');
+    if (orgType === 'expert_individual') {
+      // Expert flow: check if they have an expert role already
+      // If not, they need to apply first (the current role won't grant /setup access)
+      const { isUserExpert } = await import('@/lib/integrations/workos/roles');
+      const hasExpertRole = await isUserExpert(user.id);
+      if (hasExpertRole) {
+        console.log('🎓 Approved expert - redirecting to setup');
+        redirect('/setup');
+      } else {
+        console.log('📝 Expert org but no role yet - redirecting to apply');
+        redirect('/apply');
+      }
+    } else if (orgType === 'team') {
+      // Team flow - guided onboarding
+      console.log('🎓 Team user detected - redirecting to setup');
       redirect('/setup');
     } else {
-      // Patient flow - direct to dashboard
-      console.log('👤 Patient user detected - redirecting to dashboard');
+      // Member flow - direct to dashboard
+      console.log('👤 Member user detected - redirecting to dashboard');
       redirect('/dashboard');
     }
   } catch (error) {

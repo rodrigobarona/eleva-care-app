@@ -8,9 +8,9 @@
  * - Displays users with email, name, and current role
  * - Inline role selection with dropdown
  * - Optimistic updates with toast notifications
- * - Superadmin-only role assignment restrictions
+ * - Admin-only role assignment restrictions
  *
- * @requires superadmin role to access
+ * @requires admin role to access
  */
 import { DataTable } from '@/components/shared/data-table/DataTable';
 import { useAuthorization } from '@/components/shared/providers/AuthorizationProvider';
@@ -36,7 +36,7 @@ interface User {
 
 interface RoleSelectorProps {
   user: User;
-  isSuperAdmin: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   onRoleUpdate: (userId: string, newRole: WorkOSRole) => Promise<WorkOSRole>;
 }
@@ -45,7 +45,7 @@ interface RoleSelectorProps {
  * Extracted RoleSelector component to prevent recreation on each parent render.
  * Uses useEffect to sync selectedRole when user.role changes externally.
  */
-function RoleSelector({ user, isSuperAdmin, isLoading, onRoleUpdate }: RoleSelectorProps) {
+function RoleSelector({ user, isAdmin, isLoading, onRoleUpdate }: RoleSelectorProps) {
   const [selectedRole, setSelectedRole] = useState<WorkOSRole>(user.role);
   const [isPending, setIsPending] = useState(false);
 
@@ -81,10 +81,10 @@ function RoleSelector({ user, isSuperAdmin, isLoading, onRoleUpdate }: RoleSelec
           <SelectItem
             key={role}
             value={role}
-            disabled={role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin}
+            disabled={role === WORKOS_ROLES.ADMIN && !isAdmin}
           >
             {WORKOS_ROLE_DISPLAY_NAMES[role] || role}
-            {role === WORKOS_ROLES.SUPERADMIN && !isSuperAdmin && ' (Requires superadmin)'}
+            {role === WORKOS_ROLES.ADMIN && !isAdmin && ' (Requires admin)'}
           </SelectItem>
         ))}
       </SelectContent>
@@ -96,7 +96,7 @@ export function UserRoleManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { roles: currentUserRoles } = useAuthorization();
-  const isSuperAdmin = currentUserRoles.includes(WORKOS_ROLES.SUPERADMIN);
+  const isAdmin = currentUserRoles.includes(WORKOS_ROLES.ADMIN);
 
   // Stable callback reference using useCallback
   const handleRoleUpdate = useCallback(async (userId: string, newRole: WorkOSRole) => {
@@ -148,7 +148,7 @@ export function UserRoleManager() {
       cell: ({ row }) => (
         <RoleSelector
           user={row.original}
-          isSuperAdmin={isSuperAdmin}
+          isAdmin={isAdmin}
           isLoading={isLoading}
           onRoleUpdate={handleRoleUpdate}
         />

@@ -1,8 +1,10 @@
 # Eleva Role Progression & Subscription System
 
-**Version:** 1.0  
-**Last Updated:** November 6, 2025  
+**Version:** 1.1  
+**Last Updated:** February 25, 2026  
 **Status:** 🚀 Design Document - Ready for Implementation
+
+> **Related:** See [RBAC Naming Decisions (ADR)](./RBAC-NAMING-DECISIONS.md) for role and permission naming conventions (`member`, `team_admin`, `team_member`, Lecturer as Stripe addon).
 
 ---
 
@@ -14,17 +16,17 @@ Eleva's role-based progression system is inspired by Airbnb's successful multi-s
 
 | **Airbnb**      | **Eleva**                  | **Purpose**                           |
 | --------------- | -------------------------- | ------------------------------------- |
-| Guest           | Patient/Client             | Entry point - consume services        |
+| Guest           | Member                     | Entry point - consume services        |
 | Host            | Community Expert           | Provide services after approval       |
 | Superhost       | Top Expert                 | Premium tier with proven track record |
-| Experiences     | eLearning (Future)         | Additional service offerings          |
-| Airbnb for Work | Eleva for Clinics (Future) | B2B enterprise solution               |
+| Experiences     | eLearning (Future)         | Additional service offerings (Stripe addon) |
+| Airbnb for Work | Eleva for Teams (Future)   | B2B team/clinic solution              |
 
 ---
 
 ## 🎯 Role Hierarchy
 
-### 1. **Patient/Client** (Base Role)
+### 1. **Member** (Base Role)
 
 _Like Airbnb Guest_
 
@@ -42,7 +44,7 @@ _Like Airbnb Guest_
 **Navigation Access:**
 
 ```typescript
-const PATIENT_NAVIGATION = [
+const MEMBER_NAVIGATION = [
   '/dashboard', // Overview of appointments
   '/booking', // Browse & book experts
   '/appointments', // Appointment history
@@ -54,7 +56,7 @@ const PATIENT_NAVIGATION = [
 
 **Stripe Subscription:** None (Free)
 
-**WorkOS Role:** `patient`
+**WorkOS Role:** `member`
 
 ---
 
@@ -75,25 +77,25 @@ _Like Airbnb Host_
 **Application Flow:**
 
 ```
-Patient Account → Apply to Become Expert → Submit Credentials →
+Member Account → Apply to Become Expert → Submit Credentials →
 Admin Review → Approval/Rejection → Setup Profile → Go Live
 ```
 
-**New Capabilities (In Addition to Patient):**
+**New Capabilities (In Addition to Member):**
 
 - Create and manage services/events
 - Set availability and schedule
-- Receive bookings from patients
+- Receive bookings from members
 - Manage calendar integration (Google Calendar)
 - Access expert dashboard with analytics
 - Receive payouts via Stripe Connect
-- Respond to patient reviews
+- Respond to member reviews
 
 **Navigation Access:**
 
 ```typescript
 const COMMUNITY_EXPERT_NAVIGATION = [
-  ...PATIENT_NAVIGATION, // Keeps patient features
+  ...MEMBER_NAVIGATION, // Keeps member features
   '/expert', // Expert overview dashboard
   '/expert/services', // Manage services offered
   '/expert/calendar', // Availability management
@@ -108,8 +110,8 @@ const COMMUNITY_EXPERT_NAVIGATION = [
 
 - **Tier:** Community Expert
 - **Pricing Options:**
-  - **Commission-Based:** $0/month + 20% commission per booking
-  - **Annual Subscription:** $490/year + 12% commission per booking
+  - **Commission-Based:** €0/month + 20% commission per booking
+  - **Annual Subscription:** €490/year + 12% commission per booking
 - **Benefits:**
   - List up to 5 services
   - Basic analytics
@@ -165,7 +167,7 @@ _Like Airbnb Superhost_
 - Access to premium analytics
 - Early access to new features
 - Custom branding options
-- Direct patient messaging
+- Direct member messaging
 - Group sessions capability
 - Priority support
 
@@ -187,8 +189,8 @@ const TOP_EXPERT_NAVIGATION = [
 
 - **Tier:** Top Expert
 - **Pricing Options:**
-  - **Commission-Based:** $0/month + 15% commission per booking
-  - **Annual Subscription:** $1,490/year + 8% commission per booking
+  - **Commission-Based:** €0/month + 15% commission per booking
+  - **Annual Subscription:** €1,490/year + 8% commission per booking
 - **Benefits:**
   - Unlimited services
   - Advanced analytics & insights
@@ -226,20 +228,22 @@ const TOP_EXPERT_NAVIGATION = [
 
 ---
 
-### 4. **Lecturer** (Future - Phase 2)
+### 4. **Lecturer Addon** (Future - Phase 2)
 
-_Like Airbnb Experiences_
+_Like Airbnb Experiences — Not a role, but a capability addon_
 
-**Entry Point:** Any Expert can apply
+Lecturer capabilities are **not** granted via a WorkOS role. Instead, they are enabled through **Stripe addon subscriptions**. Any user (Member or Expert) can purchase the Lecturer addon to unlock teaching capabilities.
+
+**Entry Point:** Stripe addon subscription purchase
 
 **Requirements:**
 
-- ✅ Active Community or Top Expert
+- ✅ Active Community or Top Expert (for experts) OR Member (for members who teach)
 - ✅ Course curriculum approval
 - ✅ Video content quality review
 - ✅ Minimum 4.5/5.0 teaching rating
 
-**New Capabilities:**
+**Capabilities (granted via Stripe Entitlements in JWT):**
 
 - Create and publish courses
 - Host live webinars
@@ -248,11 +252,11 @@ _Like Airbnb Experiences_
 - Earn from course sales
 - Track student progress
 
-**Navigation Access:**
+**Navigation Access (permission-gated via Stripe entitlements):**
 
 ```typescript
 const LECTURER_NAVIGATION = [
-  ...(COMMUNITY_EXPERT_NAVIGATION || TOP_EXPERT_NAVIGATION),
+  ...(COMMUNITY_EXPERT_NAVIGATION || TOP_EXPERT_NAVIGATION || MEMBER_NAVIGATION),
   '/lecturer/courses', // Course management
   '/lecturer/students', // Student roster
   '/lecturer/live-sessions', // Webinar scheduling
@@ -261,21 +265,21 @@ const LECTURER_NAVIGATION = [
 ];
 ```
 
-**Stripe Subscription:**
+**Stripe Subscription (Addon — not a base role):**
 
 - **Add-on:** eLearning Module
   - **Commission-Based:** +5% on course sales
-  - **Annual Subscription:** +$490/year + 3% on course sales
+  - **Annual Subscription:** +€490/year + 3% on course sales
 
-**WorkOS Role:** `expert_lecturer`
+**WorkOS Role:** None — lecturer permissions come via Stripe Entitlements in JWT
 
 ---
 
-### 5. **Enterprise/Clinic** (Future - Phase 3)
+### 5. **Enterprise/Team** (Future - Phase 3)
 
 _Like Airbnb for Work_
 
-**Entry Point:** B2B Onboarding
+**Entry Point:** B2B Team Onboarding
 
 **Requirements:**
 
@@ -286,7 +290,7 @@ _Like Airbnb for Work_
 
 **Capabilities:**
 
-- Custom subdomain (e.g., `clinic-name.eleva.care`)
+- Custom subdomain (e.g., `team-name.eleva.care`)
 - White-label branding
 - Curated expert roster
 - Team management
@@ -299,14 +303,14 @@ _Like Airbnb for Work_
 
 ```typescript
 const ENTERPRISE_NAVIGATION = [
-  '/enterprise', // Enterprise dashboard
+  '/enterprise', // Team dashboard
   '/enterprise/experts', // Manage expert roster
   '/enterprise/team', // Team member management
   '/enterprise/branding', // Custom branding
   '/enterprise/bookings', // Appointment overview
   '/enterprise/analytics', // Business intelligence
   '/enterprise/api', // API management
-  '/enterprise/billing', // Enterprise billing
+  '/enterprise/billing', // Team billing
 ];
 ```
 
@@ -315,7 +319,7 @@ const ENTERPRISE_NAVIGATION = [
 - **Tier:** Enterprise (Custom pricing)
 - **Benefits:** Everything + API access, dedicated support, SLA
 
-**WorkOS Organization:** Yes (Multi-tenant with roles)
+**WorkOS Organization:** Yes (Multi-tenant with `owner`, `team_admin`, and `team_member` roles). The `owner` role is the WorkOS system default for org creators (hierarchy 95) and inherits all `team_admin` permissions.
 
 ---
 
@@ -331,10 +335,11 @@ export type UserRole =
   | 'expert_community' // Approved community expert
   | 'expert_top' // Achievement-based top expert
   | 'expert_lecturer' // Expert with teaching capability
-  | 'enterprise_admin' // B2B clinic administrator
   | 'enterprise_member' // B2B clinic staff
-  | 'admin' // Platform administrator
-  | 'moderator'; // Content moderation
+  | 'enterprise_admin' // B2B clinic administrator
+  | 'owner' // WorkOS org creator (inherits all team_admin permissions)
+  | 'moderator' // Content moderation
+  | 'admin'; // Platform administrator
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   patient: 0,
@@ -343,13 +348,14 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
   expert_lecturer: 2,
   enterprise_member: 3,
   enterprise_admin: 4,
+  owner: 95,
   moderator: 5,
   admin: 10,
 };
 
 export const EXPERT_ROLES = ['expert_community', 'expert_top', 'expert_lecturer'] as const;
 
-export const ENTERPRISE_ROLES = ['enterprise_admin', 'enterprise_member'] as const;
+export const ENTERPRISE_ROLES = ['enterprise_admin', 'enterprise_member', 'owner'] as const;
 ```
 
 ### Permission System
@@ -382,10 +388,10 @@ export const PERMISSIONS = {
   'students.manage': ['expert_lecturer'],
   'webinars.host': ['expert_lecturer'],
 
-  // Enterprise permissions
-  'organization.manage': ['enterprise_admin'],
-  'team.manage': ['enterprise_admin'],
-  'api.access': ['enterprise_admin'],
+  // Enterprise permissions (owner inherits all team_admin/enterprise_admin)
+  'organization.manage': ['enterprise_admin', 'owner'],
+  'team.manage': ['enterprise_admin', 'owner'],
+  'api.access': ['enterprise_admin', 'owner'],
 
   // Admin permissions
   'users.manage': ['admin'],
@@ -468,7 +474,7 @@ export const STRIPE_PLANS = {
 
   community_expert_annual: {
     priceId: 'price_community_annual',
-    amount: 49000, // $490/year
+    amount: 49000, // €490/year
     commissionRate: 0.12, // 12%
     features: [
       'List up to 5 services',
@@ -501,7 +507,7 @@ export const STRIPE_PLANS = {
 
   top_expert_annual: {
     priceId: 'price_top_annual',
-    amount: 149000, // $1,490/year
+    amount: 149000, // €1,490/year
     commissionRate: 0.08, // 8%
     features: [
       'All Top Expert features',
@@ -527,7 +533,7 @@ export const STRIPE_PLANS = {
 
   lecturer_addon_annual: {
     priceId: 'price_lecturer_addon_annual',
-    amount: 49000, // $490/year
+    amount: 49000, // €490/year
     commissionRate: 0.03, // 3% on course sales
     features: [
       'Create & sell courses',
@@ -671,13 +677,13 @@ import { NAVIGATION_CONFIG } from '@/config/navigation';
 import { NavItem } from './NavItem';
 
 export function DynamicNavigation() {
-  const { role, loading, permissions } = useAuth();
+  const { role, loading, permissions, entitlements } = useAuth();
 
   if (loading) {
     return <NavigationSkeleton />;
   }
 
-  // Filter navigation items based on role and permissions
+  // Filter navigation items based on role, permissions, and entitlements
   const visibleItems = NAVIGATION_CONFIG.filter(item => {
     // Check role requirement
     if (item.requiredRole && !item.requiredRole.includes(role)) {
@@ -686,6 +692,11 @@ export function DynamicNavigation() {
 
     // Check permission requirement
     if (item.requiredPermission && !permissions.includes(item.requiredPermission)) {
+      return false;
+    }
+
+    // Check Stripe entitlement (e.g. lecturer_addon)
+    if (item.requiredEntitlement && !entitlements.includes(item.requiredEntitlement)) {
       return false;
     }
 
@@ -723,6 +734,7 @@ export interface NavigationItem {
   icon: React.ComponentType;
   requiredRole?: UserRole[];
   requiredPermission?: string;
+  requiredEntitlement?: string; // Stripe addon (e.g. lecturer_addon)
   badge?: () => Promise<number>; // Dynamic badge count
   children?: NavigationItem[];
 }
@@ -780,12 +792,12 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     requiredRole: ['expert_top'],
   },
 
-  // Lecturer section
+  // Lecturer section (gated by Stripe addon entitlements, not role)
   {
     label: 'Teaching',
     path: '/lecturer',
     icon: AcademicCapIcon,
-    requiredRole: ['expert_lecturer'],
+    requiredEntitlement: 'lecturer_addon',
     children: [
       {
         label: 'Courses',
@@ -800,12 +812,12 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     ],
   },
 
-  // Enterprise section
+  // Team/Enterprise section
   {
-    label: 'Enterprise',
+    label: 'Team',
     path: '/enterprise',
     icon: BuildingOfficeIcon,
-    requiredRole: ['enterprise_admin'],
+    requiredRole: ['team_admin', 'owner'],
   },
 
   // Account (all users)
@@ -934,7 +946,7 @@ export async function GET(request: Request) {
 
 ### Phase 1: Foundation (Current - Week 1-2)
 
-- ✅ WorkOS RBAC with basic roles (patient, expert_community, expert_top)
+- ✅ WorkOS RBAC with basic roles (member, expert_community, expert_top)
 - ✅ Dynamic sidebar navigation
 - ✅ Permission system implementation
 - 🔄 Stripe subscription integration
@@ -949,22 +961,26 @@ export async function GET(request: Request) {
 
 ### Phase 3: eLearning Module (Month 2-3)
 
-- 📅 Lecturer role implementation
+- 📅 Lecturer addon (Stripe) implementation
 - 📅 Course management system (LMS)
 - 📅 Video hosting integration
 - 📅 Student enrollment & progress tracking
 
-### Phase 4: Enterprise (Month 4-6)
+### Phase 4: Enterprise/Team (Month 4-6)
 
 - 📅 Multi-tenancy with subdomains
 - 📅 White-label branding
-- 📅 Team management
+- 📅 Team management (team_admin, team_member roles)
 - 📅 API development
 - 📅 SSO integration
 
 ---
 
 ## 📚 References
+
+### Related Documentation
+
+- [RBAC Naming Decisions (ADR)](./RBAC-NAMING-DECISIONS.md) — Role and permission naming conventions (`member`, `team_admin`, `team_member`, Lecturer as Stripe addon)
 
 ### Airbnb Model Research
 
@@ -988,7 +1004,7 @@ export async function GET(request: Request) {
 
 ### User Progression
 
-- **Patient → Expert Application Rate:** Target 15%
+- **Member → Expert Application Rate:** Target 15%
 - **Community → Top Expert Conversion:** Target 20%
 - **Expert Retention (12 months):** Target 85%
 
@@ -1001,7 +1017,7 @@ export async function GET(request: Request) {
 ### Revenue Metrics
 
 - **Subscription MRR Growth:** Target 15% MoM
-- **Average Revenue Per Expert:** Target $150/month
+- **Average Revenue Per Expert:** Target €150/month
 - **Churn Rate:** Target < 5%
 
 ---

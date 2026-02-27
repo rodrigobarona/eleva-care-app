@@ -685,8 +685,8 @@ async function createPaymentTransferIfNotExists({
         scheduledTransferTime: new Date(transferData.scheduled),
         status: PAYMENT_TRANSFER_STATUS_PENDING,
         requiresApproval: session.metadata?.approval === 'true',
-        created: new Date(),
-        updated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       span.setAttribute('stripe.transfer.created', true);

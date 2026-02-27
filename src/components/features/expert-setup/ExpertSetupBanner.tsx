@@ -28,7 +28,7 @@ export function ExpertSetupBanner() {
             'profile',
             'availability',
             'events',
-            'google_account',
+            'calendar_connection',
             'identity',
             'payment',
             'bank_account',

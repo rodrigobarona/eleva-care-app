@@ -8,7 +8,7 @@
 
 ## 📚 Documentation Overview
 
-This documentation suite provides a complete redesign of the Eleva Care dashboard navigation structure, designed to scale from solo practitioners to multi-expert partners and future LMS features.
+This documentation suite provides a complete redesign of the Eleva Care dashboard navigation structure, designed to scale from solo practitioners to multi-expert teams and future LMS features.
 
 **Key Highlights:**
 
@@ -75,7 +75,7 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 
 1. Navigation Hierarchy (all roles)
 2. Expert Dashboard (solo practitioners)
-3. Partner Dashboard (multi-expert organizations)
+3. Team Dashboard (multi-expert organizations)
 4. Learning Platform (LMS features)
 5. Admin Dashboard (platform management)
 6. Folder structure
@@ -159,7 +159,7 @@ components/layout/sidebar/
 **Diagrams Included:**
 
 1. Expert Dashboard (Solo)
-2. Partner Dashboard (Admin)
+2. Team Dashboard (Admin)
 3. Learning Platform (Expert view)
 4. Learning Platform (Student view)
 5. Platform Admin
@@ -257,7 +257,7 @@ components/layout/sidebar/
    - Show features based on role & tier
    - Community sees basics
    - Top tier sees analytics
-   - Partner admins see management features
+   - Team admins see management features
    - Platform admins see everything
 
 3. **Scalable Structure**
@@ -292,7 +292,7 @@ components/layout/sidebar/
 | `billing`       | Consolidated billing | Phase 1            |
 | `settings`      | Personal settings    | Phase 1            |
 | `notifications` | Notification center  | Phase 1            |
-| `partner`       | Partner management   | Phase 2            |
+| `team`          | Team management      | Phase 2            |
 | `learn`         | LMS (expert view)    | Phase 3            |
 | `learning`      | LMS (student view)   | Phase 3            |
 
@@ -350,23 +350,23 @@ Expert Profile
 
 ---
 
-### Phase 2: Partner Features (Future)
+### Phase 2: Team Features (Future)
 
 **Goal:** Add multi-expert organization support
 
 **Features:**
 
-- Partner organization management
+- Team organization management
 - Team member invitations
 - Multi-practitioner calendar
-- Shared patient records
-- Partner-wide analytics
+- Shared member records
+- Team-wide analytics
 - Revenue splitting
 
 **Prerequisites:**
 
 - Phase 1 complete and stable
-- Partner data model finalized
+- Team data model finalized
 - WorkOS organization setup complete
 
 ---
@@ -402,8 +402,8 @@ WORKOS_PERMISSIONS = {
   EVENTS_MANAGE: 'events:manage',
   ANALYTICS_VIEW: 'analytics:view',
   ANALYTICS_ADVANCED: 'analytics:advanced',
-  CLINIC_VIEW: 'partner:view',
-  CLINIC_MANAGE: 'partner:manage',
+  TEAM_VIEW: 'partner:view',
+  TEAM_MANAGE: 'partner:manage',
   ADMIN_ACCESS: 'admin:access',
   // ... more
 };
@@ -416,12 +416,12 @@ Admin (Platform)
   ├─ Full access to all features
   └─ Platform management
 
-Partner Admin
+Team Admin
   ├─ Full partner features
   ├─ Team management
   └─ Own expert features
 
-Partner Member
+Team Member
   ├─ View partner features
   └─ Own expert features
 

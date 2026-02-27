@@ -15,8 +15,8 @@ This is a **complete dashboard redesign** for Eleva Care with:
 ✅ **Multiple schedules** like Cal.com  
 ✅ **Optional calendar integration** (not mandatory)  
 ✅ **Built-in calendar view**  
-✅ **Patient portal with review system** 🆕 (like Airbnb)  
-✅ **Scalable for partners & LMS**  
+✅ **Member portal with review system** 🆕 (like Airbnb)  
+✅ **Scalable for teams & LMS**  
 ✅ **Role-aware navigation**  
 ✅ **Complete implementation roadmap**
 
@@ -127,13 +127,13 @@ This is a **complete dashboard redesign** for Eleva Care with:
 
 ---
 
-### 7. **Patient Portal & Reviews** → `PATIENT-PORTAL-SPECIFICATION.md` 🆕
+### 7. **Member Portal & Reviews** → `PATIENT-PORTAL-SPECIFICATION.md` 🆕
 
-⏱️ 35 minutes | 🎯 Patient dashboard & Airbnb-style reviews
+⏱️ 35 minutes | 🎯 Member dashboard & Airbnb-style reviews
 
 **What's inside:**
 
-- Complete patient portal navigation
+- Complete member portal navigation
 - Airbnb-style review system
 - Review components & UI
 - Automated review requests
@@ -175,12 +175,12 @@ This is a **complete dashboard redesign** for Eleva Care with:
 ```
 Create different schedules for different contexts:
 ├─ "Remote Work" (Mon-Fri, 9am-5pm)
-├─ "Partner Tuesdays" (Tue 2pm-6pm, In-person)
+├─ "Team Tuesdays" (Tue 2pm-6pm, In-person)
 └─ "Evening Sessions" (Mon-Thu 7pm-9pm, Remote)
 
 Assign schedules to event types:
 ├─ "Online Consultation" → Uses "Remote Work" schedule
-└─ "In-Person Session" → Uses "Partner Tuesdays" schedule
+└─ "In-Person Session" → Uses "Team Tuesdays" schedule
 ```
 
 ### 3. Optional Calendar Integration 🆕
@@ -222,11 +222,11 @@ settings/           Personal configuration
 notifications/      Notification center
 ```
 
-### 6. Patient Portal (Complete) 🆕
+### 6. Member Portal (Complete) 🆕
 
 ```
-patient/
-├─ dashboard/       Patient overview
+member/
+├─ dashboard/       Member overview
 ├─ appointments/    View & manage appointments
 ├─ sessions/        Session notes & summaries
 ├─ reviews/         Leave & manage reviews ⭐
@@ -248,7 +248,7 @@ Review System (Like Airbnb):
 ### 7. Scalable for Future
 
 ```
-Phase 2: partner/    Multi-expert organizations
+Phase 2: team/    Multi-expert organizations
 Phase 3: learn/     LMS platform (expert view)
 Phase 3: learning/  LMS platform (student view)
 ```
@@ -268,7 +268,7 @@ Schedule 1: "Remote Work"
 ├─ Mon-Fri: 9am-5pm
 └─ Location: Remote (Zoom)
 
-Schedule 2: "Partner Days"
+Schedule 2: "Team Days"
 ├─ Tue, Thu: 2pm-6pm
 └─ Location: Clínica São Paulo (Address)
 
@@ -279,15 +279,15 @@ Event Types:
 
 ---
 
-### Use Case 2: Expert at Multiple Partners
+### Use Case 2: Expert at Multiple Teams
 
-**Scenario:** Dr. Maria works part-time at two different partners.
+**Scenario:** Dr. Maria works part-time at two different teams.
 
 **Solution:**
 
 ```
-Schedule 1: "Partner A" (Mon/Wed/Fri mornings)
-Schedule 2: "Partner B" (Tue/Thu afternoons)
+Schedule 1: "Team A" (Mon/Wed/Fri mornings)
+Schedule 2: "Team B" (Tue/Thu afternoons)
 Schedule 3: "Remote Evenings" (Mon-Thu evenings)
 
 Each schedule has different:
@@ -298,9 +298,9 @@ Each schedule has different:
 
 ---
 
-### Use Case 3: Solo Practice + Partner Member
+### Use Case 3: Solo Practice + Team Member
 
-**Scenario:** Dr. Ana has her own practice AND works part-time for a partner organization.
+**Scenario:** Dr. Ana has her own practice AND works part-time for a team organization.
 
 **Solution:**
 
@@ -308,8 +308,8 @@ Each schedule has different:
 Personal Organization:
 └─ Schedule: "My Practice"
 
-Partner Organization:
-└─ Schedule: "Partner Schedule"
+Team Organization:
+└─ Schedule: "Team Schedule"
 
 Different bookings, different locations, separate management.
 ```
@@ -389,27 +389,27 @@ Tasks:
 
 ---
 
-### Phase 1D: Patient Portal & Reviews (Week 9-12) 🆕
+### Phase 1D: Member Portal & Reviews (Week 9-12) 🆕
 
 **Priority:** High  
 **Effort:** 4 weeks (1-2 developers)
 
 Tasks:
 
-- [ ] Patient portal structure & navigation
-- [ ] Patient dashboard (overview)
-- [ ] Patient appointments view
+- [ ] Member portal structure & navigation
+- [ ] Member dashboard (overview)
+- [ ] Member appointments view
 - [ ] Session notes access
 - [ ] Review system database schema
 - [ ] Review components (star rating, form, cards)
 - [ ] Automated review requests (cron job)
 - [ ] Review display on expert profiles
-- [ ] Patient billing & profile pages
+- [ ] Member billing & profile pages
 - [ ] Testing & moderation tools
 
 **Deliverables:**
 
-- Complete patient portal functional
+- Complete member portal functional
 - Review system working end-to-end
 - Automated review requests sending
 - Reviews displaying on expert profiles
@@ -417,7 +417,7 @@ Tasks:
 
 ---
 
-### Phase 2: Partner Features (Future)
+### Phase 2: Team Features (Future)
 
 **Priority:** Medium  
 **Effort:** 6-8 weeks
@@ -426,8 +426,8 @@ Features:
 
 - Team management
 - Multi-practitioner calendar
-- Shared patient records
-- Partner-wide analytics
+- Shared member records
+- Team-wide analytics
 - Revenue splitting
 
 ---
@@ -465,7 +465,7 @@ Features:
 
 - 💰 Track Analytics impact on tier upgrades
 - 📈 Monitor schedule feature adoption
-- 🏥 Prepare for partner onboarding
+- 🏥 Prepare for team onboarding
 - 📚 Foundation for LMS launch
 
 ---
@@ -511,7 +511,7 @@ Keep open:
 ```typescript
 // Permission-based navigation
 const showAnalytics = await hasPermission('analytics:view');
-const showClinic = await hasPermission('partner:view');
+const showTeam = await hasPermission('team:view');
 
 // Role-based menus
 if (isTopExpert) {
@@ -534,7 +534,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 ```typescript
 interface Schedule {
   id: string;
-  name: string; // "Remote Work", "Partner Tuesdays"
+  name: string; // "Remote Work", "Team Tuesdays"
   timezone: string;
   availability: WeeklyHours[];
   location: Location; // Remote, In-Person, Phone

@@ -74,7 +74,7 @@ describe('Transfer Utils', () => {
       } as any);
 
       const result = await checkExistingTransfer(mockStripe, 'ch_123', {
-        id: 1,
+        id: 'a0000000-0000-0000-0000-000000000001',
         paymentIntentId: 'pi_123',
       });
 
@@ -109,7 +109,7 @@ describe('Transfer Utils', () => {
       retrieveMock.mockResolvedValue(mockCharge);
 
       const transferRecord = {
-        id: 1,
+        id: 'a0000000-0000-0000-0000-000000000001',
         paymentIntentId: 'pi_123',
       };
 
@@ -288,7 +288,7 @@ describe('Transfer Utils', () => {
       });
 
       const transferRecord = {
-        id: 100,
+        id: 'a0000000-0000-0000-0000-000000000100',
         paymentIntentId: 'pi_separate123',
       };
 

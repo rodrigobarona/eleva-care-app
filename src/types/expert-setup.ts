@@ -15,7 +15,7 @@ export const SetupStep = z.enum([
   'events',
   'identity',
   'payment',
-  'google_account',
+  'calendar_connection',
 ]);
 
 export type SetupStepType = z.infer<typeof SetupStep>;
@@ -29,7 +29,7 @@ export interface SetupStatus {
   events: boolean;
   identity: boolean;
   payment: boolean;
-  google_account: boolean;
+  calendar_connection: boolean;
 }
 
 /**

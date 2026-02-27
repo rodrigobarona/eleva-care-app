@@ -16,7 +16,7 @@ interface BlockedDateInput {
 }
 
 interface BlockedDate {
-  id: number;
+  id: string;
   date: Date;
   reason?: string;
   timezone: string;
@@ -53,7 +53,7 @@ export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> 
   });
 }
 
-export async function removeBlockedDate(id: number): Promise<void> {
+export async function removeBlockedDate(id: string): Promise<void> {
   return Sentry.withServerActionInstrumentation('removeBlockedDate', { recordResponse: true }, async () => {
   const { user } = await withAuth();
   const userId = user?.id;
@@ -121,7 +121,7 @@ export async function getBlockedDatesForUser(workosUserId: string): Promise<Bloc
  * Update a blocked date atomically
  */
 export async function updateBlockedDate(
-  id: number,
+  id: string,
   updates: { date: Date; reason?: string; timezone: string },
 ): Promise<BlockedDate> {
   return Sentry.withServerActionInstrumentation('updateBlockedDate', { recordResponse: true }, async () => {

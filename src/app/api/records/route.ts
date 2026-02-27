@@ -1,10 +1,11 @@
+import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
 import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
 import { logSecurityError } from '@/lib/constants/security';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import * as Sentry from '@sentry/nextjs';
 import { count, eq, inArray } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -60,7 +61,11 @@ export async function GET(request: NextRequest) {
     // Parse pagination params with bounds checking
     const url = new URL(request.url);
     const limit = Math.min(
-      Math.max(parseInt(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE, 1),
+      Math.max(
+        parseInt(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE), 10) ||
+          DEFAULT_PAGE_SIZE,
+        1,
+      ),
       MAX_PAGE_SIZE,
     );
     const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
@@ -98,6 +103,12 @@ export async function GET(request: NextRequest) {
     const uniqueOrgIds = [...new Set(recordsWithOrg.map((r) => r.orgId))] as string[];
     const orgIdMap = await getWorkosOrgIdMap(uniqueOrgIds);
 
+    // Batch-resolve guest emails from WorkOS (fall back to DB guestEmail if resolution fails)
+    const uniqueGuestIds = [
+      ...new Set(recordsWithOrg.map((r) => r.guestWorkosUserId).filter(Boolean)),
+    ];
+    const guestInfoMap = await resolveGuestInfoBatch(uniqueGuestIds);
+
     // Decrypt the records using WorkOS Vault
     // Failed decryptions are filtered out (not returned with error placeholders)
     // to avoid information leakage about internal failure modes.
@@ -131,13 +142,19 @@ export async function GET(request: NextRequest) {
               )
             : null;
 
+          // Resolve guest email from WorkOS, fall back to deprecated DB column
+          const guestInfo = record.guestWorkosUserId
+            ? guestInfoMap.get(record.guestWorkosUserId)
+            : undefined;
+          const guestEmail = guestInfo?.email || record.guestEmail;
+
           // Return typed decrypted record (omit encrypted fields)
           const decryptedRecord: DecryptedRecord = {
             id: record.id,
             orgId: record.orgId!,
             meetingId: record.meetingId,
             expertId: record.expertId,
-            guestEmail: record.guestEmail,
+            guestEmail,
             content,
             metadata,
             createdAt: record.createdAt,

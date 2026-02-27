@@ -67,7 +67,7 @@ interface RBACConfig {
 // ============================================================================
 
 /**
- * All Permissions (89 total)
+ * All Permissions (132 total)
  * Organized by category for clarity
  */
 const PERMISSIONS: Permission[] = [
@@ -141,7 +141,7 @@ const PERMISSIONS: Permission[] = [
     category: 'Sessions',
   },
 
-  // ===== Patients (6) =====
+  // ===== Patients (7) =====
   {
     slug: 'patients:view_own',
     name: 'View Own Patients',
@@ -151,7 +151,7 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'patients:view_all',
     name: 'View All Patients',
-    description: 'View all clinic patients',
+    description: 'View all team patient records',
     category: 'Patients',
   },
   {
@@ -176,6 +176,12 @@ const PERMISSIONS: Permission[] = [
     slug: 'patients:view_insights',
     name: 'View Patient Insights',
     description: 'View patient analytics',
+    category: 'Patients',
+  },
+  {
+    slug: 'patients:export',
+    name: 'Export Patient Data',
+    description: 'Export patient data',
     category: 'Patients',
   },
 
@@ -509,15 +515,15 @@ const PERMISSIONS: Permission[] = [
     category: 'Billing',
   },
   {
-    slug: 'billing:manage_clinic_sub',
-    name: 'Manage Clinic Subscription',
-    description: 'Manage clinic subscription',
+    slug: 'billing:manage_team_sub',
+    name: 'Manage Team Subscription',
+    description: 'Manage team subscription',
     category: 'Billing',
   },
   {
-    slug: 'billing:view_clinic_billing',
-    name: 'View Clinic Billing',
-    description: 'View clinic billing',
+    slug: 'billing:view_team_billing',
+    name: 'View Team Billing',
+    description: 'View team billing',
     category: 'Billing',
   },
 
@@ -573,9 +579,9 @@ const PERMISSIONS: Permission[] = [
     category: 'Dashboard',
   },
   {
-    slug: 'dashboard:view_patient',
-    name: 'View Patient Dashboard',
-    description: 'Access patient dashboard',
+    slug: 'dashboard:view_member',
+    name: 'View Member Dashboard',
+    description: 'Access member dashboard',
     category: 'Dashboard',
   },
 
@@ -785,51 +791,43 @@ const PERMISSIONS: Permission[] = [
     category: 'Support',
   },
 
-  // ===== Clinic (6) - Phase 2 =====
+  // ===== Team (11) - Phase 2: unified team management =====
   {
-    slug: 'clinic:view_dashboard',
-    name: 'View Clinic Dashboard',
-    description: 'View clinic overview',
-    category: 'Clinic',
+    slug: 'team:view_dashboard',
+    name: 'View Team Dashboard',
+    description: 'View team overview',
+    category: 'Team',
   },
   {
-    slug: 'clinic:view_patients',
-    name: 'View Clinic Patients',
-    description: 'View shared clinic patients',
-    category: 'Clinic',
+    slug: 'team:view_patients',
+    name: 'View Team Patients',
+    description: 'View shared team patients',
+    category: 'Team',
   },
   {
-    slug: 'clinic:view_schedule',
-    name: 'View Clinic Schedule',
-    description: 'View clinic schedule',
-    category: 'Clinic',
+    slug: 'team:manage_settings',
+    name: 'Manage Team Settings',
+    description: 'Manage team settings',
+    category: 'Team',
   },
   {
-    slug: 'clinic:manage_settings',
-    name: 'Manage Clinic Settings',
-    description: 'Manage clinic settings',
-    category: 'Clinic',
+    slug: 'team:manage_branding',
+    name: 'Manage Team Branding',
+    description: 'Manage team branding',
+    category: 'Team',
   },
   {
-    slug: 'clinic:manage_branding',
-    name: 'Manage Clinic Branding',
-    description: 'Manage clinic branding',
-    category: 'Clinic',
+    slug: 'team:view_analytics',
+    name: 'View Team Analytics',
+    description: 'View team analytics',
+    category: 'Team',
   },
   {
-    slug: 'clinic:view_analytics',
-    name: 'View Clinic Analytics',
-    description: 'View clinic analytics',
-    category: 'Clinic',
+    slug: 'team:export_data',
+    name: 'Export Team Data',
+    description: 'Export team data',
+    category: 'Team',
   },
-  {
-    slug: 'clinic:export_data',
-    name: 'Export Clinic Data',
-    description: 'Export clinic data',
-    category: 'Clinic',
-  },
-
-  // ===== Team (5) - Phase 2 =====
   {
     slug: 'team:view_members',
     name: 'View Team Members',
@@ -863,9 +861,9 @@ const PERMISSIONS: Permission[] = [
 
   // ===== Schedule (3) - Phase 2 =====
   {
-    slug: 'schedule:manage_clinic',
-    name: 'Manage Clinic Schedule',
-    description: 'Manage clinic schedule',
+    slug: 'schedule:manage_team',
+    name: 'Manage Team Schedule',
+    description: 'Manage team schedule',
     category: 'Schedule',
   },
   {
@@ -920,10 +918,10 @@ const PERMISSIONS: Permission[] = [
 const ROLES: Role[] = [
   // ===== PHASE 1: CURRENT ROLES =====
   {
-    slug: 'patient',
-    name: 'Patient',
+    slug: 'member',
+    name: 'Member',
     description:
-      'Basic user/patient role for booking appointments and accessing their healthcare journey',
+      'Base role for all registered users. Can book appointments and access member features',
     priority: 10,
     permissions: [
       // Appointments
@@ -948,7 +946,7 @@ const ROLES: Role[] = [
       'billing:view_own',
       'billing:methods_manage',
       // Dashboard
-      'dashboard:view_patient',
+      'dashboard:view_member',
     ],
   },
   {
@@ -957,7 +955,7 @@ const ROLES: Role[] = [
     description:
       'Standard expert tier with core expert features. Pays 20% commission (monthly) or 12% (annual)',
     priority: 70,
-    inheritsFrom: 'patient',
+    inheritsFrom: 'member',
     permissions: [
       // Dashboard
       'dashboard:view_expert',
@@ -1028,47 +1026,45 @@ const ROLES: Role[] = [
     ],
   },
   {
-    slug: 'clinic_member',
-    name: 'Clinic Member',
+    slug: 'team_member',
+    name: 'Team Member',
     description:
-      'Expert who is a member of a clinic organization (not admin). Can manage their own practice + view shared clinic resources',
+      'Member of a team organization. Can manage their own practice and view shared team resources',
     priority: 60,
     inheritsFrom: 'expert_community',
     permissions: [
-      // Clinic - Read-Only
-      'clinic:view_dashboard',
-      'clinic:view_patients',
-      'clinic:view_schedule',
-      // Team
+      // Team - Read-Only
+      'team:view_dashboard',
+      'team:view_patients',
       'team:view_members',
     ],
   },
   {
-    slug: 'clinic_admin',
-    name: 'Clinic Admin',
+    slug: 'team_admin',
+    name: 'Team Admin',
     description:
-      'Administrator of a clinic organization. Can manage team, patients, schedule, and clinic settings',
+      'Administrator of a team organization. Can manage team, patients, schedule, and settings',
     priority: 90,
-    inheritsFrom: 'clinic_member',
+    inheritsFrom: 'team_member',
     permissions: [
-      // Clinic - Full Management
-      'clinic:manage_settings',
-      'clinic:manage_branding',
-      'clinic:view_analytics',
-      'clinic:export_data',
-      // Team
+      // Team - Full Management
+      'team:manage_settings',
+      'team:manage_branding',
+      'team:view_analytics',
+      'team:export_data',
       'team:invite_members',
       'team:remove_members',
       'team:manage_roles',
       'team:view_performance',
       // Schedule
-      'schedule:manage_clinic',
+      'schedule:manage_team',
       'schedule:manage_rooms',
       'schedule:view_capacity',
       // Patients
       'patients:view_all',
       'patients:manage_records',
       'patients:view_insights',
+      'patients:export',
       // Revenue
       'revenue:view_overview',
       'revenue:view_splits',
@@ -1076,13 +1072,13 @@ const ROLES: Role[] = [
       'revenue:view_invoices',
       'revenue:export_financial',
       // Billing
-      'billing:manage_clinic_sub',
-      'billing:view_clinic_billing',
+      'billing:manage_team_sub',
+      'billing:view_team_billing',
     ],
   },
   {
-    slug: 'superadmin',
-    name: 'Platform Admin',
+    slug: 'admin',
+    name: 'Admin',
     description: 'Platform-level administrator with full system access. For Eleva Care team only',
     priority: 100,
     permissions: [

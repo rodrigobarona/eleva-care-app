@@ -11,7 +11,7 @@
 
 A security and code-quality audit was performed across the server layer on Feb 24, 2026. The work addressed findings from the `lib_server_audit` plan and covered six areas:
 
-1. Superadmin role checks on admin endpoints
+1. Admin role checks on admin endpoints
 2. User data retrieval refactoring
 3. Dependency removal (p-retry)
 4. Configuration centralization
@@ -26,7 +26,7 @@ A security and code-quality audit was performed across the server layer on Feb 2
 
 **Problem:** Several admin and internal endpoints relied on proxy-level middleware for authorization but had no in-route role checks. If the proxy was bypassed or misconfigured, the endpoints were unprotected.
 
-**Fix:** Every admin and internal endpoint now performs an explicit `hasRole(WORKOS_ROLES.SUPERADMIN)` check at the top of the handler:
+**Fix:** Every admin and internal endpoint now performs an explicit `hasRole(WORKOS_ROLES.ADMIN)` check at the top of the handler:
 
 ```typescript
 import { hasRole } from '@/lib/auth/roles.server';
@@ -38,8 +38,8 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
-  if (!isSuperAdmin) {
+  const isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
+  if (!isAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   // ... handler logic
@@ -153,7 +153,7 @@ Two configuration concerns were extracted from inline code into dedicated module
 
 | Area | Before | After |
 | ---- | ------ | ----- |
-| Admin auth | Proxy-only | Proxy + in-route superadmin check |
+| Admin auth | Proxy-only | Proxy + in-route admin check |
 | User lookup | 5+ patterns | Consolidated into 2 paths |
 | Dependencies | p-retry installed | Removed |
 | Stripe config | Inline in 2 files | Centralized in `src/config/` |

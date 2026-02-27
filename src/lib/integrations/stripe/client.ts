@@ -52,6 +52,7 @@ interface StripeSubscriptionData {
   updatedAt: number;
 }
 
+/** @deprecated Use getCurrentCommissionRate() from subscriptions.ts for dynamic rates */
 const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15');
 
 /**
@@ -336,6 +337,14 @@ export async function getOrCreateStripeCustomer(
   }
 }
 
+/**
+ * @deprecated This function uses a fixed platform fee and does not support
+ * subscription-based commission rates. Use the /api/create-payment-intent
+ * route instead, which calls getCurrentCommissionRate() for dynamic fees.
+ *
+ * Creates a Stripe Payment Intent with application fee and transfer data.
+ * Legacy function kept for backward compatibility.
+ */
 export async function createPaymentIntent({
   eventId,
   customerEmail,
@@ -390,7 +399,7 @@ export async function createPaymentIntent({
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: 'usd',
+      currency: 'eur',
       customer: customerId,
       automatic_payment_methods: {
         enabled: true,

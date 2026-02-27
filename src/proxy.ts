@@ -61,20 +61,16 @@ const PERMISSION_PROTECTED_ROUTES: Record<string, WorkOSPermission[]> = {
   '/dashboard/analytics': [WORKOS_PERMISSIONS.ANALYTICS_VIEW],
   '/api/analytics': [WORKOS_PERMISSIONS.ANALYTICS_VIEW],
 
-  // Expert approval requires experts:approve permission (Admin only)
-  '/admin/experts/approve': [WORKOS_PERMISSIONS.EXPERTS_APPROVE],
-  '/api/admin/experts/approve': [WORKOS_PERMISSIONS.EXPERTS_APPROVE],
-
   // Platform settings require settings:edit_platform permission
   '/admin/settings': [WORKOS_PERMISSIONS.SETTINGS_EDIT_PLATFORM],
 
   // User management requires users:view_all permission
   '/admin/users': [WORKOS_PERMISSIONS.USERS_VIEW_ALL],
 
-  // Partner routes require partner permissions
-  '/partner': [WORKOS_PERMISSIONS.PARTNER_VIEW_DASHBOARD],
-  '/partner/settings': [WORKOS_PERMISSIONS.PARTNER_MANAGE_SETTINGS],
-  '/partner/team': [WORKOS_PERMISSIONS.TEAM_VIEW_MEMBERS],
+  // Team routes require team permissions
+  '/team': [WORKOS_PERMISSIONS.TEAM_VIEW_DASHBOARD],
+  '/team/settings': [WORKOS_PERMISSIONS.TEAM_MANAGE_SETTINGS],
+  '/team/members': [WORKOS_PERMISSIONS.TEAM_VIEW_MEMBERS],
 };
 
 /**
@@ -175,8 +171,8 @@ function extractRBACFromSession(user: any): {
   role: WorkOSRole;
   permissions: WorkOSPermission[];
 } {
-  // Extract role from JWT claims (defaults to 'patient')
-  const role = (user?.role as WorkOSRole) || WORKOS_ROLES.PATIENT;
+  // Extract role from JWT claims (defaults to 'member')
+  const role = (user?.role as WorkOSRole) || WORKOS_ROLES.MEMBER;
 
   // Extract permissions from JWT claims (defaults to empty array)
   const permissions = (user?.permissions as WorkOSPermission[]) || [];
@@ -332,7 +328,7 @@ export default async function proxy(request: NextRequest) {
   // Extract role and permissions from JWT (zero database queries!)
   const { role: userRole, permissions: userPermissions } = session.user
     ? extractRBACFromSession(session.user)
-    : { role: WORKOS_ROLES.PATIENT, permissions: [] as WorkOSPermission[] };
+    : { role: WORKOS_ROLES.MEMBER, permissions: [] as WorkOSPermission[] };
 
   if (DEBUG) {
     console.log(`👤 Auth: ${session.user?.email || 'anonymous'}`);
@@ -354,11 +350,12 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'unauthorized' ||
     firstSegment === 'dashboard' ||
     firstSegment === 'setup' ||
+    firstSegment === 'apply' ||
     firstSegment === 'account' ||
     firstSegment === 'appointments' ||
     firstSegment === 'booking' ||
     firstSegment === 'admin' ||
-    firstSegment === 'partner';
+    firstSegment === 'team';
 
   // If auth/app route, skip i18n and use JWT-based RBAC (STEP 3 continued)
   if (isAuthOrAppRoute) {

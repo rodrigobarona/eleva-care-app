@@ -20,8 +20,11 @@ import {
 } from '@/lib/constants/scheduling';
 import { Link } from '@/lib/i18n/navigation';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
+import { OrganizationsTable, UserOrgMembershipsTable } from '@/drizzle/schema';
+import { CalendarService } from '@/lib/integrations/calendar';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
-import GoogleCalendarService from '@/server/googleCalendar';
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { eq } from 'drizzle-orm';
 import {
   addDays,
   addMinutes,
@@ -111,6 +114,17 @@ async function BookEventPageContent({
     return notFound();
   }
 
+  // Non-blocking auth check for pre-filling guest data
+  const { user: authUser } = await withAuth({ ensureSignedIn: false });
+  const authenticatedUser = authUser
+    ? {
+        workosUserId: authUser.id,
+        email: authUser.email,
+        firstName: authUser.firstName ?? undefined,
+        lastName: authUser.lastName ?? undefined,
+      }
+    : undefined;
+
   return (
     <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
       <CardContent className="p-0 pt-8">
@@ -125,6 +139,7 @@ async function BookEventPageContent({
             event={event}
             calendarUser={calendarUser}
             locale={locale}
+            authenticatedUser={authenticatedUser}
           />
         </Suspense>
       </CardContent>
@@ -142,6 +157,7 @@ async function CalendarWithAvailability({
   event,
   calendarUser: _calendarUser,
   locale,
+  authenticatedUser,
 }: {
   userId: string;
   eventId: string;
@@ -156,24 +172,13 @@ async function CalendarWithAvailability({
     imageUrl: string | null;
   };
   locale: string;
+  authenticatedUser?: {
+    workosUserId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }) {
-  const calendarService = GoogleCalendarService.getInstance();
-
-  // Verify calendar access before fetching times
-  const hasValidTokens = await calendarService.hasValidTokens(userId);
-  if (!hasValidTokens) {
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Calendar Access Required</CardTitle>
-          <CardDescription>
-            The calendar owner needs to reconnect their Google Calendar to show available times.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   // Fetch scheduling settings for the user
   let timeSlotInterval = DEFAULT_TIME_SLOT_INTERVAL;
   let bookingWindowDays = DEFAULT_BOOKING_WINDOW_DAYS;
@@ -259,11 +264,26 @@ async function CalendarWithAvailability({
     ),
   );
 
-  // Get calendar events and calculate valid times
-  const calendarEvents = await calendarService.getCalendarEventTimes(userId, {
-    start: startDate,
-    end: endDate,
+  // External calendar free/busy (additive -- returns [] if no calendar connected)
+  const membership = await db.query.UserOrgMembershipsTable.findFirst({
+    where: eq(UserOrgMembershipsTable.workosUserId, userId),
+    columns: { orgId: true },
   });
+  const org = membership?.orgId
+    ? await db.query.OrganizationsTable.findFirst({
+        where: eq(OrganizationsTable.id, membership.orgId),
+        columns: { workosOrgId: true },
+      })
+    : null;
+
+  const calendarEvents = org?.workosOrgId
+    ? await CalendarService.getAllFreeBusy(
+        userId,
+        org.workosOrgId,
+        startDate,
+        endDate,
+      )
+    : [];
 
   // Generate time slots based on the configured interval
   const timeSlots = [];
@@ -307,6 +327,7 @@ async function CalendarWithAvailability({
       beforeEventBuffer={beforeEventBuffer}
       afterEventBuffer={afterEventBuffer}
       blockedDates={blockedDates}
+      authenticatedUser={authenticatedUser}
     />
   );
 }

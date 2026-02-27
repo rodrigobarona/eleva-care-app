@@ -2,6 +2,7 @@ import { IntlProvider } from '@/app/providers';
 import { AppBreadcrumb } from '@/components/layout/sidebar/AppBreadcrumb';
 import { AppSidebar } from '@/components/layout/sidebar/AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/layout/sidebar/sidebar';
+import { getUserOrganizations } from '@/server/actions/teams';
 import { Separator } from '@/components/ui/separator';
 import { defaultLocale, locales } from '@/lib/i18n/routing';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -47,6 +48,8 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   // Require authentication - auto-redirects if not logged in
   await withAuth({ ensureSignedIn: true });
 
+  const organizations = await getUserOrganizations();
+
   // Get locale from cookie and validate against supported locales
   const cookieStore = await cookies();
   const cookieLocale = cookieStore.get('ELEVA_LOCALE')?.value;
@@ -63,7 +66,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   return (
     <IntlProvider locale={locale} messages={messages}>
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar organizations={organizations} />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 rounded-t-xl bg-white">
             <div className="flex items-center gap-2 px-4">

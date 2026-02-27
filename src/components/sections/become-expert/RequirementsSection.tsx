@@ -1,8 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
-import { BadgeCheck, Globe, Heart, MessageSquare } from 'lucide-react';
+import { BadgeCheck, Globe, Heart, MessageSquare, Shield } from 'lucide-react';
 
 interface Requirement {
-  icon: 'badge' | 'globe' | 'message' | 'heart';
+  icon: 'badge' | 'globe' | 'message' | 'heart' | 'shield';
   title: string;
   description: string;
 }
@@ -17,6 +17,7 @@ const iconMap: Record<Requirement['icon'], LucideIcon> = {
   globe: Globe,
   message: MessageSquare,
   heart: Heart,
+  shield: Shield,
 };
 
 export default function RequirementsSection({ title, requirements }: RequirementsSectionProps) {

@@ -1,22 +1,18 @@
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
-import { getServerStripe } from '@/lib/integrations/stripe';
 import { db } from '@/drizzle/db';
-import {
-  EventsTable,
-  ProfilesTable,
-  SlotReservationsTable,
-  UsersTable,
-} from '@/drizzle/schema';
+import { EventsTable, ProfilesTable, SlotReservationsTable, UsersTable } from '@/drizzle/schema';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
 } from '@/lib/integrations/betterstack/heartbeat';
 import { triggerWorkflow } from '@/lib/integrations/novu';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import { resolveGuestInfoBatch } from '@/lib/integrations/workos/guest-resolver';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
-import * as Sentry from '@sentry/nextjs';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';
-import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import Stripe from 'stripe';
@@ -180,7 +176,15 @@ async function handler(request: NextRequest) {
           ),
         );
 
-      logger.info(logger.fmt`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`);
+      logger.info(
+        logger.fmt`Found ${reservationsNeedingReminders.length} reservations for ${stage.description}`,
+      );
+
+      // Batch-resolve guest emails from WorkOS (fall back to DB guestEmail if resolution fails)
+      const guestIds = reservationsNeedingReminders
+        .map((r) => r.reservation.guestWorkosUserId)
+        .filter(Boolean);
+      const guestInfoMap = await resolveGuestInfoBatch(guestIds);
 
       let stageRemindersSent = 0;
 
@@ -188,7 +192,9 @@ async function handler(request: NextRequest) {
         const { reservation, event, expert, profile } = item;
 
         if (!event || !expert) {
-          logger.warn(logger.fmt`Skipping reservation ${reservation.id} - missing event or expert data`);
+          logger.warn(
+            logger.fmt`Skipping reservation ${reservation.id} - missing event or expert data`,
+          );
           continue;
         }
 
@@ -268,9 +274,12 @@ async function handler(request: NextRequest) {
               }
             } catch (stripeError) {
               Sentry.captureException(stripeError);
-              logger.error(logger.fmt`Failed to fetch Stripe payment intent for reservation ${reservation.id}`, {
-                error: stripeError instanceof Error ? stripeError.message : String(stripeError),
-              });
+              logger.error(
+                logger.fmt`Failed to fetch Stripe payment intent for reservation ${reservation.id}`,
+                {
+                  error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+                },
+              );
               // Continue with placeholder values
             }
           }
@@ -285,12 +294,25 @@ async function handler(request: NextRequest) {
           const voucherExpiresFormatted = format(reservation.expiresAt, 'PPP p');
           const customerFullName = `${customerFirstName} ${customerLastName}`.trim();
 
+          // Resolve guest email from WorkOS, fall back to deprecated DB column
+          const guestInfo = reservation.guestWorkosUserId
+            ? guestInfoMap.get(reservation.guestWorkosUserId)
+            : undefined;
+          const recipientEmail = guestInfo?.email || reservation.guestEmail;
+
+          if (!recipientEmail) {
+            logger.error(
+              logger.fmt`Cannot send reminder: reservation ${reservation.id} has no guest email (WorkOS or DB)`,
+            );
+            continue;
+          }
+
           // Trigger Novu workflow for payment reminder
           const workflowResult = await triggerWorkflow({
             workflowId: 'multibanco-payment-reminder',
             to: {
-              subscriberId: reservation.guestEmail,
-              email: reservation.guestEmail,
+              subscriberId: recipientEmail,
+              email: recipientEmail,
               firstName: customerFirstName,
               lastName: customerLastName,
               data: {
@@ -318,7 +340,7 @@ async function handler(request: NextRequest) {
 
           if (workflowResult) {
             logger.info(
-              logger.fmt`${stage.description} sent to ${reservation.guestEmail} for reservation ${reservation.id}`,
+              logger.fmt`${stage.description} sent to ${recipientEmail} for reservation ${reservation.id}`,
             );
 
             // Mark reminder as sent to prevent duplicates
@@ -333,7 +355,7 @@ async function handler(request: NextRequest) {
             stageRemindersSent++;
           } else {
             logger.error(
-              logger.fmt`Failed to trigger workflow for ${stage.description} to ${reservation.guestEmail}`,
+              logger.fmt`Failed to trigger workflow for ${stage.description} to ${recipientEmail}`,
             );
           }
         } catch (reminderError) {

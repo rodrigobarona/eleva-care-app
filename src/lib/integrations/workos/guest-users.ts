@@ -93,7 +93,7 @@ export async function createOrGetGuestUser(params: {
         workosOrgId: workosOrg.id,
         slug: orgSlug,
         name: `${name.trim()}'s Account`,
-        type: 'patient_personal',
+        type: 'member_personal',
       })
       .returning();
 

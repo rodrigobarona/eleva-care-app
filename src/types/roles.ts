@@ -4,54 +4,57 @@
  * Defines application roles and organization roles for the hybrid role system.
  *
  * Architecture:
- * - ApplicationRole: Stored in database (users.role column)
- * - OrganizationRole: Managed by WorkOS (org memberships)
+ * - ApplicationRole: Stored in database (users.role column), controls app-level permissions
+ * - OrganizationRole: Managed by WorkOS (org memberships), controls org-level permissions
+ *
+ * Lecturer capabilities are NOT a role -- they are granted via Stripe addon
+ * subscriptions and delivered as entitlements in the JWT.
+ *
+ * @see _docs/02-core-systems/RBAC-NAMING-DECISIONS.md
+ * @see _docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md
  */
 
 /**
- * Application-specific roles
+ * Application-specific roles stored in the database (users.role column).
  *
- * These roles are stored in the database and control application-level permissions.
- * They define what a user can do across the entire application.
+ * - `member`: Base role for all registered users (free)
+ * - `expert_community`: Standard expert -- subscription-backed
+ * - `expert_top`: Premium expert -- subscription-backed
+ * - `admin`: Platform administrator -- full system access (WorkOS standard naming)
  */
 export type ApplicationRole =
-  | 'user' // Regular user/patient - can book appointments
-  | 'expert_top' // Top-tier expert - full expert features + priority listing
-  | 'expert_community' // Community expert - standard expert features
-  | 'expert_lecturer' // Lecturer - can create and manage courses (future)
-  | 'admin' // Application administrator - platform management
-  | 'superadmin'; // Super administrator - full system access
+  | 'member' // Base user -- can book appointments and access member features
+  | 'expert_top' // Top-tier expert -- full expert features + priority listing
+  | 'expert_community' // Community expert -- standard expert features
+  | 'admin'; // Platform administrator -- full system access (WorkOS standard naming)
 
 /**
- * WorkOS organization membership roles
+ * WorkOS organization membership roles.
  *
  * These roles are managed by WorkOS and control organization-level permissions.
- * In our org-per-user model, most users will be 'owner' of their personal org.
+ * In the org-per-user model, most users are 'owner' of their personal org.
  */
 export type OrganizationRole =
-  | 'owner' // Organization owner - full control
-  | 'admin' // Organization admin - can manage members
-  | 'member' // Regular member - basic access
-  | 'billing_admin'; // Billing admin - can manage billing only
+  | 'owner' // Organization owner -- full control
+  | 'admin' // Organization admin -- can manage members
+  | 'member' // Regular member -- basic access
+  | 'billing_admin'; // Billing admin -- can manage billing only
 
 /**
- * Combined role type for functions that accept either
+ * Combined role type for functions that accept either role system
  */
 export type Role = ApplicationRole | OrganizationRole;
 
 /**
- * Role hierarchy for permission checking
- *
- * Higher values have more permissions.
+ * Role hierarchy for permission checking.
+ * Higher values indicate more permissions.
  * Used for "at least" permission checks.
  */
 export const APPLICATION_ROLE_HIERARCHY: Record<ApplicationRole, number> = {
-  user: 0,
+  member: 0,
   expert_community: 10,
-  expert_lecturer: 15,
   expert_top: 20,
-  admin: 90,
-  superadmin: 100,
+  admin: 100,
 };
 
 /**
@@ -65,16 +68,14 @@ export const ORGANIZATION_ROLE_HIERARCHY: Record<OrganizationRole, number> = {
 };
 
 /**
- * Role display names for UI
- * Separated by role type to avoid duplicate key issues
+ * Role display names for UI.
+ * Separated by role type to avoid duplicate key issues.
  */
 export const APPLICATION_ROLE_DISPLAY_NAMES: Record<ApplicationRole, string> = {
-  user: 'User',
+  member: 'Member',
   expert_top: 'Top Expert',
   expert_community: 'Community Expert',
-  expert_lecturer: 'Lecturer',
-  admin: 'Application Administrator',
-  superadmin: 'Super Administrator',
+  admin: 'Admin',
 };
 
 export const ORGANIZATION_ROLE_DISPLAY_NAMES: Record<OrganizationRole, string> = {
@@ -85,7 +86,7 @@ export const ORGANIZATION_ROLE_DISPLAY_NAMES: Record<OrganizationRole, string> =
 };
 
 /**
- * Get display name for any role
+ * Get display name for any role slug
  */
 export function getRoleDisplayName(role: string): string {
   if (role in APPLICATION_ROLE_DISPLAY_NAMES) {
@@ -98,16 +99,14 @@ export function getRoleDisplayName(role: string): string {
 }
 
 /**
- * Role descriptions for UI
- * Separated by role type to avoid duplicate key issues
+ * Role descriptions for UI.
+ * Separated by role type to avoid duplicate key issues.
  */
 export const APPLICATION_ROLE_DESCRIPTIONS: Record<ApplicationRole, string> = {
-  user: 'Can book appointments and access patient features',
+  member: 'Can book appointments and access member features',
   expert_top: 'Top-tier expert with full features and priority listing',
   expert_community: 'Community expert with standard expert features',
-  expert_lecturer: 'Can create and manage courses and lectures',
-  admin: 'Can manage platform settings and users',
-  superadmin: 'Full system access with all permissions',
+  admin: 'Full system access with all permissions',
 };
 
 export const ORGANIZATION_ROLE_DESCRIPTIONS: Record<OrganizationRole, string> = {
@@ -118,7 +117,7 @@ export const ORGANIZATION_ROLE_DESCRIPTIONS: Record<OrganizationRole, string> = 
 };
 
 /**
- * Get description for any role
+ * Get description for any role slug
  */
 export function getRoleDescription(role: string): string {
   if (role in APPLICATION_ROLE_DESCRIPTIONS) {
@@ -131,7 +130,7 @@ export function getRoleDescription(role: string): string {
 }
 
 /**
- * Check if a role is an expert role
+ * Check if a role is an expert role (starts with `expert_`)
  */
 export function isExpertRole(role: string): boolean {
   return role.startsWith('expert_');
@@ -141,18 +140,18 @@ export function isExpertRole(role: string): boolean {
  * Check if a role is an admin role
  */
 export function isAdminRole(role: string): boolean {
-  return role === 'admin' || role === 'superadmin';
+  return role === 'admin';
 }
 
 /**
- * Get all expert roles
+ * Get all expert application roles
  */
 export function getExpertRoles(): ApplicationRole[] {
-  return ['expert_top', 'expert_community', 'expert_lecturer'];
+  return ['expert_top', 'expert_community'];
 }
 
 /**
- * Get role hierarchy level
+ * Get role hierarchy level (higher = more permissions)
  */
 export function getRoleLevel(role: string): number {
   if (role in APPLICATION_ROLE_HIERARCHY) {

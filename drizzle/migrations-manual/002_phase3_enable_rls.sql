@@ -66,7 +66,7 @@ CREATE POLICY "Users can delete own expert setup"
 --     EXISTS (
 --       SELECT 1 FROM users 
 --       WHERE users.workos_user_id = app.current_user_id() 
---       AND users.role IN ('admin', 'superadmin')
+--       AND users.role = 'admin'
 --     )
 --   );
 

@@ -287,7 +287,7 @@
 
 #### Role 4: Platform Admin (Priority 100)
 
-- [ ] Created role with slug: `superadmin`
+- [ ] Created role with slug: `admin`
 - [ ] Set priority: `100`
 - [ ] Added description: "Platform-level administrator with full system access. For Eleva Care team only"
 - [ ] Assigned ALL 137 permissions

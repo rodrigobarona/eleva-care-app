@@ -111,7 +111,7 @@ export async function checkAnnualEligibility(workosUserId: string): Promise<Elig
 
     // Determine tier level from role
     const tierLevel =
-      user.role === 'expert_top' || user.role === 'expert_lecturer' ? 'top' : 'community';
+      user.role === 'expert_top' ? 'top' : 'community';
 
     // Get eligibility criteria for tier
     const criteria =

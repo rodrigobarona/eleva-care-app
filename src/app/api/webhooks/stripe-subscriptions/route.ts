@@ -26,7 +26,7 @@ import {
   UsersTable,
 } from '@/drizzle/schema';
 import { getServerStripe } from '@/lib/integrations/stripe';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -145,6 +145,24 @@ export async function POST(request: NextRequest) {
  * Handle successful checkout session completion
  */
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const subscriptionType = session.metadata?.type;
+
+  if (subscriptionType === 'team_subscription') {
+    // Team subscription checkout
+    const teamOrgId = session.metadata?.teamOrgId;
+    const tier = session.metadata?.tier;
+
+    if (!teamOrgId || !tier) {
+      logger.error('Missing metadata in team checkout session', { sessionId: session.id });
+      return;
+    }
+
+    logger.info(`Team checkout completed for org ${teamOrgId}, tier: ${tier}`);
+    // Subscription will be processed by subscription.created event
+    return;
+  }
+
+  // Expert subscription checkout (existing logic)
   const workosUserId = session.metadata?.workosUserId;
   const tierLevel = session.metadata?.tierLevel as 'community' | 'top';
   const priceId = session.metadata?.priceId;
@@ -156,7 +174,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   logger.info(`Checkout completed for user ${workosUserId}, tier: ${tierLevel}`);
 
-  // Get subscription ID from session
   const subscriptionId =
     typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
 
@@ -165,8 +182,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Subscription will be created/updated by the subscription.created event
-  // Just log the checkout completion
   logger.info(`Subscription ${subscriptionId} will be processed by subscription.created event`);
 }
 
@@ -177,9 +192,146 @@ async function handleSubscriptionUpdate(
   subscription: Stripe.Subscription,
   eventType: 'customer.subscription.created' | 'customer.subscription.updated',
 ) {
-  const workosUserId = subscription.metadata.workosUserId;
-  const tierLevel = (subscription.metadata.tierLevel as 'community' | 'top') || 'community';
-  const billingInterval = (subscription.metadata.billingInterval as 'month' | 'year') || 'year';
+  const subscriptionType = subscription.metadata?.type;
+
+  if (subscriptionType === 'team_subscription') {
+    await handleTeamSubscriptionUpdate(subscription, eventType);
+  } else {
+    await handleExpertSubscriptionUpdate(subscription, eventType);
+  }
+}
+
+/**
+ * Handle team subscription created or updated
+ */
+async function handleTeamSubscriptionUpdate(
+  subscription: Stripe.Subscription,
+  eventType: 'customer.subscription.created' | 'customer.subscription.updated',
+) {
+  const teamOrgId = subscription.metadata?.teamOrgId;
+  const tier = subscription.metadata?.tier as 'starter' | 'professional' | 'enterprise' | undefined;
+
+  if (!teamOrgId || !tier) {
+    logger.error('Missing team metadata in subscription', { subscriptionId: subscription.id });
+    return;
+  }
+
+  // Look up org directly by ID
+  const org = await db.query.OrganizationsTable.findFirst({
+    where: eq(OrganizationsTable.id, teamOrgId),
+    columns: { id: true },
+  });
+
+  if (!org) {
+    logger.error('Team organization not found', { teamOrgId });
+    return;
+  }
+
+  // Find the team owner for billing admin
+  const ownerMembership = await db.query.UserOrgMembershipsTable.findFirst({
+    where: and(
+      eq(UserOrgMembershipsTable.orgId, teamOrgId),
+      eq(UserOrgMembershipsTable.role, 'owner'),
+    ),
+    columns: { workosUserId: true },
+  });
+
+  const billingAdminUserId =
+    ownerMembership?.workosUserId || subscription.metadata?.workosUserId || '';
+
+  // Get team pricing config
+  const teamPricing =
+    tier in SUBSCRIPTION_PRICING.team_subscription
+      ? SUBSCRIPTION_PRICING.team_subscription[
+          tier as keyof typeof SUBSCRIPTION_PRICING.team_subscription
+        ]
+      : null;
+
+  const priceItem = subscription.items.data[0];
+  const priceId = typeof priceItem.price === 'string' ? priceItem.price : priceItem.price.id;
+  const billingInterval =
+    priceItem.price && typeof priceItem.price !== 'string'
+      ? (priceItem.price.recurring?.interval as 'month' | 'year' || 'month')
+      : 'month';
+
+  const subscriptionData = {
+    orgId: org.id,
+    billingAdminUserId,
+    planType: 'team' as const,
+    tierLevel: tier,
+    billingInterval,
+    commissionRate: 0, // Teams don't have commission rates
+    stripeSubscriptionId: subscription.id,
+    stripeCustomerId:
+      typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id,
+    stripePriceId: priceId,
+    monthlyFee:
+      teamPricing && 'monthlyFee' in teamPricing ? teamPricing.monthlyFee : null,
+    annualFee: teamPricing && 'annualFee' in teamPricing ? teamPricing.annualFee : null,
+    subscriptionStartDate: new Date(subscription.current_period_start * 1000),
+    subscriptionEndDate: new Date(subscription.current_period_end * 1000),
+    subscriptionStatus: subscription.status as 'active' | 'canceled' | 'past_due' | 'unpaid',
+    autoRenew: !subscription.cancel_at_period_end,
+    updatedAt: new Date(),
+  };
+
+  const existingPlan = await db.query.SubscriptionPlansTable.findFirst({
+    where: eq(SubscriptionPlansTable.orgId, org.id),
+  });
+
+  if (existingPlan) {
+    await db
+      .update(SubscriptionPlansTable)
+      .set(subscriptionData)
+      .where(eq(SubscriptionPlansTable.id, existingPlan.id));
+
+    logger.info(`Updated team subscription plan: ${existingPlan.id}`, { tier, teamOrgId });
+
+    await db.insert(SubscriptionEventsTable).values({
+      workosUserId: billingAdminUserId,
+      orgId: org.id,
+      subscriptionPlanId: existingPlan.id,
+      eventType: eventType === 'customer.subscription.created' ? 'plan_created' : 'plan_upgraded',
+      previousPlanType: existingPlan.planType as 'commission' | 'monthly' | 'annual' | 'team',
+      previousTierLevel: existingPlan.tierLevel,
+      newPlanType: 'team',
+      newTierLevel: tier,
+      stripeEventId: subscription.id,
+      stripeSubscriptionId: subscription.id,
+      reason: 'stripe_webhook',
+    });
+  } else {
+    const [newPlan] = await db
+      .insert(SubscriptionPlansTable)
+      .values(subscriptionData)
+      .returning();
+
+    logger.info(`Created team subscription plan: ${newPlan.id}`, { tier, teamOrgId });
+
+    await db.insert(SubscriptionEventsTable).values({
+      workosUserId: billingAdminUserId,
+      orgId: org.id,
+      subscriptionPlanId: newPlan.id,
+      eventType: 'subscription_started',
+      newPlanType: 'team',
+      newTierLevel: tier,
+      stripeEventId: subscription.id,
+      stripeSubscriptionId: subscription.id,
+      reason: 'stripe_webhook',
+    });
+  }
+}
+
+/**
+ * Handle expert subscription created or updated
+ */
+async function handleExpertSubscriptionUpdate(
+  subscription: Stripe.Subscription,
+  eventType: 'customer.subscription.created' | 'customer.subscription.updated',
+) {
+  const workosUserId = subscription.metadata?.workosUserId;
+  const tierLevel = (subscription.metadata?.tierLevel as 'community' | 'top') || 'community';
+  const billingInterval = (subscription.metadata?.billingInterval as 'month' | 'year') || 'year';
 
   if (!workosUserId) {
     logger.error('Missing workosUserId in subscription metadata', { subscriptionId: subscription.id });
@@ -215,12 +367,18 @@ async function handleSubscriptionUpdate(
     : null;
 
   // Determine pricing details
-  // Determine plan type from billing interval
-  const planType: 'monthly' | 'annual' = billingInterval === 'month' ? 'monthly' : 'annual';
+  // Check if this is an invite subscription (€0 commission-only plan)
+  const isInviteSubscription = subscription.metadata?.type === 'expert_invite';
+  const planType: 'commission' | 'monthly' | 'annual' = isInviteSubscription
+    ? 'commission'
+    : (billingInterval === 'month' ? 'monthly' : 'annual');
 
-  // Get pricing config based on billing interval and tier
-  const pricingConfig =
-    billingInterval === 'month'
+  // Get pricing config: commission_based for invite (€0), else monthly/annual
+  const pricingConfig = isInviteSubscription
+    ? tierLevel === 'top'
+      ? SUBSCRIPTION_PRICING.commission_based.top_expert
+      : SUBSCRIPTION_PRICING.commission_based.community_expert
+    : billingInterval === 'month'
       ? tierLevel === 'top'
         ? SUBSCRIPTION_PRICING.monthly_subscription.top_expert
         : SUBSCRIPTION_PRICING.monthly_subscription.community_expert
@@ -283,7 +441,7 @@ async function handleSubscriptionUpdate(
       orgId: org.id,
       subscriptionPlanId: existingPlan.id,
       eventType: eventType === 'customer.subscription.created' ? 'plan_created' : 'plan_upgraded',
-      previousPlanType: existingPlan.planType as 'commission' | 'monthly' | 'annual',
+      previousPlanType: existingPlan.planType as 'commission' | 'monthly' | 'annual' | 'team',
       previousTierLevel: existingPlan.tierLevel,
       newPlanType: subscriptionData.planType,
       newTierLevel: tierLevel,
@@ -309,7 +467,7 @@ async function handleSubscriptionUpdate(
       orgId: org.id,
       subscriptionPlanId: newPlan.id,
       eventType: 'subscription_started',
-      newPlanType: 'annual',
+      newPlanType: planType,
       newTierLevel: tierLevel,
       stripeEventId: subscription.id,
       stripeSubscriptionId: subscription.id,
@@ -322,21 +480,25 @@ async function handleSubscriptionUpdate(
  * Handle subscription deleted (canceled and expired)
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const workosUserId = subscription.metadata.workosUserId;
-
-  if (!workosUserId) {
-    logger.error('Missing workosUserId in subscription metadata', { subscriptionId: subscription.id });
-    return;
-  }
-
-  // Find subscription plan
+  // Find the plan by subscription ID first (works for both expert and team subscriptions)
   const plan = await db.query.SubscriptionPlansTable.findFirst({
     where: eq(SubscriptionPlansTable.stripeSubscriptionId, subscription.id),
   });
 
   if (!plan) {
-    logger.error('Subscription plan not found for Stripe subscription', { subscriptionId: subscription.id });
+    logger.error('No subscription plan found for deletion', { subscriptionId: subscription.id });
     return;
+  }
+
+  // Use metadata workosUserId or fall back to billingAdminUserId from the plan
+  const workosUserId = subscription.metadata?.workosUserId || plan.billingAdminUserId;
+
+  if (plan.planType === 'team') {
+    logger.info('Team subscription deleted', {
+      planId: plan.id,
+      orgId: plan.orgId,
+      tier: plan.tierLevel,
+    });
   }
 
   // Update subscription status to canceled
@@ -363,9 +525,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   });
 
   logger.info(`Subscription canceled: ${plan.id}`);
-
-  // TODO: Revert user to commission-based plan
-  // This could be handled by the application logic when checking subscription status
 }
 
 /**
@@ -459,7 +618,4 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   });
 
   logger.info(`Payment failed for subscription: ${plan.id}`);
-
-  // TODO: Send notification to user about failed payment
-  // TODO: Implement dunning management (retry logic, grace period)
 }

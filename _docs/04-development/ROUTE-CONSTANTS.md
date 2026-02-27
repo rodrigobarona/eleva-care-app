@@ -21,7 +21,7 @@ Uses glob syntax for path matching:
 - `/api/webhooks/stripe(.*)` → matches all Stripe webhook routes
 
 ```typescript
-// Admin routes - require SUPERADMIN role
+// Admin routes - require ADMIN role
 export const ADMIN_ROUTES = [
   '/admin(.*)',
   '/api/admin(.*)',
@@ -167,7 +167,7 @@ export const WORKOS_ROLES = {
   PATIENT: 'patient',
   EXPERT_COMMUNITY: 'expert_community',
   EXPERT_TOP: 'expert_top',
-  SUPERADMIN: 'superadmin',
+  ADMIN: 'admin',
 } as const;
 
 export type WorkOSRole = typeof WORKOS_ROLES[keyof typeof WORKOS_ROLES];
@@ -177,7 +177,7 @@ export type WorkOSRole = typeof WORKOS_ROLES[keyof typeof WORKOS_ROLES];
 
 ```typescript
 // All admin roles (for authorization checks)
-export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
+export const ADMIN_ROLES = [WORKOS_ROLES.ADMIN] as const;
 
 // All expert roles
 export const EXPERT_ROLES = [
@@ -193,7 +193,7 @@ export const WORKOS_ROLE_HIERARCHY: Record<WorkOSRole, number> = {
   [WORKOS_ROLES.PATIENT]: 1,
   [WORKOS_ROLES.EXPERT_COMMUNITY]: 2,
   [WORKOS_ROLES.EXPERT_TOP]: 3,
-  [WORKOS_ROLES.SUPERADMIN]: 4,
+  [WORKOS_ROLES.ADMIN]: 4,
 };
 ```
 
@@ -224,7 +224,7 @@ export const WORKOS_PERMISSIONS = {
 import { WORKOS_ROLES, ADMIN_ROLES, type WorkOSRole } from '@/types/workos-rbac';
 
 // Check if user is admin
-if (userRole === WORKOS_ROLES.SUPERADMIN) {
+if (userRole === WORKOS_ROLES.ADMIN) {
   // Admin access
 }
 
@@ -277,8 +277,8 @@ The old role system (`ROLE_USER`, `ROLE_ADMIN`, etc.) has been replaced with Wor
 | `ROLE_USER` | `WORKOS_ROLES.PATIENT` |
 | `ROLE_COMMUNITY_EXPERT` | `WORKOS_ROLES.EXPERT_COMMUNITY` |
 | `ROLE_TOP_EXPERT` | `WORKOS_ROLES.EXPERT_TOP` |
-| `ROLE_ADMIN` | `WORKOS_ROLES.SUPERADMIN` |
-| `ROLE_SUPERADMIN` | `WORKOS_ROLES.SUPERADMIN` |
+| `ROLE_ADMIN` | `WORKOS_ROLES.ADMIN` |
+| `ROLE_SUPERADMIN` | `WORKOS_ROLES.ADMIN` |
 
-**Note:** The old `ROLE_ADMIN` and `ROLE_SUPERADMIN` are now combined into `SUPERADMIN`.
+**Note:** The old `ROLE_ADMIN` and `ROLE_SUPERADMIN` are now combined into `ADMIN`.
 

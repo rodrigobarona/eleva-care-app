@@ -82,20 +82,17 @@ vi.mock('@/schema/meetings', () => ({
   },
 }));
 
-vi.mock('@/server/googleCalendar', () => ({
-  default: {
-    getInstance: () => ({
-      getCalendarEventTimes: () =>
-        Promise.resolve([
-          {
-            start: new Date('2024-02-18T09:00:00Z'),
-            end: new Date('2024-02-18T10:00:00Z'),
-          },
-        ]),
-      createCalendarEvent: mocks.createCalendarEvent,
-    }),
+vi.mock('@/lib/integrations/calendar', () => ({
+  CalendarService: {
+    getAllFreeBusy: () =>
+      Promise.resolve([
+        {
+          start: new Date('2024-02-18T09:00:00Z'),
+          end: new Date('2024-02-18T10:00:00Z'),
+        },
+      ]),
+    createEvent: mocks.createCalendarEvent,
   },
-  createCalendarEvent: mocks.createCalendarEvent,
 }));
 
 vi.mock('@/drizzle/db', () => ({

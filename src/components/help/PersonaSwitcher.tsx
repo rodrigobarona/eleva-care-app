@@ -25,7 +25,7 @@ const portals = [
   },
   {
     id: 'workspace',
-    name: 'Workspace Portal',
+    name: 'Team Portal',
     description: 'Team management and B2B features',
     basePath: '/help/workspace',
     icon: '🏢',
@@ -46,7 +46,7 @@ function getPortalUrl(basePath: string, locale: string): string {
  * PersonaSwitcher Component
  *
  * Allows users to switch between different help center portals
- * (Patient, Expert, Workspace).
+ * (Patient, Expert, Team).
  *
  * Uses next-intl's useLocale() hook to get the current locale from context.
  * URLs follow as-needed pattern: no prefix for English, prefix for others.

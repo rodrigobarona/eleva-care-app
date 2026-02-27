@@ -32,6 +32,7 @@ import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import Stripe from 'stripe';
+import { recordCommission, markCommissionRefunded, markCommissionDisputed } from '@/server/actions/commissions';
 
 const { logger } = Sentry;
 
@@ -824,19 +825,18 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 });
 
                 if (event) {
-                  // Dynamic import to avoid circular dependency with calendar service
-                  // The calendar service depends on meeting types which depend on payment types
-                  const { createCalendarEvent } = await import('@/server/googleCalendar');
+                  const { CalendarService } = await import('@/lib/integrations/calendar');
+                  const { DestinationCalendarsTable, OrganizationsTable, UserOrgMembershipsTable } =
+                    await import('@/drizzle/schema');
+                  const { eq: eqOp } = await import('drizzle-orm');
 
-                  logger.info('Calling createCalendarEvent for deferred booking:', {
+                  logger.info('Creating calendar event for deferred booking', {
                     meetingId: meeting.id,
                     workosUserId: meeting.workosUserId,
                     guestEmail: meeting.guestEmail,
-                    timezone: meeting.timezone,
                   });
 
-                  // Timeout helper to prevent calendar creation from hanging
-                  const CALENDAR_CREATION_TIMEOUT_MS = 25000; // 25 seconds
+                  const CALENDAR_CREATION_TIMEOUT_MS = 25000;
                   let timerId: ReturnType<typeof setTimeout> | undefined;
                   const timeoutPromise = new Promise<never>((_, reject) => {
                     timerId = setTimeout(() => {
@@ -845,23 +845,54 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   });
 
                   try {
-                    // Race between calendar creation and timeout
-                    const calendarEvent = await Promise.race([
-                      createCalendarEvent({
-                        workosUserId: meeting.workosUserId,
-                        guestName: meeting.guestName,
-                        guestEmail: meeting.guestEmail,
-                        startTime: meeting.startTime,
-                        guestNotes: meeting.guestNotes || undefined,
-                        durationInMinutes: event.durationInMinutes,
-                        eventName: event.name,
-                        timezone: meeting.timezone,
-                        locale: extractLocaleFromPaymentIntent(paymentIntent),
-                      }),
-                      timeoutPromise,
-                    ]);
+                    // Resolve destination calendar and org for this expert
+                    const destCal = await db.query.DestinationCalendarsTable.findFirst({
+                      where: eqOp(DestinationCalendarsTable.userId, meeting.workosUserId),
+                    });
 
-                    const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+                    let meetingUrl: string | null = null;
+
+                    if (destCal) {
+                      const mem = await db.query.UserOrgMembershipsTable.findFirst({
+                        where: eqOp(UserOrgMembershipsTable.workosUserId, meeting.workosUserId),
+                        columns: { orgId: true },
+                      });
+                      const orgRow = mem?.orgId
+                        ? await db.query.OrganizationsTable.findFirst({
+                            where: eqOp(OrganizationsTable.id, mem.orgId),
+                            columns: { workosOrgId: true },
+                          })
+                        : null;
+
+                      if (orgRow?.workosOrgId) {
+                        const calendarResult = await Promise.race([
+                          CalendarService.createEvent(
+                            destCal.provider as 'google-calendar' | 'microsoft-outlook-calendar',
+                            meeting.workosUserId,
+                            orgRow.workosOrgId,
+                            destCal.externalId,
+                            {
+                              title: event.name,
+                              startTime: meeting.startTime,
+                              endTime: meeting.endTime,
+                              attendees: [
+                                { email: meeting.guestEmail, name: meeting.guestName },
+                              ],
+                              description: meeting.guestNotes ?? undefined,
+                              timeZone: meeting.timezone,
+                              createMeetLink: true,
+                            },
+                          ),
+                          timeoutPromise,
+                        ]);
+
+                        meetingUrl = calendarResult?.meetLink ?? null;
+                      }
+                    } else {
+                      logger.info('No destination calendar configured -- skipping event creation', {
+                        meetingId: meeting.id,
+                      });
+                    }
 
                     // Update meeting with the new URL
                     if (meetingUrl) {
@@ -1021,8 +1052,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 sessionStartTime: meeting.startTime,
                 scheduledTransferTime: scheduledTime, // 🆕 Uses recalculated time if available
                 status: PAYMENT_TRANSFER_STATUS_READY,
-                created: new Date(),
-                updated: new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date(),
               });
               logger.info(`Created new transfer record for payment ${paymentIntent.id}`);
             } else {
@@ -1038,7 +1069,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                   .update(PaymentTransfersTable)
                   .set({
                     status: PAYMENT_TRANSFER_STATUS_READY,
-                    updated: new Date(),
+                    updatedAt: new Date(),
                   })
                   .where(eq(PaymentTransfersTable.id, transfer.id));
               },
@@ -1197,6 +1228,42 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               );
             }
           }
+
+          // 💰 COMMISSION TRACKING: Record commission for this payment
+          // Non-blocking: commission recording failure must not break the webhook
+          if (meeting) {
+            try {
+              const commissionResult = await recordCommission(
+                meeting.id,
+                paymentIntent.amount,
+                paymentIntent.currency,
+                paymentIntent.id,
+              );
+
+              if (commissionResult) {
+                logger.info('Commission recorded for payment', {
+                  meetingId: meeting.id,
+                  paymentIntentId: paymentIntent.id,
+                  commissionAmount: commissionResult.commissionAmount,
+                  commissionRate: commissionResult.commissionRate,
+                  netAmount: commissionResult.netAmount,
+                });
+              } else {
+                logger.warn('Commission recording returned null', {
+                  meetingId: meeting.id,
+                  paymentIntentId: paymentIntent.id,
+                  note: 'Meeting may be missing orgId or commission already recorded',
+                });
+              }
+            } catch (commissionError) {
+              logger.error('Failed to record commission (non-blocking)', {
+                meetingId: meeting.id,
+                paymentIntentId: paymentIntent.id,
+                error: commissionError instanceof Error ? commissionError.message : String(commissionError),
+              });
+              // Do NOT fail the webhook for commission recording errors
+            }
+          }
         }
 
         span.setAttribute('stripe.payment.success', true);
@@ -1307,7 +1374,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
                 .set({
                   status: PAYMENT_TRANSFER_STATUS_FAILED,
                   stripeErrorMessage: lastPaymentError, // Store the failure reason
-                  updated: new Date(),
+                  updatedAt: new Date(),
                 })
                 .where(eq(PaymentTransfersTable.id, transfer.id));
             },
@@ -1483,7 +1550,7 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
           .update(PaymentTransfersTable)
           .set({
             status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransfersTable schema/enum if any
-            updated: new Date(),
+            updatedAt: new Date(),
           })
           .where(eq(PaymentTransfersTable.id, transfer.id));
 
@@ -1495,6 +1562,30 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
 
         // Notify the expert about the refund
         await notifyExpertOfPaymentRefund(transfer);
+
+        // 💰 COMMISSION TRACKING: Mark commission as refunded
+        if (updatedMeeting.length > 0) {
+          try {
+            const refundResult = await markCommissionRefunded(updatedMeeting[0].id);
+            if (refundResult) {
+              Sentry.logger.info('Commission marked as refunded', {
+                meetingId: updatedMeeting[0].id,
+                paymentIntentId,
+              });
+            } else {
+              Sentry.logger.warn('No commission found to refund', {
+                meetingId: updatedMeeting[0].id,
+                paymentIntentId,
+                note: 'Commission may not have been recorded yet',
+              });
+            }
+          } catch (commissionError) {
+            Sentry.logger.error('Failed to mark commission as refunded (non-blocking)', {
+              paymentIntentId,
+              error: commissionError instanceof Error ? commissionError.message : String(commissionError),
+            });
+          }
+        }
 
         span.setAttribute('stripe.refund.handled', true);
       } catch (error) {
@@ -1560,7 +1651,7 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
           .update(PaymentTransfersTable)
           .set({
             status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransfersTable schema/enum
-            updated: new Date(),
+            updatedAt: new Date(),
           })
           .where(eq(PaymentTransfersTable.id, transfer.id));
 
@@ -1572,6 +1663,28 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
 
         // Create notification for the expert
         await notifyExpertOfPaymentDispute(transfer);
+
+        // 💰 COMMISSION TRACKING: Mark commission as disputed
+        try {
+          const disputeResult = await markCommissionDisputed(paymentIntentId);
+          if (disputeResult) {
+            Sentry.logger.info('Commission marked as disputed', {
+              paymentIntentId,
+              disputeId: dispute.id,
+            });
+          } else {
+            Sentry.logger.warn('No commission found for disputed payment', {
+              paymentIntentId,
+              disputeId: dispute.id,
+            });
+          }
+        } catch (commissionError) {
+          Sentry.logger.error('Failed to mark commission as disputed (non-blocking)', {
+            paymentIntentId,
+            disputeId: dispute.id,
+            error: commissionError instanceof Error ? commissionError.message : String(commissionError),
+          });
+        }
 
         span.setAttribute('stripe.dispute.handled', true);
       } catch (error) {
@@ -1652,10 +1765,20 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const endDateTime = new Date(startDateTime);
             endDateTime.setMinutes(endDateTime.getMinutes() + event[0].durationInMinutes);
 
-            // Create slot reservation
+            // Resolve guest WorkOS user for reservation
+            const { createOrGetGuestUser } = await import('@/lib/integrations/workos/guest-users');
+            const guestResult = customerEmail
+              ? await createOrGetGuestUser({
+                  email: customerEmail,
+                  name: paymentIntent.metadata.guestName || 'Guest',
+                  metadata: { registrationSource: 'multibanco_reservation' },
+                })
+              : null;
+
             await db.insert(SlotReservationsTable).values({
               eventId,
               workosUserId,
+              guestWorkosUserId: guestResult?.userId ?? '',
               guestEmail: customerEmail || '',
               startTime: startDateTime,
               endTime: endDateTime,

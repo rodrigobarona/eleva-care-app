@@ -27,12 +27,12 @@ const MAX_RETRY_COUNT = 3;
 type SuccessResult = {
   success: true;
   transferId: string;
-  paymentTransferId: number;
+  paymentTransferId: string;
 };
 
 type ErrorResult = {
   success: false;
-  paymentTransferId: number;
+  paymentTransferId: string;
   error: string;
   retryCount: number;
   status: string;
@@ -117,7 +117,7 @@ async function handler(request: Request) {
               destination: transfer.expertConnectAccountId,
               source_transaction: chargeId, // ✅ Use charge ID, not payment intent ID
               metadata: {
-                paymentTransferId: transfer.id.toString(),
+                paymentTransferId: transfer.id,
                 eventId: transfer.eventId,
                 expertWorkosUserId: transfer.expertWorkosUserId,
                 sessionStartTime: transfer.sessionStartTime.toISOString(),
@@ -134,7 +134,7 @@ async function handler(request: Request) {
             .set({
               status: 'COMPLETED',
               transferId: stripeTransfer.id,
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 
@@ -164,7 +164,7 @@ async function handler(request: Request) {
               stripeErrorCode: stripeError.code || 'unknown_error',
               stripeErrorMessage: stripeError.message || 'Unknown error occurred',
               retryCount: newRetryCount,
-              updated: new Date(),
+              updatedAt: new Date(),
             })
             .where(eq(PaymentTransfersTable.id, transfer.id));
 

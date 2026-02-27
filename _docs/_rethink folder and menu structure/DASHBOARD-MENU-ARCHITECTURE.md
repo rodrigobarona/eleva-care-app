@@ -11,16 +11,16 @@
 This document defines a scalable, role-aware dashboard navigation structure that supports:
 
 - ✅ Solo practitioners (Phase 1 - Current)
-- 🔮 Multi-expert partners (Phase 2 - Future)
+- 🔮 Multi-expert teams (Phase 2 - Future)
 - 🔮 eLearning/LMS platform (Phase 3 - Future)
-- 🔮 B2B partner management (Phase 3 - Future)
+- 🔮 B2B team management (Phase 3 - Future)
 
 **Design Principles:**
 
 1. **Progressive Disclosure**: Show relevant features based on role and plan
 2. **Consistent Patterns**: Similar features grouped logically
 3. **Scalable Structure**: Easy to add new features without reorganization
-4. **Role-Aware**: Different menus for Experts, Admins, Patients, Partner Managers
+4. **Role-Aware**: Different menus for Experts, Admins, Members, Team Managers
 5. **Industry Standards**: Inspired by Cal.com, Dub, Vercel, WorkOS dashboards
 
 ---
@@ -39,56 +39,56 @@ app/
 
 ---
 
-## 👨‍💼 Patient Portal (Patients Only) 🆕
+## 👨‍💼 Member Portal (Members Only) 🆕
 
 ### Primary Navigation
 
 ```
 1. 📊 Overview
-   └── /patient/dashboard
+   └── /member/dashboard
        ├── Upcoming Appointments
        ├── Recent Session Summaries
        ├── Pending Reviews
        └── Quick Actions
 
 2. 📅 My Appointments
-   └── /patient/appointments
-       ├── /patient/appointments/upcoming       # Default view
-       ├── /patient/appointments/past
-       ├── /patient/appointments/calendar       # Calendar view
-       └── /patient/appointments/[id]           # Appointment details
+   └── /member/appointments
+       ├── /member/appointments/upcoming       # Default view
+       ├── /member/appointments/past
+       ├── /member/appointments/calendar       # Calendar view
+       └── /member/appointments/[id]           # Appointment details
            ├── Session summary/notes
            ├── Reschedule/Cancel
            ├── Join video call
            └── Leave review (after session) 🆕
 
 3. 📝 Session Notes
-   └── /patient/sessions
-       ├── /patient/sessions                    # All sessions
-       └── /patient/sessions/[id]               # Session details
+   └── /member/sessions
+       ├── /member/sessions                    # All sessions
+       └── /member/sessions/[id]               # Session details
            ├── Expert notes (shared)
            ├─ Recommendations
            └── Related resources
 
 4. ⭐ My Reviews
-   └── /patient/reviews
-       ├── /patient/reviews                     # All my reviews
-       ├── /patient/reviews/pending             # Pending reviews
-       └── /patient/reviews/[id]                # Edit review
+   └── /member/reviews
+       ├── /member/reviews                     # All my reviews
+       ├── /member/reviews/pending             # Pending reviews
+       └── /member/reviews/[id]                # Edit review
 
 5. 👥 My Experts
-   └── /patient/experts
-       ├── /patient/experts                     # Experts I've worked with
-       └── /patient/experts/[username]          # Expert profile + review
+   └── /member/experts
+       ├── /member/experts                     # Experts I've worked with
+       └── /member/experts/[username]          # Expert profile + review
 
 6. 💳 Billing
-   └── /patient/billing
-       ├── /patient/billing/payments            # Payment history
-       ├── /patient/billing/invoices            # Invoices
-       └── /patient/billing/methods             # Payment methods
+   └── /member/billing
+       ├── /member/billing/payments            # Payment history
+       ├── /member/billing/invoices            # Invoices
+       └── /member/billing/methods             # Payment methods
 
 7. 👤 Profile
-   └── /patient/profile
+   └── /member/profile
        ├── Personal information
        ├── Health information (optional)
        ├── Emergency contact
@@ -99,11 +99,11 @@ app/
 
 ```
 8. ⚙️ Settings
-   └── /patient/settings
-       ├── /patient/settings/account            # Personal info
-       ├── /patient/settings/notifications      # Notification preferences
-       ├── /patient/settings/privacy            # Privacy settings
-       └── /patient/settings/security           # Security settings
+   └── /member/settings
+       ├── /member/settings/account            # Personal info
+       ├── /member/settings/notifications      # Notification preferences
+       ├── /member/settings/privacy            # Privacy settings
+       └── /member/settings/security           # Security settings
 ```
 
 ---
@@ -115,7 +115,7 @@ app/
 ```
 1. 📊 Overview
    └── /dashboard
-       ├── Quick Stats (Today's appointments, Revenue, Patients)
+       ├── Quick Stats (Today's appointments, Revenue, Members)
        ├── Upcoming Appointments
        ├── Recent Activity
        └── Action Items
@@ -129,9 +129,9 @@ app/
        │   ├── Week view
        │   ├── Month view
        │   └── Filter by schedule/location
-       └── /appointments/patients
-           ├── /appointments/patients       # Patient list
-           └── /appointments/patients/[id] # Patient details + history
+       └── /appointments/members
+           ├── /appointments/members       # Member list
+           └── /appointments/members/[id]  # Member details + history
 
 3. 🗓️ Availability
    └── /availability
@@ -166,13 +166,13 @@ app/
    └── /analytics
        ├── /analytics/overview          # KPIs, Charts
        ├── /analytics/revenue           # Financial analytics
-       ├── /analytics/patients          # Patient insights
+       ├── /analytics/members           # Member insights
        └── /analytics/performance       # Booking trends, conversion
 
 6. 👤 Public Profile
    └── /profile
        ├── /profile/expert              # Public expert profile settings
-       ├── /profile/preview             # Preview how patients see you
+       ├── /profile/preview             # Preview how members see you
        └── /profile/link                # Your booking link
 
 7. 💳 Billing
@@ -202,59 +202,59 @@ app/
 
 ---
 
-## 🏥 Partner Dashboard (Partner Admins Only)
+## 🏥 Team Dashboard (Team Admins Only)
 
-**Note:** This appears when user is part of a partner organization (Phase 2)
+**Note:** This appears when user is part of a team organization (Phase 2)
 
 ### Primary Navigation
 
 ```
-1. 📊 Partner Overview
-   └── /partner
+1. 📊 Team Overview
+   └── /team
        ├── Key Metrics (All practitioners)
        ├── Today's Schedule
        ├── Revenue Summary
        └── Quick Actions
 
 2. 👥 Team
-   └── /partner/team
-       ├── /partner/team/members         # All practitioners
-       ├── /partner/team/invite          # Invite new members
-       ├── /partner/team/roles           # Role management
-       └── /partner/team/[memberId]      # Member details & analytics
+   └── /team/team
+       ├── /team/team/members         # All practitioners
+       ├── /team/team/invite          # Invite new members
+       ├── /team/team/roles           # Role management
+       └── /team/team/[memberId]      # Member details & analytics
 
-3. 📅 Partner Schedule
-   └── /partner/schedule
-       ├── /partner/schedule/calendar    # Multi-practitioner calendar
-       ├── /partner/schedule/rooms       # Room management (future)
-       └── /partner/schedule/capacity    # Capacity planning
+3. 📅 Team Schedule
+   └── /team/schedule
+       ├── /team/schedule/calendar    # Multi-practitioner calendar
+       ├── /team/schedule/rooms       # Room management (future)
+       └── /team/schedule/capacity    # Capacity planning
 
-4. 👨‍👩‍👧‍👦 Patients
-   └── /partner/patients
-       ├── /partner/patients             # All partner patients
-       ├── /partner/patients/[id]        # Patient records
-       └── /partner/patients/insights    # Patient analytics
+4. 👨‍👩‍👧‍👦 Members
+   └── /team/members
+       ├── /team/members              # All team members
+       ├── /team/members/[id]         # Member records
+       └── /team/members/insights     # Member analytics
 
-5. 📊 Partner Analytics
-   └── /partner/analytics
-       ├── /partner/analytics/revenue    # Partner-wide revenue
-       ├── /partner/analytics/performance # Practitioner performance
-       ├── /partner/analytics/patients   # Patient insights
-       └── /partner/analytics/reports    # Custom reports
+5. 📊 Team Analytics
+   └── /team/analytics
+       ├── /team/analytics/revenue    # Team-wide revenue
+       ├── /team/analytics/performance # Practitioner performance
+       ├── /team/analytics/members    # Member insights
+       └── /team/analytics/reports    # Custom reports
 
-6. 💼 Partner Settings
-   └── /partner/settings
-       ├── /partner/settings/organization # Partner info
-       ├── /partner/settings/branding     # Logo, colors
-       ├── /partner/settings/billing      # Partner subscription
-       └── /partner/settings/integrations # Partner-wide integrations
+6. 💼 Team Settings
+   └── /team/settings
+       ├── /team/settings/organization # Team info
+       ├── /team/settings/branding     # Logo, colors
+       ├── /team/settings/billing      # Team subscription
+       └── /team/settings/integrations # Team-wide integrations
 
 7. 💳 Revenue & Payouts
-   └── /partner/revenue
-       ├── /partner/revenue/overview     # Total revenue
-       ├── /partner/revenue/splits       # Commission splits
-       ├── /partner/revenue/payouts      # Payout management
-       └── /partner/revenue/invoices     # Client invoices
+   └── /team/revenue
+       ├── /team/revenue/overview     # Total revenue
+       ├── /team/revenue/splits       # Commission splits
+       ├── /team/revenue/payouts      # Payout management
+       └── /team/revenue/invoices     # Client invoices
 ```
 
 ---
@@ -289,7 +289,7 @@ app/
        └── /learn/students/certificates # Issue certificates
 ```
 
-### Patient/Student View (Learners)
+### Member/Student View (Learners)
 
 ```
 1. 🎓 My Learning
@@ -326,13 +326,13 @@ app/
    └── /admin/users
        ├── /admin/users                 # All users
        ├── /admin/users/experts         # Expert users
-       ├── /admin/users/patients        # Patient users
+       ├── /admin/users/members       # Member users
        └── /admin/users/[id]            # User management
 
 3. 🏥 Organizations
    └── /admin/organizations
        ├── /admin/organizations         # All organizations
-       ├── /admin/organizations/partners # Partner organizations
+       ├── /admin/organizations/teams # Team organizations
        └── /admin/organizations/[id]    # Org details
 
 4. 📊 Platform Analytics
@@ -381,11 +381,11 @@ app/
       <NavMain items={primaryNavItems} />
     </SidebarGroup>
 
-    {/* Conditional: Partner Section (if partner member) */}
-    {isClinicMember && (
+    {/* Conditional: Team Section (if team member) */}
+    {isTeamMember && (
       <SidebarGroup>
-        <SidebarGroupLabel>Partner</SidebarGroupLabel>
-        <NavMain items={clinicNavItems} />
+        <SidebarGroupLabel>Team</SidebarGroupLabel>
+        <NavMain items={teamNavItems} />
       </SidebarGroup>
     )}
 
@@ -421,10 +421,10 @@ app/
 │   ├── dashboard/                      # Expert Home/Overview
 │   │   └── page.tsx
 │   │
-│   ├── patient/                        # 🆕 Patient Portal
-│   │   ├── layout.tsx                 # Patient auth check
+│   ├── member/                         # 🆕 Member Portal
+│   │   ├── layout.tsx                 # Member auth check
 │   │   ├── dashboard/
-│   │   │   └── page.tsx              # Patient overview
+│   │   │   └── page.tsx              # Member overview
 │   │   ├── appointments/
 │   │   │   ├── page.tsx              # Upcoming/Past appointments
 │   │   │   ├── calendar/
@@ -452,7 +452,7 @@ app/
 │   │   │   ├── invoices/
 │   │   │   └── methods/
 │   │   ├── profile/
-│   │   │   └── page.tsx              # Patient profile
+│   │   │   └── page.tsx              # Member profile
 │   │   └── settings/
 │   │       ├── account/
 │   │       ├── notifications/
@@ -467,7 +467,7 @@ app/
 │   │   │       ├── Week view
 │   │   │       ├── Month view
 │   │   │       └── Filter by schedule/location
-│   │   └── patients/
+│   │   └── members/
 │   │       ├── page.tsx
 │   │       ├── [id]/
 │   │       │   └── page.tsx
@@ -506,7 +506,7 @@ app/
 │   ├── analytics/                      # Analytics & Reports
 │   │   ├── page.tsx
 │   │   ├── revenue/
-│   │   ├── patients/
+│   │   ├── members/
 │   │   └── performance/
 │   │
 │   ├── profile/                        # Public profile settings
@@ -520,16 +520,16 @@ app/
 │   │   ├── payouts/
 │   │   └── invoices/
 │   │
-│   ├── partner/                         # 🏥 Partner Management (Phase 2)
-│   │   ├── layout.tsx                 # Partner auth check
-│   │   ├── page.tsx                   # Partner overview
+│   ├── team/                         # 🏥 Team Management (Phase 2)
+│   │   ├── layout.tsx                 # Team auth check
+│   │   ├── page.tsx                   # Team overview
 │   │   ├── team/
 │   │   │   ├── page.tsx
 │   │   │   ├── invite/
 │   │   │   ├── roles/
 │   │   │   └── [memberId]/
 │   │   ├── schedule/
-│   │   ├── patients/
+│   │   ├── members/
 │   │   ├── analytics/
 │   │   ├── settings/
 │   │   └── revenue/
@@ -597,7 +597,7 @@ app/
 
 ---
 
-### Expert (Partner Member)
+### Expert (Team Member)
 
 **Primary Menu:**
 
@@ -607,12 +607,12 @@ app/
 - My Event Types
 - My Analytics
 
-**Partner Section:**
+**Team Section:**
 
-- Partner Overview (if admin)
+- Team Overview (if admin)
 - Team (if admin)
-- Partner Schedule
-- Partner Patients (shared access)
+- Team Schedule
+- Team Members (shared access)
 
 **Secondary Menu:**
 
@@ -621,16 +621,16 @@ app/
 
 ---
 
-### Partner Admin
+### Team Admin
 
 **Primary Menu:**
 
-- Partner Overview
+- Team Overview
 - Team
-- Partner Schedule
-- Patients
-- Partner Analytics
-- Partner Settings
+- Team Schedule
+- Members
+- Team Analytics
+- Team Settings
 - Revenue & Payouts
 
 **Personal Section:**
@@ -721,7 +721,7 @@ import {
   BarChart3,
   // Settings
   Bell,
-  // Team/Patients
+  // Team/Members
   Building2,
   // Overview
   Calendar,
@@ -729,7 +729,7 @@ import {
   Clock,
   // Profile
   CreditCard,
-  // Partner
+  // Team
   GraduationCap,
   LayoutDashboard,
   // Availability
@@ -769,14 +769,14 @@ import {
    - Add role-based visibility
    - Add icon updates
 
-### Phase 2: Add Partner Features (Future)
+### Phase 2: Add Team Features (Future)
 
-1. **Create Partner Routes:**
-   - `partner/` (new section)
-   - Implement partner layout with auth checks
+1. **Create Team Routes:**
+   - `team/` (new section)
+   - Implement team layout with auth checks
 
 2. **Update Sidebar:**
-   - Add partner section conditionally
+   - Add team section conditionally
    - Show/hide based on organization membership
 
 ### Phase 3: Add Learning Platform (Future)
@@ -828,13 +828,13 @@ analytics.track('feature_discovered', {
 - [ ] Test all routes
 - [ ] Update documentation
 
-### Phase 2: Partner Features
+### Phase 2: Team Features
 
-- [ ] Design partner data model
-- [ ] Implement partner routes
-- [ ] Add partner sidebar section
+- [ ] Design team data model
+- [ ] Implement team routes
+- [ ] Add team sidebar section
 - [ ] Implement organization switcher
-- [ ] Add partner-specific permissions
+- [ ] Add team-specific permissions
 - [ ] Test multi-member scenarios
 
 ### Phase 3: Learning Platform
@@ -855,7 +855,7 @@ analytics.track('feature_discovered', {
 - **Vercel Dashboard:** Project-centric with team features
 - **WorkOS Dashboard:** Organization management and RBAC
 - **WorkOS RBAC:** `_docs/02-core-systems/WORKOS-RBAC-QUICK-REFERENCE.md`
-- **Solo vs Partner:** `.cursor/plans/SOLO-VS-CLINIC-ARCHITECTURE.md`
+- **Solo vs Team:** `.cursor/plans/SOLO-VS-CLINIC-ARCHITECTURE.md`
 
 ---
 

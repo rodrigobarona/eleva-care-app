@@ -11,9 +11,9 @@
 WorkOS provides **two powerful Stripe integrations** that perfectly complement your payment system:
 
 1. **✅ Stripe Entitlements** - Automatic subscription-based role management
-2. **✅ Stripe Seat Sync** - Automatic usage-based billing for clinics (Phase 2)
+2. **✅ Stripe Seat Sync** - Automatic usage-based billing for teams (Phase 2)
 
-**Important:** WorkOS-Stripe handles **subscriptions** (Expert tiers), NOT appointment payments (patient → expert). Your existing `create-payment-intent` route remains unchanged.
+**Important:** WorkOS-Stripe handles **subscriptions** (Expert tiers), NOT appointment payments (member → expert). Your existing `create-payment-intent` route remains unchanged.
 
 ---
 
@@ -26,9 +26,9 @@ WorkOS provides **two powerful Stripe integrations** that perfectly complement y
 │                    ELEVA CARE PAYMENTS                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
-│  1. APPOINTMENT PAYMENTS (Patient → Expert)                  │
+│  1. APPOINTMENT PAYMENTS (Member → Expert)                   │
 │     ✅ KEEP AS-IS (create-payment-intent route)              │
-│     • Patient books appointment                               │
+│     • Member books appointment                                │
 │     • Payment Intent created                                  │
 │     • Platform fee (8-20% commission)                         │
 │     • Stripe Connect for payouts                              │
@@ -47,7 +47,7 @@ WorkOS provides **two powerful Stripe integrations** that perfectly complement y
 │     • Automatic role updates in JWT                           │
 │     • No DB queries needed                                    │
 │                                                                │
-│  4. CLINIC SUBSCRIPTIONS (Clinic → Platform) 🔮 Phase 2      │
+│  4. TEAM SUBSCRIPTIONS (Team → Platform) 🔮 Phase 2          │
 │     ✅ USE WORKOS STRIPE SEAT SYNC                           │
 │     • Pay per practitioner (€X per member)                   │
 │     • Automatic billing meter updates                         │
@@ -115,7 +115,12 @@ async function canAccessAnalytics(userId: string): Promise<boolean> {
 
 ### Step 2: Configure Stripe Products with Lookup Keys
 
-In **Stripe Dashboard**, add entitlement lookup keys to your products:
+In **Stripe Dashboard**, add entitlement lookup keys to your products. Use `src/config/subscription-lookup-keys.ts` for reference:
+
+- **Expert tiers:** `EXPERT_LOOKUP_KEYS` (community-expert-monthly, top-expert-annual, etc.)
+- **$0 invite-only experts:** `EXPERT_INVITE_LOOKUP_KEYS` (community-expert-invite, top-expert-invite) – admin-approved experts get free access
+- **Lecturer addon:** `LECTURER_LOOKUP_KEYS` (lecturer-module-annual, lecturer-module-invite) – Stripe addon subscription, not a standalone role
+- **Team plans:** `TEAM_LOOKUP_KEYS` / `getTeamLookupKey()` (team-starter-monthly, team-professional-annual, etc.)
 
 #### Expert Community Product
 
@@ -315,7 +320,7 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
 
   if (!workosUserId) return;
 
-  // Downgrade to patient role
+  // Downgrade to member role
   const membership = await workos.userManagement.listOrganizationMemberships({
     userId: workosUserId,
   });
@@ -323,11 +328,11 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
   if (membership.data.length > 0) {
     await workos.userManagement.updateOrganizationMembership({
       organizationMembershipId: membership.data[0].id,
-      roleSlug: 'patient', // Revert to base role
+      roleSlug: 'member', // Revert to base role
     });
   }
 
-  console.log(`✅ Downgraded ${workosUserId} to patient - subscription cancelled`);
+  console.log(`✅ Downgraded ${workosUserId} to member - subscription cancelled`);
 }
 ```
 
@@ -393,7 +398,7 @@ export function AnalyticsCard() {
       <Card className="p-6">
         <h3 className="font-semibold mb-2">Advanced Analytics</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Unlock revenue insights, patient demographics, and performance metrics
+          Unlock revenue insights, member demographics, and performance metrics
         </p>
         <Button asChild>
           <a href="/billing/subscription?upgrade=top">Upgrade to Top Tier</a>
@@ -408,16 +413,16 @@ export function AnalyticsCard() {
 
 ---
 
-## ✅ Use Case 2: Stripe Seat Sync (Clinic Subscriptions) 🔮 Phase 2
+## ✅ Use Case 2: Stripe Seat Sync (Team Subscriptions) 🔮 Phase 2
 
 ### What It Does
 
 Automatically syncs organization member counts to Stripe billing meters for usage-based pricing.
 
-### Perfect For Clinic Billing
+### Perfect For Team Billing
 
 ```
-Clinic Pricing Model:
+Team Pricing Model:
 - Base: €99/month
 - Per practitioner: €49/month per active member
 - Automatic billing when members join/leave
@@ -426,7 +431,7 @@ Clinic Pricing Model:
 ### How It Works
 
 ```
-1. Clinic Admin invites practitioner
+1. Team Admin invites practitioner
    ↓
 2. WorkOS creates organization membership
    ↓
@@ -455,20 +460,20 @@ WorkOS Dashboard → Authentication → Add-ons → Stripe
 ```
 Stripe Dashboard → Billing → Meters → Create Meter
 
-Name: Clinic Practitioners
+Name: Team Practitioners
 Event name: workos_seat_count (auto-created by WorkOS)
 Aggregation: last (most recent seat count)
 ```
 
-#### Step 3: Create Clinic Subscription with Meter
+#### Step 3: Create Team Subscription with Meter
 
 ```typescript
-// When clinic subscribes
+// When team subscribes
 const subscription = await stripe.subscriptions.create({
-  customer: clinicStripeCustomerId,
+  customer: teamStripeCustomerId,
   items: [
     {
-      price: 'price_clinic_base', // €99/month base
+      price: 'price_team_base', // €99/month base
     },
     {
       price: 'price_per_seat', // €49/month per seat
@@ -491,7 +496,7 @@ const subscription = await stripe.subscriptions.create({
 
 ## ❌ What WorkOS-Stripe Does NOT Handle
 
-### 1. Appointment Payments (Patient → Expert)
+### 1. Appointment Payments (Member → Expert)
 
 **Keep your existing system:**
 
@@ -511,7 +516,7 @@ const subscription = await stripe.subscriptions.create({
 
 **Why:** WorkOS doesn't manage Connected Accounts or payouts.
 
-### 3. Patient Payments
+### 3. Member Payments
 
 **Keep your existing system:**
 
@@ -533,7 +538,7 @@ const subscription = await stripe.subscriptions.create({
 | **Expert Subscriptions** | Manual                    | ✅ Automatic in JWT  | ✅ **Use WorkOS Entitlements** |
 | **Subscription Tiers**   | DB queries                | ✅ Automatic in JWT  | ✅ **Use WorkOS Entitlements** |
 | **Role Updates**         | Manual webhooks           | ✅ Automatic sync    | ✅ **Use WorkOS Entitlements** |
-| **Clinic Seat Billing**  | Not implemented           | ✅ Auto meter events | ✅ **Use Seat Sync (Phase 2)** |
+| **Team Seat Billing**    | Not implemented           | ✅ Auto meter events | ✅ **Use Seat Sync (Phase 2)** |
 
 ---
 
@@ -555,12 +560,12 @@ const subscription = await stripe.subscriptions.create({
 3. ✅ Verify entitlements for all users
 4. ✅ Monitor for issues
 
-### Phase 2: Clinic Seat Sync (Q1 2026)
+### Phase 2: Team Seat Sync (Q1 2026)
 
 1. ✅ Enable Stripe Seat Sync in WorkOS
 2. ✅ Create meter-based pricing in Stripe
 3. ✅ Test seat count updates
-4. ✅ Launch clinic subscriptions
+4. ✅ Launch team subscriptions
 
 ---
 
@@ -611,7 +616,7 @@ types/subscriptions.ts                  # Add entitlement types
 
 ### Business
 
-- ✅ **Accurate billing** (usage-based for clinics)
+- ✅ **Accurate billing** (usage-based for teams)
 - ✅ **Real-time access** (immediate tier access)
 - ✅ **Fraud prevention** (Stripe validates)
 - ✅ **Compliance** (PCI handled by Stripe)
@@ -626,11 +631,11 @@ types/subscriptions.ts                  # Add entitlement types
 ✅ Role-based feature access (analytics, branding)  
 ✅ Subscription tier management  
 ✅ Feature flags based on plan  
-✅ Clinic seat-based billing (Phase 2)
+✅ Team seat-based billing (Phase 2)
 
 ### Keep Current Stripe Integration For:
 
-✅ Appointment payments (Patient → Expert)  
+✅ Appointment payments (Member → Expert)  
 ✅ Platform commission/fees  
 ✅ Expert payouts (Connected Accounts)  
 ✅ One-time payments  
@@ -660,12 +665,14 @@ types/subscriptions.ts                  # Add entitlement types
 **WorkOS-Stripe integration is PERFECT for:**
 
 1. ✅ **Expert subscription tiers** (Community vs Top) - Use Entitlements
-2. ✅ **Clinic seat-based billing** (Phase 2) - Use Seat Sync
-3. ✅ **Automatic role updates** - No more manual DB queries
+2. ✅ **$0 invite-only expert tiers** - Use `EXPERT_INVITE_LOOKUP_KEYS`
+3. ✅ **Lecturer addon** - Use `LECTURER_LOOKUP_KEYS` (Stripe addon, not standalone role)
+4. ✅ **Team seat-based billing** (Phase 2) - Use Seat Sync
+5. ✅ **Automatic role updates** - No more manual DB queries
 
 **Your current system is PERFECT for:**
 
-1. ✅ **Appointment payments** (Patient → Expert)
+1. ✅ **Appointment payments** (Member → Expert)
 2. ✅ **Expert payouts** (Stripe Connect)
 3. ✅ **Platform commissions** (application_fee)
 

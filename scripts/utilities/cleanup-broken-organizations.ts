@@ -180,7 +180,7 @@ async function fixBrokenUser(brokenUser: BrokenUser, dryRun: boolean = true): Pr
           workosOrgId: workosOrg.id,
           slug: `user-${brokenUser.workosUserId}`,
           name: workosOrg.name,
-          type: 'patient_personal', // Default to patient
+          type: 'member_personal',
         })
         .returning();
 

@@ -17,7 +17,7 @@ const { logger } = Sentry;
 
 /** Zod schema for transfer approval request */
 const approveTransferSchema = z.object({
-  transferId: z.number({ error: 'Transfer ID is required' }),
+  transferId: z.string().uuid('Transfer ID must be a valid UUID'),
 });
 
 // Admin financial operations rate limiting (very strict)
@@ -134,16 +134,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Defense-in-depth: verify admin role for financial operations
-    let isSuperAdmin: boolean;
+    let isAdmin: boolean;
     try {
-      isSuperAdmin = await hasRole(WORKOS_ROLES.SUPERADMIN);
+      isAdmin = await hasRole(WORKOS_ROLES.ADMIN);
     } catch (error) {
       Sentry.captureException(error);
       logger.error('Role check error in transfer approval', { error });
       return NextResponse.json({ error: 'Role verification failed' }, { status: 500 });
     }
 
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
       .set({
         status: PAYMENT_TRANSFER_STATUS_APPROVED,
         adminUserId: userId,
-        updated: new Date(),
+        updatedAt: new Date(),
       })
       .where(eq(PaymentTransfersTable.id, transferId));
 

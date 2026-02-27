@@ -39,7 +39,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 type PaymentTransfer = {
-  id: number;
+  id: string;
   paymentIntentId: string;
   checkoutSessionId: string;
   eventId: string;
@@ -58,8 +58,8 @@ type PaymentTransfer = {
   requiresApproval: boolean;
   adminUserId: string | null;
   adminNotes: string | null;
-  created: string;
-  updated: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer }) {
@@ -379,7 +379,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
               </div>
               <div className="flex-1">
                 <p className="font-medium">Payment received</p>
-                <p className="text-sm text-muted-foreground">{formatDate(transfer.created)}</p>
+                <p className="text-sm text-muted-foreground">{formatDate(transfer.createdAt)}</p>
               </div>
             </div>
 
@@ -390,7 +390,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Admin updated transfer</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updated)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updatedAt)}</p>
                   {transfer.adminNotes && (
                     <p className="mt-1 rounded-md bg-gray-50 p-2 text-sm">{transfer.adminNotes}</p>
                   )}
@@ -405,7 +405,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Funds transferred to expert</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updated)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updatedAt)}</p>
                   <p className="mt-1 text-sm font-medium">
                     Transfer ID: <span className="font-mono text-xs">{transfer.transferId}</span>
                   </p>
@@ -420,7 +420,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Transfer failed</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updated)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updatedAt)}</p>
                   <div className="mt-1 rounded-md bg-red-50 p-2">
                     <p className="text-sm text-red-700">
                       {transfer.stripeErrorCode && (

@@ -98,7 +98,7 @@ Priority 60:  partner_member (Phase 2)
 Priority 70:  expert_community
 Priority 80:  expert_top
 Priority 90:  partner_admin (Phase 2)
-Priority 100: superadmin
+Priority 100: admin
 ```
 
 **For Each Role:**

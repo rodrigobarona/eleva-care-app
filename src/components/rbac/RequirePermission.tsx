@@ -191,30 +191,30 @@ export function RequireExpertApproval({
 }
 
 /**
- * Require partner:view_dashboard permission
+ * Require team:view_dashboard permission
  */
-export function RequirePartnerDashboard({
+export function RequireTeamDashboard({
   children,
   fallback = null,
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission permission="partner:view_dashboard" fallback={fallback} loading={loading}>
+    <RequirePermission permission="team:view_dashboard" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
 }
 
 /**
- * Require partner:manage_settings permission (Partner Admin)
+ * Require team:manage_settings permission (Team Admin)
  */
-export function RequirePartnerAdmin({
+export function RequireTeamAdmin({
   children,
   fallback = null,
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission permission="partner:manage_settings" fallback={fallback} loading={loading}>
+    <RequirePermission permission="team:manage_settings" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );

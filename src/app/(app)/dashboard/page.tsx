@@ -32,7 +32,7 @@ export default async function DashboardPage() {
             events: false,
             identity: false,
             payment: false,
-            google_account: false,
+            calendar_connection: false,
           },
           isSetupComplete: false,
           setupCompletedAt: null,

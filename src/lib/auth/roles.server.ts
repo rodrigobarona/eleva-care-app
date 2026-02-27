@@ -88,7 +88,7 @@ export async function hasRole(role: WorkOSRole): Promise<boolean> {
 }
 
 /**
- * Convenience function to check if user is an admin (superadmin or admin)
+ * Convenience function to check if user is an admin
  */
 export async function isAdmin(): Promise<boolean> {
   return hasAnyRole(ADMIN_ROLES);
@@ -120,23 +120,23 @@ export async function isCommunityExpert(): Promise<boolean> {
  * Higher index = higher priority.
  *
  * Note: If a role isn't in this array, indexOf returns -1,
- * making it lower priority than PATIENT. This is safe because
+ * making it lower priority than MEMBER. This is safe because
  * getUserRolesFromDB filters invalid roles via VALID_ROLES.
  */
 const ROLE_PRIORITY: WorkOSRole[] = [
-  WORKOS_ROLES.PATIENT,
-  WORKOS_ROLES.PARTNER_MEMBER,
+  WORKOS_ROLES.MEMBER,
+  WORKOS_ROLES.TEAM_MEMBER,
   WORKOS_ROLES.EXPERT_COMMUNITY,
   WORKOS_ROLES.EXPERT_TOP,
-  WORKOS_ROLES.PARTNER_ADMIN,
-  WORKOS_ROLES.SUPERADMIN,
+  WORKOS_ROLES.TEAM_ADMIN,
+  WORKOS_ROLES.ADMIN,
 ];
 
 /**
  * Get the highest-priority role from an array of roles.
  */
 function getHighestPriorityRole(roles: WorkOSRole[]): WorkOSRole {
-  if (roles.length === 0) return WORKOS_ROLES.PATIENT;
+  if (roles.length === 0) return WORKOS_ROLES.MEMBER;
   if (roles.length === 1) return roles[0];
 
   // Find the role with the highest priority index
@@ -160,17 +160,17 @@ function getHighestPriorityRole(roles: WorkOSRole[]): WorkOSRole {
  */
 export async function getUserRole(): Promise<WorkOSRole> {
   const { user } = await withAuth();
-  if (!user) return WORKOS_ROLES.PATIENT;
+  if (!user) return WORKOS_ROLES.MEMBER;
 
   const userRoles = await getUserRolesFromDB(user.id);
 
-  if (userRoles.length === 0) return WORKOS_ROLES.PATIENT;
+  if (userRoles.length === 0) return WORKOS_ROLES.MEMBER;
 
   return getHighestPriorityRole(userRoles);
 }
 
 /**
- * Update a user's role (requires admin/superadmin)
+ * Update a user's role (requires admin)
  */
 export async function updateUserRole(workosUserId: string, role: WorkOSRole): Promise<void> {
   const { user: currentUser } = await withAuth();
@@ -179,10 +179,10 @@ export async function updateUserRole(workosUserId: string, role: WorkOSRole): Pr
   // Check if current user has permission to update roles
   const currentUserRoles = await getUserRolesFromDB(currentUser.id);
 
-  const isSuperAdmin = currentUserRoles.includes(WORKOS_ROLES.SUPERADMIN);
+  const isAdmin = currentUserRoles.includes(WORKOS_ROLES.ADMIN);
 
-  if (!isSuperAdmin) {
-    throw new Error('Insufficient permissions - only superadmins can update roles');
+  if (!isAdmin) {
+    throw new Error('Insufficient permissions - only admins can update roles');
   }
 
   // Use a transaction to ensure atomic delete+insert

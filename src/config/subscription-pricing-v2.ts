@@ -14,8 +14,8 @@
 
 import { EXPERT_LOOKUP_KEYS, LECTURER_LOOKUP_KEYS } from './subscription-lookup-keys';
 
-export type PlanType = 'commission' | 'monthly' | 'annual';
-export type TierLevel = 'community' | 'top';
+export type PlanType = 'commission' | 'monthly' | 'annual' | 'team';
+export type TierLevel = 'community' | 'top' | 'starter' | 'professional' | 'enterprise';
 export type BillingInterval = 'month' | 'year';
 
 export interface PricingPlan {
@@ -27,7 +27,7 @@ export interface PricingPlan {
   commissionRate: number; // decimal (e.g., 0.20 for 20%)
   commissionDiscount?: number; // decimal (e.g., 0.08 for 8% reduction)
   lookupKey?: string; // ✨ NEW: Stripe lookup key
-  breakEvenMonthlyRevenue?: number; // in dollars
+  breakEvenMonthlyRevenue?: number; // in euros
   features: string[];
   limits: {
     maxServices: number; // -1 for unlimited
@@ -43,7 +43,7 @@ export interface AddonPricing {
   annualFee?: number; // in cents
   commissionRate: number; // decimal
   lookupKey?: string; // ✨ NEW: Stripe lookup key
-  breakEvenAnnualSales?: number; // in dollars
+  breakEvenAnnualSales?: number; // in euros
 }
 
 export interface EligibilityCriteria {
@@ -56,7 +56,7 @@ export interface EligibilityCriteria {
 /**
  * Subscription Pricing Configuration
  * Commission rates: 20% Community, 15% Top Expert
- * Annual subscriptions: $490/$1,774 with reduced commission (12%/8%)
+ * Annual subscriptions: €490/€1,774 with reduced commission (12%/8%)
  */
 export const SUBSCRIPTION_PRICING = {
   commission_based: {
@@ -110,11 +110,11 @@ export const SUBSCRIPTION_PRICING = {
     community_expert: {
       tier: 'community' as const,
       planType: 'monthly' as const,
-      monthlyFee: 4900, // $49/month
+      monthlyFee: 4900, // €49/month
       commissionRate: 0.12, // 12% commission
       commissionDiscount: 0.08, // 8% reduction
       lookupKey: EXPERT_LOOKUP_KEYS.community.monthly, // ✨ NEW
-      breakEvenMonthlyRevenue: 510, // $510/month
+      breakEvenMonthlyRevenue: 510, // €510/month
       features: [
         'List up to 5 services',
         'Basic calendar integration',
@@ -124,8 +124,8 @@ export const SUBSCRIPTION_PRICING = {
         'Community forum',
         '✨ Commission reduced to 12% (was 20%)',
         '✨ Cancel anytime flexibility',
-        '✨ Low monthly commitment ($49/mo)',
-        '✨ Save $98/year with annual plan',
+        '✨ Low monthly commitment (€49/mo)',
+        '✨ Save €98/year with annual plan',
       ],
       limits: {
         maxServices: 5,
@@ -135,11 +135,11 @@ export const SUBSCRIPTION_PRICING = {
     top_expert: {
       tier: 'top' as const,
       planType: 'monthly' as const,
-      monthlyFee: 17700, // $177/month (corrected from $155)
+      monthlyFee: 17700, // €177/month (corrected from €155)
       commissionRate: 0.08, // 8% commission
       commissionDiscount: 0.07, // 7% reduction
       lookupKey: EXPERT_LOOKUP_KEYS.top.monthly, // ✨ NEW
-      breakEvenMonthlyRevenue: 1774, // $1,774/month
+      breakEvenMonthlyRevenue: 1774, // €1,774/month
       features: [
         'All Top Expert features',
         'Unlimited services',
@@ -152,7 +152,7 @@ export const SUBSCRIPTION_PRICING = {
         'Direct messaging',
         '✨ Commission reduced to 8% (was 15%)',
         '✨ Cancel anytime flexibility',
-        '✨ Save $350/year with annual plan',
+        '✨ Save €350/year with annual plan',
         '✨ VIP subscriber benefits',
       ],
       limits: {
@@ -167,12 +167,12 @@ export const SUBSCRIPTION_PRICING = {
       tier: 'community' as const,
       planType: 'annual' as const,
       monthlyFee: 0,
-      annualFee: 49000, // $490/year
-      monthlyEquivalent: 4083, // $40.83/month
+      annualFee: 49000, // €490/year
+      monthlyEquivalent: 4083, // €40.83/month
       commissionRate: 0.12, // 12%
       commissionDiscount: 0.08, // 8% reduction
       lookupKey: EXPERT_LOOKUP_KEYS.community.annual, // ✨ NEW
-      breakEvenMonthlyRevenue: 510, // $510/month
+      breakEvenMonthlyRevenue: 510, // €510/month
       features: [
         'List up to 5 services',
         'Basic calendar integration',
@@ -195,12 +195,12 @@ export const SUBSCRIPTION_PRICING = {
       tier: 'top' as const,
       planType: 'annual' as const,
       monthlyFee: 0,
-      annualFee: 177400, // $1,774/year (corrected from $1,490)
-      monthlyEquivalent: 14783, // $147.83/month
+      annualFee: 177400, // €1,774/year (corrected from €1,490)
+      monthlyEquivalent: 14783, // €147.83/month
       commissionRate: 0.08, // 8%
       commissionDiscount: 0.07, // 7% reduction
       lookupKey: EXPERT_LOOKUP_KEYS.top.annual, // ✨ NEW
-      breakEvenMonthlyRevenue: 1774, // $1,774/month
+      breakEvenMonthlyRevenue: 1774, // €1,774/month
       features: [
         'All Top Expert features',
         'Unlimited services',
@@ -232,23 +232,23 @@ export const SUBSCRIPTION_PRICING = {
     },
     lecturer_annual: {
       name: 'Lecturer Module (Annual)',
-      annualFee: 49000, // $490/year
+      annualFee: 49000, // €490/year
       commissionRate: 0.03, // 3% on course sales
       lookupKey: LECTURER_LOOKUP_KEYS.annual, // ✨ NEW
-      breakEvenAnnualSales: 14000, // $14,000 in course sales
+      breakEvenAnnualSales: 14000, // €14,000 in course sales
     },
   },
 
   eligibility: {
     community_expert: {
       minMonthsActive: 3,
-      minAvgMonthlyRevenue: 51000, // $510 in cents
+      minAvgMonthlyRevenue: 51000, // €510 in cents
       minCompletedAppointments: 15,
       minRating: 4.0,
     },
     top_expert: {
       minMonthsActive: 3,
-      minAvgMonthlyRevenue: 177400, // $1,774 in cents
+      minAvgMonthlyRevenue: 177400, // €1,774 in cents
       minCompletedAppointments: 50,
       minRating: 4.5,
     },
@@ -293,7 +293,7 @@ export function calculateAnnualSubscriptionCost(
   commissionRate: number,
 ): number {
   const annualCommissions = monthlyRevenue * 12 * commissionRate;
-  return annualFee / 100 + annualCommissions; // Convert cents to dollars
+  return annualFee / 100 + annualCommissions; // Convert cents to euros
 }
 
 /**
@@ -351,7 +351,7 @@ export function checkAnnualEligibility(
 
   if (avgMonthlyRevenue < criteria.minAvgMonthlyRevenue) {
     failedCriteria.push(
-      `Need $${criteria.minAvgMonthlyRevenue / 100}/month avg revenue (have $${avgMonthlyRevenue / 100})`,
+      `Need €${criteria.minAvgMonthlyRevenue / 100}/month avg revenue (have €${avgMonthlyRevenue / 100})`,
     );
   }
 

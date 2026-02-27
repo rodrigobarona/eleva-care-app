@@ -107,7 +107,7 @@ CREATE POLICY "Admins can view all subscriptions"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -173,7 +173,7 @@ ALTER TABLE subscription_plans DISABLE ROW LEVEL SECURITY;
  *    - member: Can view org subscription (read-only)
  * 
  * 4. Platform Admin Access:
- *    - Admins/superadmins can view all subscriptions
+ *    - Admins can view all subscriptions
  *    - Useful for analytics, reporting, and support
  * 
  * 5. Deletion Protection:

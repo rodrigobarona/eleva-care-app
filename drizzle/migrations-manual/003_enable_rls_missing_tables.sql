@@ -156,7 +156,7 @@ CREATE POLICY "Admins can view all applications"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -168,14 +168,14 @@ CREATE POLICY "Admins can update applications"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -199,7 +199,7 @@ CREATE POLICY "Admins can view all roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -211,7 +211,7 @@ CREATE POLICY "Admins can insert roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -223,14 +223,14 @@ CREATE POLICY "Admins can update roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -242,7 +242,7 @@ CREATE POLICY "Admins can delete roles"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -329,7 +329,7 @@ CREATE POLICY "Admins can view all subscription events"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -390,7 +390,7 @@ CREATE POLICY "Admins can view all commissions"
     EXISTS (
       SELECT 1 FROM users
       WHERE users.workos_user_id = auth.user_id()
-      AND users.role IN ('admin', 'superadmin')
+      AND users.role = 'admin'
     )
   );
 
@@ -561,7 +561,7 @@ ALTER TABLE transaction_commissions DISABLE ROW LEVEL SECURITY;
  * 
  * 5. Admin Access:
  *    - Admins can view all data for analytics
- *    - Checked via users.role IN ('admin', 'superadmin')
+ *    - Checked via users.role = 'admin'
  *    - Consider separate admin views for better performance
  * 
  * 6. Expert Applications Security:

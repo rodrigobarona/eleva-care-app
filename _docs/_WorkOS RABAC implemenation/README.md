@@ -1,7 +1,7 @@
 # WorkOS RBAC Implementation: Complete Guide
 
-**Version:** 1.partner_admin  
-**Date:** November 13, 2partner_admin25  
+**Version:** 1.0  
+**Date:** November 13, 2025  
 **Status:** ✅ Ready for Implementation
 
 ---
@@ -12,21 +12,21 @@ This folder contains **everything you need** to implement WorkOS RBAC for the El
 
 ### 📄 Documents (4 files)
 
-1. **`WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md`** (1partner_adminpartner_admin+ pages)
+1. **`WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md`** (10+ pages)
    - Complete specification of all roles and permissions
    - Detailed descriptions and use cases
    - Permission inheritance examples
    - Testing checklists
    - **Best for:** Deep understanding, reference
 
-2. **`WORKOS-DASHBOARD-QUICK-SETUP.md`** (3partner_admin pages)
+2. **`WORKOS-DASHBOARD-QUICK-SETUP.md`** (30 pages)
    - Step-by-step configuration guide
    - Copy-paste ready permissions
    - Role creation templates
    - Verification checklist
    - **Best for:** Actual WorkOS Dashboard setup
 
-3. **`WORKOS-RBAC-VISUAL-MATRIX.md`** (4partner_admin pages)
+3. **`WORKOS-RBAC-VISUAL-MATRIX.md`** (40 pages)
    - Visual permission matrices
    - Role comparison tables
    - User journey flowcharts
@@ -98,49 +98,49 @@ A **complete, production-ready RBAC system** with:
 
 ### Phase 1: Current (Implement Now)
 
-#### 1. 🔵 Patient (`patient`)
+#### 1. 🔵 Member (`member`)
 
 - **Users:** All users initially
 - **Permissions:** 15
 - **Can:** Book appointments, browse experts, leave reviews
-- **Dashboard:** `/patient/*`
+- **Dashboard:** `/member/*`
 
 #### 2. 🟢 Expert Community (`expert_community`)
 
-- **Users:** Standard experts (2partner_admin% monthly / 12% annual commission)
-- **Permissions:** 42 (includes all Patient permissions)
+- **Users:** Standard experts (20% monthly / 12% annual commission)
+- **Permissions:** 42 (includes all Member permissions)
 - **Can:** Accept bookings, create events, manage availability
 - **Dashboard:** `/dashboard`, `/appointments`, `/events`, `/availability`
 
 #### 3. 🟡 Expert Top (`expert_top`)
 
 - **Users:** Premium experts (18% monthly / 8% annual commission)
-- **Permissions:** 49 (includes all Community permissions)
+- **Permissions:** 49 (includes all Expert Community permissions)
 - **Can:** + View analytics, custom branding
 - **Dashboard:** All Community routes + `/analytics`
 
-#### 4. 🔴 Platform Admin (`superadmin`)
+#### 4. 🔴 Platform Admin (`admin`)
 
 - **Users:** Eleva Care team
 - **Permissions:** 89 (ALL)
 - **Can:** Everything (user management, platform analytics, moderation)
 - **Dashboard:** All routes + `/admin/*`
 
-### Phase 2: Partner Features 🔮
+### Phase 2: Team Features 🔮
 
-#### 5. 🔵 Partner Member (`partner_member`)
+#### 5. 🔵 Team Member (`team_member`)
 
-- **Users:** Experts in a partner (not admin)
-- **Permissions:** 46 (Community + partner view)
-- **Can:** + View partner dashboard, shared patients, team (read-only)
-- **Dashboard:** All Community routes + `/partner` (view)
+- **Users:** Experts in a team (not admin)
+- **Permissions:** 46 (Community + team view)
+- **Can:** + View team dashboard, shared patients, team (read-only)
+- **Dashboard:** All Community routes + `/team` (view)
 
-#### 6. 🟣 Partner Admin (`partner_admin`)
+#### 6. 🟣 Team Admin (`team_admin`)
 
-- **Users:** Partner managers
-- **Permissions:** 68 (Member + partner management)
-- **Can:** + Manage team, partner settings, revenue, payouts
-- **Dashboard:** All Member routes + full `/partner/*` access
+- **Users:** Team managers
+- **Permissions:** 68 (Member + team management)
+- **Can:** + Manage team, team settings, revenue, payouts
+- **Dashboard:** All Member routes + full `/team/*` access
 
 ---
 
@@ -151,7 +151,7 @@ A **complete, production-ready RBAC system** with:
 - [ ] Create all 89 permissions in WorkOS Dashboard
 - [ ] Create 6 roles with correct priorities
 - [ ] Assign permissions to roles
-- [ ] Set default role to `patient`
+- [ ] Set default role to `member`
 - [ ] Test JWT claims
 
 **Output:** WorkOS Dashboard fully configured
@@ -179,7 +179,7 @@ A **complete, production-ready RBAC system** with:
 ### Week 4: Testing & Launch
 
 - [ ] End-to-end testing with all roles
-- [ ] Test role transitions (patient → expert, community → top)
+- [ ] Test role transitions (member → expert, community → top)
 - [ ] Test permission inheritance
 - [ ] Performance testing (RLS queries)
 - [ ] Staging deployment
@@ -211,12 +211,12 @@ Organized into **15 categories:**
 7. **Reviews** (6) - Create, view, edit, respond
 8. **Profile** (6) - View, edit patient/expert profiles
 9. **Experts** (7) - Browse, view, approve, suspend
-   1partner_admin. **Analytics** (1partner_admin) - View, export personal & platform analytics
+   10. **Analytics** (10) - View, export personal & platform analytics
 10. **Branding** (3) - Customize, upload logo, colors
 11. **Billing** (8) - View, manage subscriptions, earnings
 12. **Settings** (7) - View, edit personal & platform settings
-13. **Dashboard** (2) - View patient/expert dashboards
-14. **Partner** 🔮 (18) - View, manage partner, team, revenue
+13. **Dashboard** (2) - View member/expert dashboards
+14. **Team** 🔮 (18) - View, manage team, revenue
 15. **Platform Admin** (31) - Users, orgs, payments, moderation
 
 **Total:** 89 permissions
@@ -229,7 +229,7 @@ Organized into **15 categories:**
 
 ```
 Go to: WORKOS-DASHBOARD-QUICK-SETUP.md
-Follow: Steps 1-3 (3partner_admin-45 minutes)
+Follow: Steps 1-3 (30-45 minutes)
 Result: WorkOS fully configured
 ```
 
@@ -291,7 +291,7 @@ edit_own_events;
 
 ```typescript
 Expert Top (49) = Expert Community (42) + Exclusive (7)
-Partner Admin (68) = Partner Member (46) + Management (22)
+Team Admin (68) = Team Member (46) + Management (22)
 ```
 
 **Why:** Easy upgrades, no permission loss, clear tiers
@@ -310,11 +310,11 @@ Partner Admin (68) = Partner Member (46) + Management (22)
 ### 4. Progressive Enhancement
 
 ```
-Patient (15)
+Member (15)
   → Expert Community (+27) = 42
     → Expert Top (+7) = 49
-      → Partner Member (+4) = 46
-        → Partner Admin (+22) = 68
+      → Team Member (+4) = 46
+        → Team Admin (+22) = 68
           → Platform Admin (+21) = 89
 ```
 
@@ -331,9 +331,9 @@ Before going to production, verify:
 - [ ] 89 permissions created
 - [ ] All permission slugs match exactly (case-sensitive)
 - [ ] 6 roles created
-- [ ] Roles have correct priorities (1partner_admin, 7partner_admin, 8partner_admin, 6partner_admin, 9partner_admin, 1partner_adminpartner_admin)
+- [ ] Roles have correct priorities (10, 70, 80, 60, 90, 100)
 - [ ] Permissions correctly assigned to roles
-- [ ] Default role is `patient`
+- [ ] Default role is `member`
 - [ ] JWT includes `role` and `permissions` claims
 
 ### Application Code
@@ -351,7 +351,7 @@ Before going to production, verify:
 - [ ] Upgrade CTAs shown to users without premium features
 - [ ] Permission errors are user-friendly
 - [ ] Feature discovery works (users know what they're missing)
-- [ ] Role transitions work (patient → expert, community → top)
+- [ ] Role transitions work (member → expert, community → top)
 
 ### Testing
 
@@ -369,9 +369,9 @@ Before going to production, verify:
 
 **A:** Yes, in different organizations. A user can be:
 
-- `patient` in their personal org
+- `member` in their personal org
 - `expert_top` in their expert practice org
-- `partner_member` in a partner org
+- `team_member` in a team org
 
 WorkOS handles this via organization memberships.
 
@@ -451,18 +451,18 @@ const mockJWT = {
 3. Implement frontend UI (Week 3)
 4. Test & deploy (Week 4)
 
-### Medium Term (Q1 2partner_admin26)
+### Medium Term (Q1 2026)
 
 1. Monitor Phase 1 usage
 2. Gather user feedback
 3. Design Phase 2 (Partner) features
 4. Plan Phase 2 rollout
 
-### Long Term (Q2 2partner_admin26+)
+### Long Term (Q2 2026+)
 
 1. Launch Phase 2 (Partners)
 2. Design Phase 3 (LMS) features
-3. Create Lecturer/Student roles
+3. Add Student role (Lecturer is Stripe addon, not RBAC role)
 4. Launch learning platform
 
 ---
@@ -473,14 +473,14 @@ Track these after launch:
 
 ### Technical Metrics
 
-- JWT generation time < 1partner_adminpartner_adminms
-- Permission check latency < 1partner_adminms
+- JWT generation time < 100ms
+- Permission check latency < 10ms
 - RLS query performance (if using RLS)
 - Error rate for permission denials
 
 ### Business Metrics
 
-- % of patients who upgrade to expert
+- % of members who upgrade to expert
 - % of community experts who upgrade to top
 - Feature discovery rate (% users who see Analytics CTA)
 - Subscription conversion rate (Community → Top)
@@ -514,7 +514,7 @@ Track these after launch:
 
 ### Documentation
 
-- ✅ 2partner_adminpartner_admin+ pages of documentation
+- ✅ 10+ pages of documentation
 - ✅ Visual reference matrices
 - ✅ Step-by-step setup guide
 - ✅ Code examples
@@ -533,15 +533,15 @@ Track these after launch:
 
 ### Complete Reference
 
-- **WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md** - Complete specification (1partner_adminpartner_admin+ pages)
+- **WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md** - Complete specification (10+ pages)
 
 ### Quick Setup
 
-- **WORKOS-DASHBOARD-QUICK-SETUP.md** - Copy-paste guide (3partner_admin pages)
+- **WORKOS-DASHBOARD-QUICK-SETUP.md** - Copy-paste guide (30 pages)
 
 ### Visual Reference
 
-- **WORKOS-RBAC-VISUAL-MATRIX.md** - Permission matrices & tables (4partner_admin pages)
+- **WORKOS-RBAC-VISUAL-MATRIX.md** - Permission matrices & tables (40 pages)
 
 ### This Document
 
@@ -553,9 +553,9 @@ Track these after launch:
 
 ---
 
-**Document Version:** 1.partner_admin  
-**Created:** November 13, 2partner_admin25  
-**Last Updated:** November 13, 2partner_admin25  
+**Document Version:** 1.0  
+**Created:** November 13, 2025  
+**Last Updated:** November 13, 2025  
 **Next Review:** After Phase 1 deployment
 
 **Built with ❤️ for Eleva Care**

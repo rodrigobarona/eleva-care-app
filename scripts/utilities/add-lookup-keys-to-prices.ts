@@ -1,8 +1,9 @@
 /**
- * Add Lookup Keys to Existing Stripe Prices
+ * Add Lookup Keys to Existing Stripe Prices (EUR)
  *
  * This script adds lookup keys to existing Stripe prices
  * to enable the new lookup-key based pricing system.
+ * All prices are in EUR.
  *
  * Usage:
  *   bun scripts/utilities/add-lookup-keys-to-prices.ts
@@ -46,11 +47,19 @@ const PRICE_LOOKUP_KEY_MAP = {
   'price_1SQXF5K5Ap4Um3SpekZpC9fQ': 'community-expert-annual',
 
   // Top Expert
-  'price_1SQbV6K5Ap4Um3SpwFKRCoJo': 'top-expert-monthly', // Note: This is $155, should be $177
+  'price_1SQbV6K5Ap4Um3SpwFKRCoJo': 'top-expert-monthly', // Note: This is €155, should be €177
   'price_1SQXF5K5Ap4Um3SpzT4S3agl': 'top-expert-annual',
 
   // Lecturer Module
   'price_1SQXF5K5Ap4Um3SpQCBwSFml': 'lecturer-module-annual',
+
+  // Team Starter
+  'price_1T4tGMK5Ap4Um3SpiU1Xlubw': 'team-starter-monthly',
+  'price_1T4tGNK5Ap4Um3Spi1NIveBR': 'team-starter-annual',
+
+  // Team Professional
+  'price_1T4tGSK5Ap4Um3SpeusHgw07': 'team-professional-monthly',
+  'price_1T4tGTK5Ap4Um3SpljXwRJON': 'team-professional-annual',
 } as const;
 
 async function addLookupKeys() {
@@ -65,7 +74,7 @@ async function addLookupKeys() {
 
       // Check if price exists
       const price = await stripe.prices.retrieve(priceId);
-      console.log(`   Found: ${price.nickname || 'No nickname'} ($${price.unit_amount ? price.unit_amount / 100 : 0})`);
+      console.log(`   Found: ${price.nickname || 'No nickname'} (€${price.unit_amount ? price.unit_amount / 100 : 0})`);
 
       // Check if lookup key already set
       if (price.lookup_key) {
@@ -138,7 +147,7 @@ async function addLookupKeys() {
       if (prices.data.length > 0) {
         console.log(`✅ ${lookupKey}:`);
         console.log(`   ID: ${prices.data[0].id}`);
-        console.log(`   Amount: $${prices.data[0].unit_amount ? prices.data[0].unit_amount / 100 : 0}`);
+        console.log(`   Amount: €${prices.data[0].unit_amount ? prices.data[0].unit_amount / 100 : 0}`);
         console.log(`   Active: ${prices.data[0].active}`);
       } else {
         console.log(`❌ ${lookupKey}: Not found`);

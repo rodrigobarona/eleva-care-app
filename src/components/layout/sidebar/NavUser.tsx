@@ -170,7 +170,7 @@ export function NavUser() {
                   <span>My Notifications</span>
                 </Link>
               </DropdownMenuItem>
-              <RequireRole roles={['superadmin']}>
+              <RequireRole roles={['admin']}>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/admin">

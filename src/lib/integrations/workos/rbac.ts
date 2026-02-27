@@ -12,10 +12,10 @@
  *
  * @see _docs/_WorkOS RABAC implemenation/WORKOS-RBAC-IMPLEMENTATION-GUIDE.md
  */
-import type { WorkOSPermission, WorkOSRole, WorkOSUserWithRBAC } from '@/types/workos-rbac';
-import { WORKOS_PERMISSIONS, WORKOS_ROLE_HIERARCHY, WORKOS_ROLES } from '@/types/workos-rbac';
+import type { StripeEntitlement, WorkOSPermission, WorkOSRole, WorkOSUserWithRBAC } from '@/types/workos-rbac';
+import { STRIPE_ENTITLEMENTS, WORKOS_PERMISSIONS, WORKOS_ROLE_HIERARCHY, WORKOS_ROLES } from '@/types/workos-rbac';
 import * as Sentry from '@sentry/nextjs';
-import { withAuth } from '@workos-inc/authkit-nextjs';
+import { getTokenClaims, withAuth } from '@workos-inc/authkit-nextjs';
 import { cache } from 'react';
 
 const { logger } = Sentry;
@@ -71,11 +71,11 @@ export const getCurrentUser = cache(async (): Promise<WorkOSUserWithRBAC | null>
 /**
  * Get current user's role from JWT
  *
- * @returns Role slug or 'patient' as default
+ * @returns Role slug or 'member' as default
  */
 export async function getCurrentUserRole(): Promise<WorkOSRole> {
   const user = await getCurrentUser();
-  return user?.role || WORKOS_ROLES.PATIENT;
+  return user?.role || WORKOS_ROLES.MEMBER;
 }
 
 /**
@@ -138,7 +138,7 @@ export async function hasAnyRole(roles: WorkOSRole[]): Promise<boolean> {
  *
  * @example
  * ```ts
- * // Returns true for expert_community, expert_top, partner_admin, superadmin
+ * // Returns true for expert_community, expert_top, team_admin, admin
  * if (await hasRoleLevel(WORKOS_ROLES.EXPERT_COMMUNITY)) {
  *   // Show expert features
  * }
@@ -282,17 +282,10 @@ export async function requireAllPermissions(permissions: WorkOSPermission[]): Pr
 // ============================================================================
 
 /**
- * Check if current user is an admin (superadmin)
+ * Check if current user is an admin
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.SUPERADMIN);
-}
-
-/**
- * Check if current user is a superadmin
- */
-export async function isSuperAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.SUPERADMIN);
+  return hasRole(WORKOS_ROLES.ADMIN);
 }
 
 /**
@@ -318,25 +311,25 @@ export async function isCommunityExpert(): Promise<boolean> {
 }
 
 /**
- * Check if current user is a partner member or admin
+ * Check if current user is a team member or team admin
  */
-export async function isPartner(): Promise<boolean> {
+export async function isTeamMember(): Promise<boolean> {
   const role = await getCurrentUserRole();
-  return role === WORKOS_ROLES.PARTNER_MEMBER || role === WORKOS_ROLES.PARTNER_ADMIN;
+  return role === WORKOS_ROLES.TEAM_MEMBER || role === WORKOS_ROLES.TEAM_ADMIN;
 }
 
 /**
- * Check if current user is a partner admin
+ * Check if current user is a team admin
  */
-export async function isPartnerAdmin(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.PARTNER_ADMIN);
+export async function isTeamAdmin(): Promise<boolean> {
+  return hasRole(WORKOS_ROLES.TEAM_ADMIN);
 }
 
 /**
- * Check if current user is a patient (default role)
+ * Check if current user is a member (base/default role)
  */
-export async function isPatient(): Promise<boolean> {
-  return hasRole(WORKOS_ROLES.PATIENT);
+export async function isMember(): Promise<boolean> {
+  return hasRole(WORKOS_ROLES.MEMBER);
 }
 
 // ============================================================================
@@ -397,10 +390,10 @@ export async function canViewExpertDashboard(): Promise<boolean> {
 }
 
 /**
- * Check if current user can view patient dashboard
+ * Check if current user can view member dashboard
  */
-export async function canViewPatientDashboard(): Promise<boolean> {
-  return hasPermission(WORKOS_PERMISSIONS.DASHBOARD_VIEW_PATIENT);
+export async function canViewMemberDashboard(): Promise<boolean> {
+  return hasPermission(WORKOS_PERMISSIONS.DASHBOARD_VIEW_MEMBER);
 }
 
 // ============================================================================
@@ -476,4 +469,132 @@ export function checkRole(user: WorkOSUserWithRBAC | null, role: WorkOSRole): bo
 export function checkAnyRole(user: WorkOSUserWithRBAC | null, roles: WorkOSRole[]): boolean {
   if (!user?.role) return false;
   return roles.includes(user.role);
+}
+
+// ============================================================================
+// ENTITLEMENT CHECKING FUNCTIONS (Stripe via WorkOS JWT)
+// ============================================================================
+
+/**
+ * Get current user's entitlements from JWT
+ *
+ * Entitlements are Stripe subscription features automatically included
+ * in the JWT access token via the WorkOS Stripe Add-on.
+ *
+ * @returns Array of entitlement lookup keys
+ */
+export async function getCurrentUserEntitlements(): Promise<StripeEntitlement[]> {
+  try {
+    const claims = await getTokenClaims();
+    return (claims?.entitlements as StripeEntitlement[]) || [];
+  } catch (error) {
+    logger.error('RBAC error getting entitlements', { error });
+    return [];
+  }
+}
+
+/**
+ * Check if current user has a specific entitlement
+ *
+ * @param entitlement - Entitlement key to check
+ * @returns True if user has the entitlement
+ *
+ * @example
+ * ```ts
+ * if (await hasEntitlement(STRIPE_ENTITLEMENTS.UNLIMITED_SERVICES)) {
+ *   // Allow creating unlimited services
+ * }
+ * ```
+ */
+export async function hasEntitlement(entitlement: StripeEntitlement): Promise<boolean> {
+  const entitlements = await getCurrentUserEntitlements();
+  return entitlements.includes(entitlement);
+}
+
+/**
+ * Check if current user has any of the specified entitlements
+ *
+ * @param requiredEntitlements - Array of entitlement keys to check
+ * @returns True if user has any of the entitlements
+ */
+export async function hasAnyEntitlement(requiredEntitlements: StripeEntitlement[]): Promise<boolean> {
+  const entitlements = await getCurrentUserEntitlements();
+  return requiredEntitlements.some((ent) => entitlements.includes(ent));
+}
+
+/**
+ * Check if current user has all specified entitlements
+ *
+ * @param requiredEntitlements - Array of entitlement keys to check
+ * @returns True if user has all entitlements
+ */
+export async function hasAllEntitlements(requiredEntitlements: StripeEntitlement[]): Promise<boolean> {
+  const entitlements = await getCurrentUserEntitlements();
+  return requiredEntitlements.every((ent) => entitlements.includes(ent));
+}
+
+/**
+ * Require user to have specific entitlement (throws if not)
+ *
+ * @param entitlement - Entitlement key required
+ * @throws Error if user doesn't have the entitlement
+ *
+ * @example
+ * ```ts
+ * await requireEntitlement(STRIPE_ENTITLEMENTS.ADVANCED_ANALYTICS);
+ * // User has the entitlement, proceed
+ * ```
+ */
+export async function requireEntitlement(entitlement: StripeEntitlement): Promise<void> {
+  if (!(await hasEntitlement(entitlement))) {
+    throw new Error(`Entitlement required: ${entitlement}. Upgrade your subscription to access this feature.`);
+  }
+}
+
+/**
+ * Require user to have any of the specified entitlements (throws if not)
+ *
+ * @param entitlements - Array of entitlement keys (user needs at least one)
+ * @throws Error if user doesn't have any of the entitlements
+ */
+export async function requireAnyEntitlement(entitlements: StripeEntitlement[]): Promise<void> {
+  if (!(await hasAnyEntitlement(entitlements))) {
+    throw new Error(`One of these entitlements required: ${entitlements.join(', ')}`);
+  }
+}
+
+// ============================================================================
+// SYNCHRONOUS ENTITLEMENT CHECK (for client-side use)
+// ============================================================================
+
+/**
+ * Check entitlement synchronously given a user object with entitlements
+ *
+ * Use this for client-side entitlement checks where you already have the claims.
+ *
+ * @param entitlements - Array of entitlement strings from JWT claims
+ * @param entitlement - Entitlement to check
+ * @returns True if entitlement is present
+ */
+export function checkEntitlement(
+  entitlements: string[] | undefined,
+  entitlement: StripeEntitlement,
+): boolean {
+  if (!entitlements) return false;
+  return entitlements.includes(entitlement);
+}
+
+/**
+ * Check any entitlements synchronously
+ *
+ * @param entitlements - Array of entitlement strings from JWT claims
+ * @param requiredEntitlements - Entitlements to check
+ * @returns True if user has any of the entitlements
+ */
+export function checkAnyEntitlement(
+  entitlements: string[] | undefined,
+  requiredEntitlements: StripeEntitlement[],
+): boolean {
+  if (!entitlements) return false;
+  return requiredEntitlements.some((ent) => entitlements.includes(ent));
 }

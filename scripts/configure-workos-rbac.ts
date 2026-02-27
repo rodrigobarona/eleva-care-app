@@ -11,7 +11,7 @@
  */
 
 // ============================================================================
-// PERMISSIONS DEFINITION (89 total)
+// PERMISSIONS DEFINITION (132 total)
 // ============================================================================
 
 interface Permission {
@@ -94,8 +94,8 @@ const PERMISSIONS: Permission[] = [
   },
   {
     slug: 'patients:view_all',
-    name: 'View all partner patients',
-    description: 'View all patients in the partner (partner admin)',
+    name: 'View all team patient records',
+    description: 'View all patient records in the team (team admin)',
   },
   {
     slug: 'patients:view_history',
@@ -245,12 +245,12 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'profile:view_own',
     name: 'View own profile',
-    description: 'View your patient profile',
+    description: 'View your profile',
   },
   {
     slug: 'profile:edit_own',
     name: 'Edit own profile',
-    description: 'Edit your patient profile',
+    description: 'Edit your profile',
   },
   {
     slug: 'profile:view_expert',
@@ -265,7 +265,7 @@ const PERMISSIONS: Permission[] = [
   {
     slug: 'profile:preview',
     name: 'Preview profile',
-    description: 'Preview how patients see your profile',
+    description: 'Preview how members see your profile',
   },
   {
     slug: 'profile:manage_link',
@@ -419,14 +419,14 @@ const PERMISSIONS: Permission[] = [
     description: 'Add or remove payment methods',
   },
   {
-    slug: 'billing:manage_clinic_sub',
-    name: 'Manage partner subscription',
-    description: 'Manage partner subscription (partner admin)',
+    slug: 'billing:manage_team_sub',
+    name: 'Manage team subscription',
+    description: 'Manage team subscription plan (team admin)',
   },
   {
-    slug: 'billing:view_clinic_billing',
-    name: 'View partner billing',
-    description: 'View partner billing history (partner admin)',
+    slug: 'billing:view_team_billing',
+    name: 'View team billing',
+    description: 'View team billing history (team admin)',
   },
 
   // ============================================================================
@@ -477,107 +477,112 @@ const PERMISSIONS: Permission[] = [
     description: 'Access expert dashboard',
   },
   {
-    slug: 'dashboard:view_patient',
-    name: 'View patient dashboard',
-    description: 'Access patient dashboard',
+    slug: 'dashboard:view_member',
+    name: 'View member dashboard',
+    description: 'Access member dashboard',
   },
 
   // ============================================================================
-  // Partner (18) - Phase 2
+  // Team + Schedule + Revenue (19) - Phase 2
   // ============================================================================
   {
-    slug: 'partner:view_dashboard',
-    name: 'View partner dashboard',
-    description: 'View partner overview (read-only for members)',
+    slug: 'team:view_dashboard',
+    name: 'View team dashboard',
+    description: 'View team overview',
   },
   {
-    slug: 'partner:manage_settings',
-    name: 'Manage partner settings',
-    description: 'Manage partner configuration (admin)',
+    slug: 'team:manage_settings',
+    name: 'Manage team settings',
+    description: 'Manage team settings (team admin)',
   },
   {
-    slug: 'partner:manage_branding',
-    name: 'Manage partner branding',
-    description: 'Manage partner logo, colors (admin)',
+    slug: 'team:manage_branding',
+    name: 'Manage team branding',
+    description: 'Manage team logo and colors (team admin)',
   },
   {
-    slug: 'partner:view_analytics',
-    name: 'View partner analytics',
-    description: 'View partner-wide analytics (admin)',
+    slug: 'team:view_analytics',
+    name: 'View team analytics',
+    description: 'View team-wide analytics (team admin)',
   },
   {
-    slug: 'partner:view_patients',
-    name: 'View partner patients',
-    description: 'View shared partner patients',
+    slug: 'team:view_patients',
+    name: 'View team patients',
+    description: 'View shared team patients',
   },
   {
-    slug: 'partner:export_data',
-    name: 'Export partner data',
-    description: 'Export partner data (admin)',
+    slug: 'team:export_data',
+    name: 'Export team data',
+    description: 'Export team data (team admin)',
   },
   {
     slug: 'team:view_members',
     name: 'View team members',
-    description: 'View partner team members',
+    description: 'View team members',
   },
   {
     slug: 'team:invite_members',
     name: 'Invite team members',
-    description: 'Invite new team members (admin)',
+    description: 'Invite new team members (team admin)',
   },
   {
     slug: 'team:remove_members',
     name: 'Remove team members',
-    description: 'Remove team members (admin)',
+    description: 'Remove team members (team admin)',
   },
   {
     slug: 'team:manage_roles',
     name: 'Manage team roles',
-    description: 'Assign and change member roles (admin)',
+    description: 'Assign and change team member roles (team admin)',
   },
   {
     slug: 'team:view_performance',
     name: 'View team performance',
-    description: 'View team member performance (admin)',
+    description: 'View team member performance (team admin)',
   },
   {
-    slug: 'schedule:manage_clinic',
-    name: 'Manage partner schedule',
-    description: 'Manage multi-practitioner schedule (admin)',
+    slug: 'schedule:manage_team',
+    name: 'Manage team schedule',
+    description: 'Manage multi-practitioner schedule (team admin)',
   },
   {
     slug: 'schedule:manage_rooms',
     name: 'Manage rooms',
-    description: 'Manage partner rooms/locations (admin)',
+    description: 'Manage team rooms and locations (team admin)',
   },
   {
     slug: 'schedule:view_capacity',
     name: 'View capacity planning',
-    description: 'View capacity planning (admin)',
+    description: 'View capacity planning (team admin)',
   },
   {
     slug: 'revenue:view_overview',
     name: 'View revenue overview',
-    description: 'View partner revenue overview (admin)',
+    description: 'View team revenue overview (team admin)',
   },
   {
     slug: 'revenue:view_splits',
     name: 'View commission splits',
-    description: 'View commission splits (admin)',
+    description: 'View commission splits (team admin)',
   },
   {
     slug: 'revenue:manage_payouts',
     name: 'Manage payouts',
-    description: 'Manage payout schedules (admin)',
+    description: 'Manage payout schedules (team admin)',
+  },
+  {
+    slug: 'revenue:view_invoices',
+    name: 'View invoices',
+    description: 'View invoices (team admin)',
   },
   {
     slug: 'revenue:export_financial',
     name: 'Export financial data',
-    description: 'Export financial reports (admin)',
+    description: 'Export financial reports (team admin)',
   },
 
   // ============================================================================
-  // Platform Admin (22)
+  // Platform Admin (32)
   // ============================================================================
   {
     slug: 'users:view_all',
@@ -689,10 +694,60 @@ const PERMISSIONS: Permission[] = [
     name: 'Export audit logs',
     description: 'Export audit logs for compliance',
   },
+  {
+    slug: 'audit:view_reports',
+    name: 'View audit reports',
+    description: 'View audit reports',
+  },
+  {
+    slug: 'audit:generate_reports',
+    name: 'Generate audit reports',
+    description: 'Generate audit reports',
+  },
+  {
+    slug: 'categories:create',
+    name: 'Create categories',
+    description: 'Create categories',
+  },
+  {
+    slug: 'categories:edit',
+    name: 'Edit categories',
+    description: 'Edit categories',
+  },
+  {
+    slug: 'categories:delete',
+    name: 'Delete categories',
+    description: 'Delete categories',
+  },
+  {
+    slug: 'categories:manage_tags',
+    name: 'Manage tags',
+    description: 'Manage tags',
+  },
+  {
+    slug: 'support:view_tickets',
+    name: 'View support tickets',
+    description: 'View support tickets',
+  },
+  {
+    slug: 'support:respond_tickets',
+    name: 'Respond to tickets',
+    description: 'Respond to support tickets',
+  },
+  {
+    slug: 'support:escalate',
+    name: 'Escalate tickets',
+    description: 'Escalate support tickets',
+  },
+  {
+    slug: 'support:close_tickets',
+    name: 'Close tickets',
+    description: 'Close support tickets',
+  },
 ];
 
 // ============================================================================
-// ROLES DEFINITION (6 total)
+// ROLES DEFINITION (7 total)
 // ============================================================================
 
 interface RoleDefinition {
@@ -702,8 +757,8 @@ interface RoleDefinition {
   permissions: string[];
 }
 
-// Patient permissions (15)
-const PATIENT_PERMISSIONS = [
+// Member permissions (16)
+const MEMBER_PERMISSIONS = [
   'appointments:view_own',
   'appointments:create',
   'appointments:cancel_own',
@@ -719,12 +774,12 @@ const PATIENT_PERMISSIONS = [
   'profile:edit_own',
   'billing:view_own',
   'billing:methods_manage',
-  'dashboard:view_patient',
+  'dashboard:view_member',
 ];
 
-// Expert Community permissions (42) = Patient (16) + Expert (26)
+// Expert Community permissions (52) = Member (16) + Expert (36)
 const EXPERT_COMMUNITY_PERMISSIONS = [
-  ...PATIENT_PERMISSIONS,
+  ...MEMBER_PERMISSIONS,
   'dashboard:view_expert',
   'appointments:view_incoming',
   'appointments:manage_own',
@@ -763,7 +818,7 @@ const EXPERT_COMMUNITY_PERMISSIONS = [
   'settings:security',
 ];
 
-// Expert Top permissions (49) = Expert Community (42) + Top Exclusive (7)
+// Expert Top permissions (60) = Expert Community (52) + Top Exclusive (8)
 const EXPERT_TOP_PERMISSIONS = [
   ...EXPERT_COMMUNITY_PERMISSIONS,
   'analytics:view',
@@ -776,26 +831,26 @@ const EXPERT_TOP_PERMISSIONS = [
   'branding:custom_colors',
 ];
 
-// Partner Member permissions (45) = Expert Community (42) + Partner View (3)
-const PARTNER_MEMBER_PERMISSIONS = [
+// Team Member permissions (55) = Expert Community (52) + Team View (3)
+const TEAM_MEMBER_PERMISSIONS = [
   ...EXPERT_COMMUNITY_PERMISSIONS,
-  'partner:view_dashboard',
-  'partner:view_patients',
+  'team:view_dashboard',
+  'team:view_patients',
   'team:view_members',
 ];
 
-// Partner Admin permissions (68) = Partner Member (45) + Partner Management (23)
-const PARTNER_ADMIN_PERMISSIONS = [
-  ...PARTNER_MEMBER_PERMISSIONS,
-  'partner:manage_settings',
-  'partner:manage_branding',
-  'partner:view_analytics',
-  'partner:export_data',
+// Team Admin permissions (77) = Team Member (55) + Team Management (22)
+const TEAM_ADMIN_PERMISSIONS = [
+  ...TEAM_MEMBER_PERMISSIONS,
+  'team:manage_settings',
+  'team:manage_branding',
+  'team:view_analytics',
+  'team:export_data',
   'team:invite_members',
   'team:remove_members',
   'team:manage_roles',
   'team:view_performance',
-  'schedule:manage_clinic',
+  'schedule:manage_team',
   'schedule:manage_rooms',
   'schedule:view_capacity',
   'patients:view_all',
@@ -805,20 +860,25 @@ const PARTNER_ADMIN_PERMISSIONS = [
   'revenue:view_overview',
   'revenue:view_splits',
   'revenue:manage_payouts',
+  'revenue:view_invoices',
   'revenue:export_financial',
-  'billing:manage_clinic_sub',
-  'billing:view_clinic_billing',
+  'billing:manage_team_sub',
+  'billing:view_team_billing',
 ];
 
-// Platform Admin permissions (89) = ALL
-const SUPERADMIN_PERMISSIONS = PERMISSIONS.map((p) => p.slug);
+// Owner permissions (77) = Team Admin (77) -- same as team_admin but with higher priority
+// Owner is a WorkOS system default role for organization creators
+const OWNER_PERMISSIONS = [...TEAM_ADMIN_PERMISSIONS];
+
+// Platform Admin permissions (132) = ALL
+const ADMIN_PERMISSIONS = PERMISSIONS.map((p) => p.slug);
 
 const ROLES: RoleDefinition[] = [
   {
-    slug: 'patient',
-    name: 'Patient',
-    description: 'Basic patient role for booking appointments and accessing healthcare journey',
-    permissions: PATIENT_PERMISSIONS,
+    slug: 'member',
+    name: 'Member',
+    description: 'Base role for all registered users. Can book appointments and access member features',
+    permissions: MEMBER_PERMISSIONS,
   },
   {
     slug: 'expert_community',
@@ -835,22 +895,28 @@ const ROLES: RoleDefinition[] = [
     permissions: EXPERT_TOP_PERMISSIONS,
   },
   {
-    slug: 'partner_member',
-    name: 'Partner Member',
-    description: 'Expert who is a member of a partner (read-only partner access)',
-    permissions: PARTNER_MEMBER_PERMISSIONS,
+    slug: 'team_member',
+    name: 'Team Member',
+    description: 'Member of a team organization with read-only team access',
+    permissions: TEAM_MEMBER_PERMISSIONS,
   },
   {
-    slug: 'partner_admin',
-    name: 'Partner Admin',
-    description: 'Administrator of a partner organization with full management access',
-    permissions: PARTNER_ADMIN_PERMISSIONS,
+    slug: 'team_admin',
+    name: 'Team Admin',
+    description: 'Administrator of a team organization with full management access',
+    permissions: TEAM_ADMIN_PERMISSIONS,
   },
   {
-    slug: 'superadmin',
-    name: 'Platform Admin',
+    slug: 'owner',
+    name: 'Owner',
+    description: 'Owner of a team organization with full management, billing, and deletion access',
+    permissions: OWNER_PERMISSIONS,
+  },
+  {
+    slug: 'admin',
+    name: 'Admin',
     description: 'Platform administrator with full system access (Eleva Care team only)',
-    permissions: SUPERADMIN_PERMISSIONS,
+    permissions: ADMIN_PERMISSIONS,
   },
 ];
 
@@ -901,7 +967,7 @@ async function printSetupInstructions(): Promise<void> {
   console.log('   Go to: https://dashboard.workos.com → RBAC\n');
 
   console.log('─────────────────────────────────────────────────────────────────────');
-  console.log('STEP 1: CREATE PERMISSIONS (89 total)');
+  console.log('STEP 1: CREATE PERMISSIONS (132 total)');
   console.log('─────────────────────────────────────────────────────────────────────');
   console.log('\nGo to RBAC → Permissions → Create Permission\n');
   console.log('Copy-paste each permission below:\n');
@@ -914,7 +980,7 @@ async function printSetupInstructions(): Promise<void> {
   }
 
   console.log('\n─────────────────────────────────────────────────────────────────────');
-  console.log('STEP 2: CREATE ROLES (6 total)');
+  console.log('STEP 2: CREATE ROLES (7 total)');
   console.log('─────────────────────────────────────────────────────────────────────');
   console.log('\nGo to RBAC → Roles → Create Role\n');
 
@@ -931,7 +997,7 @@ async function printSetupInstructions(): Promise<void> {
   console.log('STEP 3: SET DEFAULT ROLE');
   console.log('─────────────────────────────────────────────────────────────────────');
   console.log('\nGo to RBAC → Configuration → Default Role');
-  console.log('Select: patient');
+  console.log('Select: member');
   console.log('\n═══════════════════════════════════════════════════════════════════\n');
 }
 

@@ -19,7 +19,7 @@ A **comprehensive dashboard architecture redesign** with:
 5. `DASHBOARD-MENU-IMPLEMENTATION.md` - Developer guide
 6. `DASHBOARD-MENU-VISUAL-HIERARCHY.md` - Visual diagrams
 7. `AVAILABILITY-SCHEDULES-SPECIFICATION.md` - **NEW:** Multi-schedule system
-8. `PATIENT-PORTAL-SPECIFICATION.md` - **NEW:** Patient dashboard & reviews
+8. `PATIENT-PORTAL-SPECIFICATION.md` - **NEW:** Member dashboard & reviews
 
 ---
 
@@ -38,12 +38,12 @@ A **comprehensive dashboard architecture redesign** with:
 ```
 Create Multiple Schedules:
 ├─ "Remote Work" (Mon-Fri, 9am-5pm, Video)
-├─ "Partner Tuesdays" (Tue/Thu, 2pm-6pm, In-person)
+├─ "Team Tuesdays" (Tue/Thu, 2pm-6pm, In-person)
 └─ "Evening Sessions" (Mon-Thu, 7pm-9pm, Remote)
 
 Assign to Event Types:
 ├─ "Online Consultation" → Uses "Remote Work"
-└─ "In-Person Session" → Uses "Partner Tuesdays"
+└─ "In-Person Session" → Uses "Team Tuesdays"
 ```
 
 **Features:**
@@ -52,7 +52,7 @@ Assign to Event Types:
 - ✅ Each with own hours, location, timezone
 - ✅ Assign different schedule to each event type
 - ✅ Perfect for hybrid work (remote + in-person)
-- ✅ Perfect for multi-partner experts
+- ✅ Perfect for multi-team experts
 
 **Implementation:** 3 weeks (Phase 1B)
 
@@ -94,19 +94,19 @@ Option B: External Calendar (Optional Enhancement)
 
 ---
 
-### 3. **Patient Portal & Review System** (Like Airbnb) ✨
+### 3. **Member Portal & Review System** (Like Airbnb) ✨
 
 **Problem Solved:**
 
-- ❌ Old: No patient dashboard
-- ❌ Patients can't view their history
+- ❌ Old: No member dashboard
+- ❌ Members can't view their history
 - ❌ No way to leave feedback/reviews
 - ❌ Experts have no social proof
 
 **Solution:**
 
 ```
-Patient Portal:
+Member Portal:
 ├─ 📊 Dashboard (overview, upcoming appointments)
 ├─ 📅 Appointments (view, reschedule, join)
 ├─ 📝 Session Notes (expert notes & recommendations)
@@ -153,10 +153,10 @@ Review System (Like Airbnb):
 
 ```
 📊 Overview
-📅 Appointments → Upcoming | Past | Calendar | Patients
+📅 Appointments → Upcoming | Past | Calendar | Members
 🗓️ Availability → Schedules (Multiple) | Limits | Calendar Connections
 🔗 Event Types → All | Create
-📈 Analytics → Overview | Revenue | Patients | Performance (Top tier)
+📈 Analytics → Overview | Revenue | Members | Performance (Top tier)
 👤 Profile → Expert Profile | Preview | Link
 💳 Billing → Subscription | Payments | Payouts | Invoices
 ⚙️ Settings → Account | Notifications | Integrations | Security
@@ -164,7 +164,7 @@ Review System (Like Airbnb):
 
 ---
 
-### 👨‍💼 Patient Portal 🆕
+### 👨‍💼 Member Portal 🆕
 
 ```
 📊 Overview
@@ -179,7 +179,7 @@ Review System (Like Airbnb):
 
 ---
 
-### 🏥 Partner Dashboard (Future Phase 2)
+### 🏥 Team Dashboard (Future Phase 2)
 
 ```
 PERSONAL
@@ -189,10 +189,10 @@ PERSONAL
   🔗 My Event Types
 
 CLINIC
-  🏥 Partner Overview
+  🏥 Team Overview
   👥 Team → Members | Invite | Roles
   📅 Schedule → Multi-calendar | Rooms
-  👨‍👩‍👧‍👦 Patients → All | Records | Insights
+  👨‍👩‍👧‍👦 Members → All | Records | Insights
   📊 Analytics → Revenue | Performance | Reports
   💼 Settings → Organization | Branding | Billing
   💳 Revenue → Overview | Splits | Payouts
@@ -204,8 +204,8 @@ CLINIC
 
 ```
 🏢 Platform Overview
-👥 Users → All | Experts | Patients
-🏥 Organizations → All | Partners | Details
+👥 Users → All | Experts | Members
+🏥 Organizations → All | Teams | Details
 📊 Platform Analytics → Growth | Revenue | Engagement
 💳 Payments → Transactions | Transfers | Disputes
 🏷️ Categories → Specialties | Services | Tags
@@ -222,7 +222,7 @@ CLINIC
 Week 1-2:   Navigation Restructure (Phase 1A)
 Week 3-5:   Multiple Schedules (Phase 1B)
 Week 6-8:   Optional Calendar + Built-in View (Phase 1C)
-Week 9-12:  Patient Portal & Reviews (Phase 1D)
+Week 9-12:  Member Portal & Reviews (Phase 1D)
 ```
 
 **Effort:** 1-2 developers full-time  
@@ -256,7 +256,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 
 ### User Engagement
 
-- **Patient Portal:** Patients return to view history & reviews
+- **Member Portal:** Members return to view history & reviews
 - **Reviews:** Social proof drives more bookings
 - **Schedule Flexibility:** Experts can offer more availability
 
@@ -268,9 +268,9 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 
 ### Retention
 
-- **Patient Portal:** Patients feel invested in platform
-- **Session Notes:** Valuable content brings patients back
-- **Reviews:** Two-way engagement (expert + patient)
+- **Member Portal:** Members feel invested in platform
+- **Session Notes:** Valuable content brings members back
+- **Reviews:** Two-way engagement (expert + member)
 
 ---
 
@@ -349,7 +349,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - Medical conditions
 - Treatment details
 - Personal health information
-- Other patients' info
+- Other members' info
 ```
 
 ---
@@ -372,10 +372,10 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - ✅ Multiple schedules system
 - ✅ Optional calendar integration
 - ✅ Built-in calendar view
-- ✅ Complete patient portal
+- ✅ Complete member portal
 - ✅ Airbnb-style review system
 - ✅ Role-based navigation
-- ✅ Scalable for partners & LMS
+- ✅ Scalable for teams & LMS
 
 ### Ready to Build
 
@@ -395,7 +395,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - [ ] All navigation routes working
 - [ ] Multiple schedules functional
 - [ ] Calendar works without external integration
-- [ ] Patient portal accessible
+- [ ] Member portal accessible
 - [ ] Reviews can be submitted & displayed
 - [ ] Zero 404 errors
 - [ ] WCAG AA accessible
@@ -430,7 +430,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - 💻 For devs: `DASHBOARD-MENU-IMPLEMENTATION.md`
 - 🎨 For design: `DASHBOARD-MENU-VISUAL-HIERARCHY.md`
 - 📅 Schedules: `AVAILABILITY-SCHEDULES-SPECIFICATION.md`
-- 👥 Patient portal: `PATIENT-PORTAL-SPECIFICATION.md`
+- 👥 Member portal: `PATIENT-PORTAL-SPECIFICATION.md`
 
 ### Contact
 
@@ -452,11 +452,11 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ### This Redesign
 
 - ✅ Researched 5 industry leaders
-- ✅ Designed for current + future (partners, LMS)
+- ✅ Designed for current + future (teams, LMS)
 - ✅ Multiple schedules like Cal.com
 - ✅ Optional calendar (removes barrier)
 - ✅ Built-in calendar view
-- ✅ Complete patient portal
+- ✅ Complete member portal
 - ✅ Airbnb-style reviews (self-hosted)
 - ✅ 70+ pages of documentation
 - ✅ Complete code examples
@@ -471,8 +471,8 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 This is a **production-ready, enterprise-grade dashboard architecture** that:
 
 - Solves immediate problems (single schedule, mandatory calendar)
-- Adds missing features (patient portal, reviews)
-- Scales for future growth (partners, LMS)
+- Adds missing features (member portal, reviews)
+- Scales for future growth (teams, LMS)
 - Saves $400K+/year (self-hosted vs third-party)
 - Follows industry best practices
 - Includes complete implementation roadmap
