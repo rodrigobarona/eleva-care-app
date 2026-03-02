@@ -35,6 +35,13 @@ initBotId({
         checkLevel: 'basic', // Free on all plans including Hobby
       },
     },
+    {
+      path: '/api/create-pack-checkout',
+      method: 'POST',
+      advancedOptions: {
+        checkLevel: 'basic',
+      },
+    },
 
     // 🎯 HIGH PRIORITY: Meeting Creation Server Actions
     // Note: Server actions are invoked from pages, so we protect the pages that use them
