@@ -15,7 +15,16 @@ import {
 } from '@/components/layout/sidebar/sidebar';
 import { useIsExpert } from '@/components/shared/providers/AuthorizationProvider';
 import { useUser } from '@clerk/nextjs';
-import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
+import {
+  Bell,
+  Calendar,
+  ExternalLink,
+  Leaf,
+  LifeBuoy,
+  type LucideIcon,
+  Package,
+  User,
+} from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -38,6 +47,16 @@ const mainItems: SidebarItem[] = [
     items: [
       { title: 'All Events', url: '/booking/events' },
       { title: 'Create Event', url: '/booking/events/new' },
+    ],
+  },
+  {
+    title: 'Session Packs',
+    url: '/booking/packs',
+    icon: Package,
+    items: [
+      { title: 'All Packs', url: '/booking/packs' },
+      { title: 'Create Pack', url: '/booking/packs/new' },
+      { title: 'Purchases', url: '/booking/packs/purchases' },
     ],
   },
   {

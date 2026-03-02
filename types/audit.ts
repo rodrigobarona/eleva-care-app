@@ -34,6 +34,11 @@ export const MEETING_CREATED = 'MEETING_CREATED' as const;
 export const MEETING_UPDATED = 'MEETING_UPDATED' as const;
 export const MEETING_CANCELLED = 'MEETING_CANCELLED' as const;
 
+// Session Pack Management
+export const PACK_CREATED = 'PACK_CREATED' as const;
+export const PACK_UPDATED = 'PACK_UPDATED' as const;
+export const PACK_DELETED = 'PACK_DELETED' as const;
+
 // Schedule Management
 export const SCHEDULE_UPDATED = 'SCHEDULE_UPDATED' as const;
 export const BLOCKED_DATE_ADDED = 'BLOCKED_DATE_ADDED' as const;
@@ -79,6 +84,11 @@ export type AuditEventType =
   | typeof MEETING_UPDATED
   | typeof MEETING_CANCELLED
 
+  // Session Pack Management
+  | typeof PACK_CREATED
+  | typeof PACK_UPDATED
+  | typeof PACK_DELETED
+
   // Schedule Management
   | typeof SCHEDULE_UPDATED
   | typeof BLOCKED_DATE_ADDED
@@ -112,6 +122,7 @@ export type AuditResourceType =
   | 'user'
   | 'profile'
   | 'legal_agreement'
+  | 'session_pack'
   | 'system'
   | 'security_event';
 
