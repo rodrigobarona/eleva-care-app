@@ -554,15 +554,22 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     }
   }
 
-  const promoCodeParams: Stripe.PromotionCodeCreateParams = {
-    coupon: coupon.id,
+  // Stripe API 2025-09-30.clover moved the top-level `coupon` field
+  // into a polymorphic `promotion` hash on promotionCodes.create.
+  const promoCodeParams = {
+    promotion: {
+      type: 'coupon' as const,
+      coupon: coupon.id,
+    },
     max_redemptions: sessionsCount,
     expires_at: expiresAtUnix,
     metadata: { packId, type: 'session_pack' },
+  } as Stripe.PromotionCodeCreateParams & {
+    promotion: { type: 'coupon'; coupon: string };
   };
 
   if (customerId) {
-    promoCodeParams.customer = customerId;
+    (promoCodeParams as Stripe.PromotionCodeCreateParams).customer = customerId;
   }
 
   const promoIdempotencyKey = `promo:pack:${session.id}`;

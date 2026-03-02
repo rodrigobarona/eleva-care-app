@@ -24,7 +24,7 @@ import {
 } from '@/lib/constants/roles';
 import { defaultLocale, locales } from '@/lib/i18n';
 import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkClient, clerkMiddleware } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -180,38 +180,49 @@ function matchPatternsArray(path: string, patterns: readonly string[]): boolean 
 }
 
 /**
+ * Minimal shape of the auth object returned by Clerk's `auth()` in middleware.
+ * Avoids coupling to Clerk's internal type exports which vary across versions.
+ */
+interface MiddlewareAuthObject {
+  userId: string | null;
+  sessionClaims?: {
+    metadata?: unknown;
+    unsafeMetadata?: unknown;
+    [key: string]: unknown;
+  } | null;
+  [key: string]: unknown;
+}
+
+/**
  * Check if a user is an expert with incomplete setup
- * @param authObject - The Clerk auth object containing session claims
+ * @param authObj - The Clerk auth object containing session claims
  * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
  */
-async function isExpertWithIncompleteSetup(authObject: {
-  sessionClaims?: {
-    metadata?: { role?: string | string[] };
-    unsafeMetadata?: {
-      expertSetup?: {
-        events?: boolean;
-        payment?: boolean;
-        profile?: boolean;
-        identity?: boolean;
-        availability?: boolean;
-        google_account?: boolean;
-      };
-      setupComplete?: boolean;
-    };
-  };
-}): Promise<boolean> {
-  const userRoleData = authObject?.sessionClaims?.metadata?.role;
+async function isExpertWithIncompleteSetup(authObj: MiddlewareAuthObject): Promise<boolean> {
+  const userRoleData = await getUserRoles(authObj);
   if (!userRoleData) return false;
 
-  // Check if user has an expert role
   const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
   if (!isExpert) return false;
 
-  // Get expert setup data from unsafeMetadata
-  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
-  if (!expertSetup) return true; // If no setup data, consider setup incomplete
+  // Get expert setup data from unsafeMetadata (still read from session claims)
+  const unsafeMeta = authObj.sessionClaims?.unsafeMetadata as
+    | {
+        expertSetup?: {
+          events?: boolean;
+          payment?: boolean;
+          profile?: boolean;
+          identity?: boolean;
+          availability?: boolean;
+          google_account?: boolean;
+        };
+        setupComplete?: boolean;
+      }
+    | undefined;
 
-  // Required setup steps that must be present for a complete setup
+  const expertSetup = unsafeMeta?.expertSetup;
+  if (!expertSetup) return true;
+
   const requiredSetupSteps = [
     'events',
     'payment',
@@ -221,12 +232,10 @@ async function isExpertWithIncompleteSetup(authObject: {
     'google_account',
   ];
 
-  // Check if all required steps are present AND true
   const setupComplete = requiredSetupSteps.every(
     (step) => expertSetup[step as keyof typeof expertSetup] === true,
   );
 
-  // Debug logging for expert setup check
   console.log('[DEBUG] Expert setup check:', {
     role: userRoleData,
     setupData: expertSetup,
@@ -236,7 +245,6 @@ async function isExpertWithIncompleteSetup(authObject: {
     ),
   });
 
-  // Return true if setup is incomplete (any required step is missing or false)
   return !setupComplete;
 }
 
@@ -440,6 +448,50 @@ function isLocalePublicRoute(path: string): boolean {
 }
 
 /**
+ * Resolve user roles reliably for middleware authorization.
+ *
+ * Tries sessionClaims.metadata.role first (fast, from JWT).
+ * Falls back to Clerk API (publicMetadata.role) when session claims
+ * don't contain role data — which happens when the Clerk JWT session
+ * token template hasn't been configured to include publicMetadata.
+ *
+ * Results are cached per-request so multiple role checks don't cause
+ * repeated API calls.
+ */
+const roleCache = new WeakMap<object, string | string[] | undefined>();
+
+async function getUserRoles(authObj: MiddlewareAuthObject): Promise<string | string[] | undefined> {
+  if (roleCache.has(authObj)) {
+    return roleCache.get(authObj);
+  }
+
+  // Fast path: read from JWT session claims
+  const claimsRole = (authObj.sessionClaims?.metadata as { role?: string | string[] } | undefined)
+    ?.role;
+
+  if (claimsRole) {
+    roleCache.set(authObj, claimsRole);
+    return claimsRole;
+  }
+
+  // Fallback: fetch from Clerk API when JWT doesn't contain role data
+  if (authObj.userId) {
+    try {
+      const clerk = await clerkClient();
+      const user = await clerk.users.getUser(authObj.userId);
+      const publicRole = user.publicMetadata?.role as string | string[] | undefined;
+      roleCache.set(authObj, publicRole);
+      return publicRole;
+    } catch (error) {
+      console.error('Failed to fetch user roles from Clerk API:', error);
+    }
+  }
+
+  roleCache.set(authObj, undefined);
+  return undefined;
+}
+
+/**
  * Proxy function with Clerk middleware and next-intl integration for i18n
  * This follows the Next.js 16 proxy convention (previously middleware.ts)
  * Integrates with Clerk for authentication and next-intl for internationalization
@@ -610,8 +662,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
     // Get user role data for permission checks
     const authObj = await auth();
-    const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
-    const userRoleData = userMetadata.role;
+    const userRoleData = await getUserRoles(authObj);
 
     console.log(`👤 User role for API request: ${JSON.stringify(userRoleData)}`);
 
@@ -662,24 +713,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Only apply this logic for root path or dashboard (where users land after login)
   if (userId && (path === '/' || path === '/dashboard')) {
     const authObj = await auth();
-    const needsSetup = await isExpertWithIncompleteSetup(
-      authObj as unknown as {
-        sessionClaims?: {
-          metadata?: { role?: string | string[] };
-          unsafeMetadata?: {
-            expertSetup?: {
-              events?: boolean;
-              payment?: boolean;
-              profile?: boolean;
-              identity?: boolean;
-              availability?: boolean;
-              google_account?: boolean;
-            };
-            setupComplete?: boolean;
-          };
-        };
-      },
-    );
+    const needsSetup = await isExpertWithIncompleteSetup(authObj);
 
     if (needsSetup) {
       console.log('🔄 Expert with incomplete setup detected, redirecting to setup page');
@@ -701,8 +735,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Handle role-based access
   if (userId) {
     const authObj = await auth();
-    const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
-    const userRoleData = userMetadata.role;
+    const userRoleData = await getUserRoles(authObj);
 
     // Admin route check
     if (matchPatternsArray(path, ADMIN_ROUTES)) {
