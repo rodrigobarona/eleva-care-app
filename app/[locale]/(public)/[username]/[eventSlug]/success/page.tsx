@@ -81,24 +81,36 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
     return notFound();
   }
 
-  let startTimeDate: Date;
-  try {
-    if (!startTime) throw new Error('Missing startTime');
-    startTimeDate = new Date(startTime);
-    if (Number.isNaN(startTimeDate.getTime())) throw new Error('Invalid date');
-  } catch (error) {
-    console.error('Invalid startTime:', startTime, error);
-    return notFound();
+  // When redirected from Stripe checkout, startTime may be absent — look up
+  // the meeting by session_id first, then fall back to startTime from the URL.
+  let meeting;
+  if (session_id) {
+    meeting = await db.query.MeetingTable.findFirst({
+      where: ({ eventId, stripeSessionId }, { eq, and }) =>
+        and(eq(eventId, event.id), eq(stripeSessionId, session_id)),
+    });
   }
 
-  const meeting = await db.query.MeetingTable.findFirst({
-    where: ({ eventId, startTime: meetingStartTime, stripeSessionId }, { eq, and, or }) =>
-      and(
-        eq(eventId, event.id),
-        eq(meetingStartTime, startTimeDate),
-        session_id ? or(eq(stripeSessionId, session_id)) : undefined,
-      ),
-  });
+  let startTimeDate: Date;
+  if (meeting) {
+    startTimeDate = new Date(meeting.startTime);
+  } else if (startTime) {
+    try {
+      startTimeDate = new Date(startTime);
+      if (Number.isNaN(startTimeDate.getTime())) throw new Error('Invalid date');
+    } catch (error) {
+      console.error('Invalid startTime:', startTime, error);
+      return notFound();
+    }
+
+    meeting = await db.query.MeetingTable.findFirst({
+      where: ({ eventId, startTime: meetingStartTime }, { eq, and }) =>
+        and(eq(eventId, event.id), eq(meetingStartTime, startTimeDate)),
+    });
+  } else {
+    console.error('No startTime or session_id provided');
+    return notFound();
+  }
 
   const expertName = expertProfile
     ? `${expertProfile.firstName} ${expertProfile.lastName}`

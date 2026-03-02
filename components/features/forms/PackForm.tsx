@@ -96,6 +96,9 @@ export function PackForm({ events, pack }: PackFormProps) {
         const result = await updatePack(pack.id, values);
         if (result?.error) {
           toast.error(result.message || 'Failed to update pack');
+        } else {
+          toast.success('Session pack updated');
+          router.push('/booking/packs');
         }
       } else {
         const result = await createPack(values);

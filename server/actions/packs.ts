@@ -10,7 +10,6 @@ import { auth } from '@clerk/nextjs/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import type { z } from 'zod';
 
 export async function createPack(
@@ -183,12 +182,8 @@ export async function updatePack(
     );
 
     revalidatePath('/booking/packs');
-    redirect('/booking/packs');
+    return { error: false };
   } catch (error) {
-    // redirect() throws a special error that must be re-thrown
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      throw error;
-    }
     console.error('Update pack error:', error);
     return { error: true, message: 'Failed to update session pack' };
   }
