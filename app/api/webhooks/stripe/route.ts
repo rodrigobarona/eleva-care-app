@@ -27,9 +27,11 @@ import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import {
   EventTable,
+  PackPurchaseTable,
   PaymentTransferTable,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- ScheduleTable used in db.query.ScheduleTable (Drizzle ORM pattern)
   ScheduleTable,
+  SessionPackTable,
   SlotReservationTable,
   UserTable,
 } from '@/drizzle/schema';
@@ -43,6 +45,7 @@ import {
   STRIPE_PAYMENT_STATUS_UNPAID,
 } from '@/lib/constants/payment-statuses';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
+import { sendEmail } from '@/lib/integrations/novu/email';
 import {
   buildNovuSubscriberFromStripe,
   getWorkflowFromStripeEvent,
@@ -189,6 +192,20 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     transfer?: string;
     /** Whether manual approval is required before payout */
     approval?: string;
+    /** Session type discriminator (e.g. 'pack_purchase') */
+    type?: string;
+    /** Pack purchase metadata fields */
+    packId?: string;
+    buyerEmail?: string;
+    buyerName?: string;
+    sessionsCount?: string;
+    expertClerkUserId?: string;
+    expertName?: string;
+    packName?: string;
+    eventId?: string;
+    eventName?: string;
+    expirationDays?: string;
+    locale?: string;
   };
   application_fee_amount?: number | null;
   payment_intent: string | null;
@@ -420,6 +437,146 @@ function validateAndParseMetadata<T>(
   }
 }
 
+async function handlePackPurchase(session: StripeCheckoutSession) {
+  const metadata = session.metadata;
+  if (!metadata?.packId || !metadata?.buyerEmail || !metadata?.sessionsCount) {
+    throw new Error('Missing required metadata on pack purchase session');
+  }
+
+  const packId = metadata.packId;
+  const buyerEmail = metadata.buyerEmail;
+  const buyerName = metadata.buyerName || '';
+  const sessionsCount = Number.parseInt(metadata.sessionsCount, 10);
+  const expirationDays = Number.parseInt(metadata.expirationDays || '180', 10);
+  const locale = metadata.locale || 'en';
+  const packName = metadata.packName || 'Session Pack';
+  const eventName = metadata.eventName || 'Session';
+  const expertName = metadata.expertName || 'Expert';
+
+  console.log('📦 Processing pack purchase:', {
+    packId,
+    buyerEmail,
+    sessionsCount,
+    sessionId: session.id,
+  });
+
+  const existingPurchase = await db.query.PackPurchaseTable.findFirst({
+    where: eq(PackPurchaseTable.stripeSessionId, session.id),
+  });
+
+  if (existingPurchase) {
+    console.log('✅ Pack purchase already processed for session:', session.id);
+    return { success: true, purchaseId: existingPurchase.id };
+  }
+
+  const pack = await db.query.SessionPackTable.findFirst({
+    where: eq(SessionPackTable.id, packId),
+  });
+
+  if (!pack) {
+    console.error('❌ Pack not found:', packId);
+    throw new Error(`Session pack ${packId} not found`);
+  }
+
+  const customerId =
+    typeof session.customer === 'string'
+      ? session.customer
+      : (session.customer as Stripe.Customer | null)?.id;
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+  const coupon = await stripe.coupons.create({
+    percent_off: 100,
+    duration: 'once',
+    max_redemptions: sessionsCount,
+    name: `Pack: ${packName} (${sessionsCount} sessions)`,
+    redeem_by: Math.floor(expiresAt.getTime() / 1000),
+    metadata: { packId, type: 'session_pack' },
+  });
+
+  const promoCodeParams: Stripe.PromotionCodeCreateParams = {
+    coupon: coupon.id,
+    max_redemptions: sessionsCount,
+    expires_at: Math.floor(expiresAt.getTime() / 1000),
+    metadata: { packId, type: 'session_pack' },
+  };
+
+  if (customerId) {
+    promoCodeParams.customer = customerId;
+  }
+
+  const promoCode = await stripe.promotionCodes.create(promoCodeParams);
+
+  const paymentIntentId =
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+
+  const [purchase] = await db
+    .insert(PackPurchaseTable)
+    .values({
+      packId,
+      buyerEmail,
+      buyerName: buyerName || null,
+      stripeCustomerId: customerId || null,
+      stripeSessionId: session.id,
+      stripePaymentIntentId: paymentIntentId || null,
+      stripeCouponId: coupon.id,
+      stripePromotionCodeId: promoCode.id,
+      promotionCode: promoCode.code,
+      maxRedemptions: sessionsCount,
+      redemptionsUsed: 0,
+      expiresAt,
+      status: 'active',
+    })
+    .returning({ id: PackPurchaseTable.id });
+
+  console.log('✅ Pack purchase recorded:', {
+    purchaseId: purchase?.id,
+    promoCode: promoCode.code,
+    maxRedemptions: sessionsCount,
+    expiresAt: expiresAt.toISOString(),
+  });
+
+  try {
+    const { default: PackPurchaseConfirmationTemplate } = await import(
+      '@/emails/packs/pack-purchase-confirmation'
+    );
+    const { render } = await import('@react-email/render');
+
+    const renderedHtml = await render(
+      PackPurchaseConfirmationTemplate({
+        buyerName: buyerName || buyerEmail.split('@')[0],
+        packName,
+        eventName,
+        expertName,
+        sessionsCount,
+        promotionCode: promoCode.code,
+        expiresAt: expiresAt.toISOString(),
+        locale,
+      }),
+    );
+
+    await sendEmail({
+      to: buyerEmail,
+      subject:
+        locale === 'pt' || locale === 'pt-BR'
+          ? `Seu pacote de ${sessionsCount} sessões está pronto!`
+          : locale === 'es'
+            ? `¡Tu paquete de ${sessionsCount} sesiones está listo!`
+            : `Your ${sessionsCount}-session pack is ready!`,
+      html: renderedHtml,
+    });
+
+    console.log(`📧 Pack purchase confirmation email sent to ${buyerEmail}`);
+  } catch (emailError) {
+    console.error('Failed to send pack purchase email:', emailError);
+  }
+
+  return { success: true, purchaseId: purchase?.id };
+}
+
 async function handleCheckoutSession(session: StripeCheckoutSession) {
   console.log('🎯 Starting checkout session processing:', {
     sessionId: session.id,
@@ -429,6 +586,11 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
   });
 
   try {
+    // Route pack purchases to dedicated handler
+    if (session.metadata?.type === 'pack_purchase') {
+      return await handlePackPurchase(session);
+    }
+
     // First check if we already have a meeting for this session
     const existingMeeting = await db.query.MeetingTable.findFirst({
       where: ({ stripeSessionId }, { eq }) => eq(stripeSessionId, session.id),
@@ -602,6 +764,52 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         paymentData,
         transferData,
       });
+    }
+
+    // Track pack redemption for no-cost sessions using promotion codes
+    if (
+      session.payment_status === STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED &&
+      session.total_details?.breakdown?.discounts &&
+      session.total_details.breakdown.discounts.length > 0
+    ) {
+      try {
+        for (const discount of session.total_details.breakdown.discounts) {
+          const discountObj = discount.discount;
+          if (!discountObj?.promotion_code) continue;
+
+          const promoCodeId =
+            typeof discountObj.promotion_code === 'string'
+              ? discountObj.promotion_code
+              : discountObj.promotion_code.id;
+
+          const packPurchase = await db.query.PackPurchaseTable.findFirst({
+            where: eq(PackPurchaseTable.stripePromotionCodeId, promoCodeId),
+          });
+
+          if (packPurchase && packPurchase.status === 'active') {
+            const newRedemptions = packPurchase.redemptionsUsed + 1;
+            const isFullyRedeemed = newRedemptions >= packPurchase.maxRedemptions;
+
+            await db
+              .update(PackPurchaseTable)
+              .set({
+                redemptionsUsed: newRedemptions,
+                status: isFullyRedeemed ? 'fully_redeemed' : 'active',
+              })
+              .where(eq(PackPurchaseTable.id, packPurchase.id));
+
+            console.log('📦 Pack redemption tracked:', {
+              purchaseId: packPurchase.id,
+              promoCode: packPurchase.promotionCode,
+              redemptionsUsed: newRedemptions,
+              maxRedemptions: packPurchase.maxRedemptions,
+              isFullyRedeemed,
+            });
+          }
+        }
+      } catch (redemptionError) {
+        console.error('Failed to track pack redemption:', redemptionError);
+      }
     }
 
     return { success: true, meetingId: result.meeting?.id };
