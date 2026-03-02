@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       cancel_url: `${baseUrl}/${locale}`,
       customer: customerId,
       customer_creation: customerId ? undefined : 'always',
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       automatic_tax: {
         enabled: true,
         liability: { type: 'account', account: expertStripeAccountId },
