@@ -325,7 +325,7 @@ async function EventsList({ userId, username }: { userId: string; username: stri
             Save by purchasing a bundle of sessions. You&apos;ll receive a promo code to use when
             booking.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-6">
             {packs.map((pack) => (
               <PackPurchaseCard
                 key={pack.id}

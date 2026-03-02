@@ -85,109 +85,117 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
 
   return (
     <Card className="overflow-hidden border-2 transition-colors duration-200 hover:border-primary/50">
-      <div className="p-6">
-        <div className="mb-3 flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Package className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="text-lg font-bold">{pack.name}</h3>
+      <div className="flex flex-col lg:flex-row">
+        <div className="flex-grow bg-gray-50 p-6 lg:p-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-black px-3 py-1 text-sm font-medium text-white">
+            <Package className="h-3.5 w-3.5" />
+            Bundle of {pack.sessionsCount} sessions
           </div>
-          {savings > 0 && (
-            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-              Save {savingsPercent}%
-            </span>
+
+          <h3 className="mb-2 text-2xl font-bold">{pack.name}</h3>
+
+          {pack.description && (
+            <p className="mb-4 text-base text-muted-foreground">{pack.description}</p>
           )}
-        </div>
 
-        {pack.description && (
-          <p className="mb-4 text-sm text-muted-foreground">{pack.description}</p>
-        )}
-
-        <div className="mb-4 space-y-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Event:</span>
-            <span className="font-medium">{pack.event.name}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Sessions:</span>
-            <span className="font-medium">{pack.sessionsCount}</span>
-          </div>
-          {pack.expirationDays && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Valid for:</span>
-              <span className="font-medium">{pack.expirationDays} days</span>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Event:</span>
+              <span className="text-muted-foreground">{pack.event.name}</span>
             </div>
-          )}
-          {savings > 0 && (
-            <div className="flex justify-between text-green-600">
-              <span>You save:</span>
-              <span className="font-medium">€{(savings / 100).toFixed(2)}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Duration:</span>
+              <span className="text-muted-foreground">
+                {pack.event.durationInMinutes} min per session
+              </span>
             </div>
-          )}
-        </div>
-
-        <div className="mb-4 text-center">
-          <div className="text-3xl font-bold">
-            €
-            {(pack.price / 100).toLocaleString('pt-PT', {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 2,
-            })}
-          </div>
-          {individualTotal > 0 && pack.price < individualTotal && (
-            <div className="text-sm text-muted-foreground line-through">
-              €{(individualTotal / 100).toFixed(2)}
-            </div>
-          )}
-        </div>
-
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-full" size="lg">
-              Buy Pack
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Purchase {pack.name}</DialogTitle>
-              <DialogDescription>
-                Enter your details to purchase this pack of {pack.sessionsCount} sessions.
-                You&apos;ll receive a promo code by email.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="buyer-name">Name</Label>
-                <Input
-                  id="buyer-name"
-                  placeholder="Your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+            {pack.expirationDays && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Valid for:</span>
+                <span className="text-muted-foreground">{pack.expirationDays} days</span>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="buyer-email">Email *</Label>
-                <Input
-                  id="buyer-email"
-                  type="email"
-                  placeholder="your@email.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+            )}
+          </div>
+
+          {savings > 0 && (
+            <div className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-green-50 px-2.5 py-1.5 text-sm font-medium text-green-700">
+              You save €{(savings / 100).toFixed(2)} ({savingsPercent}%)
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
-                Cancel
+          )}
+        </div>
+
+        <div className="flex flex-col justify-between bg-gray-50 p-6 lg:w-72 lg:border-l lg:p-8">
+          <div>
+            <div className="mb-1 text-lg font-semibold">Pack</div>
+            <div className="mb-1 text-3xl font-bold">
+              €{' '}
+              {(pack.price / 100).toLocaleString('pt-PT', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            {individualTotal > 0 && pack.price < individualTotal && (
+              <div className="mb-4 text-sm text-muted-foreground line-through">
+                €{(individualTotal / 100).toFixed(2)}
+              </div>
+            )}
+            <p className="mb-6 text-sm text-muted-foreground">
+              €
+              {((pack.price / pack.sessionsCount) / 100).toLocaleString('pt-PT', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })}{' '}
+              per session
+            </p>
+          </div>
+
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full bg-blue-600 py-6 text-lg font-semibold text-white hover:bg-blue-700">
+                Buy Pack
               </Button>
-              <Button onClick={handlePurchase} disabled={isLoading || !email || !isValidEmail}>
-                {isLoading ? 'Processing...' : `Pay €${(pack.price / 100).toFixed(2)}`}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Purchase {pack.name}</DialogTitle>
+                <DialogDescription>
+                  Enter your details to purchase this pack of {pack.sessionsCount} sessions.
+                  You&apos;ll receive a promo code by email.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="buyer-name">Name</Label>
+                  <Input
+                    id="buyer-name"
+                    placeholder="Your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="buyer-email">Email *</Label>
+                  <Input
+                    id="buyer-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handlePurchase} disabled={isLoading || !email || !isValidEmail}>
+                  {isLoading ? 'Processing...' : `Pay €${(pack.price / 100).toFixed(2)}`}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </Card>
   );

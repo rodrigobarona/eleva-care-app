@@ -148,14 +148,5 @@ initBotId({
         checkLevel: 'basic',
       },
     },
-
-    // 📧 Email Testing (Development/Admin)
-    {
-      path: '/api/test-email',
-      method: 'GET',
-      advancedOptions: {
-        checkLevel: 'basic',
-      },
-    },
   ],
 });
