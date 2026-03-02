@@ -1,8 +1,8 @@
 import { PackForm } from '@/components/features/forms/PackForm';
 import { db } from '@/drizzle/db';
-import { SessionPackTable } from '@/drizzle/schema';
+import { EventTable, SessionPackTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 
 export default async function EditPackPage({ params }: { params: Promise<{ packId: string }> }) {
@@ -10,18 +10,29 @@ export default async function EditPackPage({ params }: { params: Promise<{ packI
   const { userId } = await auth();
 
   if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+    redirect(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/');
   }
 
   const [pack, events] = await Promise.all([
     db.query.SessionPackTable.findFirst({
       where: and(eq(SessionPackTable.id, packId), eq(SessionPackTable.clerkUserId, userId)),
     }),
-    db.query.EventTable.findMany({
-      where: ({ clerkUserId, isActive, price }, { eq: eqFn, and: andFn, gt: gtFn }) =>
-        andFn(eqFn(clerkUserId, userId), eqFn(isActive, true), gtFn(price, 0)),
-      orderBy: ({ name }, { asc }) => asc(name),
-    }),
+    db
+      .select({
+        id: EventTable.id,
+        name: EventTable.name,
+        price: EventTable.price,
+        durationInMinutes: EventTable.durationInMinutes,
+      })
+      .from(EventTable)
+      .where(
+        and(
+          eq(EventTable.clerkUserId, userId),
+          eq(EventTable.isActive, true),
+          gt(EventTable.price, 0),
+        ),
+      )
+      .orderBy(EventTable.name),
   ]);
 
   if (!pack) {

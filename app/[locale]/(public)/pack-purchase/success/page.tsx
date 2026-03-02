@@ -53,7 +53,7 @@ export default async function PackPurchaseSuccessPage({
           </div>
 
           <Button asChild className="w-full">
-            <Link href="/">{t('browseExperts')}</Link>
+            <Link href={`/${locale}`}>{t('browseExperts')}</Link>
           </Button>
         </CardContent>
       </Card>

@@ -58,7 +58,7 @@ import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { formatInTimeZone } from 'date-fns-tz';
 import { enUS, es, pt, ptBR } from 'date-fns/locale';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
@@ -453,9 +453,16 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
   const eventName = metadata.eventName || 'Session';
   const expertName = metadata.expertName || 'Expert';
 
+  if (!Number.isFinite(sessionsCount) || sessionsCount < 1) {
+    throw new Error(`Invalid sessionsCount in pack purchase metadata: ${metadata.sessionsCount}`);
+  }
+  const safeExpirationDays =
+    Number.isFinite(expirationDays) && expirationDays > 0 ? expirationDays : 180;
+
+  const maskedEmail = buyerEmail.replace(/(.{2}).*(@.*)/, '$1***$2');
   console.log('📦 Processing pack purchase:', {
     packId,
-    buyerEmail,
+    buyer: maskedEmail,
     sessionsCount,
     sessionId: session.id,
   });
@@ -484,16 +491,20 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       : (session.customer as Stripe.Customer | null)?.id;
 
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + expirationDays);
+  expiresAt.setDate(expiresAt.getDate() + safeExpirationDays);
 
-  const coupon = await stripe.coupons.create({
-    percent_off: 100,
-    duration: 'once',
-    max_redemptions: sessionsCount,
-    name: `Pack: ${packName} (${sessionsCount} sessions)`,
-    redeem_by: Math.floor(expiresAt.getTime() / 1000),
-    metadata: { packId, type: 'session_pack' },
-  });
+  const couponIdempotencyKey = `coupon:pack:${session.id}`;
+  const coupon = await stripe.coupons.create(
+    {
+      percent_off: 100,
+      duration: 'once',
+      max_redemptions: sessionsCount,
+      name: `Pack: ${packName} (${sessionsCount} sessions)`,
+      redeem_by: Math.floor(expiresAt.getTime() / 1000),
+      metadata: { packId, type: 'session_pack' },
+    },
+    { idempotencyKey: couponIdempotencyKey },
+  );
 
   const promoCodeParams: Stripe.PromotionCodeCreateParams = {
     coupon: coupon.id,
@@ -506,7 +517,10 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     promoCodeParams.customer = customerId;
   }
 
-  const promoCode = await stripe.promotionCodes.create(promoCodeParams);
+  const promoIdempotencyKey = `promo:pack:${session.id}`;
+  const promoCode = await stripe.promotionCodes.create(promoCodeParams, {
+    idempotencyKey: promoIdempotencyKey,
+  });
 
   const paymentIntentId =
     typeof session.payment_intent === 'string'
@@ -534,7 +548,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
 
   console.log('✅ Pack purchase recorded:', {
     purchaseId: purchase?.id,
-    promoCode: promoCode.code,
+    promoCodePrefix: promoCode.code.slice(0, 4) + '****',
     maxRedemptions: sessionsCount,
     expiresAt: expiresAt.toISOString(),
   });
@@ -591,7 +605,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       html: renderedHtml,
     });
 
-    console.log(`📧 Pack purchase confirmation email sent to ${buyerEmail}`);
+    console.log(`📧 Pack purchase confirmation email sent to ${maskedEmail}`);
   } catch (emailError) {
     console.error('Failed to send pack purchase email:', emailError);
   }
@@ -811,21 +825,31 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
             });
 
             if (packPurchase && packPurchase.status === 'active') {
-              // Atomic increment using SQL to prevent race conditions
-              await db
+              const updated = await db
                 .update(PackPurchaseTable)
                 .set({
                   redemptionsUsed: sql`${PackPurchaseTable.redemptionsUsed} + 1`,
                   status: sql`CASE WHEN ${PackPurchaseTable.redemptionsUsed} + 1 >= ${PackPurchaseTable.maxRedemptions} THEN 'fully_redeemed' ELSE 'active' END`,
                 })
-                .where(eq(PackPurchaseTable.id, packPurchase.id));
+                .where(
+                  and(
+                    eq(PackPurchaseTable.id, packPurchase.id),
+                    sql`${PackPurchaseTable.redemptionsUsed} < ${PackPurchaseTable.maxRedemptions}`,
+                  ),
+                )
+                .returning({ id: PackPurchaseTable.id });
 
-              console.log('📦 Pack redemption tracked:', {
-                purchaseId: packPurchase.id,
-                promoCode: packPurchase.promotionCode,
-                previousRedemptions: packPurchase.redemptionsUsed,
-                maxRedemptions: packPurchase.maxRedemptions,
-              });
+              if (updated.length > 0) {
+                console.log('📦 Pack redemption tracked:', {
+                  purchaseId: packPurchase.id,
+                  previousRedemptions: packPurchase.redemptionsUsed,
+                  maxRedemptions: packPurchase.maxRedemptions,
+                });
+              } else {
+                console.log('📦 Pack redemption skipped (already fully redeemed):', {
+                  purchaseId: packPurchase.id,
+                });
+              }
             }
           }
         }

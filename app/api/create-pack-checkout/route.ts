@@ -77,13 +77,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { packId, buyerEmail, buyerName, locale = 'en' } = body;
+    const rawPackId = body.packId;
+    const rawEmail = body.buyerEmail;
+    const rawName = body.buyerName;
+    const rawLocale = body.locale;
 
-    if (!packId || !buyerEmail) {
+    if (!rawPackId || !rawEmail) {
       return NextResponse.json(
         { error: 'Missing required fields: packId and buyerEmail' },
         { status: 400 },
       );
+    }
+
+    const buyerEmail = String(rawEmail).trim().toLowerCase();
+    const buyerName = rawName ? String(rawName).trim() : '';
+    const packId = String(rawPackId).trim();
+    const locale = ['en', 'pt', 'pt-BR', 'es', 'fr', 'de', 'it'].includes(rawLocale)
+      ? rawLocale
+      : 'en';
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(packId)) {
+      return NextResponse.json({ error: 'Invalid pack ID' }, { status: 400 });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -95,17 +110,21 @@ export async function POST(request: NextRequest) {
     const clientIP =
       forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
 
-    const rateLimitResult = await checkRateLimits(`guest:${buyerEmail}`, clientIP);
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json({ error: rateLimitResult.message }, { status: 429 });
-    }
-
     const idempotencyKey = request.headers.get('Idempotency-Key');
-    if (idempotencyKey) {
-      const cachedResult = await IdempotencyCache.get(idempotencyKey);
+    const scopedIdempotencyKey = idempotencyKey
+      ? `pack-checkout:${idempotencyKey}:${packId}:${buyerEmail}`
+      : null;
+
+    if (scopedIdempotencyKey) {
+      const cachedResult = await IdempotencyCache.get(scopedIdempotencyKey);
       if (cachedResult) {
         return NextResponse.json({ url: cachedResult.url });
       }
+    }
+
+    const rateLimitResult = await checkRateLimits(`guest:${buyerEmail}`, clientIP);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: rateLimitResult.message }, { status: 429 });
     }
 
     after(async () => {
@@ -238,9 +257,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (idempotencyKey && session.url) {
+    if (scopedIdempotencyKey && session.url) {
       after(async () => {
-        await IdempotencyCache.set(idempotencyKey!, { url: session.url! });
+        await IdempotencyCache.set(scopedIdempotencyKey!, { url: session.url! });
       });
     }
 

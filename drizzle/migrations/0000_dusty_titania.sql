@@ -98,7 +98,8 @@ CREATE TABLE IF NOT EXISTS "pack_purchases" (
 	"createdAt" timestamp DEFAULT now() NOT NULL,
 	"updatedAt" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "pack_purchases_stripe_session_id_unique" UNIQUE("stripe_session_id"),
-	CONSTRAINT "pack_purchases_stripe_payment_intent_id_unique" UNIQUE("stripe_payment_intent_id")
+	CONSTRAINT "pack_purchases_stripe_payment_intent_id_unique" UNIQUE("stripe_payment_intent_id"),
+	CONSTRAINT "pack_purchases_promotion_code_unique" UNIQUE("promotion_code")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "payment_transfers" (

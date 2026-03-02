@@ -2,7 +2,9 @@ import { PackForm } from '@/components/features/forms/PackForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
+import { EventTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
+import { and, eq, gt } from 'drizzle-orm';
 import { CalendarPlus } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -11,14 +13,25 @@ export default async function NewPackPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+    redirect(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/');
   }
 
-  const events = await db.query.EventTable.findMany({
-    where: ({ clerkUserId, isActive, price }, { eq, and, gt }) =>
-      and(eq(clerkUserId, userId), eq(isActive, true), gt(price, 0)),
-    orderBy: ({ name }, { asc }) => asc(name),
-  });
+  const events = await db
+    .select({
+      id: EventTable.id,
+      name: EventTable.name,
+      price: EventTable.price,
+      durationInMinutes: EventTable.durationInMinutes,
+    })
+    .from(EventTable)
+    .where(
+      and(
+        eq(EventTable.clerkUserId, userId),
+        eq(EventTable.isActive, true),
+        gt(EventTable.price, 0),
+      ),
+    )
+    .orderBy(EventTable.name);
 
   if (events.length === 0) {
     return (

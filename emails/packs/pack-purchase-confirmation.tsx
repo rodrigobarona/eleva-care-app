@@ -121,14 +121,18 @@ export const PackPurchaseConfirmation = ({
   locale = 'en',
 }: PackPurchaseConfirmationProps) => {
   const t = getLocaleStrings(locale);
-  const formattedExpiry = new Date(expiresAt).toLocaleDateString(
-    locale === 'pt' ? 'pt-PT' : locale === 'es' ? 'es-ES' : 'en-US',
-    {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    },
-  );
+  const localeTag = locale?.startsWith('pt')
+    ? locale === 'pt-BR'
+      ? 'pt-BR'
+      : 'pt-PT'
+    : locale === 'es'
+      ? 'es-ES'
+      : 'en-US';
+  const formattedExpiry = new Date(expiresAt).toLocaleDateString(localeTag, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   const subject = `${t.successTitle} - ${packName}`;
   const previewText = `${t.promoInstructions} ${promotionCode}`;

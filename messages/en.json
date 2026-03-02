@@ -508,7 +508,7 @@
     "success": {
       "title": "Pack Purchased Successfully!",
       "description": "Your session pack has been purchased. Check your email for the promo code.",
-      "emailNotice": "We've sent your promotion code to your email. Use it at checkout when booking individual sessions.",
+      "emailNotice": "We've sent your promo code to your email. Use it at checkout when booking individual sessions.",
       "nextSteps": "What happens next?",
       "step1": "Check your email for the promo code",
       "step2": "Book a session with your expert",

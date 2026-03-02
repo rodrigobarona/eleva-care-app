@@ -656,7 +656,7 @@ export const PackPurchaseTable = pgTable(
     stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
     stripeCouponId: text('stripe_coupon_id'),
     stripePromotionCodeId: text('stripe_promotion_code_id'),
-    promotionCode: text('promotion_code').notNull(),
+    promotionCode: text('promotion_code').notNull().unique(),
     maxRedemptions: integer('max_redemptions').notNull(),
     redemptionsUsed: integer('redemptions_used').notNull().default(0),
     expiresAt: timestamp('expires_at'),

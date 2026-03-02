@@ -73,6 +73,8 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
 
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Something went wrong');

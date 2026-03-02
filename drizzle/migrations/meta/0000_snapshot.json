@@ -1,5 +1,5 @@
 {
-  "id": "961c8d27-0361-462d-b865-8dba05aa491c",
+  "id": "c0afe10f-d3d2-4983-83ad-86d8deec1481",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -766,6 +766,11 @@
           "name": "pack_purchases_stripe_payment_intent_id_unique",
           "nullsNotDistinct": false,
           "columns": ["stripe_payment_intent_id"]
+        },
+        "pack_purchases_promotion_code_unique": {
+          "name": "pack_purchases_promotion_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["promotion_code"]
         }
       },
       "checkConstraints": {}

@@ -116,12 +116,17 @@ export function PackForm({ events, pack }: PackFormProps) {
   function handleDelete() {
     if (!pack) return;
     startDeleteTransition(async () => {
-      const result = await deletePack(pack.id);
-      if (result?.error) {
-        toast.error(result.message || 'Failed to delete pack');
-      } else {
-        toast.success('Session pack deleted');
-        router.push('/booking/packs');
+      try {
+        const result = await deletePack(pack.id);
+        if (result?.error) {
+          toast.error(result.message || 'Failed to delete pack');
+        } else {
+          toast.success('Session pack deleted');
+          router.push('/booking/packs');
+        }
+      } catch (error) {
+        console.error('Delete pack error:', error);
+        toast.error('Failed to delete pack');
       }
     });
   }

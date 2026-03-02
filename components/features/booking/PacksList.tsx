@@ -46,12 +46,19 @@ export function PacksList({ initialPacks }: PacksListProps) {
   const handleToggleActive = async (packId: string, currentState: boolean) => {
     setPacks((prev) => prev.map((p) => (p.id === packId ? { ...p, isActive: !currentState } : p)));
 
-    const result = await updatePackActiveState(packId, !currentState);
-    if (result?.error) {
+    try {
+      const result = await updatePackActiveState(packId, !currentState);
+      if (result?.error) {
+        setPacks((prev) =>
+          prev.map((p) => (p.id === packId ? { ...p, isActive: currentState } : p)),
+        );
+        toast.error('Failed to update pack');
+      } else {
+        toast.success(`Pack ${currentState ? 'deactivated' : 'activated'}`);
+      }
+    } catch {
       setPacks((prev) => prev.map((p) => (p.id === packId ? { ...p, isActive: currentState } : p)));
       toast.error('Failed to update pack');
-    } else {
-      toast.success(`Pack ${currentState ? 'deactivated' : 'activated'}`);
     }
   };
 
@@ -178,6 +185,7 @@ function PackCard({
             <Switch
               checked={pack.isActive}
               onCheckedChange={() => onToggleActive(pack.id, pack.isActive)}
+              aria-label={`Toggle active for ${pack.name}`}
             />
           </div>
 

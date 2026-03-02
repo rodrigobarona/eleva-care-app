@@ -113,6 +113,15 @@ export async function updatePack(
     return { error: true, message: 'Pack not found' };
   }
 
+  if (data.eventId !== oldPack.eventId) {
+    const event = await db.query.EventTable.findFirst({
+      where: and(eq(EventTable.id, data.eventId), eq(EventTable.clerkUserId, userId)),
+    });
+    if (!event) {
+      return { error: true, message: 'Event not found or not owned by you' };
+    }
+  }
+
   try {
     const stripe = await getServerStripe();
 
@@ -129,6 +138,17 @@ export async function updatePack(
       });
     }
 
+    const safeUpdate = {
+      name: data.name,
+      description: data.description,
+      sessionsCount: data.sessionsCount,
+      price: data.price,
+      currency: data.currency,
+      eventId: data.eventId,
+      isActive: data.isActive,
+      expirationDays: data.expirationDays,
+    };
+
     if (oldPack.stripeProductId && data.price !== oldPack.price) {
       const newPrice = await stripe.prices.create({
         product: oldPack.stripeProductId,
@@ -142,12 +162,12 @@ export async function updatePack(
 
       await db
         .update(SessionPackTable)
-        .set({ ...data, stripePriceId: newPrice.id })
+        .set({ ...safeUpdate, stripePriceId: newPrice.id })
         .where(and(eq(SessionPackTable.id, id), eq(SessionPackTable.clerkUserId, userId)));
     } else {
       await db
         .update(SessionPackTable)
-        .set({ ...data })
+        .set(safeUpdate)
         .where(and(eq(SessionPackTable.id, id), eq(SessionPackTable.clerkUserId, userId)));
     }
 

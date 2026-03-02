@@ -7,7 +7,7 @@ export default async function PacksPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+    redirect(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/');
   }
 
   const packs = await db.query.SessionPackTable.findMany({
