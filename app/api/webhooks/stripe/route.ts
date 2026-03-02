@@ -58,7 +58,7 @@ import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { formatInTimeZone } from 'date-fns-tz';
 import { enUS, es, pt, ptBR } from 'date-fns/locale';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
@@ -545,6 +545,27 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     );
     const { render } = await import('@react-email/render');
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
+
+    // Look up expert's username for the booking URL
+    let bookingUrl = baseUrl;
+    try {
+      const expertUser = await db.query.UserTable.findFirst({
+        where: eq(UserTable.clerkUserId, metadata.expertClerkUserId || pack.clerkUserId),
+        columns: { clerkUserId: true },
+      });
+      if (expertUser) {
+        const { createClerkClient } = await import('@clerk/nextjs/server');
+        const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+        const clerkUser = await clerk.users.getUser(expertUser.clerkUserId);
+        if (clerkUser.username) {
+          bookingUrl = `${baseUrl}/${locale}/${clerkUser.username}`;
+        }
+      }
+    } catch (lookupError) {
+      console.error('Failed to look up expert username for booking URL:', lookupError);
+    }
+
     const renderedHtml = await render(
       PackPurchaseConfirmationTemplate({
         buyerName: buyerName || buyerEmail.split('@')[0],
@@ -554,6 +575,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
         sessionsCount,
         promotionCode: promoCode.code,
         expiresAt: expiresAt.toISOString(),
+        bookingUrl,
         locale,
       }),
     );
@@ -766,45 +788,45 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       });
     }
 
-    // Track pack redemption for no-cost sessions using promotion codes
-    if (
-      session.payment_status === STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED &&
-      session.total_details?.breakdown?.discounts &&
-      session.total_details.breakdown.discounts.length > 0
-    ) {
+    // Track pack redemption for no-cost sessions (promo code applied)
+    if (session.payment_status === STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED) {
       try {
-        for (const discount of session.total_details.breakdown.discounts) {
-          const discountObj = discount.discount;
-          if (!discountObj?.promotion_code) continue;
+        const expandedSession = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ['total_details.breakdown'],
+        });
 
-          const promoCodeId =
-            typeof discountObj.promotion_code === 'string'
-              ? discountObj.promotion_code
-              : discountObj.promotion_code.id;
+        const discounts = expandedSession.total_details?.breakdown?.discounts;
+        if (discounts && discounts.length > 0) {
+          for (const discount of discounts) {
+            const discountObj = discount.discount;
+            if (!discountObj?.promotion_code) continue;
 
-          const packPurchase = await db.query.PackPurchaseTable.findFirst({
-            where: eq(PackPurchaseTable.stripePromotionCodeId, promoCodeId),
-          });
+            const promoCodeId =
+              typeof discountObj.promotion_code === 'string'
+                ? discountObj.promotion_code
+                : discountObj.promotion_code.id;
 
-          if (packPurchase && packPurchase.status === 'active') {
-            const newRedemptions = packPurchase.redemptionsUsed + 1;
-            const isFullyRedeemed = newRedemptions >= packPurchase.maxRedemptions;
-
-            await db
-              .update(PackPurchaseTable)
-              .set({
-                redemptionsUsed: newRedemptions,
-                status: isFullyRedeemed ? 'fully_redeemed' : 'active',
-              })
-              .where(eq(PackPurchaseTable.id, packPurchase.id));
-
-            console.log('📦 Pack redemption tracked:', {
-              purchaseId: packPurchase.id,
-              promoCode: packPurchase.promotionCode,
-              redemptionsUsed: newRedemptions,
-              maxRedemptions: packPurchase.maxRedemptions,
-              isFullyRedeemed,
+            const packPurchase = await db.query.PackPurchaseTable.findFirst({
+              where: eq(PackPurchaseTable.stripePromotionCodeId, promoCodeId),
             });
+
+            if (packPurchase && packPurchase.status === 'active') {
+              // Atomic increment using SQL to prevent race conditions
+              await db
+                .update(PackPurchaseTable)
+                .set({
+                  redemptionsUsed: sql`${PackPurchaseTable.redemptionsUsed} + 1`,
+                  status: sql`CASE WHEN ${PackPurchaseTable.redemptionsUsed} + 1 >= ${PackPurchaseTable.maxRedemptions} THEN 'fully_redeemed' ELSE 'active' END`,
+                })
+                .where(eq(PackPurchaseTable.id, packPurchase.id));
+
+              console.log('📦 Pack redemption tracked:', {
+                purchaseId: packPurchase.id,
+                promoCode: packPurchase.promotionCode,
+                previousRedemptions: packPurchase.redemptionsUsed,
+                maxRedemptions: packPurchase.maxRedemptions,
+              });
+            }
           }
         }
       } catch (redemptionError) {

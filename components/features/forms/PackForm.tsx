@@ -75,7 +75,7 @@ export function PackForm({ events, pack }: PackFormProps) {
       name: '',
       description: '',
       sessionsCount: 5,
-      price: 0,
+      price: 100,
       currency: 'eur',
       isActive: true,
       expirationDays: 180,
@@ -228,10 +228,15 @@ export function PackForm({ events, pack }: PackFormProps) {
                       step="0.01"
                       min="0.01"
                       placeholder="0.00"
-                      value={field.value ? (field.value / 100).toFixed(2) : ''}
+                      value={(field.value / 100).toFixed(2)}
                       onChange={(e) => {
-                        const cents = Math.round(parseFloat(e.target.value || '0') * 100);
-                        field.onChange(cents);
+                        const val = e.target.value;
+                        if (val === '' || val === '0') {
+                          field.onChange(0);
+                          return;
+                        }
+                        const cents = Math.round(parseFloat(val) * 100);
+                        field.onChange(Number.isNaN(cents) ? 0 : cents);
                       }}
                     />
                   </FormControl>

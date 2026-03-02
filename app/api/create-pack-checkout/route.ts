@@ -86,6 +86,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(buyerEmail)) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
+    }
+
     const forwarded = request.headers.get('x-forwarded-for');
     const clientIP =
       forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
@@ -155,6 +160,10 @@ export async function POST(request: NextRequest) {
       `${pack.user.firstName || ''} ${pack.user.lastName || ''}`.trim() || 'Expert';
 
     const customerId = await getOrCreateStripeCustomer(undefined, buyerEmail, buyerName);
+
+    if (!customerId) {
+      return NextResponse.json({ error: 'Failed to create customer record' }, { status: 500 });
+    }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
     const applicationFeeAmount = calculateApplicationFee(pack.price);

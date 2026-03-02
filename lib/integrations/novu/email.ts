@@ -523,6 +523,7 @@ export async function generatePackPurchaseEmail(params: {
   sessionsCount: number;
   promotionCode: string;
   expiresAt: string;
+  bookingUrl?: string;
   locale?: string;
 }): Promise<{ html: string; text: string; subject: string }> {
   const { default: PackPurchaseConfirmationTemplate } = await import(
@@ -541,6 +542,7 @@ export async function generatePackPurchaseEmail(params: {
       sessionsCount: params.sessionsCount,
       promotionCode: params.promotionCode,
       expiresAt: params.expiresAt,
+      bookingUrl: params.bookingUrl,
       locale,
     }),
   );

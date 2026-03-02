@@ -1,13 +1,13 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { EventTable, SessionPackTable } from '@/drizzle/schema';
+import { EventTable, PackPurchaseTable, SessionPackTable } from '@/drizzle/schema';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { packFormSchema } from '@/schema/packs';
 import { PACK_CREATED, PACK_DELETED, PACK_UPDATED } from '@/types/audit';
 import { auth } from '@clerk/nextjs/server';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -165,6 +165,10 @@ export async function updatePack(
     revalidatePath('/booking/packs');
     redirect('/booking/packs');
   } catch (error) {
+    // redirect() throws a special error that must be re-thrown
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
     console.error('Update pack error:', error);
     return { error: true, message: 'Failed to update session pack' };
   }
@@ -193,6 +197,12 @@ export async function deletePack(
       return { error: true, message: 'Pack not found' };
     }
 
+    // Check if any purchases exist - if so, soft-delete (deactivate) instead
+    const [purchaseCount] = await db
+      .select({ count: count() })
+      .from(PackPurchaseTable)
+      .where(eq(PackPurchaseTable.packId, id));
+
     if (oldPack.stripeProductId) {
       try {
         const stripe = await getServerStripe();
@@ -202,10 +212,23 @@ export async function deletePack(
       }
     }
 
-    const [deletedPack] = await db
-      .delete(SessionPackTable)
-      .where(and(eq(SessionPackTable.id, id), eq(SessionPackTable.clerkUserId, userId)))
-      .returning({ id: SessionPackTable.id });
+    let deletedPack: { id: string } | undefined;
+
+    if ((purchaseCount?.count ?? 0) > 0) {
+      // Soft-delete: deactivate the pack to preserve FK integrity with existing purchases
+      const [updated] = await db
+        .update(SessionPackTable)
+        .set({ isActive: false })
+        .where(and(eq(SessionPackTable.id, id), eq(SessionPackTable.clerkUserId, userId)))
+        .returning({ id: SessionPackTable.id });
+      deletedPack = updated;
+    } else {
+      const [deleted] = await db
+        .delete(SessionPackTable)
+        .where(and(eq(SessionPackTable.id, id), eq(SessionPackTable.clerkUserId, userId)))
+        .returning({ id: SessionPackTable.id });
+      deletedPack = deleted;
+    }
 
     if (!deletedPack) {
       return { error: true, message: 'Failed to delete pack' };

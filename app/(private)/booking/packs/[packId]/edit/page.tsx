@@ -18,8 +18,8 @@ export default async function EditPackPage({ params }: { params: Promise<{ packI
       where: and(eq(SessionPackTable.id, packId), eq(SessionPackTable.clerkUserId, userId)),
     }),
     db.query.EventTable.findMany({
-      where: ({ clerkUserId, isActive }, { eq: eqFn, and: andFn }) =>
-        andFn(eqFn(clerkUserId, userId), eqFn(isActive, true)),
+      where: ({ clerkUserId, isActive, price }, { eq: eqFn, and: andFn, gt: gtFn }) =>
+        andFn(eqFn(clerkUserId, userId), eqFn(isActive, true), gtFn(price, 0)),
       orderBy: ({ name }, { asc }) => asc(name),
     }),
   ]);

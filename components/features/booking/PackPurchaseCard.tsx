@@ -44,9 +44,11 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
   const savings = individualTotal > 0 ? individualTotal - pack.price : 0;
   const savingsPercent = individualTotal > 0 ? Math.round((savings / individualTotal) * 100) : 0;
 
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   async function handlePurchase() {
-    if (!email) {
-      toast.error('Please enter your email address');
+    if (!email || !isValidEmail) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
@@ -178,7 +180,7 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handlePurchase} disabled={isLoading || !email}>
+              <Button onClick={handlePurchase} disabled={isLoading || !email || !isValidEmail}>
                 {isLoading ? 'Processing...' : `Pay €${(pack.price / 100).toFixed(2)}`}
               </Button>
             </DialogFooter>

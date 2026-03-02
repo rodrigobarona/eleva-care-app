@@ -19,6 +19,7 @@ interface PackPurchaseConfirmationProps {
   sessionsCount?: number;
   promotionCode?: string;
   expiresAt?: string;
+  bookingUrl?: string;
   locale?: string;
 }
 
@@ -116,6 +117,7 @@ export const PackPurchaseConfirmation = ({
   sessionsCount = 5,
   promotionCode = 'PACK-ABC123',
   expiresAt = '2026-09-01T00:00:00.000Z',
+  bookingUrl = 'https://eleva.care',
   locale = 'en',
 }: PackPurchaseConfirmationProps) => {
   const t = getLocaleStrings(locale);
@@ -292,7 +294,7 @@ export const PackPurchaseConfirmation = ({
 
       <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
         <EmailButton
-          href="https://eleva.care"
+          href={bookingUrl}
           style={{
             ...ELEVA_BUTTON_STYLES.primary,
             backgroundColor: ELEVA_COLORS.primary,
@@ -345,5 +347,6 @@ PackPurchaseConfirmation.PreviewProps = {
   sessionsCount: 5,
   promotionCode: 'PACK-XY7K9M',
   expiresAt: '2026-09-01T00:00:00.000Z',
+  bookingUrl: 'https://eleva.care/en/dr-maria-santos',
   locale: 'en',
 } as PackPurchaseConfirmationProps;
