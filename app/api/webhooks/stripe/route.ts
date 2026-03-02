@@ -628,7 +628,8 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     sessionId: session.id,
     paymentStatus: session.payment_status,
     paymentIntent: session.payment_intent,
-    metadata: session.metadata,
+    metadataKeys: session.metadata ? Object.keys(session.metadata) : [],
+    metadataType: session.metadata?.type || 'booking',
   });
 
   try {
