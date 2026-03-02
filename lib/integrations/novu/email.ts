@@ -511,3 +511,50 @@ export async function generateExpertNotificationEmail(params: {
     subject: t('subject', { notificationTitle: params.notificationTitle }),
   };
 }
+
+/**
+ * Generates HTML and plain text for a pack purchase confirmation email
+ */
+export async function generatePackPurchaseEmail(params: {
+  buyerName: string;
+  packName: string;
+  eventName: string;
+  expertName: string;
+  sessionsCount: number;
+  promotionCode: string;
+  expiresAt: string;
+  locale?: string;
+}): Promise<{ html: string; text: string; subject: string }> {
+  const { default: PackPurchaseConfirmationTemplate } = await import(
+    '@/emails/packs/pack-purchase-confirmation'
+  );
+  const { render } = await import('@react-email/render');
+
+  const locale = params.locale || 'en';
+
+  const renderedHtml = await render(
+    PackPurchaseConfirmationTemplate({
+      buyerName: params.buyerName,
+      packName: params.packName,
+      eventName: params.eventName,
+      expertName: params.expertName,
+      sessionsCount: params.sessionsCount,
+      promotionCode: params.promotionCode,
+      expiresAt: params.expiresAt,
+      locale,
+    }),
+  );
+
+  const localePrefix = locale.toLowerCase().split('-')[0];
+  const subjects: Record<string, string> = {
+    en: `Your ${params.sessionsCount}-session pack is ready!`,
+    pt: `Seu pacote de ${params.sessionsCount} sessões está pronto!`,
+    es: `¡Tu paquete de ${params.sessionsCount} sesiones está listo!`,
+  };
+
+  return {
+    html: renderedHtml,
+    text: generatePlainTextFromHTML(renderedHtml),
+    subject: subjects[localePrefix] || subjects.en,
+  };
+}
