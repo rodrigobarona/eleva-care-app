@@ -1,0 +1,249 @@
+import { calculateApplicationFee, STRIPE_CONFIG } from '@/config/stripe';
+import { db } from '@/drizzle/db';
+import { SessionPackTable } from '@/drizzle/schema';
+import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
+import { IdempotencyCache, RateLimitCache } from '@/lib/redis/manager';
+import { checkBotId } from 'botid/server';
+import { eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+});
+
+const RATE_LIMITS = {
+  USER: { maxAttempts: 5, windowSeconds: 900 },
+  IP: { maxAttempts: 20, windowSeconds: 900 },
+  GLOBAL: { maxAttempts: 500, windowSeconds: 60 },
+} as const;
+
+async function checkRateLimits(userIdentifier: string, clientIP: string) {
+  try {
+    const userLimit = await RateLimitCache.checkRateLimit(
+      `pack-checkout:${userIdentifier}`,
+      RATE_LIMITS.USER.maxAttempts,
+      RATE_LIMITS.USER.windowSeconds,
+    );
+    if (!userLimit.allowed) {
+      return { allowed: false, message: 'Too many attempts. Please try again later.' };
+    }
+
+    const ipLimit = await RateLimitCache.checkRateLimit(
+      `pack-checkout:ip:${clientIP}`,
+      RATE_LIMITS.IP.maxAttempts,
+      RATE_LIMITS.IP.windowSeconds,
+    );
+    if (!ipLimit.allowed) {
+      return { allowed: false, message: 'Too many attempts from this location.' };
+    }
+
+    const globalLimit = await RateLimitCache.checkRateLimit(
+      'pack-checkout:global',
+      RATE_LIMITS.GLOBAL.maxAttempts,
+      RATE_LIMITS.GLOBAL.windowSeconds,
+    );
+    if (!globalLimit.allowed) {
+      return { allowed: false, message: 'System is busy. Please try again shortly.' };
+    }
+
+    return { allowed: true };
+  } catch (error) {
+    console.error('Rate limiting error:', error);
+    return { allowed: false, message: 'Service temporarily unavailable.' };
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const botResult = (await checkBotId({
+    advancedOptions: { checkLevel: 'basic' },
+  })) as import('@/types/botid').BotIdVerificationResult;
+
+  if (botResult.isBot) {
+    const { COMMON_ALLOWED_BOTS } = await import('@/types/botid');
+    const isAllowedBot =
+      botResult.isVerifiedBot &&
+      botResult.verifiedBotName !== undefined &&
+      (COMMON_ALLOWED_BOTS as readonly string[]).includes(botResult.verifiedBotName);
+
+    if (!isAllowedBot) {
+      return NextResponse.json(
+        { error: 'Access denied', message: 'Automated requests are not allowed' },
+        { status: 403 },
+      );
+    }
+  }
+
+  try {
+    const body = await request.json();
+    const { packId, buyerEmail, buyerName, locale = 'en' } = body;
+
+    if (!packId || !buyerEmail) {
+      return NextResponse.json(
+        { error: 'Missing required fields: packId and buyerEmail' },
+        { status: 400 },
+      );
+    }
+
+    const forwarded = request.headers.get('x-forwarded-for');
+    const clientIP =
+      forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+
+    const rateLimitResult = await checkRateLimits(`guest:${buyerEmail}`, clientIP);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json({ error: rateLimitResult.message }, { status: 429 });
+    }
+
+    const idempotencyKey = request.headers.get('Idempotency-Key');
+    if (idempotencyKey) {
+      const cachedResult = await IdempotencyCache.get(idempotencyKey);
+      if (cachedResult) {
+        return NextResponse.json({ url: cachedResult.url });
+      }
+    }
+
+    after(async () => {
+      try {
+        await Promise.all([
+          RateLimitCache.recordAttempt(
+            `pack-checkout:guest:${buyerEmail}`,
+            RATE_LIMITS.USER.windowSeconds,
+          ),
+          RateLimitCache.recordAttempt(
+            `pack-checkout:ip:${clientIP}`,
+            RATE_LIMITS.IP.windowSeconds,
+          ),
+          RateLimitCache.recordAttempt('pack-checkout:global', RATE_LIMITS.GLOBAL.windowSeconds),
+        ]);
+      } catch (error) {
+        console.error('Error recording rate limit attempts:', error);
+      }
+    });
+
+    const pack = await db.query.SessionPackTable.findFirst({
+      where: eq(SessionPackTable.id, packId),
+      with: {
+        event: {
+          columns: { name: true, slug: true, clerkUserId: true },
+        },
+        user: {
+          columns: {
+            stripeConnectAccountId: true,
+            firstName: true,
+            lastName: true,
+            country: true,
+          },
+        },
+      },
+    });
+
+    if (!pack || !pack.isActive) {
+      return NextResponse.json({ error: 'Session pack not found or inactive' }, { status: 404 });
+    }
+
+    if (!pack.stripePriceId) {
+      return NextResponse.json({ error: 'Pack is not properly configured' }, { status: 400 });
+    }
+
+    if (!pack.user?.stripeConnectAccountId) {
+      return NextResponse.json({ error: "Expert's payment account not found" }, { status: 400 });
+    }
+
+    const expertStripeAccountId = pack.user.stripeConnectAccountId;
+    const expertName =
+      `${pack.user.firstName || ''} ${pack.user.lastName || ''}`.trim() || 'Expert';
+
+    const customerId = await getOrCreateStripeCustomer(undefined, buyerEmail, buyerName);
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
+    const applicationFeeAmount = calculateApplicationFee(pack.price);
+
+    const [t] = await Promise.all([getTranslations({ locale, namespace: 'Payments.checkout' })]);
+
+    const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
+    const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: pack.stripePriceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${baseUrl}/${locale}/pack-purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/${locale}`,
+      customer: customerId,
+      customer_creation: customerId ? undefined : 'always',
+      allow_promotion_codes: false,
+      automatic_tax: {
+        enabled: true,
+        liability: { type: 'account', account: expertStripeAccountId },
+      },
+      tax_id_collection: { enabled: true, required: 'if_supported' },
+      billing_address_collection: 'required',
+      consent_collection: { terms_of_service: 'required' },
+      custom_text: {
+        terms_of_service_acceptance: {
+          message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+        },
+      },
+      locale: (() => {
+        const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
+          en: 'en',
+          'pt-BR': 'pt-BR',
+          es: 'es',
+          fr: 'fr',
+          de: 'de',
+          it: 'it',
+          pt: 'pt-BR',
+        };
+        return localeMap[locale] || 'en';
+      })(),
+      customer_update: { name: 'auto', address: 'auto' },
+      metadata: {
+        type: 'pack_purchase',
+        packId: pack.id,
+        eventId: pack.eventId,
+        buyerEmail,
+        buyerName: buyerName || '',
+        sessionsCount: pack.sessionsCount.toString(),
+        expertClerkUserId: pack.clerkUserId,
+        expertName,
+        packName: pack.name,
+        eventName: pack.event.name,
+        expirationDays: (pack.expirationDays || 180).toString(),
+        locale,
+      },
+      payment_intent_data: {
+        application_fee_amount: applicationFeeAmount,
+        transfer_data: {
+          destination: expertStripeAccountId,
+        },
+        metadata: {
+          type: 'pack_purchase',
+          packId: pack.id,
+        },
+      },
+    });
+
+    if (idempotencyKey && session.url) {
+      after(async () => {
+        await IdempotencyCache.set(idempotencyKey!, { url: session.url! });
+      });
+    }
+
+    return NextResponse.json({ url: session.url });
+  } catch (error) {
+    console.error('Pack checkout creation failed:', error);
+    return NextResponse.json(
+      {
+        error: 'Failed to create checkout session',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 },
+    );
+  }
+}
