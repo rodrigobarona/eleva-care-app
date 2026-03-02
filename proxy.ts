@@ -412,6 +412,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/healthcheck') ||
     path.startsWith('/api/health/') || // Individual service health checks
     path.startsWith('/api/create-payment-intent') ||
+    path.startsWith('/api/create-pack-checkout') ||
     path.startsWith('/api/og/') ||
     path === '/api/novu' ||
     // BotID routes - let BotID handle these directly
@@ -728,8 +729,9 @@ export const config = {
     // - api/internal/   (internal services communication)
     // - api/healthcheck (health monitoring endpoints)
     // - api/create-payment-intent (payment processing endpoint)
+    // - api/create-pack-checkout  (pack purchase checkout endpoint)
     // - api/novu$       (Novu Framework bridge endpoint only, not subpaths)
     // - _vercel/, _botid/ (Vercel and BotID internal paths)
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|api/create-payment-intent|api/novu$|_vercel|_botid).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|api/create-payment-intent|api/create-pack-checkout|api/novu$|_vercel|_botid).*)',
   ],
 };
