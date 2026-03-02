@@ -584,3 +584,97 @@ export const slotReservationRelations = relations(SlotReservationTable, ({ one }
     references: [EventTable.id],
   }),
 }));
+
+/**
+ * Session Packs table - defines purchasable bundles of sessions for an event
+ *
+ * Experts can create packs (e.g., "5 sessions of Event X") at a discounted total price.
+ * When purchased, a Stripe promotion code is generated for the buyer.
+ */
+export const SessionPackTable = pgTable(
+  'session_packs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => EventTable.id, { onDelete: 'cascade' }),
+    clerkUserId: text('clerk_user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    sessionsCount: integer('sessions_count').notNull(),
+    price: integer('price').notNull(),
+    currency: text('currency').notNull().default('eur'),
+    stripeProductId: text('stripe_product_id'),
+    stripePriceId: text('stripe_price_id'),
+    isActive: boolean('is_active').notNull().default(true),
+    expirationDays: integer('expiration_days').default(180),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    clerkUserIdIndex: index('session_packs_clerk_user_id_idx').on(table.clerkUserId),
+    eventIdIndex: index('session_packs_event_id_idx').on(table.eventId),
+  }),
+);
+
+export const sessionPackRelations = relations(SessionPackTable, ({ one, many }) => ({
+  event: one(EventTable, {
+    fields: [SessionPackTable.eventId],
+    references: [EventTable.id],
+  }),
+  user: one(UserTable, {
+    fields: [SessionPackTable.clerkUserId],
+    references: [UserTable.clerkUserId],
+  }),
+  purchases: many(PackPurchaseTable),
+}));
+
+/**
+ * Pack Purchases table - tracks individual pack purchases and their promo codes
+ *
+ * Each record represents a customer's purchase of a session pack.
+ * Contains the Stripe promotion code that the customer uses to redeem sessions.
+ */
+export const packPurchaseStatusEnum = pgEnum('pack_purchase_status', [
+  'active',
+  'fully_redeemed',
+  'expired',
+  'cancelled',
+]);
+
+export const PackPurchaseTable = pgTable(
+  'pack_purchases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    packId: uuid('pack_id')
+      .notNull()
+      .references(() => SessionPackTable.id),
+    buyerEmail: text('buyer_email').notNull(),
+    buyerName: text('buyer_name'),
+    stripeCustomerId: text('stripe_customer_id'),
+    stripeSessionId: text('stripe_session_id').unique(),
+    stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
+    stripeCouponId: text('stripe_coupon_id'),
+    stripePromotionCodeId: text('stripe_promotion_code_id'),
+    promotionCode: text('promotion_code').notNull(),
+    maxRedemptions: integer('max_redemptions').notNull(),
+    redemptionsUsed: integer('redemptions_used').notNull().default(0),
+    expiresAt: timestamp('expires_at'),
+    status: packPurchaseStatusEnum('status').notNull().default('active'),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    packIdIndex: index('pack_purchases_pack_id_idx').on(table.packId),
+    buyerEmailIndex: index('pack_purchases_buyer_email_idx').on(table.buyerEmail),
+    promotionCodeIndex: index('pack_purchases_promotion_code_idx').on(table.promotionCode),
+    stripeSessionIdIndex: index('pack_purchases_stripe_session_id_idx').on(table.stripeSessionId),
+  }),
+);
+
+export const packPurchaseRelations = relations(PackPurchaseTable, ({ one }) => ({
+  pack: one(SessionPackTable, {
+    fields: [PackPurchaseTable.packId],
+    references: [SessionPackTable.id],
+  }),
+}));
