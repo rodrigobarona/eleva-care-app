@@ -178,7 +178,7 @@ const Step2Content = React.memo<Step2ContentProps>(
       <div className="rounded-lg border p-6">
         <div className="mb-6">
           <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+          <div className="bg-muted/50 text-muted-foreground flex flex-col gap-1 rounded-md p-3">
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-4 w-4" />
               <span>
@@ -283,7 +283,7 @@ const Step2Content = React.memo<Step2ContentProps>(
         </div>
 
         {errors.root?.message && (
-          <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          <div className="bg-destructive/10 text-destructive mt-4 rounded-md p-3 text-sm">
             {errors.root.message}
           </div>
         )}
@@ -358,7 +358,7 @@ const Step3Content = React.memo<Step3ContentProps>(
   ({ isCreatingCheckout, isProcessing, checkoutUrl }) => (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
         <p className="mt-4 text-lg font-medium">
           {isCreatingCheckout || isProcessing
             ? 'Creating secure checkout...'
@@ -366,7 +366,7 @@ const Step3Content = React.memo<Step3ContentProps>(
               ? 'Redirecting to payment...'
               : 'Preparing checkout...'}
         </p>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-2 text-sm">
           Please do not close this window or navigate away
         </p>
       </div>
@@ -414,6 +414,7 @@ export function MeetingFormContent({
   const lastRequestTimestamp = React.useRef<number>(0);
   const activeRequestId = React.useRef<string | null>(null);
   const isPrefetchRequest = React.useRef(false);
+  const prefetchPromiseRef = React.useRef<Promise<string | null> | null>(null);
   const checkoutUrlRef = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
@@ -827,7 +828,9 @@ export function MeetingFormContent({
       const timer = setTimeout(() => {
         setIsPrefetching(true);
         isPrefetchRequest.current = true;
-        createPaymentIntent({ silent: true })
+        const promise = createPaymentIntent({ silent: true });
+        prefetchPromiseRef.current = promise;
+        promise
           .then((url) => {
             console.log('[MeetingForm] prefetch: %s', url ? 'success' : 'returned null');
           })
@@ -835,6 +838,7 @@ export function MeetingFormContent({
             console.error('[MeetingForm] prefetch: failed', error);
           })
           .finally(() => {
+            prefetchPromiseRef.current = null;
             isPrefetchRequest.current = false;
             setIsPrefetching(false);
           });
@@ -989,6 +993,37 @@ export function MeetingFormContent({
 
       // Slow path: create new payment intent
       try {
+        // If a prefetch is in-flight, wait for it instead of making a duplicate request
+        // that would be rejected by the server's FormCache (429)
+        if (prefetchPromiseRef.current) {
+          console.log('[MeetingForm] handleNextStep: PAID path - waiting for in-flight prefetch');
+          try {
+            const prefetchUrl = await prefetchPromiseRef.current;
+            const prefetchRedirectUrl = prefetchUrl || checkoutUrlRef.current;
+            if (prefetchRedirectUrl) {
+              validateCheckoutUrl(prefetchRedirectUrl);
+
+              setTimeout(() => {
+                if (!document.hidden) {
+                  isProcessingRef.current = false;
+                  setIsProcessing(false);
+                  setIsSubmitting(false);
+                }
+              }, 3000);
+
+              console.log(
+                '[MeetingForm] handleNextStep: PAID path - prefetch completed, redirecting',
+              );
+              window.location.href = prefetchRedirectUrl;
+              return;
+            }
+          } catch {
+            console.log(
+              '[MeetingForm] handleNextStep: PAID path - prefetch failed, creating new request',
+            );
+          }
+        }
+
         activeRequestId.current = null;
         isPrefetchRequest.current = false;
 
@@ -1197,7 +1232,7 @@ export function MeetingFormContent({
     return (
       <div className="py-8 text-center">
         <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="mb-4 text-muted-foreground">
+        <p className="text-muted-foreground mb-4">
           We need access to your Google Calendar to show available time slots.
         </p>
         <Button
@@ -1229,7 +1264,7 @@ export function MeetingFormContent({
               Select Date & Time
             </span>
           </div>
-          <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
+          <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -1244,7 +1279,7 @@ export function MeetingFormContent({
           </div>
           {price > 0 && (
             <>
-              <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
+              <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
               <div className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
