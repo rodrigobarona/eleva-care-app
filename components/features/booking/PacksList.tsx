@@ -63,12 +63,16 @@ export function PacksList({ initialPacks }: PacksListProps) {
   };
 
   const handleDelete = async (packId: string) => {
-    const result = await deletePack(packId);
-    if (result?.error) {
-      toast.error(result.message || 'Failed to delete pack');
-    } else {
-      setPacks((prev) => prev.filter((p) => p.id !== packId));
-      toast.success('Pack deleted');
+    try {
+      const result = await deletePack(packId);
+      if (result?.error) {
+        toast.error(result.message || 'Failed to delete pack');
+      } else {
+        setPacks((prev) => prev.filter((p) => p.id !== packId));
+        toast.success('Pack deleted');
+      }
+    } catch {
+      toast.error('Failed to delete pack');
     }
   };
 
@@ -193,7 +197,13 @@ function PackCard({
             <div className="inline-flex items-center rounded-md border">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button asChild size="icon" variant="ghost" className="rounded-r-none border-r">
+                  <Button
+                    asChild
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-r-none border-r"
+                    aria-label={`Edit ${pack.name}`}
+                  >
                     <Link href={`/booking/packs/${pack.id}/edit`}>
                       <Pencil className="h-4 w-4" />
                     </Link>
@@ -212,6 +222,7 @@ function PackCard({
                         size="icon"
                         variant="ghost"
                         className="rounded-l-none text-destructive hover:text-destructive"
+                        aria-label={`Delete ${pack.name}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

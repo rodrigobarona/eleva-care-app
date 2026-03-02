@@ -459,7 +459,12 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
   const safeExpirationDays =
     Number.isFinite(expirationDays) && expirationDays > 0 ? expirationDays : 180;
 
-  const maskedEmail = buyerEmail.replace(/(.{2}).*(@.*)/, '$1***$2');
+  const [localPart, domain] = buyerEmail.split('@');
+  const maskedLocal =
+    localPart.length >= 3
+      ? localPart.slice(0, 2) + '*'.repeat(localPart.length - 2)
+      : '*'.repeat(localPart.length);
+  const maskedEmail = `${maskedLocal}@${domain}`;
   console.log('📦 Processing pack purchase:', {
     packId,
     buyer: maskedEmail,
@@ -595,7 +600,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       }),
     );
 
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: buyerEmail,
       subject:
         locale === 'pt' || locale === 'pt-BR'
@@ -606,7 +611,11 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       html: renderedHtml,
     });
 
-    console.log(`📧 Pack purchase confirmation email sent to ${maskedEmail}`);
+    if (emailResult.success) {
+      console.log(`📧 Pack purchase confirmation email sent to ${maskedEmail}`);
+    } else {
+      console.error(`📧 Failed to send pack purchase email to ${maskedEmail}:`, emailResult.error);
+    }
   } catch (emailError) {
     console.error('Failed to send pack purchase email:', emailError);
   }
@@ -835,6 +844,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
                 .where(
                   and(
                     eq(PackPurchaseTable.id, packPurchase.id),
+                    eq(PackPurchaseTable.status, 'active'),
                     sql`${PackPurchaseTable.redemptionsUsed} < ${PackPurchaseTable.maxRedemptions}`,
                   ),
                 )
