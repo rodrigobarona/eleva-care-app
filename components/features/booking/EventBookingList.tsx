@@ -1,4 +1,5 @@
 import NextAvailableTimeClient from '@/components/features/booking/NextAvailableTimeClient';
+import { PackPurchaseCard } from '@/components/features/booking/PackPurchaseCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,7 +9,7 @@ import { logger } from '@/lib/utils/logger';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { addMonths } from 'date-fns';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Package } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -295,6 +296,17 @@ async function EventsList({ userId, username }: { userId: string; username: stri
     return notFound();
   }
 
+  const packs = await db.query.SessionPackTable.findMany({
+    where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
+      and(eq(userIdCol, userId), eq(isActive, true)),
+    with: {
+      event: {
+        columns: { name: true, slug: true, price: true, durationInMinutes: true },
+      },
+    },
+    orderBy: ({ createdAt }, { desc }) => desc(createdAt),
+  });
+
   return (
     <div className="space-y-6">
       {events.map((event) => (
@@ -302,6 +314,35 @@ async function EventsList({ userId, username }: { userId: string; username: stri
           <EventCardWithAvailability event={event} username={username} />
         </Suspense>
       ))}
+
+      {packs.length > 0 && (
+        <div className="mt-12 space-y-6">
+          <div className="flex items-center gap-2">
+            <Package className="h-6 w-6" />
+            <h2 className="text-2xl font-bold">Session Packs</h2>
+          </div>
+          <p className="text-muted-foreground">
+            Save by purchasing a bundle of sessions. You&apos;ll receive a promo code to use when
+            booking.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {packs.map((pack) => (
+              <PackPurchaseCard
+                key={pack.id}
+                pack={{
+                  id: pack.id,
+                  name: pack.name,
+                  description: pack.description,
+                  sessionsCount: pack.sessionsCount,
+                  price: pack.price,
+                  expirationDays: pack.expirationDays,
+                  event: pack.event,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
