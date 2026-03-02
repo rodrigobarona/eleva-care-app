@@ -528,12 +528,16 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       (err instanceof Stripe.errors.StripeInvalidRequestError &&
         (err.message?.includes('idempotent') || err.code === 'idempotency_key_in_use'))
     ) {
-      console.warn('⚠️ Coupon idempotency conflict, retrieving existing coupon for session:', session.id);
+      console.warn(
+        '⚠️ Coupon idempotency conflict, retrieving existing coupon for session:',
+        session.id,
+      );
       const existingCoupons = await stripe.coupons.list({ limit: 10 });
       const existing = existingCoupons.data.find(
         (c) => c.metadata?.packId === packId && c.metadata?.type === 'session_pack',
       );
-      if (!existing) throw new Error(`Idempotency conflict but no existing coupon found for pack ${packId}`);
+      if (!existing)
+        throw new Error(`Idempotency conflict but no existing coupon found for pack ${packId}`);
       coupon = existing;
     } else {
       console.error('❌ Stripe coupon creation failed:', {
@@ -574,12 +578,16 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       (err instanceof Stripe.errors.StripeInvalidRequestError &&
         (err.message?.includes('idempotent') || err.code === 'idempotency_key_in_use'))
     ) {
-      console.warn('⚠️ Promo code idempotency conflict, retrieving existing promo for session:', session.id);
+      console.warn(
+        '⚠️ Promo code idempotency conflict, retrieving existing promo for session:',
+        session.id,
+      );
       const existingPromos = await stripe.promotionCodes.list({ coupon: coupon.id, limit: 10 });
       const existing = existingPromos.data.find(
         (p) => p.metadata?.packId === packId && p.metadata?.type === 'session_pack',
       );
-      if (!existing) throw new Error(`Idempotency conflict but no existing promo found for coupon ${coupon.id}`);
+      if (!existing)
+        throw new Error(`Idempotency conflict but no existing promo found for coupon ${coupon.id}`);
       promoCode = existing;
     } else {
       console.error('❌ Stripe promotion code creation failed:', {
@@ -626,7 +634,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     console.error('❌ Failed to insert pack purchase record:', {
       packId,
       sessionId: session.id,
-      promoCode: promoCode.code,
+      promoCode: promoCode.code.slice(0, 4) + '****',
       paymentIntentId: paymentIntentId || null,
       error: dbError instanceof Error ? dbError.message : dbError,
     });
