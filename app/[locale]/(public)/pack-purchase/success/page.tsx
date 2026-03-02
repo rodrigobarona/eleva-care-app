@@ -52,9 +52,14 @@ export default async function PackPurchaseSuccessPage({
             </ol>
           </div>
 
-          <Button asChild className="w-full">
-            <Link href={`/${locale}`}>{t('browseExperts')}</Link>
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button asChild className="w-full">
+              <Link href={`/${locale}/my-packs`}>View My Packs</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link href={`/${locale}`}>{t('browseExperts')}</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

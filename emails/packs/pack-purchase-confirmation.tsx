@@ -13,6 +13,7 @@ import { Heading, Hr, Section, Text } from '@react-email/components';
 
 interface PackPurchaseConfirmationProps {
   buyerName?: string;
+  buyerEmail?: string;
   packName?: string;
   eventName?: string;
   expertName?: string;
@@ -45,6 +46,7 @@ const i18n: Record<string, Record<string, string>> = {
     step3: 'Enter the promotion code in the discount field',
     step4: 'The session will be free — your pack covers it!',
     bookNow: 'Book a Session',
+    viewPacks: 'View My Packs',
     supportNote: 'Need assistance?',
     supportText:
       'If you have any questions about your session pack, please contact our support team.',
@@ -71,6 +73,7 @@ const i18n: Record<string, Record<string, string>> = {
     step3: 'Insira o código promocional no campo de desconto',
     step4: 'A sessão será gratuita — o seu pacote cobre!',
     bookNow: 'Agendar Sessão',
+    viewPacks: 'Ver Meus Pacotes',
     supportNote: 'Precisa de ajuda?',
     supportText:
       'Se tiver alguma dúvida sobre o seu pacote de sessões, contacte a nossa equipa de suporte.',
@@ -97,6 +100,7 @@ const i18n: Record<string, Record<string, string>> = {
     step3: 'Ingresa el código promocional en el campo de descuento',
     step4: '¡La sesión será gratuita — tu paquete la cubre!',
     bookNow: 'Reservar Sesión',
+    viewPacks: 'Ver Mis Paquetes',
     supportNote: '¿Necesitas ayuda?',
     supportText:
       'Si tienes alguna pregunta sobre tu paquete de sesiones, contacta a nuestro equipo de soporte.',
@@ -111,6 +115,7 @@ function getLocaleStrings(locale: string) {
 
 export const PackPurchaseConfirmation = ({
   buyerName = 'Customer',
+  buyerEmail = 'customer@example.com',
   packName = '5-Session Pack',
   eventName = 'Consultation',
   expertName = 'Dr. Maria Santos',
@@ -303,9 +308,16 @@ export const PackPurchaseConfirmation = ({
             ...ELEVA_BUTTON_STYLES.primary,
             backgroundColor: ELEVA_COLORS.primary,
             borderColor: ELEVA_COLORS.primary,
+            marginRight: '12px',
           }}
         >
           {t.bookNow}
+        </EmailButton>
+        <EmailButton
+          href={`${bookingUrl.split('/').slice(0, 4).join('/')}/my-packs?email=${encodeURIComponent(buyerEmail)}`}
+          style={ELEVA_BUTTON_STYLES.secondary}
+        >
+          {t.viewPacks}
         </EmailButton>
       </Section>
 
@@ -345,6 +357,7 @@ export default PackPurchaseConfirmation;
 
 PackPurchaseConfirmation.PreviewProps = {
   buyerName: 'João Silva',
+  buyerEmail: 'joao@example.com',
   packName: '5-Session Wellness Pack',
   eventName: 'Wellness Consultation',
   expertName: 'Dr. Maria Santos',

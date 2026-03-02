@@ -583,6 +583,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     const renderedHtml = await render(
       PackPurchaseConfirmationTemplate({
         buyerName: buyerName || buyerEmail.split('@')[0],
+        buyerEmail,
         packName,
         eventName,
         expertName,
@@ -840,11 +841,36 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
                 .returning({ id: PackPurchaseTable.id });
 
               if (updated.length > 0) {
+                const newRedemptionsUsed = packPurchase.redemptionsUsed + 1;
+                const remaining = packPurchase.maxRedemptions - newRedemptionsUsed;
                 console.log('📦 Pack redemption tracked:', {
                   purchaseId: packPurchase.id,
-                  previousRedemptions: packPurchase.redemptionsUsed,
+                  redemptionsUsed: newRedemptionsUsed,
+                  remaining,
                   maxRedemptions: packPurchase.maxRedemptions,
                 });
+
+                try {
+                  const guestEmail = meetingData.guest;
+                  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
+                  const myPacksUrl = `${baseUrl}/en/my-packs?email=${encodeURIComponent(guestEmail)}`;
+
+                  const statusLine =
+                    remaining > 0
+                      ? `You have ${remaining} session${remaining !== 1 ? 's' : ''} remaining in your pack.`
+                      : `All sessions in your pack have been used.`;
+
+                  await sendEmail({
+                    to: guestEmail,
+                    subject:
+                      remaining > 0
+                        ? `Pack session used - ${remaining} remaining`
+                        : `All pack sessions used`,
+                    html: `<p>Hi,</p><p>A session from your pack has been booked successfully.</p><p><strong>${statusLine}</strong></p><p><a href="${myPacksUrl}">View your pack status</a></p><p>Thanks,<br/>Eleva Care</p>`,
+                  });
+                } catch (notifyError) {
+                  console.error('Failed to send pack redemption notification:', notifyError);
+                }
               } else {
                 console.log('📦 Pack redemption skipped (already fully redeemed):', {
                   purchaseId: packPurchase.id,

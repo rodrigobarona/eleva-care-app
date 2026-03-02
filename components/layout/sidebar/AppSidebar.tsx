@@ -56,6 +56,7 @@ const mainItems: SidebarItem[] = [
     items: [
       { title: 'All Packs', url: '/booking/packs' },
       { title: 'Create Pack', url: '/booking/packs/new' },
+      { title: 'Purchases', url: '/booking/packs/purchases' },
     ],
   },
   {
