@@ -470,6 +470,11 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     buyer: maskedEmail,
     sessionsCount,
     sessionId: session.id,
+    paymentStatus: session.payment_status,
+    paymentIntent: session.payment_intent,
+    amountTotal: session.amount_total,
+    amountSubtotal: session.amount_subtotal,
+    customer: typeof session.customer === 'string' ? session.customer : 'expanded',
   });
 
   const existingPurchase = await db.query.PackPurchaseTable.findFirst({
@@ -531,6 +536,16 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       if (!existing) throw new Error(`Idempotency conflict but no existing coupon found for pack ${packId}`);
       coupon = existing;
     } else {
+      console.error('❌ Stripe coupon creation failed:', {
+        packId,
+        sessionId: session.id,
+        stripeError:
+          err instanceof Stripe.errors.StripeError
+            ? { type: err.type, code: err.code, message: err.message, param: err.param }
+            : err instanceof Error
+              ? err.message
+              : err,
+      });
       throw err;
     }
   }
@@ -567,6 +582,17 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       if (!existing) throw new Error(`Idempotency conflict but no existing promo found for coupon ${coupon.id}`);
       promoCode = existing;
     } else {
+      console.error('❌ Stripe promotion code creation failed:', {
+        packId,
+        couponId: coupon.id,
+        sessionId: session.id,
+        stripeError:
+          err instanceof Stripe.errors.StripeError
+            ? { type: err.type, code: err.code, message: err.message, param: err.param }
+            : err instanceof Error
+              ? err.message
+              : err,
+      });
       throw err;
     }
   }
@@ -576,24 +602,36 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       ? session.payment_intent
       : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
 
-  const [purchase] = await db
-    .insert(PackPurchaseTable)
-    .values({
+  let purchase: { id: string } | undefined;
+  try {
+    [purchase] = await db
+      .insert(PackPurchaseTable)
+      .values({
+        packId,
+        buyerEmail,
+        buyerName: buyerName || null,
+        stripeCustomerId: customerId || null,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId || null,
+        stripeCouponId: coupon.id,
+        stripePromotionCodeId: promoCode.id,
+        promotionCode: promoCode.code,
+        maxRedemptions: sessionsCount,
+        redemptionsUsed: 0,
+        expiresAt,
+        status: 'active',
+      })
+      .returning({ id: PackPurchaseTable.id });
+  } catch (dbError) {
+    console.error('❌ Failed to insert pack purchase record:', {
       packId,
-      buyerEmail,
-      buyerName: buyerName || null,
-      stripeCustomerId: customerId || null,
-      stripeSessionId: session.id,
-      stripePaymentIntentId: paymentIntentId || null,
-      stripeCouponId: coupon.id,
-      stripePromotionCodeId: promoCode.id,
-      promotionCode: promoCode.code,
-      maxRedemptions: sessionsCount,
-      redemptionsUsed: 0,
-      expiresAt,
-      status: 'active',
-    })
-    .returning({ id: PackPurchaseTable.id });
+      sessionId: session.id,
+      promoCode: promoCode.code,
+      paymentIntentId: paymentIntentId || null,
+      error: dbError instanceof Error ? dbError.message : dbError,
+    });
+    throw dbError;
+  }
 
   console.log('✅ Pack purchase recorded:', {
     purchaseId: purchase?.id,
