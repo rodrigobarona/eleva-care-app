@@ -495,26 +495,50 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       ? session.customer
       : (session.customer as Stripe.Customer | null)?.id;
 
-  const expiresAt = new Date();
+  // Use session.created (deterministic) instead of new Date() so that
+  // idempotent Stripe API calls produce identical parameters across webhook retries.
+  const sessionCreatedMs = session.created * 1000;
+  const expiresAt = new Date(sessionCreatedMs);
   expiresAt.setDate(expiresAt.getDate() + safeExpirationDays);
+  const expiresAtUnix = Math.floor(expiresAt.getTime() / 1000);
 
   const couponIdempotencyKey = `coupon:pack:${session.id}`;
-  const coupon = await stripe.coupons.create(
-    {
-      percent_off: 100,
-      duration: 'once',
-      max_redemptions: sessionsCount,
-      name: `Pack: ${packName} (${sessionsCount} sessions)`,
-      redeem_by: Math.floor(expiresAt.getTime() / 1000),
-      metadata: { packId, type: 'session_pack' },
-    },
-    { idempotencyKey: couponIdempotencyKey },
-  );
+
+  let coupon: Stripe.Coupon;
+  try {
+    coupon = await stripe.coupons.create(
+      {
+        percent_off: 100,
+        duration: 'once',
+        max_redemptions: sessionsCount,
+        name: `Pack: ${packName} (${sessionsCount} sessions)`,
+        redeem_by: expiresAtUnix,
+        metadata: { packId, type: 'session_pack' },
+      },
+      { idempotencyKey: couponIdempotencyKey },
+    );
+  } catch (err: unknown) {
+    if (
+      err instanceof Stripe.errors.StripeIdempotencyError ||
+      (err instanceof Stripe.errors.StripeInvalidRequestError &&
+        (err.message?.includes('idempotent') || err.code === 'idempotency_key_in_use'))
+    ) {
+      console.warn('⚠️ Coupon idempotency conflict, retrieving existing coupon for session:', session.id);
+      const existingCoupons = await stripe.coupons.list({ limit: 10 });
+      const existing = existingCoupons.data.find(
+        (c) => c.metadata?.packId === packId && c.metadata?.type === 'session_pack',
+      );
+      if (!existing) throw new Error(`Idempotency conflict but no existing coupon found for pack ${packId}`);
+      coupon = existing;
+    } else {
+      throw err;
+    }
+  }
 
   const promoCodeParams: Stripe.PromotionCodeCreateParams = {
     coupon: coupon.id,
     max_redemptions: sessionsCount,
-    expires_at: Math.floor(expiresAt.getTime() / 1000),
+    expires_at: expiresAtUnix,
     metadata: { packId, type: 'session_pack' },
   };
 
@@ -523,9 +547,29 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
   }
 
   const promoIdempotencyKey = `promo:pack:${session.id}`;
-  const promoCode = await stripe.promotionCodes.create(promoCodeParams, {
-    idempotencyKey: promoIdempotencyKey,
-  });
+
+  let promoCode: Stripe.PromotionCode;
+  try {
+    promoCode = await stripe.promotionCodes.create(promoCodeParams, {
+      idempotencyKey: promoIdempotencyKey,
+    });
+  } catch (err: unknown) {
+    if (
+      err instanceof Stripe.errors.StripeIdempotencyError ||
+      (err instanceof Stripe.errors.StripeInvalidRequestError &&
+        (err.message?.includes('idempotent') || err.code === 'idempotency_key_in_use'))
+    ) {
+      console.warn('⚠️ Promo code idempotency conflict, retrieving existing promo for session:', session.id);
+      const existingPromos = await stripe.promotionCodes.list({ coupon: coupon.id, limit: 10 });
+      const existing = existingPromos.data.find(
+        (p) => p.metadata?.packId === packId && p.metadata?.type === 'session_pack',
+      );
+      if (!existing) throw new Error(`Idempotency conflict but no existing promo found for coupon ${coupon.id}`);
+      promoCode = existing;
+    } else {
+      throw err;
+    }
+  }
 
   const paymentIntentId =
     typeof session.payment_intent === 'string'

@@ -43,6 +43,10 @@ export const PUBLIC_ROUTES = [
   '/profile/:username', // Public expert profiles (e.g., /profile/barona)
   '/profile/:username/(.*)', // Public routes under usernames (e.g., /profile/barona/event-name)
   '/legal/(.*)', // Legal pages (privacy policy, terms, etc.)
+  '/trust/(.*)', // Trust center pages (security, DPA, etc.)
+  '/help',
+  '/community',
+  '/services',
   '/explore',
   '/experts/:path*',
   '/blog/:path*',

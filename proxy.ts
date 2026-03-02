@@ -141,15 +141,23 @@ function isPathMatch(path: string, pattern: string): boolean {
     return segments.length >= 2;
   }
 
-  // Handle regex-like patterns
+  // Handle path parameter patterns like /experts/:path*
+  if (pattern.includes(':') && !pattern.includes('(')) {
+    const regexPattern = pattern
+      .replace(/\//g, '\\/') // Escape forward slashes
+      .replace(/:[\w]+\*/g, '.*') // :path* → .*
+      .replace(/:[\w]+/g, '[^/]+'); // :param → one segment
+    try {
+      return new RegExp(`^${regexPattern}$`).test(path);
+    } catch {
+      return false;
+    }
+  }
+
+  // Handle regex-like patterns e.g. /legal/(.*), /sign-in(.*)
   if (pattern.includes('(') && pattern.includes(')')) {
     try {
-      const regexPattern = pattern
-        .replace(/\//g, '\\/') // Escape forward slashes
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.');
+      const regexPattern = pattern.replace(/\//g, '\\/'); // Escape forward slashes only
       const regex = new RegExp(`^${regexPattern}$`);
       return regex.test(path);
     } catch {
@@ -330,6 +338,9 @@ function isUsernameRoute(path: string): boolean {
       'help',
       'contact',
       'community',
+      'support',
+      'explore',
+      'blog',
       ...locales,
     ].includes(segment);
 
@@ -363,6 +374,9 @@ function isUsernameRoute(path: string): boolean {
       'help',
       'contact',
       'community',
+      'support',
+      'explore',
+      'blog',
     ].includes(segments[0]);
 
     // Skip locale-prefixed reserved paths like /en/dashboard
@@ -391,6 +405,9 @@ function isUsernameRoute(path: string): boolean {
         'help',
         'contact',
         'community',
+        'support',
+        'explore',
+        'blog',
       ].includes(segments[1]);
 
     return !isReservedFirstSegment && !isReservedSecondSegment;
