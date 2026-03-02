@@ -862,8 +862,9 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
                 try {
                   const guestEmail = meetingData.guest;
+                  const guestLocale = meetingData.locale || 'en';
                   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
-                  const myPacksUrl = `${baseUrl}/en/my-packs?email=${encodeURIComponent(guestEmail)}`;
+                  const myPacksUrl = `${baseUrl}/${guestLocale}/my-packs?email=${encodeURIComponent(guestEmail)}`;
 
                   const statusLine =
                     remaining > 0

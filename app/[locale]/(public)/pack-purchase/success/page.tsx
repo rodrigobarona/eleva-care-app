@@ -54,7 +54,7 @@ export default async function PackPurchaseSuccessPage({
 
           <div className="flex flex-col gap-3">
             <Button asChild className="w-full">
-              <Link href={`/${locale}/my-packs`}>View My Packs</Link>
+              <Link href={`/${locale}/my-packs`}>{t('viewMyPacks')}</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link href={`/${locale}`}>{t('browseExperts')}</Link>

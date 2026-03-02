@@ -126,11 +126,12 @@ export const PackPurchaseConfirmation = ({
   locale = 'en',
 }: PackPurchaseConfirmationProps) => {
   const t = getLocaleStrings(locale);
-  const localeTag = locale?.startsWith('pt')
-    ? locale === 'pt-BR'
+  const normalizedLocale = (locale || 'en').toLowerCase();
+  const localeTag = normalizedLocale.startsWith('pt')
+    ? normalizedLocale === 'pt-br'
       ? 'pt-BR'
       : 'pt-PT'
-    : locale === 'es'
+    : normalizedLocale.startsWith('es')
       ? 'es-ES'
       : 'en-US';
   const formattedExpiry = new Date(expiresAt).toLocaleDateString(localeTag, {

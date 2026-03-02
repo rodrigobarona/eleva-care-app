@@ -75,7 +75,7 @@ export default async function MyPacksPage(props: PageProps) {
     );
   }
 
-  const purchases = await db
+  const rawPurchases = await db
     .select({
       id: PackPurchaseTable.id,
       promotionCode: PackPurchaseTable.promotionCode,
@@ -91,6 +91,11 @@ export default async function MyPacksPage(props: PageProps) {
     .innerJoin(SessionPackTable, eq(PackPurchaseTable.packId, SessionPackTable.id))
     .where(eq(PackPurchaseTable.buyerEmail, email))
     .orderBy(desc(PackPurchaseTable.createdAt));
+
+  const purchases = rawPurchases.map((p) => ({
+    ...p,
+    maskedPromoCode: p.promotionCode.length > 4 ? p.promotionCode.slice(0, 4) + '****' : '****',
+  }));
 
   const statusLabels = STATUS_LABELS[locale.split('-')[0]] || STATUS_LABELS.en;
 
@@ -177,13 +182,22 @@ export default async function MyPacksPage(props: PageProps) {
                     <div className="rounded-lg border bg-muted/50 p-3">
                       <p className="text-xs text-muted-foreground">Your promo code:</p>
                       <p className="mt-1 font-mono text-lg font-bold tracking-wider text-primary">
-                        {purchase.promotionCode}
+                        {purchase.maskedPromoCode}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Full code was sent to your email
                       </p>
                       {purchase.expiresAt && (
                         <p className="mt-1 text-xs text-muted-foreground">
                           Valid until{' '}
                           {new Date(purchase.expiresAt).toLocaleDateString(
-                            locale === 'pt' ? 'pt-PT' : locale === 'es' ? 'es-ES' : 'en-US',
+                            locale.startsWith('pt')
+                              ? locale.toLowerCase() === 'pt-br'
+                                ? 'pt-BR'
+                                : 'pt-PT'
+                              : locale.startsWith('es')
+                                ? 'es-ES'
+                                : 'en-US',
                             { month: 'long', day: 'numeric', year: 'numeric' },
                           )}
                         </p>
@@ -194,7 +208,13 @@ export default async function MyPacksPage(props: PageProps) {
                   <div className="text-xs text-muted-foreground">
                     Purchased{' '}
                     {new Date(purchase.createdAt).toLocaleDateString(
-                      locale === 'pt' ? 'pt-PT' : locale === 'es' ? 'es-ES' : 'en-US',
+                      locale.startsWith('pt')
+                        ? locale.toLowerCase() === 'pt-br'
+                          ? 'pt-BR'
+                          : 'pt-PT'
+                        : locale.startsWith('es')
+                          ? 'es-ES'
+                          : 'en-US',
                       { month: 'short', day: 'numeric', year: 'numeric' },
                     )}
                   </div>
