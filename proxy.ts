@@ -318,7 +318,18 @@ function isUsernameRoute(path: string): boolean {
       'sign-up',
       'unauthorized',
       'onboarding',
-      '.well-known', // Explicitly exclude well-known paths
+      'dev',
+      '.well-known',
+      'about',
+      'legal',
+      'trust',
+      'history',
+      'my-packs',
+      'pack-purchase',
+      'services',
+      'help',
+      'contact',
+      'community',
       ...locales,
     ].includes(segment);
 
@@ -340,8 +351,18 @@ function isUsernameRoute(path: string): boolean {
       'sign-up',
       'unauthorized',
       'onboarding',
-      'dev', // Add dev directory to reserved paths
-      '.well-known', // Explicitly exclude well-known paths
+      'dev',
+      '.well-known',
+      'about',
+      'legal',
+      'trust',
+      'history',
+      'my-packs',
+      'pack-purchase',
+      'services',
+      'help',
+      'contact',
+      'community',
     ].includes(segments[0]);
 
     // Skip locale-prefixed reserved paths like /en/dashboard
@@ -360,6 +381,16 @@ function isUsernameRoute(path: string): boolean {
         'sign-up',
         'unauthorized',
         'onboarding',
+        'about',
+        'legal',
+        'trust',
+        'history',
+        'my-packs',
+        'pack-purchase',
+        'services',
+        'help',
+        'contact',
+        'community',
       ].includes(segments[1]);
 
     return !isReservedFirstSegment && !isReservedSecondSegment;
