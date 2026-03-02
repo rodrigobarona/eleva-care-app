@@ -224,31 +224,41 @@ export function PackForm({ events, pack }: PackFormProps) {
             <FormField
               control={form.control}
               name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pack Price (EUR)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      placeholder="0.00"
-                      value={(field.value / 100).toFixed(2)}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || val === '0') {
-                          field.onChange(0);
-                          return;
-                        }
-                        const cents = Math.round(parseFloat(val) * 100);
-                        field.onChange(Number.isNaN(cents) ? 0 : cents);
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>Total price for the entire pack in EUR.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const [displayPrice, setDisplayPrice] = React.useState(
+                  field.value ? (field.value / 100).toString() : '',
+                );
+
+                const commitValue = (val: string) => {
+                  if (val === '' || val === '0') {
+                    field.onChange(0);
+                    setDisplayPrice('');
+                    return;
+                  }
+                  const cents = Math.round(parseFloat(val) * 100);
+                  field.onChange(Number.isNaN(cents) ? 0 : cents);
+                  setDisplayPrice(Number.isNaN(cents) ? '' : (cents / 100).toFixed(2));
+                };
+
+                return (
+                  <FormItem>
+                    <FormLabel>Pack Price (EUR)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="0.00"
+                        value={displayPrice}
+                        onChange={(e) => setDisplayPrice(e.target.value)}
+                        onBlur={(e) => commitValue(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>Total price for the entire pack in EUR.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             {individualTotal > 0 && packPrice > 0 && (
