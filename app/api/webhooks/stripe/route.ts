@@ -516,7 +516,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
         percent_off: 100,
         duration: 'once',
         max_redemptions: sessionsCount,
-        name: `Pack: ${packName} (${sessionsCount} sessions)`,
+        name: `Pack: ${packName} (x${sessionsCount})`.slice(0, 40),
         redeem_by: expiresAtUnix,
         metadata: { packId, type: 'session_pack' },
       },
