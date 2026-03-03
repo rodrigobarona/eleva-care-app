@@ -541,8 +541,11 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       coupon = existing;
     } else {
       console.error('❌ Stripe coupon creation failed:', {
+        step: 'coupon_create',
         packId,
         sessionId: session.id,
+        apiVersion: ENV_CONFIG.STRIPE_API_VERSION,
+        params: { percent_off: 100, duration: 'once', max_redemptions: sessionsCount },
         stripeError:
           err instanceof Stripe.errors.StripeError
             ? { type: err.type, code: err.code, message: err.message, param: err.param }
@@ -554,17 +557,12 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     }
   }
 
-  // Stripe API 2025-09-30.clover moved the top-level `coupon` field into
-  // promotion.type + promotion.coupon. SDK types may lag; use assertion.
   const promoCodeParams: Stripe.PromotionCodeCreateParams = {
-    promotion: {
-      type: 'coupon',
-      coupon: coupon.id,
-    },
+    coupon: coupon.id,
     max_redemptions: sessionsCount,
     expires_at: expiresAtUnix,
     metadata: { packId, type: 'session_pack' },
-  } as unknown as Stripe.PromotionCodeCreateParams;
+  };
 
   if (customerId) {
     promoCodeParams.customer = customerId;
@@ -596,9 +594,16 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       promoCode = existing;
     } else {
       console.error('❌ Stripe promotion code creation failed:', {
+        step: 'promotion_code_create',
         packId,
         couponId: coupon.id,
         sessionId: session.id,
+        apiVersion: ENV_CONFIG.STRIPE_API_VERSION,
+        params: {
+          coupon: coupon.id,
+          max_redemptions: sessionsCount,
+          hasCustomer: !!customerId,
+        },
         stripeError:
           err instanceof Stripe.errors.StripeError
             ? { type: err.type, code: err.code, message: err.message, param: err.param }
@@ -637,10 +642,13 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       .returning({ id: PackPurchaseTable.id });
   } catch (dbError) {
     console.error('❌ Failed to insert pack purchase record:', {
+      step: 'db_insert_pack_purchase',
       packId,
       sessionId: session.id,
       promoCode: promoCode.code.slice(0, 4) + '****',
       paymentIntentId: paymentIntentId || null,
+      amountTotal: session.amount_total,
+      paymentStatus: session.payment_status,
       error: dbError instanceof Error ? dbError.message : dbError,
     });
     throw dbError;
