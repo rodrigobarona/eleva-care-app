@@ -1,5 +1,6 @@
 'use server';
 
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, PackPurchaseTable, SessionPackTable } from '@/drizzle/schema';
 import { getServerStripe } from '@/lib/integrations/stripe';
@@ -40,7 +41,7 @@ export async function createPack(
     const product = await stripe.products.create({
       name: `Pack: ${data.name}`,
       description: data.description || `${data.sessionsCount} sessions of ${event.name}`,
-      tax_code: 'txcd_10103000',
+      tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
       metadata: {
         clerkUserId: userId,
         eventId: data.eventId,
@@ -53,7 +54,7 @@ export async function createPack(
       product: product.id,
       unit_amount: data.price,
       currency: data.currency,
-      tax_behavior: 'inclusive',
+      tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
     });
 
     const [insertedPack] = await db
@@ -130,7 +131,7 @@ export async function updatePack(
       await stripe.products.update(oldPack.stripeProductId, {
         name: `Pack: ${data.name}`,
         description: data.description || undefined,
-        tax_code: 'txcd_10103000',
+        tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
         metadata: {
           clerkUserId: userId,
           eventId: data.eventId,
@@ -151,12 +152,12 @@ export async function updatePack(
       expirationDays: data.expirationDays,
     };
 
-    if (oldPack.stripeProductId && data.price !== oldPack.price) {
+    if (oldPack.stripeProductId && (data.price !== oldPack.price || data.currency !== oldPack.currency)) {
       const newPrice = await stripe.prices.create({
         product: oldPack.stripeProductId,
         unit_amount: data.price,
         currency: data.currency,
-        tax_behavior: 'inclusive',
+        tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
       });
 
       if (oldPack.stripePriceId) {

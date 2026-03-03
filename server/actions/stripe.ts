@@ -65,7 +65,7 @@ export async function createStripeProduct({
     const product = await stripe.products.create({
       name,
       description,
-      tax_code: 'txcd_10103000',
+      tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
       metadata: {
         clerkUserId, // Store the expert's ID for reference
       },
@@ -76,7 +76,7 @@ export async function createStripeProduct({
       product: product.id,
       unit_amount: price,
       currency,
-      tax_behavior: 'inclusive',
+      tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
     });
 
     return {
@@ -142,7 +142,7 @@ export async function updateStripeProduct({
     await stripe.products.update(stripeProductId, {
       name,
       description,
-      tax_code: 'txcd_10103000',
+      tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
       metadata: {
         clerkUserId,
       },
@@ -153,7 +153,7 @@ export async function updateStripeProduct({
       product: stripeProductId,
       unit_amount: price,
       currency,
-      tax_behavior: 'inclusive',
+      tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
     });
 
     // Deactivate the old price to prevent future usage

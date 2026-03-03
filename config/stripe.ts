@@ -5,6 +5,12 @@ export const STRIPE_CONFIG = {
   API_VERSION: process.env.STRIPE_API_VERSION || '2025-07-30.basil',
   CURRENCY: 'eur',
 
+  // Tax Configuration
+  TAX: {
+    DEFAULT_TAX_CODE: 'txcd_10103000',
+    DEFAULT_TAX_BEHAVIOR: 'inclusive' as const,
+  },
+
   // Platform Fee Configuration
   PLATFORM_FEE_PERCENTAGE: Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'),
 
