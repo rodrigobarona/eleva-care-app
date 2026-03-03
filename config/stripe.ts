@@ -4,7 +4,6 @@ export const STRIPE_CONFIG = {
   // API Configuration
   API_VERSION: process.env.STRIPE_API_VERSION || '2025-07-30.basil',
   CURRENCY: 'eur',
-  PAYMENT_METHODS: ['card', 'multibanco'] as const,
 
   // Platform Fee Configuration
   PLATFORM_FEE_PERCENTAGE: Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'),

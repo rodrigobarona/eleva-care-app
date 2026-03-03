@@ -40,6 +40,7 @@ export async function createPack(
     const product = await stripe.products.create({
       name: `Pack: ${data.name}`,
       description: data.description || `${data.sessionsCount} sessions of ${event.name}`,
+      tax_code: 'txcd_10103000',
       metadata: {
         clerkUserId: userId,
         eventId: data.eventId,
@@ -52,6 +53,7 @@ export async function createPack(
       product: product.id,
       unit_amount: data.price,
       currency: data.currency,
+      tax_behavior: 'inclusive',
     });
 
     const [insertedPack] = await db
@@ -128,6 +130,7 @@ export async function updatePack(
       await stripe.products.update(oldPack.stripeProductId, {
         name: `Pack: ${data.name}`,
         description: data.description || undefined,
+        tax_code: 'txcd_10103000',
         metadata: {
           clerkUserId: userId,
           eventId: data.eventId,
@@ -153,6 +156,7 @@ export async function updatePack(
         product: oldPack.stripeProductId,
         unit_amount: data.price,
         currency: data.currency,
+        tax_behavior: 'inclusive',
       });
 
       if (oldPack.stripePriceId) {
