@@ -557,16 +557,16 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     }
   }
 
-  const promoCodeParams: Stripe.PromotionCodeCreateParams = {
-    coupon: coupon.id,
+  const promoCodeParams = {
+    promotion: {
+      type: 'coupon' as const,
+      coupon: coupon.id,
+    },
     max_redemptions: sessionsCount,
     expires_at: expiresAtUnix,
     metadata: { packId, type: 'session_pack' },
-  };
-
-  if (customerId) {
-    promoCodeParams.customer = customerId;
-  }
+    customer: customerId || undefined,
+  } as unknown as Stripe.PromotionCodeCreateParams;
 
   const promoIdempotencyKey = `promo:pack:${session.id}`;
 
