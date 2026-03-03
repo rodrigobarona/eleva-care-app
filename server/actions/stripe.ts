@@ -65,6 +65,7 @@ export async function createStripeProduct({
     const product = await stripe.products.create({
       name,
       description,
+      tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
       metadata: {
         clerkUserId, // Store the expert's ID for reference
       },
@@ -75,6 +76,7 @@ export async function createStripeProduct({
       product: product.id,
       unit_amount: price,
       currency,
+      tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
     });
 
     return {
@@ -136,10 +138,11 @@ export async function updateStripeProduct({
   try {
     const stripe = await getServerStripe();
 
-    // Update the product details
+    // Update the product details (also ensures tax_code is set for older products)
     await stripe.products.update(stripeProductId, {
       name,
       description,
+      tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
       metadata: {
         clerkUserId,
       },
@@ -150,6 +153,7 @@ export async function updateStripeProduct({
       product: stripeProductId,
       unit_amount: price,
       currency,
+      tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
     });
 
     // Deactivate the old price to prevent future usage
@@ -249,7 +253,6 @@ export async function createPaymentIntent(
       customer: stripeCustomerId,
       amount: event.price,
       currency: event.currency || STRIPE_CONFIG.CURRENCY,
-      payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
       automatic_payment_methods: {
         enabled: true,
       },

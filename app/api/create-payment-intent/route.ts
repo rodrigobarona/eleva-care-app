@@ -271,9 +271,6 @@ function createSharedMetadata({
       appointmentEnd: appointmentEndTime.toISOString(), // 🆕 Added for late payment validation
     }),
     approval: requiresApproval.toString(),
-    // Add tax and locale handling at root level of metadata
-    isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
-    preferredTaxHandling: 'vat_only',
   };
 }
 
@@ -701,42 +698,23 @@ export async function POST(request: NextRequest) {
     const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
     const daysUntilMeeting = hoursUntilMeeting / 24;
 
-    // Determine payment methods and expiration based on timing
-    let paymentMethodTypes: string[];
-    let checkoutExpiresAt: Date; // Renamed for clarity - this is for Stripe Checkout Session
-
     /*
-     * EXPIRATION LOGIC EXPLANATION:
+     * EXPIRATION LOGIC:
+     * - <= 8 days: 1 hour checkout expiry (short-notice booking)
+     * - > 8 days: 24 hour checkout expiry (advance booking, Multibanco voucher has 7-day life)
+     * - Slot Reservation: Created by webhook, expires in 7 days (our business logic)
      *
-     * 1. Stripe Checkout Session: Must expire within 24 hours (Stripe's hard limit)
-     * 2. Multibanco Payment Voucher: Has 7-day expiration (handled automatically by Stripe)
-     * 3. Slot Reservation: Created by webhook, expires in 7 days (our business logic)
-     *
-     * The checkout session expiration is different from payment completion deadlines!
+     * Payment methods are determined automatically by Stripe based on Dashboard settings,
+     * currency (EUR), customer location, and device. No manual payment_method_types needed.
      */
+    const checkoutExpiresAt =
+      daysUntilMeeting <= 8
+        ? new Date(currentTime.getTime() + 60 * 60 * 1000) // 1 hour
+        : new Date(currentTime.getTime() + 24 * 60 * 60 * 1000); // 24 hours
 
-    if (daysUntilMeeting <= 8) {
-      // Meeting is ≤ 8 days away - Only allow Card payments
-      paymentMethodTypes = ['card'];
-
-      // Standard checkout session expiration (1 hour)
-      checkoutExpiresAt = new Date(currentTime.getTime() + 60 * 60 * 1000);
-
-      console.log(
-        `⚡ Immediate booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card only, expires in 1 hour`,
-      );
-    } else {
-      // Meeting is > 8 days away - Allow both Card and Multibanco
-      paymentMethodTypes = ['card', 'multibanco'];
-
-      // Checkout session expires in 24 hours (Stripe's maximum)
-      // Note: Multibanco voucher will have 7-day expiration automatically from Stripe
-      checkoutExpiresAt = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
-
-      console.log(
-        `🕒 Advance booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card + Multibanco, checkout expires in 24h`,
-      );
-    }
+    console.log(
+      `${daysUntilMeeting <= 8 ? '⚡ Immediate' : '🕒 Advance'} booking: Meeting in ${daysUntilMeeting.toFixed(1)} days, checkout expires in ${daysUntilMeeting <= 8 ? '1h' : '24h'}`,
+    );
 
     // Calculate fees
     const platformFee = applicationFeeAmount;
@@ -764,10 +742,7 @@ export async function POST(request: NextRequest) {
       meetingData,
     });
 
-    // Create the checkout session with conditional payment methods
     const session = await stripe.checkout.sessions.create({
-      payment_method_types:
-        paymentMethodTypes as Stripe.Checkout.SessionCreateParams.PaymentMethodType[],
       line_items: [
         {
           price_data: {
@@ -784,8 +759,10 @@ export async function POST(request: NextRequest) {
                 minute: '2-digit',
                 timeZoneName: 'short',
               })}`,
+              tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
             },
             unit_amount: price,
+            tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
           },
           quantity: 1,
         },
@@ -797,33 +774,28 @@ export async function POST(request: NextRequest) {
       customer_creation: customerId ? undefined : 'always',
       expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
       allow_promotion_codes: true,
-      // Enhanced tax handling
       automatic_tax: {
         enabled: true,
         liability: { type: 'account', account: expertStripeAccountId },
       },
       tax_id_collection: {
         enabled: true,
-        required: 'if_supported',
+        required: 'never',
       },
-      // Billing address collection for tax calculation
-      billing_address_collection: 'required',
+      billing_address_collection: 'auto',
       consent_collection: {
         terms_of_service: 'required',
       },
-      // Add notice about Multibanco availability based on appointment timing
-      ...(daysUntilMeeting > 8 &&
-        paymentMethodTypes.includes('multibanco') && {
-          custom_text: {
-            submit: {
-              message: t('multibancoNotice', { paymentPoliciesUrl }),
-            },
-            terms_of_service_acceptance: {
-              message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
-            },
+      ...(daysUntilMeeting > 8 && {
+        custom_text: {
+          submit: {
+            message: t('multibancoNotice', { paymentPoliciesUrl }),
           },
-        }),
-      // For appointments within 8 days (no Multibanco), still show terms
+          terms_of_service_acceptance: {
+            message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+          },
+        },
+      }),
       ...(daysUntilMeeting <= 8 && {
         custom_text: {
           terms_of_service_acceptance: {
@@ -831,7 +803,6 @@ export async function POST(request: NextRequest) {
           },
         },
       }),
-      // Enhanced customer information collection
       locale: (() => {
         const userLocale = meetingData.locale || 'en';
         // Map our locales to valid Stripe locales

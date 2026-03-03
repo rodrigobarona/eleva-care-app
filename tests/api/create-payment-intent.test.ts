@@ -70,35 +70,43 @@ describe('Payment Intent API - Core Functionality', () => {
     mockStripeSessionCreate.mockResolvedValue(mockSessionResponse);
   });
 
-  describe('Payment method selection logic', () => {
-    it('should select card + multibanco for future appointments (>72h)', async () => {
+  describe('Checkout session expiry logic', () => {
+    it('should use 24h expiry for advance bookings (>8 days)', async () => {
       const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 10); // 10 days in future
+      futureDate.setDate(futureDate.getDate() + 10);
 
-      // Simulate the payment method selection logic
-      const meetingDate = futureDate;
       const currentTime = new Date();
-      const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+      const hoursUntilMeeting = (futureDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+      const daysUntilMeeting = hoursUntilMeeting / 24;
 
-      const paymentMethodTypes = hoursUntilMeeting <= 72 ? ['card'] : ['card', 'multibanco'];
+      const checkoutExpiresAt =
+        daysUntilMeeting <= 8
+          ? new Date(currentTime.getTime() + 60 * 60 * 1000)
+          : new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
 
-      expect(hoursUntilMeeting).toBeGreaterThan(72);
-      expect(paymentMethodTypes).toEqual(['card', 'multibanco']);
+      const expiryHours = (checkoutExpiresAt.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+
+      expect(daysUntilMeeting).toBeGreaterThan(8);
+      expect(expiryHours).toBeCloseTo(24, 0);
     });
 
-    it('should select card only for near appointments (<=72h)', async () => {
+    it('should use 1h expiry for short-notice bookings (<=8 days)', async () => {
       const nearDate = new Date();
-      nearDate.setHours(nearDate.getHours() + 48); // 48 hours in future
+      nearDate.setDate(nearDate.getDate() + 3);
 
-      // Simulate the payment method selection logic
-      const meetingDate = nearDate;
       const currentTime = new Date();
-      const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+      const hoursUntilMeeting = (nearDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+      const daysUntilMeeting = hoursUntilMeeting / 24;
 
-      const paymentMethodTypes = hoursUntilMeeting <= 72 ? ['card'] : ['card', 'multibanco'];
+      const checkoutExpiresAt =
+        daysUntilMeeting <= 8
+          ? new Date(currentTime.getTime() + 60 * 60 * 1000)
+          : new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
 
-      expect(hoursUntilMeeting).toBeLessThanOrEqual(72);
-      expect(paymentMethodTypes).toEqual(['card']);
+      const expiryHours = (checkoutExpiresAt.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+
+      expect(daysUntilMeeting).toBeLessThanOrEqual(8);
+      expect(expiryHours).toBeCloseTo(1, 0);
     });
   });
 
@@ -185,10 +193,12 @@ describe('Payment Intent API - Core Functionality', () => {
   });
 
   describe('Stripe integration', () => {
-    it('should create checkout session with proper parameters', async () => {
+    it('should create checkout session without manual payment_method_types', async () => {
       const sessionParams = {
-        payment_method_types: ['card', 'multibanco'],
         customer: 'cus_123',
+        automatic_tax: { enabled: true },
+        billing_address_collection: 'auto',
+        tax_id_collection: { enabled: true, required: 'never' },
         payment_intent_data: {
           application_fee_amount: 1500,
           transfer_data: { destination: 'acct_123' },
@@ -197,7 +207,15 @@ describe('Payment Intent API - Core Functionality', () => {
 
       await mockStripeSessionCreate(sessionParams);
 
-      expect(mockStripeSessionCreate).toHaveBeenCalledWith(sessionParams);
+      expect(mockStripeSessionCreate).toHaveBeenCalledWith(
+        expect.not.objectContaining({ payment_method_types: expect.anything() }),
+      );
+      expect(mockStripeSessionCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          billing_address_collection: 'auto',
+          tax_id_collection: { enabled: true, required: 'never' },
+        }),
+      );
     });
 
     it('should get or create stripe customer', async () => {

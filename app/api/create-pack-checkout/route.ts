@@ -193,7 +193,6 @@ export async function POST(request: NextRequest) {
     const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
       line_items: [
         {
           price: pack.stripePriceId,
@@ -210,8 +209,8 @@ export async function POST(request: NextRequest) {
         enabled: true,
         liability: { type: 'account', account: expertStripeAccountId },
       },
-      tax_id_collection: { enabled: true, required: 'if_supported' },
-      billing_address_collection: 'required',
+      tax_id_collection: { enabled: true, required: 'never' },
+      billing_address_collection: 'auto',
       consent_collection: { terms_of_service: 'required' },
       custom_text: {
         terms_of_service_acceptance: {
