@@ -93,6 +93,7 @@ export const STRIPE_CONFIG = {
   WEBHOOK_EVENTS: {
     ALLOWED_EVENTS: [
       'checkout.session.completed',
+      'checkout.session.async_payment_succeeded',
       'customer.subscription.created',
       'customer.subscription.updated',
       'customer.subscription.deleted',

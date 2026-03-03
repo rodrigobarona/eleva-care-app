@@ -767,6 +767,15 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
+      custom_fields: [
+        {
+          key: 'nif',
+          label: { type: 'custom', custom: t('nifLabel') },
+          type: 'numeric',
+          optional: true,
+          numeric: { minimum_length: 9, maximum_length: 9 },
+        },
+      ],
       mode: 'payment',
       success_url: `${baseUrl}/${locale}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
@@ -776,7 +785,13 @@ export async function POST(request: NextRequest) {
       allow_promotion_codes: true,
       automatic_tax: {
         enabled: true,
-        liability: { type: 'account', account: expertStripeAccountId },
+        liability: { type: 'self' },
+      },
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          issuer: { type: 'self' },
+        },
       },
       tax_id_collection: {
         enabled: true,
