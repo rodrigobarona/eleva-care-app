@@ -723,58 +723,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     console.error('Failed to send pack purchase email:', emailError);
   }
 
-  if (session.payment_status === 'paid') {
-    await withholdTaxFromTransfer(session);
-  }
-
   return { success: true, purchaseId: purchase?.id };
-}
-
-/**
- * Withhold collected tax from the expert's destination transfer.
- * Per Stripe's "Tax for Marketplaces" guide, with destination charges and
- * liability: self, the platform must reverse the tax portion of the transfer
- * so it stays on the platform for remittance.
- * @see https://docs.stripe.com/tax/tax-for-marketplaces#tax-withholding
- */
-async function withholdTaxFromTransfer(session: StripeCheckoutSession) {
-  const taxAmount = session.total_details?.amount_tax ?? 0;
-  if (taxAmount <= 0) return;
-
-  const paymentIntentId =
-    typeof session.payment_intent === 'string'
-      ? session.payment_intent
-      : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
-
-  if (!paymentIntentId) return;
-
-  try {
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
-      expand: ['latest_charge'],
-    });
-    const charge = paymentIntent.latest_charge as Stripe.Charge;
-    if (!charge?.transfer) return;
-
-    const transferId =
-      typeof charge.transfer === 'string' ? charge.transfer : charge.transfer.id;
-
-    await stripe.transfers.createReversal(transferId, {
-      amount: taxAmount,
-      description: 'Tax withholding - platform liable',
-    });
-
-    console.log('💰 Tax withheld from transfer:', {
-      sessionId: session.id,
-      taxAmount,
-      transferId,
-    });
-  } catch (error) {
-    console.error('❌ Failed to withhold tax from transfer:', {
-      sessionId: session.id,
-      taxAmount,
-      error: error instanceof Error ? error.message : error,
-    });
-  }
 }
 
 async function handleCheckoutSession(session: StripeCheckoutSession) {
@@ -1048,10 +997,6 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       } catch (redemptionError) {
         console.error('Failed to track pack redemption:', redemptionError);
       }
-    }
-
-    if (session.payment_status === 'paid') {
-      await withholdTaxFromTransfer(session);
     }
 
     return { success: true, meetingId: result.meeting?.id };
@@ -1521,14 +1466,8 @@ export async function POST(request: NextRequest) {
           throw error; // Rethrow to be caught by the outer try-catch
         }
         break;
-      case 'checkout.session.async_payment_succeeded': {
-        const asyncSession = await stripe.checkout.sessions.retrieve(
-          (event.data.object as Stripe.Checkout.Session).id,
-          { expand: ['total_details'] },
-        );
-        await withholdTaxFromTransfer(asyncSession as unknown as StripeCheckoutSession);
+      case 'checkout.session.async_payment_succeeded':
         break;
-      }
       case 'payment_intent.succeeded':
         await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
         break;
