@@ -7,9 +7,12 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
   . "$NVM_DIR/nvm.sh"
 fi
 
+# Ensure /usr/local/bin is in PATH for pnpm and other tools (critical for GitHub Desktop)
+export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+
 # Alternative: use system node if nvm not available
 if ! command -v node >/dev/null 2>&1; then
-  export PATH="/usr/local/bin:$PATH"
+  :
 fi
 
 echo "🚀 Running pre-push checks..."
