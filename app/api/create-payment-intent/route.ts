@@ -667,12 +667,16 @@ export async function POST(request: NextRequest) {
     // Use the LATER of the two dates to ensure BOTH conditions are met:
     // 1. Payment must be aged enough (7 days from payment date)
     // 2. Appointment must have ended + 24h complaint window
-    const transferDate = new Date(
+    const earliestAllowedTransferDate = new Date(
       Math.max(minimumTransferDate.getTime(), paymentAgeBasedTransferDate.getTime()),
     );
 
-    // Set to 4 AM on the scheduled day (matching CRON job time)
+    // Schedule on the next 4 AM CRON slot that is still >= earliestAllowedTransferDate
+    const transferDate = new Date(earliestAllowedTransferDate);
     transferDate.setHours(4, 0, 0, 0);
+    if (transferDate.getTime() < earliestAllowedTransferDate.getTime()) {
+      transferDate.setDate(transferDate.getDate() + 1);
+    }
 
     console.log('📅 Scheduled transfer with dual-requirement compliance:', {
       currentDate: currentDate.toISOString(),
@@ -683,6 +687,7 @@ export async function POST(request: NextRequest) {
       paymentAgingDays,
       minimumTransferDate: minimumTransferDate.toISOString(),
       paymentAgeBasedTransferDate: paymentAgeBasedTransferDate.toISOString(),
+      earliestAllowedTransferDate: earliestAllowedTransferDate.toISOString(),
       transferDate: transferDate.toISOString(),
       daysFromPayment: Math.floor(
         (transferDate.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000),
