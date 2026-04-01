@@ -419,7 +419,7 @@ export async function POST(request: NextRequest) {
     }
 
     // **IDEMPOTENCY: Check for duplicate requests using distributed cache**
-    const idempotencyKey = request.headers.get('Idempotency-Key');
+    const idempotencyKey = request.headers.get('Idempotency-Key')?.trim();
 
     if (idempotencyKey) {
       // Check if we've seen this request before in distributed cache
@@ -742,120 +742,113 @@ export async function POST(request: NextRequest) {
       meetingData,
     });
 
-    const session = await stripe.checkout.sessions.create({
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: `${event.name} with ${meetingMetadata.expertName}`,
-              description: `${meetingMetadata.duration} minute session on ${new Date(
-                meetingMetadata.start,
-              ).toLocaleString(meetingMetadata.loc, {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZoneName: 'short',
-              })}`,
-              tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
+    const session = await stripe.checkout.sessions.create(
+      {
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: `${event.name} with ${meetingMetadata.expertName}`,
+                description: `${meetingMetadata.duration} minute session on ${new Date(
+                  meetingMetadata.start,
+                ).toLocaleString(meetingMetadata.loc, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZoneName: 'short',
+                })}`,
+              },
+              unit_amount: price,
             },
-            unit_amount: price,
-            tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
+            quantity: 1,
           },
-          quantity: 1,
-        },
-      ],
-      custom_fields: [
-        {
-          key: 'nif',
-          label: { type: 'custom', custom: t('nifLabel') },
-          type: 'numeric',
-          optional: true,
-          numeric: { minimum_length: 9, maximum_length: 9 },
-        },
-      ],
-      mode: 'payment',
-      success_url: `${baseUrl}/${locale}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
-      customer: customerId,
-      customer_creation: customerId ? undefined : 'always',
-      expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
-      allow_promotion_codes: true,
-      automatic_tax: {
-        enabled: true,
-        liability: { type: 'self' },
-      },
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          issuer: { type: 'self' },
-        },
-      },
-      tax_id_collection: {
-        enabled: true,
-        required: 'never',
-      },
-      billing_address_collection: 'auto',
-      consent_collection: {
-        terms_of_service: 'required',
-      },
-      ...(daysUntilMeeting > 8 && {
-        custom_text: {
-          submit: {
-            message: t('multibancoNotice', { paymentPoliciesUrl }),
+        ],
+        custom_fields: [
+          {
+            key: 'nif',
+            label: { type: 'custom', custom: t('nifLabel') },
+            type: 'numeric',
+            optional: true,
+            numeric: { minimum_length: 9, maximum_length: 9 },
           },
-          terms_of_service_acceptance: {
-            message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+        ],
+        mode: 'payment',
+        success_url: `${baseUrl}/${locale}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
+        customer: customerId,
+        customer_creation: customerId ? undefined : 'always',
+        expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
+        allow_promotion_codes: true,
+        invoice_creation: {
+          enabled: true,
+          invoice_data: {
+            issuer: { type: 'self' },
           },
         },
-      }),
-      ...(daysUntilMeeting <= 8 && {
-        custom_text: {
-          terms_of_service_acceptance: {
-            message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
-          },
+        billing_address_collection: 'auto',
+        consent_collection: {
+          terms_of_service: 'required',
         },
-      }),
-      locale: (() => {
-        const userLocale = meetingData.locale || 'en';
-        // Map our locales to valid Stripe locales
-        const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
-          en: 'en',
-          'pt-BR': 'pt-BR',
-          es: 'es',
-          fr: 'fr',
-          de: 'de',
-          it: 'it',
-          pt: 'pt-BR', // Map pt to pt-BR for Stripe
-        };
-        return localeMap[userLocale] || 'en';
-      })(),
-      customer_update: {
-        name: 'auto',
-        address: 'auto',
-      },
-      submit_type: 'book',
-      // Prefill customer information only if we don't have an existing customer
-      ...(!customerId &&
-        meetingData.guestName && {
-          customer_email: meetingData.guestEmail,
-          customer_name: meetingData.guestName,
+        ...(daysUntilMeeting > 8 && {
+          custom_text: {
+            submit: {
+              message: t('multibancoNotice', { paymentPoliciesUrl }),
+            },
+            terms_of_service_acceptance: {
+              message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+            },
+          },
         }),
-      // ADD METADATA TO CHECKOUT SESSION (for webhook processing)
-      metadata: sharedMetadata,
-      payment_intent_data: {
-        application_fee_amount: platformFee,
-        transfer_data: {
-          destination: expertStripeAccountId,
+        ...(daysUntilMeeting <= 8 && {
+          custom_text: {
+            terms_of_service_acceptance: {
+              message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+            },
+          },
+        }),
+        locale: (() => {
+          const userLocale = meetingData.locale || 'en';
+          // Map our locales to valid Stripe locales
+          const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
+            en: 'en',
+            'pt-BR': 'pt-BR',
+            es: 'es',
+            fr: 'fr',
+            de: 'de',
+            it: 'it',
+            pt: 'pt-BR', // Map pt to pt-BR for Stripe
+          };
+          return localeMap[userLocale] || 'en';
+        })(),
+        customer_update: {
+          name: 'auto',
+          address: 'auto',
         },
-        metadata: {
-          ...sharedMetadata,
-          session_id: '', // Will be updated after session creation
+        submit_type: 'book',
+        // Prefill customer information only if we don't have an existing customer
+        ...(!customerId &&
+          meetingData.guestName && {
+            customer_email: meetingData.guestEmail,
+            customer_name: meetingData.guestName,
+          }),
+        // ADD METADATA TO CHECKOUT SESSION (for webhook processing)
+        metadata: sharedMetadata,
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: expertStripeAccountId,
+          },
+          metadata: {
+            ...sharedMetadata,
+            session_id: '', // Will be updated after session creation
+          },
         },
       },
-    });
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
 
     console.log('Checkout session created successfully:', {
       sessionId: session.id,
@@ -883,20 +876,22 @@ export async function POST(request: NextRequest) {
     console.log('✅ Checkout session created successfully - no slot reservation needed');
     console.log('📝 Slot management will be handled by webhooks based on payment method');
 
-    // Cache results and mark form completed in background (non-blocking)
+    // Mark form submission as completed before responding to avoid race conditions on retries
+    if (meetingData?.guestEmail && meetingData?.startTime) {
+      const formCacheKey = FormCache.generateKey(
+        eventId,
+        meetingData.guestEmail,
+        meetingData.startTime,
+      );
+      await FormCache.markCompleted(formCacheKey);
+      console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
+    }
+
+    // Cache idempotency results in background (non-blocking)
     after(async () => {
       if (idempotencyKey && session.url) {
         await IdempotencyCache.set(idempotencyKey, { url: session.url });
         console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
-      }
-      if (meetingData?.guestEmail && meetingData?.startTime) {
-        const formCacheKey = FormCache.generateKey(
-          eventId,
-          meetingData.guestEmail,
-          meetingData.startTime,
-        );
-        await FormCache.markCompleted(formCacheKey);
-        console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
       }
     });
 

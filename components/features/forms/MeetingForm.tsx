@@ -555,11 +555,13 @@ export function MeetingFormContent({
       console.log('[MeetingForm] createPaymentIntent called', {
         silent,
         hasCheckoutUrl: !!checkoutUrl,
+        hasCheckoutUrlRef: !!checkoutUrlRef.current,
       });
 
-      if (checkoutUrl) {
+      const cachedCheckoutUrl = checkoutUrl || checkoutUrlRef.current;
+      if (cachedCheckoutUrl) {
         console.log('[MeetingForm] createPaymentIntent: returning cached checkout URL');
-        return checkoutUrl;
+        return cachedCheckoutUrl;
       }
 
       const formValues = form.getValues();
@@ -842,7 +844,7 @@ export function MeetingFormContent({
             isPrefetchRequest.current = false;
             setIsPrefetching(false);
           });
-      }, 3000); // 3-second delay after user completes form
+      }, 800); // Short delay to avoid typing interference while improving perceived speed
 
       return () => clearTimeout(timer);
     }
@@ -958,10 +960,11 @@ export function MeetingFormContent({
       setIsSubmitting(true);
 
       // Fast path: reuse existing checkout URL
-      if (checkoutUrl) {
+      const existingCheckoutUrl = checkoutUrl || checkoutUrlRef.current;
+      if (existingCheckoutUrl) {
         console.log('[MeetingForm] handleNextStep: PAID path - reusing existing checkoutUrl');
         try {
-          validateCheckoutUrl(checkoutUrl);
+          validateCheckoutUrl(existingCheckoutUrl);
 
           setTimeout(() => {
             if (!document.hidden) {
@@ -971,8 +974,11 @@ export function MeetingFormContent({
             }
           }, 3000);
 
-          console.log('[MeetingForm] handleNextStep: PAID path - redirecting to', checkoutUrl);
-          window.location.href = checkoutUrl;
+          console.log(
+            '[MeetingForm] handleNextStep: PAID path - redirecting to',
+            existingCheckoutUrl,
+          );
+          window.location.href = existingCheckoutUrl;
           return;
         } catch (validationError) {
           console.error(
