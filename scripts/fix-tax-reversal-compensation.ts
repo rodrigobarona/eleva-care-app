@@ -134,7 +134,7 @@ async function main() {
     const reversals = await stripe.transfers.listReversals(knownTransferId);
     console.log(`  Reversals: ${reversals.data.length}`);
     for (const r of reversals.data) {
-      console.log(`    - ${r.id}: EUR ${(r.amount / 100).toFixed(2)} | "${r.description}"`);
+      console.log(`    - ${r.id}: EUR ${(r.amount / 100).toFixed(2)}`);
     }
   } catch (error) {
     console.log(
