@@ -13,6 +13,12 @@ export const STRIPE_CONFIG = {
 
   // Platform Fee Configuration
   PLATFORM_FEE_PERCENTAGE: Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'),
+  MARKETPLACE_SPLIT: {
+    // Eleva keeps 15% and experts keep 85% of the authoritative listing amount stored in the DB.
+    // Taxes and discounts are not part of the payout split base.
+    FEE_BASIS: 'listing_amount_pre_tax_pre_discount' as const,
+    ALLOW_PROMOTION_CODES: false,
+  },
 
   // Identity Verification Configuration
   IDENTITY: {
@@ -138,6 +144,18 @@ export function calculateApplicationFee(amount: number | null): number {
 export function calculateExpertAmount(amount: number | null): number {
   if (!amount) return 0;
   return Math.floor(amount * (1 - STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE));
+}
+
+export function isAuthoritativePriceMatch(
+  clientProvidedPrice: number | null | undefined,
+  authoritativePrice: number,
+): boolean {
+  return (
+    Number.isInteger(clientProvidedPrice) &&
+    typeof clientProvidedPrice === 'number' &&
+    clientProvidedPrice > 0 &&
+    clientProvidedPrice === authoritativePrice
+  );
 }
 
 // Export types for webhook events

@@ -205,7 +205,8 @@ export async function POST(request: NextRequest) {
         cancel_url: `${baseUrl}/${locale}`,
         customer: customerId,
         customer_creation: customerId ? undefined : 'always',
-        allow_promotion_codes: true,
+        // Keep split deterministic: 85/15 is calculated on authoritative listing amount.
+        allow_promotion_codes: STRIPE_CONFIG.MARKETPLACE_SPLIT.ALLOW_PROMOTION_CODES,
         automatic_tax: {
           enabled: true,
           liability: { type: 'self' },
@@ -259,6 +260,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             type: 'pack_purchase',
             packId: pack.id,
+            feeBasis: STRIPE_CONFIG.MARKETPLACE_SPLIT.FEE_BASIS,
           },
         },
       },

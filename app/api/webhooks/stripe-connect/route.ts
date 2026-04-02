@@ -108,7 +108,19 @@ export const POST = async (request: Request) => {
       }
 
       case 'account.application.deauthorized': {
-        const application = event.data.object as { id: string };
+        const payload = event.data.object as { id?: string; account?: string };
+        const deauthorizedAccountId =
+          (typeof event.account === 'string' && event.account) ||
+          (typeof payload.account === 'string' && payload.account) ||
+          null;
+
+        if (!deauthorizedAccountId) {
+          console.warn('Could not resolve connected account for deauthorized event', {
+            eventId: event.id,
+            applicationId: payload.id,
+          });
+          break;
+        }
 
         // Remove Stripe Connect account association
         await db
@@ -121,10 +133,11 @@ export const POST = async (request: Request) => {
             stripeConnectOnboardingComplete: false,
             updatedAt: new Date(),
           })
-          .where(eq(UserTable.stripeConnectAccountId, application.id));
+          .where(eq(UserTable.stripeConnectAccountId, deauthorizedAccountId));
 
         console.log('Deauthorized Connect account:', {
-          accountId: application.id,
+          accountId: deauthorizedAccountId,
+          applicationId: payload.id,
           timestamp: new Date().toISOString(),
         });
         break;

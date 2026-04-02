@@ -8,8 +8,7 @@
  * - `payment_intent.requires_action` - Multibanco voucher generated
  * - `charge.refunded` - Payment refunded
  * - `charge.dispute.created` - Chargeback initiated
- * - `payout.*` - Expert payout events
- * - `account.*` - Stripe Connect account updates
+ * - Connect account/payout events are intentionally delegated to `/api/webhooks/stripe-connect`
  * - `identity.*` - Identity verification updates
  *
  * @route POST /api/webhooks/stripe
@@ -63,11 +62,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 
-import { handleAccountUpdated } from './handlers/account';
-import {
-  handleExternalAccountCreated,
-  handleExternalAccountDeleted,
-} from './handlers/external-account';
 import { handleIdentityVerificationUpdated } from './handlers/identity';
 import {
   handleChargeRefunded,
@@ -76,7 +70,6 @@ import {
   handlePaymentIntentRequiresAction,
   handlePaymentSucceeded,
 } from './handlers/payment';
-import { handlePayoutFailed, handlePayoutPaid } from './handlers/payout';
 
 // Initialize Stripe
 const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
@@ -1429,7 +1422,17 @@ export async function POST(request: NextRequest) {
   try {
     switch (event.type) {
       case 'account.updated':
-        await handleAccountUpdated(event.data.object as Stripe.Account);
+      case 'account.external_account.created':
+      case 'account.external_account.updated':
+      case 'account.external_account.deleted':
+      case 'payout.paid':
+      case 'payout.failed':
+        // Ownership boundary: Stripe Connect account/payout lifecycle is handled
+        // exclusively in /api/webhooks/stripe-connect to avoid duplicate effects.
+        console.log('Skipping Connect-owned event on main Stripe webhook endpoint', {
+          eventType: event.type,
+          eventId: event.id,
+        });
         break;
       case 'identity.verification_session.verified':
       case 'identity.verification_session.requires_input': {
@@ -1483,22 +1486,6 @@ export async function POST(request: NextRequest) {
       case 'charge.dispute.created':
         await handleDisputeCreated(event.data.object as Stripe.Dispute);
         break;
-      case 'account.external_account.created':
-        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
-          await handleExternalAccountCreated(
-            event.data.object as Stripe.BankAccount | Stripe.Card,
-            event.data.object.account,
-          );
-        }
-        break;
-      case 'account.external_account.deleted':
-        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
-          await handleExternalAccountDeleted(
-            event.data.object as Stripe.BankAccount | Stripe.Card,
-            event.data.object.account,
-          );
-        }
-        break;
       case 'payment_intent.created': {
         console.log('Payment intent created:', event.data.object.id);
 
@@ -1510,12 +1497,6 @@ export async function POST(request: NextRequest) {
         );
         break;
       }
-      case 'payout.paid':
-        await handlePayoutPaid(event.data.object as Stripe.Payout);
-        break;
-      case 'payout.failed':
-        await handlePayoutFailed(event.data.object as Stripe.Payout);
-        break;
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }

@@ -28,6 +28,11 @@ jest.mock('@/server/actions/expert-setup', () => ({
   markStepCompleteForUser: jest.fn().mockResolvedValue({ success: true }),
 }));
 
+jest.mock('@/app/api/webhooks/stripe/handlers/payout', () => ({
+  handlePayoutPaid: jest.fn().mockResolvedValue({}),
+  handlePayoutFailed: jest.fn().mockResolvedValue({}),
+}));
+
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     webhooks: {
@@ -139,13 +144,23 @@ describe('Stripe Connect Webhook Handler', () => {
       expect(db.update).toHaveBeenCalled();
     });
 
+    it('should tolerate duplicate account.updated deliveries', async () => {
+      const firstResponse = await POST(mockRequest);
+      const secondResponse = await POST(mockRequest);
+
+      expect(firstResponse.status).toBe(200);
+      expect(secondResponse.status).toBe(200);
+      expect(db.update).toHaveBeenCalledTimes(2);
+    });
+
     it('should handle account.application.deauthorized event', async () => {
       mockStripeConstructEvent.mockReturnValue({
         type: 'account.application.deauthorized',
         id: 'evt_test_123',
+        account: 'acct_test_123',
         data: {
           object: {
-            id: 'acct_test_123',
+            id: 'ca_test_123',
           },
         },
       });
@@ -154,6 +169,23 @@ describe('Stripe Connect Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(db.update).toHaveBeenCalled();
+    });
+
+    it('should skip account.application.deauthorized when connected account cannot be resolved', async () => {
+      mockStripeConstructEvent.mockReturnValue({
+        type: 'account.application.deauthorized',
+        id: 'evt_test_456',
+        data: {
+          object: {
+            id: 'ca_test_456',
+          },
+        },
+      });
+
+      const response = await POST(mockRequest);
+
+      expect(response.status).toBe(200);
+      expect(db.update).not.toHaveBeenCalled();
     });
   });
 

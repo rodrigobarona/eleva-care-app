@@ -47,7 +47,7 @@ const ALLOWED_CHECKOUT_HOSTS = new Set(['checkout.stripe.com']);
  * @param url - The URL to validate
  * @throws Error if the URL is invalid, not HTTPS, or not from an allowed host
  */
-function validateCheckoutUrl(url: string): void {
+export function validateCheckoutUrl(url: string): void {
   try {
     const urlObject = new URL(url);
 
@@ -548,6 +548,48 @@ export function MeetingFormContent({
     [setQueryStates, form, queryStates.date, queryStates.time],
   );
 
+  const redirectToCheckout = React.useCallback(
+    (targetUrl: string, invalidUrlMessage: string) => {
+      try {
+        validateCheckoutUrl(targetUrl);
+
+        setTimeout(() => {
+          if (!document.hidden) {
+            isProcessingRef.current = false;
+            setIsProcessing(false);
+            setIsSubmitting(false);
+          }
+        }, 3000);
+
+        window.location.href = targetUrl;
+        return true;
+      } catch (validationError) {
+        console.error('[MeetingForm] invalid checkout URL', validationError);
+        setCheckoutUrl(null);
+        checkoutUrlRef.current = null;
+        isProcessingRef.current = false;
+        setIsProcessing(false);
+        setIsSubmitting(false);
+        form.setError('root', { message: invalidUrlMessage });
+        return false;
+      }
+    },
+    [form],
+  );
+
+  const getCreateMeetingErrorMessage = React.useCallback((code?: string, fallback?: string) => {
+    switch (code) {
+      case 'SLOT_ALREADY_BOOKED':
+        return 'This time slot has been booked. Please choose a different time.';
+      case 'SLOT_TEMPORARILY_RESERVED':
+        return 'This time slot is temporarily reserved. Please try another time.';
+      case 'INVALID_TIME_SLOT':
+        return 'This time is no longer available. Please pick another slot.';
+      default:
+        return fallback || 'Failed to schedule meeting. Please try again.';
+    }
+  }, []);
+
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(
     async (options?: { silent?: boolean }) => {
@@ -736,7 +778,7 @@ export function MeetingFormContent({
 
           if (data?.error) {
             form.setError('root', {
-              message: 'There was an error saving your event',
+              message: getCreateMeetingErrorMessage(data.code, data.message),
             });
           } else {
             router.push(
@@ -753,6 +795,7 @@ export function MeetingFormContent({
         if (checkoutUrl) {
           setCheckoutUrl(checkoutUrl);
           transitionToStep('3');
+          redirectToCheckout(checkoutUrl, 'Payment session is invalid. Please try again.');
           return;
         }
 
@@ -762,7 +805,7 @@ export function MeetingFormContent({
       } catch (error) {
         console.error('[MeetingForm] submitMeeting: exception', error);
         form.setError('root', {
-          message: 'There was an error saving your event',
+          message: 'Failed to schedule meeting. Please try again.',
         });
       } finally {
         isProcessingRef.current = false;
@@ -775,9 +818,11 @@ export function MeetingFormContent({
       clerkUserId,
       eventId,
       form,
+      getCreateMeetingErrorMessage,
       locale,
       price,
       router,
+      redirectToCheckout,
       transitionToStep,
       username,
       eventSlug,
@@ -931,7 +976,7 @@ export function MeetingFormContent({
           if (data?.error) {
             console.log('[MeetingForm] handleNextStep: FREE path - createMeeting returned error');
             form.setError('root', {
-              message: 'There was an error saving your event',
+              message: getCreateMeetingErrorMessage(data.code, data.message),
             });
           } else {
             const successUrl = `/${locale || 'en'}/${username}/${eventSlug}/success?startTime=${encodeURIComponent(
@@ -946,7 +991,7 @@ export function MeetingFormContent({
         } catch (error) {
           console.error('[MeetingForm] handleNextStep: FREE path - exception', error);
           form.setError('root', {
-            message: 'Failed to schedule meeting. Please try again.',
+            message: getCreateMeetingErrorMessage(),
           });
         } finally {
           isProcessingRef.current = false;
@@ -963,36 +1008,11 @@ export function MeetingFormContent({
       const existingCheckoutUrl = checkoutUrl || checkoutUrlRef.current;
       if (existingCheckoutUrl) {
         console.log('[MeetingForm] handleNextStep: PAID path - reusing existing checkoutUrl');
-        try {
-          validateCheckoutUrl(existingCheckoutUrl);
-
-          setTimeout(() => {
-            if (!document.hidden) {
-              isProcessingRef.current = false;
-              setIsProcessing(false);
-              setIsSubmitting(false);
-            }
-          }, 3000);
-
-          console.log(
-            '[MeetingForm] handleNextStep: PAID path - redirecting to',
-            existingCheckoutUrl,
-          );
-          window.location.href = existingCheckoutUrl;
-          return;
-        } catch (validationError) {
-          console.error(
-            '[MeetingForm] handleNextStep: PAID path - existing checkoutUrl invalid',
-            validationError,
-          );
-          setCheckoutUrl(null);
-          checkoutUrlRef.current = null;
-          isProcessingRef.current = false;
-          setIsProcessing(false);
-          setIsSubmitting(false);
-          form.setError('root', {
-            message: 'Payment session expired. Please try again.',
-          });
+        console.log(
+          '[MeetingForm] handleNextStep: PAID path - redirecting to',
+          existingCheckoutUrl,
+        );
+        if (redirectToCheckout(existingCheckoutUrl, 'Payment session expired. Please try again.')) {
           return;
         }
       }
@@ -1007,21 +1027,17 @@ export function MeetingFormContent({
             const prefetchUrl = await prefetchPromiseRef.current;
             const prefetchRedirectUrl = prefetchUrl || checkoutUrlRef.current;
             if (prefetchRedirectUrl) {
-              validateCheckoutUrl(prefetchRedirectUrl);
-
-              setTimeout(() => {
-                if (!document.hidden) {
-                  isProcessingRef.current = false;
-                  setIsProcessing(false);
-                  setIsSubmitting(false);
-                }
-              }, 3000);
-
               console.log(
                 '[MeetingForm] handleNextStep: PAID path - prefetch completed, redirecting',
               );
-              window.location.href = prefetchRedirectUrl;
-              return;
+              if (
+                redirectToCheckout(
+                  prefetchRedirectUrl,
+                  'Payment session expired. Please try again.',
+                )
+              ) {
+                return;
+              }
             }
           } catch {
             console.log(
@@ -1044,31 +1060,11 @@ export function MeetingFormContent({
         });
 
         if (redirectUrl) {
-          try {
-            validateCheckoutUrl(redirectUrl);
-          } catch (validationError) {
-            console.error(
-              '[MeetingForm] handleNextStep: PAID path - redirect URL invalid',
-              validationError,
-            );
-            throw new Error(
-              validationError instanceof Error
-                ? validationError.message
-                : 'Invalid checkout URL - redirect blocked for security',
-            );
-          }
-
-          setTimeout(() => {
-            if (!document.hidden) {
-              isProcessingRef.current = false;
-              setIsProcessing(false);
-              setIsSubmitting(false);
-            }
-          }, 3000);
-
           console.log('[MeetingForm] handleNextStep: PAID path - redirecting to checkout');
-          window.location.href = redirectUrl;
-          return;
+          if (redirectToCheckout(redirectUrl, 'Payment session expired. Please try again.')) {
+            return;
+          }
+          throw new Error('Invalid checkout URL - redirect blocked for security');
         } else {
           throw new Error('Failed to get checkout URL');
         }
@@ -1086,12 +1082,13 @@ export function MeetingFormContent({
       form,
       price,
       createPaymentIntent,
+      redirectToCheckout,
       transitionToStep,
       checkoutUrl,
-      setCheckoutUrl,
       router,
       clerkUserId,
       eventId,
+      getCreateMeetingErrorMessage,
       locale,
       username,
       eventSlug,

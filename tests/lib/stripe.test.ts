@@ -1,4 +1,4 @@
-import { calculateApplicationFee } from '@/config/stripe';
+import { calculateApplicationFee, isAuthoritativePriceMatch } from '@/config/stripe';
 import { describe, expect, it } from '@jest/globals';
 
 describe('Stripe Utilities', () => {
@@ -25,6 +25,24 @@ describe('Stripe Utilities', () => {
       // Update expectation to match actual implementation, which allows negative fees
       const negativeFee = calculateApplicationFee(-1000);
       expect(negativeFee).toBe(-150); // 15% of -1000 is -150
+    });
+  });
+
+  describe('isAuthoritativePriceMatch', () => {
+    it('accepts matching authoritative server price', () => {
+      expect(isAuthoritativePriceMatch(10000, 10000)).toBe(true);
+    });
+
+    it('rejects tampered client price', () => {
+      expect(isAuthoritativePriceMatch(9000, 10000)).toBe(false);
+    });
+
+    it('rejects invalid or non-positive client price values', () => {
+      expect(isAuthoritativePriceMatch(0, 10000)).toBe(false);
+      expect(isAuthoritativePriceMatch(-1, 10000)).toBe(false);
+      expect(isAuthoritativePriceMatch(10000.5, 10000)).toBe(false);
+      expect(isAuthoritativePriceMatch(null, 10000)).toBe(false);
+      expect(isAuthoritativePriceMatch(undefined, 10000)).toBe(false);
     });
   });
 });

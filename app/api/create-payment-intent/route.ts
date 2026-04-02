@@ -2,6 +2,7 @@ import {
   calculateApplicationFee,
   DEFAULT_COUNTRY,
   getMinimumPayoutDelay,
+  isAuthoritativePriceMatch,
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { db } from '@/drizzle/db';
@@ -258,6 +259,7 @@ function createSharedMetadata({
       amount: price.toString(),
       fee: platformFee.toString(),
       expert: expertAmount.toString(),
+      feeBasis: STRIPE_CONFIG.MARKETPLACE_SPLIT.FEE_BASIS,
     }),
     transfer: JSON.stringify({
       status: PAYMENT_TRANSFER_STATUS_PENDING,
@@ -341,7 +343,7 @@ export async function POST(request: NextRequest) {
     const {
       eventId: extractedEventId,
       clerkUserId,
-      price,
+      price: clientProvidedPrice,
       meetingData: extractedMeetingData,
       username,
       eventSlug,
@@ -358,9 +360,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing expert user ID' }, { status: 400 });
     }
 
-    if (!price || !meetingData?.guestEmail) {
+    if (!clientProvidedPrice || !meetingData?.guestEmail) {
       console.warn('Missing required fields:', {
-        hasPrice: !!price,
+        hasPrice: !!clientProvidedPrice,
         hasGuestEmail: !!meetingData?.guestEmail,
       });
       return NextResponse.json(
@@ -496,7 +498,65 @@ export async function POST(request: NextRequest) {
       throw new Error("Expert's Connect account not found");
     }
 
+    if (event.clerkUserId !== clerkUserId) {
+      console.warn('Event ownership mismatch on checkout creation', {
+        eventId,
+        eventOwner: event.clerkUserId,
+        requestOwner: clerkUserId,
+      });
+      return NextResponse.json(
+        {
+          error: 'Event ownership mismatch',
+          code: 'EVENT_OWNERSHIP_MISMATCH',
+        },
+        { status: 403 },
+      );
+    }
+
+    const authoritativePrice = event.price;
+    if (authoritativePrice <= 0) {
+      return NextResponse.json(
+        {
+          error: 'This event is not configured for paid checkout',
+          code: 'EVENT_NOT_PAYABLE',
+        },
+        { status: 400 },
+      );
+    }
+
+    if (
+      typeof clientProvidedPrice !== 'number' ||
+      !Number.isInteger(clientProvidedPrice) ||
+      clientProvidedPrice <= 0
+    ) {
+      return NextResponse.json(
+        {
+          error: 'Invalid price amount',
+          code: 'INVALID_PRICE',
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!isAuthoritativePriceMatch(clientProvidedPrice, authoritativePrice)) {
+      console.warn('Client price mismatch detected', {
+        eventId,
+        clientProvidedPrice,
+        authoritativePrice,
+      });
+      return NextResponse.json(
+        {
+          error: 'Price mismatch. Please refresh and try again.',
+          code: 'PRICE_MISMATCH',
+        },
+        { status: 409 },
+      );
+    }
+
+    const price = authoritativePrice;
     const expertStripeAccountId = event.user.stripeConnectAccountId;
+
+    const checkoutCurrency = event.currency || STRIPE_CONFIG.CURRENCY;
 
     // Prepare meeting metadata
     const meetingMetadata = {
@@ -745,7 +805,7 @@ export async function POST(request: NextRequest) {
         line_items: [
           {
             price_data: {
-              currency: 'eur',
+              currency: checkoutCurrency,
               product_data: {
                 name: `${event.name} with ${meetingMetadata.expertName}`,
                 description: `${meetingMetadata.duration} minute session on ${new Date(
@@ -779,7 +839,8 @@ export async function POST(request: NextRequest) {
         customer: customerId,
         customer_creation: customerId ? undefined : 'always',
         expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
-        allow_promotion_codes: true,
+        // Keep split deterministic: 85/15 is calculated on authoritative listing amount.
+        allow_promotion_codes: STRIPE_CONFIG.MARKETPLACE_SPLIT.ALLOW_PROMOTION_CODES,
         invoice_creation: {
           enabled: true,
           invoice_data: {
