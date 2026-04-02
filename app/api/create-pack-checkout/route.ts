@@ -2,7 +2,7 @@ import { calculateApplicationFee, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { SessionPackTable } from '@/drizzle/schema';
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
-import { IdempotencyCache, RateLimitCache } from '@/lib/redis/manager';
+import { RateLimitCache } from '@/lib/redis/manager';
 import { checkBotId } from 'botid/server';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
@@ -110,17 +110,8 @@ export async function POST(request: NextRequest) {
     const clientIP =
       forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
 
-    const idempotencyKey = request.headers.get('Idempotency-Key');
-    const scopedIdempotencyKey = idempotencyKey
-      ? `pack-checkout:${idempotencyKey}:${packId}:${buyerEmail}`
-      : null;
-
-    if (scopedIdempotencyKey) {
-      const cachedResult = await IdempotencyCache.get(scopedIdempotencyKey);
-      if (cachedResult) {
-        return NextResponse.json({ url: cachedResult.url });
-      }
-    }
+    // Stripe-native idempotency: pass the key to Stripe which retains results for 24h
+    const idempotencyKey = request.headers.get('Idempotency-Key')?.trim() || null;
 
     const rateLimitResult = await checkRateLimits(`guest:${buyerEmail}`, clientIP);
     if (!rateLimitResult.allowed) {
@@ -192,90 +183,87 @@ export async function POST(request: NextRequest) {
     const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
     const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
 
-    const session = await stripe.checkout.sessions.create({
-      line_items: [
-        {
-          price: pack.stripePriceId,
-          quantity: 1,
+    const session = await stripe.checkout.sessions.create(
+      {
+        line_items: [
+          {
+            price: pack.stripePriceId,
+            quantity: 1,
+          },
+        ],
+        custom_fields: [
+          {
+            key: 'nif',
+            label: { type: 'custom', custom: t('nifLabel') },
+            type: 'numeric',
+            optional: true,
+            numeric: { minimum_length: 9, maximum_length: 9 },
+          },
+        ],
+        mode: 'payment',
+        success_url: `${baseUrl}/${locale}/pack-purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/${locale}`,
+        customer: customerId,
+        customer_creation: customerId ? undefined : 'always',
+        allow_promotion_codes: true,
+        automatic_tax: {
+          enabled: true,
+          liability: { type: 'self' },
         },
-      ],
-      custom_fields: [
-        {
-          key: 'nif',
-          label: { type: 'custom', custom: t('nifLabel') },
-          type: 'numeric',
-          optional: true,
-          numeric: { minimum_length: 9, maximum_length: 9 },
+        invoice_creation: {
+          enabled: true,
+          invoice_data: {
+            issuer: { type: 'self' },
+          },
         },
-      ],
-      mode: 'payment',
-      success_url: `${baseUrl}/${locale}/pack-purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/${locale}`,
-      customer: customerId,
-      customer_creation: customerId ? undefined : 'always',
-      allow_promotion_codes: true,
-      automatic_tax: {
-        enabled: true,
-        liability: { type: 'self' },
-      },
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          issuer: { type: 'self' },
+        tax_id_collection: { enabled: true, required: 'never' },
+        billing_address_collection: 'auto',
+        consent_collection: { terms_of_service: 'required' },
+        custom_text: {
+          terms_of_service_acceptance: {
+            message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+          },
         },
-      },
-      tax_id_collection: { enabled: true, required: 'never' },
-      billing_address_collection: 'auto',
-      consent_collection: { terms_of_service: 'required' },
-      custom_text: {
-        terms_of_service_acceptance: {
-          message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
-        },
-      },
-      locale: (() => {
-        const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
-          en: 'en',
-          'pt-BR': 'pt-BR',
-          es: 'es',
-          fr: 'fr',
-          de: 'de',
-          it: 'it',
-          pt: 'pt-BR',
-        };
-        return localeMap[locale] || 'en';
-      })(),
-      customer_update: { name: 'auto', address: 'auto' },
-      metadata: {
-        type: 'pack_purchase',
-        packId: pack.id,
-        eventId: pack.eventId,
-        buyerEmail,
-        buyerName: buyerName || '',
-        sessionsCount: pack.sessionsCount.toString(),
-        expertClerkUserId: pack.clerkUserId,
-        expertName,
-        packName: pack.name,
-        eventName: pack.event.name,
-        expirationDays: (pack.expirationDays || 180).toString(),
-        locale,
-      },
-      payment_intent_data: {
-        application_fee_amount: applicationFeeAmount,
-        transfer_data: {
-          destination: expertStripeAccountId,
-        },
+        locale: (() => {
+          const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
+            en: 'en',
+            'pt-BR': 'pt-BR',
+            es: 'es',
+            fr: 'fr',
+            de: 'de',
+            it: 'it',
+            pt: 'pt-BR',
+          };
+          return localeMap[locale] || 'en';
+        })(),
+        customer_update: { name: 'auto', address: 'auto' },
         metadata: {
           type: 'pack_purchase',
           packId: pack.id,
+          eventId: pack.eventId,
+          buyerEmail,
+          buyerName: buyerName || '',
+          sessionsCount: pack.sessionsCount.toString(),
+          expertClerkUserId: pack.clerkUserId,
+          expertName,
+          packName: pack.name,
+          eventName: pack.event.name,
+          expirationDays: (pack.expirationDays || 180).toString(),
+          locale,
+        },
+        payment_intent_data: {
+          application_fee_amount: applicationFeeAmount,
+          transfer_data: {
+            destination: expertStripeAccountId,
+          },
+          metadata: {
+            type: 'pack_purchase',
+            packId: pack.id,
+          },
         },
       },
-    });
-
-    if (scopedIdempotencyKey && session.url) {
-      after(async () => {
-        await IdempotencyCache.set(scopedIdempotencyKey!, { url: session.url! });
-      });
-    }
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

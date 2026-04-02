@@ -8,7 +8,7 @@ import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
-import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis/manager';
+import { FormCache, RateLimitCache } from '@/lib/redis/manager';
 import { checkBotId } from 'botid/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
@@ -418,17 +418,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // **IDEMPOTENCY: Check for duplicate requests using distributed cache**
+    // **IDEMPOTENCY: Stripe-native idempotency via Idempotency-Key header**
+    // Stripe retains idempotency keys for 24h and returns the same result for
+    // matching requests, which is stricter and more reliable than app-level caching.
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim();
-
-    if (idempotencyKey) {
-      // Check if we've seen this request before in distributed cache
-      const cachedResult = await IdempotencyCache.get(idempotencyKey);
-      if (cachedResult) {
-        console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
-        return NextResponse.json({ url: cachedResult.url });
-      }
-    }
 
     // **FORM CACHE: Additional duplicate prevention for form submissions**
     if (meetingData?.guestEmail && meetingData?.startTime) {
@@ -891,14 +884,6 @@ export async function POST(request: NextRequest) {
       await FormCache.markCompleted(formCacheKey);
       console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
     }
-
-    // Cache idempotency results in background (non-blocking)
-    after(async () => {
-      if (idempotencyKey && session.url) {
-        await IdempotencyCache.set(idempotencyKey, { url: session.url });
-        console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
-      }
-    });
 
     return NextResponse.json({
       url: session.url,

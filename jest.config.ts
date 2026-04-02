@@ -32,6 +32,11 @@ const customJestConfig = {
     '^fs/promises$': '<rootDir>/tests/__mocks__/fs-promises.ts',
     // Mock use-server (no-op, directive is handled at build time)
     '^use-server$': '<rootDir>/tests/__mocks__/use-server.ts',
+    // Force single React instance for pnpm (prevents dual-React hooks crash in Radix UI etc.)
+    '^react$': '<rootDir>/node_modules/react',
+    '^react-dom$': '<rootDir>/node_modules/react-dom',
+    '^react/(.*)$': '<rootDir>/node_modules/react/$1',
+    '^react-dom/(.*)$': '<rootDir>/node_modules/react-dom/$1',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
