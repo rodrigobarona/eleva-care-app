@@ -1307,7 +1307,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     }
   } catch (error) {
     console.error(`Error in handlePaymentSucceeded for paymentIntent ${paymentIntent.id}:`, error);
-    // Consider re-throwing if this error should halt further webhook processing or be retried by Stripe
+    throw error;
   }
 }
 

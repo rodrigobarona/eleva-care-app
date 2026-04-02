@@ -141,9 +141,13 @@ export function calculateApplicationFee(amount: number | null): number {
   return Math.floor(amount * STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE);
 }
 
+/**
+ * Expert receives the remainder after the platform fee is deducted.
+ * Always derived from calculateApplicationFee to avoid rounding discrepancies.
+ */
 export function calculateExpertAmount(amount: number | null): number {
   if (!amount) return 0;
-  return Math.floor(amount * (1 - STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE));
+  return amount - calculateApplicationFee(amount);
 }
 
 export function isAuthoritativePriceMatch(

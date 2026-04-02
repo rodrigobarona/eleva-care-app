@@ -11,11 +11,33 @@ import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfe
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
 import { FormCache, RateLimitCache } from '@/lib/redis/manager';
 import { checkBotId } from 'botid/server';
-import { and, eq, gt } from 'drizzle-orm';
+import { and, eq, gt, lt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { after } from 'next/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { z } from 'zod';
+
+const checkoutRequestSchema = z.object({
+  eventId: z.string().uuid(),
+  clerkUserId: z.string().min(1),
+  price: z.number().int().positive(),
+  meetingData: z.object({
+    guestEmail: z.string().email(),
+    guestName: z.string().min(1),
+    startTime: z.string().min(1),
+    guestNotes: z.string().optional(),
+    timezone: z.string().optional(),
+    locale: z.string().optional(),
+    duration: z.number().optional(),
+    date: z.string().optional(),
+    startTimeFormatted: z.string().optional(),
+  }),
+  username: z.string().min(1),
+  eventSlug: z.string().min(1),
+  requiresApproval: z.boolean().optional().default(false),
+  requestKey: z.string().optional(),
+});
 
 // Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
@@ -313,8 +335,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Declare variables in function scope for access in catch block
-  let eventId: string = '';
+  let eventId = '';
   let meetingData:
     | {
         timezone?: string;
@@ -324,21 +345,26 @@ export async function POST(request: NextRequest) {
         startTime: string;
         guestNotes?: string;
         duration?: number;
+        date?: string;
+        startTimeFormatted?: string;
       }
     | undefined;
 
   try {
-    // Parse request body first to get expert's clerkUserId
     const body = await request.json();
-    console.log('Request body received:', {
-      eventId: body.eventId,
-      hasPrice: !!body.price,
-      hasMeetingData: !!body.meetingData,
-      username: body.username,
-      eventSlug: body.eventSlug,
-      requiresApproval: !!body.requiresApproval,
-      clerkUserId: body.clerkUserId,
-    });
+    const parsed = checkoutRequestSchema.safeParse(body);
+
+    if (!parsed.success) {
+      console.warn('Request validation failed:', parsed.error.flatten().fieldErrors);
+      return NextResponse.json(
+        {
+          error: 'Invalid request',
+          code: 'VALIDATION_ERROR',
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
 
     const {
       eventId: extractedEventId,
@@ -346,37 +372,14 @@ export async function POST(request: NextRequest) {
       price: clientProvidedPrice,
       meetingData: extractedMeetingData,
       username,
-      eventSlug,
-      requiresApproval = false,
-    } = body;
+      requiresApproval,
+    } = parsed.data;
 
-    // Assign to function-scoped variables
     eventId = extractedEventId;
     meetingData = extractedMeetingData;
 
-    // Validate required fields
-    if (!clerkUserId) {
-      console.warn('Missing clerkUserId (expert user ID)');
-      return NextResponse.json({ error: 'Missing expert user ID' }, { status: 400 });
-    }
-
-    if (!clientProvidedPrice || !meetingData?.guestEmail) {
-      console.warn('Missing required fields:', {
-        hasPrice: !!clientProvidedPrice,
-        hasGuestEmail: !!meetingData?.guestEmail,
-      });
-      return NextResponse.json(
-        {
-          message: 'Missing required fields: price and guest email are required',
-        },
-        { status: 400 },
-      );
-    }
-
-    if (!meetingData?.startTime) {
-      console.warn('Missing startTime in meeting data');
-      return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
-    }
+    // From this point meetingData is guaranteed non-undefined (Zod validated)
+    const validatedMeetingData = meetingData;
 
     // **RATE LIMITING: Apply payment-specific rate limits using guest email instead of userId**
     const forwarded = request.headers.get('x-forwarded-for');
@@ -475,6 +478,7 @@ export async function POST(request: NextRequest) {
           user: {
             columns: {
               stripeConnectAccountId: true,
+              stripeConnectChargesEnabled: true,
               firstName: true,
               lastName: true,
               country: true,
@@ -496,6 +500,20 @@ export async function POST(request: NextRequest) {
         clerkUserId: event?.clerkUserId,
       });
       throw new Error("Expert's Connect account not found");
+    }
+
+    if (!event.user.stripeConnectChargesEnabled) {
+      console.warn('Expert Connect account cannot accept charges:', {
+        eventId,
+        connectAccountId: event.user.stripeConnectAccountId,
+      });
+      return NextResponse.json(
+        {
+          error: 'This expert cannot accept payments at this time. Please try again later.',
+          code: 'CONNECT_ACCOUNT_NOT_READY',
+        },
+        { status: 422 },
+      );
     }
 
     if (event.clerkUserId !== clerkUserId) {
@@ -579,91 +597,87 @@ export async function POST(request: NextRequest) {
 
     console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
 
-    // Parallel fetch: slot reservation + conflicting meeting + Stripe customer (all independent)
     const appointmentStartTime = new Date(meetingData.startTime);
+    const appointmentEndTime = new Date(
+      appointmentStartTime.getTime() + event.durationInMinutes * 60 * 1000,
+    );
+    const reservationExpiry = new Date(Date.now() + 35 * 60 * 1000); // 35 min (Stripe checkout TTL + buffer)
 
+    // Fetch Stripe customer in parallel with slot reservation (independent)
     console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
-    const [existingReservation, conflictingMeeting, customerId] = await Promise.all([
-      db.query.SlotReservationTable.findFirst({
-        where: and(
-          eq(SlotReservationTable.eventId, eventId),
-          eq(SlotReservationTable.startTime, appointmentStartTime),
-          gt(SlotReservationTable.expiresAt, new Date()),
-        ),
-      }),
-      db.query.MeetingTable.findFirst({
+    const customerIdPromise = getOrCreateStripeCustomer(
+      undefined,
+      meetingData.guestEmail,
+      meetingData.guestName,
+    );
+
+    // Atomic slot reservation: use a transaction to prevent two guests from
+    // both obtaining checkout sessions for the same time slot (TOCTOU fix).
+    const slotResult = await db.transaction(async (tx) => {
+      // 1. Clean up expired reservations for this slot
+      await tx
+        .delete(SlotReservationTable)
+        .where(
+          and(
+            eq(SlotReservationTable.eventId, eventId),
+            eq(SlotReservationTable.startTime, appointmentStartTime),
+            lt(SlotReservationTable.expiresAt, new Date()),
+          ),
+        );
+
+      // 2. Check for a confirmed meeting (succeeded payment)
+      const conflictingMeeting = await tx.query.MeetingTable.findFirst({
         where: and(
           eq(MeetingTable.eventId, eventId),
           eq(MeetingTable.startTime, appointmentStartTime),
           eq(MeetingTable.stripePaymentStatus, 'succeeded'),
         ),
-      }),
-      getOrCreateStripeCustomer(undefined, meetingData.guestEmail, meetingData.guestName),
-    ]);
+      });
 
-    console.log('Customer retrieved/created:', { customerId });
-
-    if (existingReservation) {
-      if (existingReservation.guestEmail === meetingData.guestEmail) {
-        console.log('User has existing active reservation, checking if we can reuse session:', {
-          reservationId: existingReservation.id,
-          sessionId: existingReservation.stripeSessionId,
-          expiresAt: existingReservation.expiresAt,
-        });
-
-        if (existingReservation.stripeSessionId) {
-          try {
-            const existingSession = await stripe.checkout.sessions.retrieve(
-              existingReservation.stripeSessionId,
-            );
-
-            if (existingSession.status === 'open' && existingSession.payment_status === 'unpaid') {
-              console.log('Reusing existing valid session:', existingSession.id);
-              return NextResponse.json({
-                url: existingSession.url,
-              });
-            } else {
-              console.log('Existing session is no longer valid:', {
-                status: existingSession.status,
-                paymentStatus: existingSession.payment_status,
-              });
-              await db
-                .delete(SlotReservationTable)
-                .where(eq(SlotReservationTable.id, existingReservation.id));
-            }
-          } catch (stripeError) {
-            console.log('Failed to retrieve existing session, will create new one:', stripeError);
-            await db
-              .delete(SlotReservationTable)
-              .where(eq(SlotReservationTable.id, existingReservation.id));
-          }
-        }
-      } else {
-        console.warn('Slot already reserved by another user:', {
-          requestingUser: meetingData.guestEmail,
-          reservedBy: existingReservation.guestEmail,
-          expiresAt: existingReservation.expiresAt,
-        });
-        return NextResponse.json(
-          {
-            error:
-              'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
-            code: 'SLOT_TEMPORARILY_RESERVED',
-          },
-          { status: 409 },
-        );
+      if (conflictingMeeting) {
+        return { type: 'SLOT_ALREADY_BOOKED' as const, conflictingMeeting };
       }
-    }
 
-    if (conflictingMeeting) {
+      // 3. Check for active reservations by ANY guest for this slot
+      const activeReservation = await tx.query.SlotReservationTable.findFirst({
+        where: and(
+          eq(SlotReservationTable.eventId, eventId),
+          eq(SlotReservationTable.startTime, appointmentStartTime),
+          gt(SlotReservationTable.expiresAt, new Date()),
+        ),
+      });
+
+      if (activeReservation) {
+        // Same guest can reuse their existing reservation
+        if (activeReservation.guestEmail === validatedMeetingData.guestEmail) {
+          return { type: 'REUSE_RESERVATION' as const, reservation: activeReservation };
+        }
+        // Different guest -- slot is held
+        return { type: 'SLOT_TEMPORARILY_RESERVED' as const, reservation: activeReservation };
+      }
+
+      // 4. No conflicts -- atomically insert a reservation within the transaction
+      const [newReservation] = await tx
+        .insert(SlotReservationTable)
+        .values({
+          eventId,
+          clerkUserId,
+          guestEmail: validatedMeetingData.guestEmail,
+          startTime: appointmentStartTime,
+          endTime: appointmentEndTime,
+          expiresAt: reservationExpiry,
+        })
+        .returning();
+
+      return { type: 'RESERVED' as const, reservation: newReservation };
+    });
+
+    // Handle slot result before proceeding to Stripe
+    if (slotResult.type === 'SLOT_ALREADY_BOOKED') {
       console.error('Time slot already booked with confirmed payment:', {
         eventId,
         startTime: appointmentStartTime,
         requestingUser: meetingData.guestEmail,
-        existingBooking: {
-          id: conflictingMeeting.id,
-          email: conflictingMeeting.guestEmail,
-        },
       });
       return NextResponse.json(
         {
@@ -673,6 +687,48 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
+
+    if (slotResult.type === 'SLOT_TEMPORARILY_RESERVED') {
+      console.warn('Slot already reserved by another user:', {
+        requestingUser: meetingData.guestEmail,
+        reservedBy: slotResult.reservation.guestEmail,
+        expiresAt: slotResult.reservation.expiresAt,
+      });
+      return NextResponse.json(
+        {
+          error:
+            'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
+          code: 'SLOT_TEMPORARILY_RESERVED',
+        },
+        { status: 409 },
+      );
+    }
+
+    // For REUSE_RESERVATION, check if the existing Stripe session is still valid
+    if (slotResult.type === 'REUSE_RESERVATION' && slotResult.reservation.stripeSessionId) {
+      try {
+        const existingSession = await stripe.checkout.sessions.retrieve(
+          slotResult.reservation.stripeSessionId,
+        );
+
+        if (existingSession.status === 'open' && existingSession.payment_status === 'unpaid') {
+          console.log('Reusing existing valid session:', existingSession.id);
+          return NextResponse.json({ url: existingSession.url });
+        }
+
+        // Session expired/completed, clean up reservation so we create a new one
+        await db
+          .delete(SlotReservationTable)
+          .where(eq(SlotReservationTable.id, slotResult.reservation.id));
+      } catch {
+        await db
+          .delete(SlotReservationTable)
+          .where(eq(SlotReservationTable.id, slotResult.reservation.id));
+      }
+    }
+
+    const customerId = await customerIdPromise;
+    console.log('Customer retrieved/created:', { customerId });
 
     // Calculate application fee
     const applicationFeeAmount = calculateApplicationFee(price);
@@ -695,8 +751,8 @@ export async function POST(request: NextRequest) {
       ? meetingData.duration * 60 * 1000
       : 60 * 60 * 1000;
 
-    // Calculate appointment end time (session start + duration)
-    const appointmentEndTime = new Date(sessionStartTime.getTime() + sessionDurationMs);
+    // Calculate appointment end time for transfer scheduling
+    const transferAppointmentEndTime = new Date(sessionStartTime.getTime() + sessionDurationMs);
 
     // Calculate how many days between payment (now) and session
     const currentDate = new Date();
@@ -708,7 +764,9 @@ export async function POST(request: NextRequest) {
     // 🆕 CRITICAL FIX: Transfer must ALWAYS be at least 24h after appointment ends
     // This is a customer complaint window requirement (like Airbnb's first-night hold)
     // Separate from the 7-day payment aging requirement
-    const minimumTransferDate = new Date(appointmentEndTime.getTime() + 24 * 60 * 60 * 1000);
+    const minimumTransferDate = new Date(
+      transferAppointmentEndTime.getTime() + 24 * 60 * 60 * 1000,
+    );
 
     // Calculate earliest possible transfer date based on payment aging
     // For immediate payments (Credit Card), this is 7 days from now
@@ -734,7 +792,7 @@ export async function POST(request: NextRequest) {
     console.log('📅 Scheduled transfer with dual-requirement compliance:', {
       currentDate: currentDate.toISOString(),
       sessionStartTime: sessionStartTime.toISOString(),
-      appointmentEndTime: appointmentEndTime.toISOString(),
+      appointmentEndTime: transferAppointmentEndTime.toISOString(),
       expertCountry,
       requiredPayoutDelay,
       paymentAgingDays,
@@ -746,7 +804,7 @@ export async function POST(request: NextRequest) {
         (transferDate.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000),
       ),
       hoursAfterAppointmentEnd: Math.floor(
-        (transferDate.getTime() - appointmentEndTime.getTime()) / (60 * 60 * 1000),
+        (transferDate.getTime() - transferAppointmentEndTime.getTime()) / (60 * 60 * 1000),
       ),
     });
 
@@ -795,7 +853,7 @@ export async function POST(request: NextRequest) {
       paymentAgingDays,
       requiredPayoutDelay,
       scheduledTransferTime,
-      appointmentEndTime,
+      appointmentEndTime: transferAppointmentEndTime,
       requiresApproval,
       meetingData,
     });
@@ -834,8 +892,8 @@ export async function POST(request: NextRequest) {
           },
         ],
         mode: 'payment',
-        success_url: `${baseUrl}/${locale}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
+        success_url: `${baseUrl}/${locale}/${username}/${event.slug}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/${locale}/${username}/${event.slug}`,
         customer: customerId,
         customer_creation: customerId ? undefined : 'always',
         expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
@@ -932,8 +990,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('✅ Checkout session created successfully - no slot reservation needed');
-    console.log('📝 Slot management will be handled by webhooks based on payment method');
+    // Link the slot reservation to the Stripe session for tracking
+    if (slotResult.type === 'RESERVED' || slotResult.type === 'REUSE_RESERVATION') {
+      try {
+        await db
+          .update(SlotReservationTable)
+          .set({
+            stripeSessionId: session.id,
+            stripePaymentIntentId: session.payment_intent?.toString() || null,
+          })
+          .where(eq(SlotReservationTable.id, slotResult.reservation.id));
+      } catch (reservationUpdateError) {
+        console.error('Failed to link reservation to session:', reservationUpdateError);
+      }
+    }
 
     // Mark form submission as completed before responding to avoid race conditions on retries
     if (meetingData?.guestEmail && meetingData?.startTime) {

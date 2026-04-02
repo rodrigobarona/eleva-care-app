@@ -590,7 +590,12 @@ export function MeetingFormContent({
     }
   }, []);
 
-  // Function to create or get payment intent
+  /**
+   * Creates a Stripe Checkout Session via /api/create-payment-intent and
+   * returns the hosted checkout URL. Named "createPaymentIntent" for legacy
+   * reasons; the server creates a Checkout Session with payment_intent_data,
+   * not a standalone PaymentIntent.
+   */
   const createPaymentIntent = React.useCallback(
     async (options?: { silent?: boolean }) => {
       const silent = options?.silent ?? false;

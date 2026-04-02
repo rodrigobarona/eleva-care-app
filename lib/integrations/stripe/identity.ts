@@ -1,4 +1,4 @@
-import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
+import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
@@ -68,6 +68,7 @@ export async function createIdentityVerification(
     const verificationSession = await stripe.identity.verificationSessions.create({
       type: 'document',
       metadata: {
+        user_id: userId,
         userId,
         clerkUserId,
         email,
@@ -302,8 +303,7 @@ export async function createConnectAccountWithVerifiedIdentity(
         settings: {
           payouts: {
             schedule: {
-              interval: 'daily',
-              delay_days: getMinimumPayoutDelay(countryCode),
+              interval: 'manual',
             },
           },
         },

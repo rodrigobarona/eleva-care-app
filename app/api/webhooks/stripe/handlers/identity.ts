@@ -38,10 +38,16 @@ export async function handleIdentityVerificationUpdated(
     }
   }
 
-  // If we still don't have a user, check if there's an account ID in metadata
+  // If we still don't have a user, check metadata fields
   if (!user && verificationSession.metadata?.user_id) {
     user = await db.query.UserTable.findFirst({
       where: eq(UserTable.id, verificationSession.metadata.user_id),
+    });
+  }
+
+  if (!user && verificationSession.metadata?.clerkUserId) {
+    user = await db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, verificationSession.metadata.clerkUserId),
     });
   }
 

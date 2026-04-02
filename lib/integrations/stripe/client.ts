@@ -1,4 +1,4 @@
-import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
+import { calculateApplicationFee, getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, UserTable } from '@/drizzle/schema';
 import { CustomerCache } from '@/lib/redis/manager';
@@ -38,7 +38,7 @@ interface StripeSubscriptionData {
 // Platform fee percentage for revenue sharing
 // This fee is automatically handled by Stripe Connect and can be monitored
 // in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
-const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'); // Default 15% if not set
+
 
 export async function getServerStripe() {
   return stripe;
@@ -328,9 +328,8 @@ export async function createPaymentIntent({
       throw new Error("Expert's Stripe account not found or setup incomplete");
     }
 
-    // Calculate application fee
     const amount = event.price;
-    const applicationFeeAmount = Math.round(amount * PLATFORM_FEE_PERCENTAGE);
+    const applicationFeeAmount = calculateApplicationFee(amount);
 
     // Create or get customer
     const customer = await stripe.customers.list({
@@ -353,7 +352,7 @@ export async function createPaymentIntent({
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: 'usd',
+      currency: STRIPE_CONFIG.CURRENCY,
       customer: customerId,
       automatic_payment_methods: {
         enabled: true,

@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
         user: {
           columns: {
             stripeConnectAccountId: true,
+            stripeConnectChargesEnabled: true,
             firstName: true,
             lastName: true,
             country: true,
@@ -163,6 +164,16 @@ export async function POST(request: NextRequest) {
 
     if (!pack.user?.stripeConnectAccountId) {
       return NextResponse.json({ error: "Expert's payment account not found" }, { status: 400 });
+    }
+
+    if (!pack.user.stripeConnectChargesEnabled) {
+      return NextResponse.json(
+        {
+          error: 'This expert cannot accept payments at this time. Please try again later.',
+          code: 'CONNECT_ACCOUNT_NOT_READY',
+        },
+        { status: 422 },
+      );
     }
 
     const expertStripeAccountId = pack.user.stripeConnectAccountId;
@@ -242,6 +253,7 @@ export async function POST(request: NextRequest) {
           type: 'pack_purchase',
           packId: pack.id,
           eventId: pack.eventId,
+          eventSlug: pack.event.slug,
           buyerEmail,
           buyerName: buyerName || '',
           sessionsCount: pack.sessionsCount.toString(),

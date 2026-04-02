@@ -360,52 +360,10 @@ class GoogleCalendarService {
 
     try {
       const calendarEventId = calendarEvent?.data?.id || 'unknown';
-      const expertEmail = calendarUser.primaryEmailAddress.emailAddress;
       const expertFullName = calendarUser.fullName || 'Expert';
 
-      // Send expert notification via Novu workflow
-      console.log('📧 Triggering Novu workflow for expert appointment confirmation:', {
-        expertEmail,
-        eventId: calendarEventId,
-        eventSummary: eventSummary,
-        timezone,
-        locale,
-      });
-
-      const expertResult = await triggerWorkflow({
-        workflowId: 'appointment-universal',
-        to: {
-          subscriberId: clerkUserId,
-          email: expertEmail,
-          firstName: expertFullName.split(' ')[0],
-          lastName: expertFullName.split(' ').slice(1).join(' ') || undefined,
-        },
-        payload: {
-          eventType: 'confirmed',
-          expertName: expertFullName,
-          customerName: guestName,
-          appointmentDate,
-          appointmentTime,
-          timezone,
-          appointmentDuration: formattedDuration,
-          serviceName: eventName,
-          meetingUrl: shortMeetLink || meetLink || undefined,
-          notes: guestNotes || undefined,
-          locale,
-          userSegment: 'expert',
-          appointmentId: calendarEventId,
-        },
-        transactionId: `appt-expert-${calendarEventId}`,
-      });
-
-      if (expertResult) {
-        console.log('✅ Expert appointment notification triggered via Novu:', {
-          to: expertEmail,
-          calendarEventId,
-        });
-      } else {
-        console.error('❌ Failed to trigger expert appointment notification via Novu');
-      }
+      // Expert notification is handled by createMeeting (appointment-confirmation workflow)
+      // to avoid duplicate emails. Only send the patient/guest notification here.
 
       // Send patient notification via Novu workflow
       console.log('📧 Triggering Novu workflow for patient appointment confirmation:', {

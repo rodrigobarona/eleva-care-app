@@ -124,7 +124,7 @@ async function getDetailsFromStripeSession(sessionId: string): Promise<PurchaseD
       expertName: resolvedExpertName,
       expertUsername,
       expertClerkUserId: expertClerkUserId ?? undefined,
-      eventSlug: undefined,
+      eventSlug: meta.eventSlug || undefined,
       expiresAt,
       expertImage,
       expertHeadline,

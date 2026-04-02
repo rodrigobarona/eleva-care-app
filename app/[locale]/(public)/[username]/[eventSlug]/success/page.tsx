@@ -1,6 +1,7 @@
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { ConfettiCelebration } from '@/components/shared/success/ConfettiCelebration';
 import { ExpertPortraitCard } from '@/components/shared/success/ExpertPortraitCard';
+import { PaymentProcessingPoller } from '@/components/shared/success/PaymentProcessingPoller';
 import { StepList } from '@/components/shared/success/StepList';
 import { SupportFooter } from '@/components/shared/success/SupportFooter';
 import { Button } from '@/components/ui/button';
@@ -308,7 +309,7 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
                 </div>
               </div>
 
-              <meta httpEquiv="refresh" content="5" />
+              <PaymentProcessingPoller />
             </div>
           </div>
         );
@@ -342,7 +343,7 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
                 </Card>
               </div>
 
-              <meta httpEquiv="refresh" content="5" />
+              <PaymentProcessingPoller />
             </div>
           </div>
         );

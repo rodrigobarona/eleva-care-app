@@ -10,7 +10,6 @@ import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalen
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { headers } from 'next/headers';
-import 'use-server';
 import type { z } from 'zod';
 
 /**
@@ -213,11 +212,11 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       let calendarEvent: Awaited<ReturnType<typeof createCalendarEvent>> | null = null;
       let meetingUrl: string | null = null;
 
-      // Only create calendar events for succeeded payments or free events
+      // Only create calendar events for confirmed payments or free events.
+      // Deferred methods (e.g. Multibanco / processing) get calendar events
+      // via createDeferredCalendarEvent in the payment_intent.succeeded handler.
       const shouldCreateCalendarEvent =
-        !data.stripePaymentStatus ||
-        data.stripePaymentStatus === 'succeeded' ||
-        data.stripePaymentStatus === 'processing';
+        !data.stripePaymentStatus || data.stripePaymentStatus === 'succeeded';
 
       console.log('📅 Calendar event creation decision:', {
         shouldCreate: shouldCreateCalendarEvent,
