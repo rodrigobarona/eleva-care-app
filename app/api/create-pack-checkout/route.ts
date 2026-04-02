@@ -3,7 +3,6 @@ import { db } from '@/drizzle/db';
 import { SessionPackTable } from '@/drizzle/schema';
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
 import { RateLimitCache } from '@/lib/redis/manager';
-import { checkBotId } from 'botid/server';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { after, NextRequest, NextResponse } from 'next/server';
@@ -56,25 +55,6 @@ async function checkRateLimits(userIdentifier: string, clientIP: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const botResult = (await checkBotId({
-    advancedOptions: { checkLevel: 'basic' },
-  })) as import('@/types/botid').BotIdVerificationResult;
-
-  if (botResult.isBot) {
-    const { COMMON_ALLOWED_BOTS } = await import('@/types/botid');
-    const isAllowedBot =
-      botResult.isVerifiedBot &&
-      botResult.verifiedBotName !== undefined &&
-      (COMMON_ALLOWED_BOTS as readonly string[]).includes(botResult.verifiedBotName);
-
-    if (!isAllowedBot) {
-      return NextResponse.json(
-        { error: 'Access denied', message: 'Automated requests are not allowed' },
-        { status: 403 },
-      );
-    }
-  }
-
   try {
     const body = await request.json();
     const rawPackId = body.packId;

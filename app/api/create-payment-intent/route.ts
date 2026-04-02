@@ -10,7 +10,6 @@ import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
 import { FormCache, RateLimitCache } from '@/lib/redis/manager';
-import { checkBotId } from 'botid/server';
 import { and, eq, gt, lt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { after } from 'next/server';
@@ -300,40 +299,6 @@ function createSharedMetadata({
 
 export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
-
-  // 🛡️ BotID Protection: Check for bot traffic before processing payment
-  const botResult = (await checkBotId({
-    advancedOptions: {
-      checkLevel: 'basic', // Free on all Vercel plans including Hobby
-    },
-  })) as import('@/types/botid').BotIdVerificationResult;
-
-  if (botResult.isBot) {
-    console.warn('🚫 Bot detected in payment intent creation:', {
-      isVerifiedBot: botResult.isVerifiedBot,
-      verifiedBotName: botResult.verifiedBotName,
-      verifiedBotCategory: botResult.verifiedBotCategory,
-    });
-
-    // Allow verified bots that might be legitimate (e.g., monitoring services)
-    // Using the predefined list from types/botid.ts
-    const { COMMON_ALLOWED_BOTS } = await import('@/types/botid');
-    const allowedVerifiedBots = COMMON_ALLOWED_BOTS as readonly string[];
-    const isAllowedBot =
-      botResult.isVerifiedBot &&
-      botResult.verifiedBotName !== undefined &&
-      allowedVerifiedBots.includes(botResult.verifiedBotName);
-
-    if (!isAllowedBot) {
-      return NextResponse.json(
-        {
-          error: 'Access denied',
-          message: 'Automated requests are not allowed for payment processing',
-        },
-        { status: 403 },
-      );
-    }
-  }
 
   let eventId = '';
   let meetingData:
