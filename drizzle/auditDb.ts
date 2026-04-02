@@ -1,7 +1,10 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { neonConfig, Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from 'ws';
 
 import * as auditSchema from './auditSchema';
+
+neonConfig.webSocketConstructor = ws;
 
 /**
  * Validates and retrieves the audit database URL.
@@ -41,5 +44,5 @@ function getAuditDatabaseUrl(): string {
 
 // Separate audit log database connection
 const auditDatabaseUrl = getAuditDatabaseUrl();
-const auditSql = neon(auditDatabaseUrl);
-export const auditDb = drizzle(auditSql, { schema: auditSchema });
+const auditPool = new Pool({ connectionString: auditDatabaseUrl });
+export const auditDb = drizzle(auditPool, { schema: auditSchema });

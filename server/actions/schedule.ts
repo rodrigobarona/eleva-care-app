@@ -7,7 +7,6 @@ import { scheduleFormSchema } from '@/schema/schedule';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import type { BatchItem } from 'drizzle-orm/batch';
 import { headers } from 'next/headers';
 import 'use-server';
 import type { z } from 'zod';
@@ -88,28 +87,20 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
     })
     .returning({ id: ScheduleTable.id });
 
-  // Prepare batch operations for availability updates
-  const statements: [BatchItem<'pg'>] = [
-    // First, delete all existing availabilities
-    db
+  await db.transaction(async (tx) => {
+    await tx
       .delete(ScheduleAvailabilityTable)
-      .where(eq(ScheduleAvailabilityTable.scheduleId, scheduleId)),
-  ];
+      .where(eq(ScheduleAvailabilityTable.scheduleId, scheduleId));
 
-  // If new availabilities exist, prepare to insert them
-  if (availabilities.length > 0) {
-    statements.push(
-      db.insert(ScheduleAvailabilityTable).values(
+    if (availabilities.length > 0) {
+      await tx.insert(ScheduleAvailabilityTable).values(
         availabilities.map((availability) => ({
           ...availability,
           scheduleId,
         })),
-      ),
-    );
-  }
-
-  // Execute all database operations in a batch
-  await db.batch(statements);
+      );
+    }
+  });
 
   // Log the schedule update for audit purposes
   await logAuditEvent(

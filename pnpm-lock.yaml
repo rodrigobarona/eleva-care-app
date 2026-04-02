@@ -397,6 +397,9 @@ importers:
       usehooks-ts:
         specifier: ^3.1.1
         version: 3.1.1(react@19.2.0)
+      ws:
+        specifier: ^8.20.0
+        version: 8.20.0
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -455,6 +458,9 @@ importers:
       '@types/react-dom':
         specifier: 19.0.4
         version: 19.0.4(@types/react@19.0.10)
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.46.2
         version: 8.46.2(@typescript-eslint/parser@8.46.2(eslint@9.38.0(jiti@1.21.7))(typescript@5.9.3))(eslint@9.38.0(jiti@1.21.7))(typescript@5.9.3)
@@ -3982,6 +3988,9 @@ packages:
 
   '@types/webpack@5.28.5':
     resolution: {integrity: sha512-wR87cgvxj3p6D0Crt1r5avwqffqPXUkNlnQ1mjU93G7gCuFjufZR4I6j8cz5g1F1tTYpfOOFvly+cmIQwL9wvw==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -9471,6 +9480,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.20.0:
+    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   xdg-basedir@4.0.0:
     resolution: {integrity: sha512-PSNhEJDejZYV7h50BohL09Er9VaIefr2LMAf3OEmpCkjOi34eYyQYAXUTjEQtZJTKcF0E2UKTh+osDLsgNim9Q==}
     engines: {node: '>=8'}
@@ -11117,7 +11138,7 @@ snapshots:
       node-fetch: 3.3.2
       partysocket: 0.0.17
       proxy-agent: 6.5.0
-      ws: 8.18.3
+      ws: 8.20.0
       zod: 3.22.3
     transitivePeerDependencies:
       - bufferutil
@@ -13112,6 +13133,10 @@ snapshots:
       - esbuild
       - uglify-js
       - webpack-cli
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 22.18.13
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -16345,7 +16370,7 @@ snapshots:
       whatwg-encoding: 2.0.0
       whatwg-mimetype: 3.0.0
       whatwg-url: 11.0.0
-      ws: 8.18.3
+      ws: 8.20.0
       xml-name-validator: 4.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -17300,7 +17325,7 @@ snapshots:
       prompts: 2.4.2
       uuid: 9.0.1
       validate-npm-package-name: 3.0.0
-      ws: 8.18.3
+      ws: 8.20.0
     transitivePeerDependencies:
       - '@types/node'
       - bufferutil
@@ -19712,6 +19737,8 @@ snapshots:
   ws@8.17.1: {}
 
   ws@8.18.3: {}
+
+  ws@8.20.0: {}
 
   xdg-basedir@4.0.0: {}
 

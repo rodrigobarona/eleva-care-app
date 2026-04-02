@@ -1,7 +1,10 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { neonConfig, Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from 'ws';
 
 import * as schema from './schema';
+
+neonConfig.webSocketConstructor = ws;
 
 /**
  * Validates and retrieves the main database URL.
@@ -41,5 +44,5 @@ function getDatabaseUrl(): string {
 
 // Main database connection for core data (events, schedules, etc.)
 const databaseUrl = getDatabaseUrl();
-const sql = neon(databaseUrl);
-export const db = drizzle(sql, { schema });
+const pool = new Pool({ connectionString: databaseUrl });
+export const db = drizzle(pool, { schema });
