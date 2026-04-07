@@ -17,7 +17,7 @@ export const STRIPE_CONFIG = {
     // Eleva keeps 15% and experts keep 85% of the authoritative listing amount stored in the DB.
     // Taxes and discounts are not part of the payout split base.
     FEE_BASIS: 'listing_amount_pre_tax_pre_discount' as const,
-    ALLOW_PROMOTION_CODES: false,
+    ALLOW_PROMOTION_CODES: true,
   },
 
   // Identity Verification Configuration

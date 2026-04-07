@@ -864,12 +864,17 @@ export async function POST(request: NextRequest) {
         expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
         // Keep split deterministic: 85/15 is calculated on authoritative listing amount.
         allow_promotion_codes: STRIPE_CONFIG.MARKETPLACE_SPLIT.ALLOW_PROMOTION_CODES,
+        automatic_tax: {
+          enabled: true,
+          liability: { type: 'self' },
+        },
         invoice_creation: {
           enabled: true,
           invoice_data: {
             issuer: { type: 'self' },
           },
         },
+        tax_id_collection: { enabled: true, required: 'never' },
         billing_address_collection: 'auto',
         consent_collection: {
           terms_of_service: 'required',
