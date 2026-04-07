@@ -56,7 +56,10 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
     try {
       const response = await fetch('/api/create-pack-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': crypto.randomUUID(),
+        },
         body: JSON.stringify({
           packId: pack.id,
           buyerEmail: email,
@@ -141,7 +144,7 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
             )}
             <p className="mb-6 text-sm text-muted-foreground">
               €
-              {((pack.price / pack.sessionsCount) / 100).toLocaleString('pt-PT', {
+              {(pack.price / pack.sessionsCount / 100).toLocaleString('pt-PT', {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 2,
               })}{' '}
