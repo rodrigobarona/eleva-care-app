@@ -447,6 +447,7 @@ export async function POST(request: NextRequest) {
               firstName: true,
               lastName: true,
               country: true,
+              imageUrl: true,
             },
           },
         },
@@ -841,6 +842,9 @@ export async function POST(request: NextRequest) {
                   minute: '2-digit',
                   timeZoneName: 'short',
                 })}`,
+                ...(event.user.imageUrl?.startsWith('https://') && {
+                  images: [event.user.imageUrl],
+                }),
               },
               unit_amount: price,
             },
