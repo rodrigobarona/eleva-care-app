@@ -843,7 +843,9 @@ export async function POST(request: NextRequest) {
                   timeZoneName: 'short',
                 })}`,
                 ...(event.user.imageUrl?.startsWith('https://') && {
-                  images: [event.user.imageUrl],
+                  images: [
+                    `${event.user.imageUrl}${event.user.imageUrl.includes('?') ? '&' : '?'}width=512&height=512&fit=crop`,
+                  ],
                 }),
               },
               unit_amount: price,
