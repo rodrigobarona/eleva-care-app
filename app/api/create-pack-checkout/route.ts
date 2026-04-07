@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
             firstName: true,
             lastName: true,
             country: true,
+            imageUrl: true,
           },
         },
       },
@@ -178,7 +179,21 @@ export async function POST(request: NextRequest) {
       {
         line_items: [
           {
-            price: pack.stripePriceId,
+            price_data: {
+              currency: pack.currency || STRIPE_CONFIG.CURRENCY,
+              product_data: {
+                name: pack.name,
+                description: `${pack.sessionsCount} sessions of ${pack.event.name} with ${expertName}`,
+                tax_code: STRIPE_CONFIG.TAX.DEFAULT_TAX_CODE,
+                ...(pack.user?.imageUrl?.startsWith('https://') && {
+                  images: [
+                    `${pack.user.imageUrl}${pack.user.imageUrl.includes('?') ? '&' : '?'}width=512&height=512&fit=crop`,
+                  ],
+                }),
+              },
+              unit_amount: pack.price,
+              tax_behavior: STRIPE_CONFIG.TAX.DEFAULT_TAX_BEHAVIOR,
+            },
             quantity: 1,
           },
         ],
