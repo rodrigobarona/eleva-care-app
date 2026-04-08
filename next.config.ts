@@ -48,6 +48,11 @@ const config: NextConfig = {
   // For now, using traditional revalidate pattern for static content caching
   // cacheComponents: true,
 
+  // Ensure content/ MDX files are included in serverless functions for ISR
+  outputFileTracingIncludes: {
+    '/*': ['./content/**'],
+  },
+
   // Enable React Compiler for automatic memoization
   reactCompiler: true,
 

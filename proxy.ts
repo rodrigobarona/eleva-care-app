@@ -85,6 +85,9 @@ function createCustomI18nMiddleware() {
         pathname.startsWith('/help') ||
         pathname.startsWith('/contact') ||
         pathname.startsWith('/community') ||
+        pathname.startsWith('/history') ||
+        pathname.startsWith('/my-packs') ||
+        pathname.startsWith('/pack-purchase') ||
         isUsernameRoute(pathname) ||
         isLocalePublicRoute(pathname)
       ) {
@@ -496,7 +499,7 @@ async function getUserRoles(authObj: MiddlewareAuthObject): Promise<string | str
  * This follows the Next.js 16 proxy convention (previously middleware.ts)
  * Integrates with Clerk for authentication and next-intl for internationalization
  */
-export default clerkMiddleware(async (auth, req: NextRequest) => {
+const proxyHandler = clerkMiddleware(async (auth, req: NextRequest) => {
   const path = req.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
 
@@ -790,6 +793,10 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   console.log(`🌐 Applying i18n to authenticated route: ${path}`);
   return handleI18nRouting(req);
 });
+
+export function proxy(request: NextRequest, event: import('next/server').NextFetchEvent) {
+  return proxyHandler(request, event);
+}
 
 /**
  * Configure which paths the proxy runs on

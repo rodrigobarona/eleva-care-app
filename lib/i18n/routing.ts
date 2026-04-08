@@ -18,7 +18,6 @@ export const routing = defineRouting({
     // ----------------
     '/': '/',
     '/about': '/about',
-    '/dashboard': '/dashboard',
     '/sign-in': '/sign-in',
     '/sign-up': '/sign-up',
     '/legal': '/legal',
@@ -30,6 +29,10 @@ export const routing = defineRouting({
     '/trust': '/trust',
     '/trust/security': '/trust/security',
     '/trust/dpa': '/trust/dpa',
+    '/history': '/history',
+    '/my-packs': '/my-packs',
+    '/pack-purchase/success': '/pack-purchase/success',
+    '/dashboard': '/dashboard',
     '/help': '/help',
     '/contact': '/contact',
     '/community': '/community',
