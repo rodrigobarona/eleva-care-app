@@ -29,6 +29,7 @@ export async function getValidTimesFromSchedule(
   times: Date[],
   event: ScheduleEvent,
   calendarEvents: Array<{ start: Date; end: Date }>,
+  excludeGuestEmail?: string,
 ) {
   const schedule = await db.query.ScheduleTable.findFirst({
     where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
@@ -44,9 +45,11 @@ export async function getValidTimesFromSchedule(
       and(eq(fields.clerkUserId, event.clerkUserId), gt(fields.expiresAt, currentTime)),
   });
 
-  // Convert reservations to a Set for faster lookup
+  // Convert reservations to a Set for faster lookup (exclude returning guest's own reservations)
   const reservedTimes = new Set(
-    activeReservations.map((reservation) => reservation.startTime.toISOString()),
+    activeReservations
+      .filter((r) => !excludeGuestEmail || r.guestEmail !== excludeGuestEmail)
+      .map((r) => r.startTime.toISOString()),
   );
 
   // Only log detailed reservation info in development

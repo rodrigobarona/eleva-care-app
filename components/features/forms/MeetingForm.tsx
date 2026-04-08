@@ -1009,6 +1009,10 @@ export function MeetingFormContent({
 
       // Paid flow
       console.log('[MeetingForm] handleNextStep: PAID path');
+      const guestEmail = form.getValues().guestEmail;
+      if (guestEmail) {
+        document.cookie = `eleva_booking_email=${encodeURIComponent(guestEmail)}; path=/; max-age=3600; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
+      }
       setIsSubmitting(true);
 
       // Fast path: reuse existing checkout URL

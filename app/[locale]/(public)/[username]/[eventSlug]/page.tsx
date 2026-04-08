@@ -35,6 +35,7 @@ import {
   startOfDay,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -274,7 +275,18 @@ async function CalendarWithAvailability({
     currentTime = new Date(currentTime.getTime() + timeSlotInterval * 60000);
   }
 
-  const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
+  const cookieStore = await cookies();
+  const bookingEmailCookie = cookieStore.get('eleva_booking_email')?.value;
+  const returningGuestEmail = bookingEmailCookie
+    ? decodeURIComponent(bookingEmailCookie)
+    : undefined;
+
+  const validTimes = await getValidTimesFromSchedule(
+    timeSlots,
+    event,
+    calendarEvents,
+    returningGuestEmail,
+  );
 
   if (validTimes.length === 0) {
     return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;

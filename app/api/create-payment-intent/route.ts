@@ -567,7 +567,7 @@ export async function POST(request: NextRequest) {
     const appointmentEndTime = new Date(
       appointmentStartTime.getTime() + event.durationInMinutes * 60 * 1000,
     );
-    const reservationExpiry = new Date(Date.now() + 35 * 60 * 1000); // 35 min (Stripe checkout TTL + buffer)
+    const reservationExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min reservation window
 
     // Fetch Stripe customer in parallel with slot reservation (independent)
     console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
