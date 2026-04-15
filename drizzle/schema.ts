@@ -459,31 +459,45 @@ export const paymentTransferStatusEnum = pgEnum(
   PAYMENT_TRANSFER_STATUSES,
 );
 
-export const PaymentTransferTable = pgTable('payment_transfers', {
-  id: serial('id').primaryKey(),
-  paymentIntentId: text('payment_intent_id').notNull(),
-  checkoutSessionId: text('checkout_session_id').notNull(),
-  eventId: text('event_id').notNull(),
-  expertConnectAccountId: text('expert_connect_account_id').notNull(),
-  expertClerkUserId: text('expert_clerk_user_id').notNull(),
-  amount: integer('amount').notNull(),
-  currency: text('currency').notNull().default('eur'),
-  platformFee: integer('platform_fee').notNull(),
-  sessionStartTime: timestamp('session_start_time').notNull(),
-  scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
-  status: paymentTransferStatusEnum('status').notNull().default(PAYMENT_TRANSFER_STATUS_PENDING),
-  transferId: text('transfer_id'),
-  payoutId: text('payout_id'),
-  stripeErrorCode: text('stripe_error_code'),
-  stripeErrorMessage: text('stripe_error_message'),
-  retryCount: integer('retry_count').default(0),
-  requiresApproval: boolean('requires_approval').default(false),
-  adminUserId: text('admin_user_id'),
-  adminNotes: text('admin_notes'),
-  notifiedAt: timestamp('notified_at'),
-  created: timestamp('created').notNull().defaultNow(),
-  updated: timestamp('updated').notNull().defaultNow(),
-});
+export const PaymentTransferTable = pgTable(
+  'payment_transfers',
+  {
+    id: serial('id').primaryKey(),
+    paymentIntentId: text('payment_intent_id').notNull(),
+    checkoutSessionId: text('checkout_session_id').notNull(),
+    eventId: text('event_id').notNull(),
+    expertConnectAccountId: text('expert_connect_account_id').notNull(),
+    expertClerkUserId: text('expert_clerk_user_id').notNull(),
+    amount: integer('amount').notNull(),
+    currency: text('currency').notNull().default('eur'),
+    platformFee: integer('platform_fee').notNull(),
+    sessionStartTime: timestamp('session_start_time').notNull(),
+    scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
+    status: paymentTransferStatusEnum('status').notNull().default(PAYMENT_TRANSFER_STATUS_PENDING),
+    transferId: text('transfer_id'),
+    payoutId: text('payout_id'),
+    stripeErrorCode: text('stripe_error_code'),
+    stripeErrorMessage: text('stripe_error_message'),
+    retryCount: integer('retry_count').default(0),
+    requiresApproval: boolean('requires_approval').default(false),
+    adminUserId: text('admin_user_id'),
+    adminNotes: text('admin_notes'),
+    notifiedAt: timestamp('notified_at'),
+    guestName: text('guest_name'),
+    guestEmail: text('guest_email'),
+    serviceName: text('service_name'),
+    created: timestamp('created').notNull().defaultNow(),
+    updated: timestamp('updated').notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueCheckoutSession: unique('payment_transfers_checkout_session_unique').on(
+      table.checkoutSessionId,
+    ),
+    uniquePaymentIntent: unique('payment_transfers_payment_intent_unique').on(
+      table.paymentIntentId,
+    ),
+  }),
+);
 
 // Add the scheduling settings table
 export const schedulingSettings = pgTable('scheduling_settings', {
@@ -563,11 +577,12 @@ export const SlotReservationTable = pgTable(
       table.stripePaymentIntentId,
     ),
     sessionIdIndex: index('slot_reservations_session_id_idx').on(table.stripeSessionId),
-    // Unique constraint to prevent duplicate active reservations for the same slot
-    activeSlotReservationUnique: unique('slot_reservations_active_slot_unique').on(
+    // Slot-level exclusivity: only one reservation per (event, time) at a time.
+    // The transaction cleans expired rows before inserting, so this enforces that
+    // concurrent guests cannot both hold the same slot.
+    activeSlotUnique: unique('slot_reservations_active_slot_unique').on(
       table.eventId,
       table.startTime,
-      table.guestEmail,
     ),
   }),
 );
@@ -678,3 +693,16 @@ export const packPurchaseRelations = relations(PackPurchaseTable, ({ one }) => (
     references: [SessionPackTable.id],
   }),
 }));
+
+/**
+ * Stripe Processed Events table - prevents duplicate webhook processing.
+ *
+ * Stripe can deliver the same event multiple times (retries, network issues).
+ * Inserting an event.id here before processing, and skipping on conflict,
+ * ensures each event's side effects run at most once.
+ */
+export const StripeProcessedEventTable = pgTable('stripe_processed_events', {
+  eventId: text('event_id').primaryKey(),
+  eventType: text('event_type').notNull(),
+  processedAt: timestamp('processed_at').notNull().defaultNow(),
+});

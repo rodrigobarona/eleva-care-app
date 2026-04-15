@@ -136,6 +136,9 @@ importers:
       '@sentry/nextjs':
         specifier: ^10.27.0
         version: 10.27.0(@opentelemetry/context-async-hooks@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(next@16.0.10(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(webpack@5.103.0(esbuild@0.25.10))
+      '@stripe/connect-js':
+        specifier: ^3.3.35
+        version: 3.3.35
       '@stripe/react-stripe-js':
         specifier: ^3.10.0
         version: 3.10.0(@stripe/stripe-js@6.1.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -3483,6 +3486,9 @@ packages:
 
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
+
+  '@stripe/connect-js@3.3.35':
+    resolution: {integrity: sha512-9qGDe+G5MWPHdFK05lBRX+wjHIafZ72hCNrXzXnM4Uf7X/rbRe04/EOgaur0/aza5UlDcmEWJ+LSNmeoxytX6w==}
 
   '@stripe/react-stripe-js@3.10.0':
     resolution: {integrity: sha512-UPqHZwMwDzGSax0ZI7XlxR3tZSpgIiZdk3CiwjbTK978phwR/fFXeAXQcN/h8wTAjR4ZIAzdlI9DbOqJhuJdeg==}
@@ -12584,6 +12590,8 @@ snapshots:
   '@stablelib/base64@1.0.1': {}
 
   '@standard-schema/spec@1.0.0': {}
+
+  '@stripe/connect-js@3.3.35': {}
 
   '@stripe/react-stripe-js@3.10.0(@stripe/stripe-js@6.1.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:

@@ -58,6 +58,9 @@ type PaymentTransfer = {
   requiresApproval: boolean;
   adminUserId: string | null;
   adminNotes: string | null;
+  guestName: string | null;
+  guestEmail: string | null;
+  serviceName: string | null;
   created: string;
   updated: string;
 };
@@ -236,6 +239,32 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 <p>{formatDate(transfer.scheduledTransferTime)}</p>
               </div>
             </div>
+
+            {(transfer.guestName || transfer.guestEmail || transfer.serviceName) && (
+              <>
+                <hr className="my-4" />
+                <div className="grid grid-cols-2 gap-4">
+                  {transfer.guestName && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Customer</p>
+                      <p>{transfer.guestName}</p>
+                    </div>
+                  )}
+                  {transfer.guestEmail && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Customer Email</p>
+                      <p className="text-sm">{transfer.guestEmail}</p>
+                    </div>
+                  )}
+                  {transfer.serviceName && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Service</p>
+                      <p>{transfer.serviceName}</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <hr className="my-4" />
 

@@ -90,8 +90,11 @@ export async function POST(request: NextRequest) {
     const clientIP =
       forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
 
-    // Stripe-native idempotency: pass the key to Stripe which retains results for 24h
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim() || null;
+
+    if (!idempotencyKey) {
+      return NextResponse.json({ error: 'Missing Idempotency-Key header' }, { status: 400 });
+    }
 
     const rateLimitResult = await checkRateLimits(`guest:${buyerEmail}`, clientIP);
     if (!rateLimitResult.allowed) {
@@ -139,8 +142,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session pack not found or inactive' }, { status: 404 });
     }
 
-    if (!pack.stripePriceId) {
-      return NextResponse.json({ error: 'Pack is not properly configured' }, { status: 400 });
+    if (!pack.price || pack.price <= 0) {
+      return NextResponse.json({ error: 'Pack has no valid price configured' }, { status: 400 });
     }
 
     if (!pack.user?.stripeConnectAccountId) {

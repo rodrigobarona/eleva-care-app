@@ -26,12 +26,14 @@ import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import {
   EventTable,
+  MeetingTable,
   PackPurchaseTable,
   PaymentTransferTable,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- ScheduleTable used in db.query.ScheduleTable (Drizzle ORM pattern)
   ScheduleTable,
   SessionPackTable,
   SlotReservationTable,
+  StripeProcessedEventTable,
   UserTable,
 } from '@/drizzle/schema';
 import {
@@ -855,13 +857,26 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         message: result.message,
       });
 
-      // Handle refund for double booking
-      if (
-        result.code === 'SLOT_ALREADY_BOOKED' &&
-        session.payment_status === STRIPE_PAYMENT_STATUS_PAID &&
+      // Refund when a paid checkout cannot produce a meeting.
+      // Covers double-booking, temporary reservation conflicts, and invalid time slots.
+      // Handle both string and expanded PaymentIntent object forms.
+      const refundablePaymentIntentId =
         typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+
+      if (
+        session.payment_status === STRIPE_PAYMENT_STATUS_PAID &&
+        refundablePaymentIntentId &&
+        (result.code === 'SLOT_ALREADY_BOOKED' ||
+          result.code === 'SLOT_TEMPORARILY_RESERVED' ||
+          result.code === 'INVALID_TIME_SLOT')
       ) {
-        await handleDoubleBookingRefund(session.payment_intent);
+        console.error(
+          `🚨 Paid checkout failed to create meeting (code: ${result.code}), issuing refund:`,
+          { sessionId: session.id, paymentIntent: refundablePaymentIntentId },
+        );
+        await handleDoubleBookingRefund(refundablePaymentIntentId);
       }
 
       return { success: false, error: result.error };
@@ -1047,17 +1062,6 @@ async function createPaymentTransferIfNotExists({
   paymentData?: ParsedPaymentMetadata;
   transferData?: ParsedTransferMetadata;
 }) {
-  // Check for existing transfer
-  const existingTransfer = await db.query.PaymentTransferTable.findFirst({
-    where: eq(PaymentTransferTable.checkoutSessionId, session.id),
-  });
-
-  if (existingTransfer) {
-    console.log(`Transfer record already exists for session ${session.id}`);
-    return;
-  }
-
-  // Validate required fields and data
   if (!session.payment_intent) {
     throw new Error('Payment intent ID is required for transfer record creation');
   }
@@ -1070,11 +1074,9 @@ async function createPaymentTransferIfNotExists({
     throw new Error('Expert Connect account ID is required for transfer record creation');
   }
 
-  // Parse and validate payment amounts
   const amount = Number.parseInt(paymentData.expert, 10);
   const platformFee = Number.parseInt(paymentData.fee, 10);
 
-  // Validate parsed amounts
   if (Number.isNaN(amount) || amount <= 0) {
     console.error('Invalid expert payment amount:', {
       sessionId: session.id,
@@ -1093,29 +1095,40 @@ async function createPaymentTransferIfNotExists({
     throw new Error(`Invalid platform fee: ${paymentData.fee}`);
   }
 
-  // Create new transfer record with validated data
-  await db.insert(PaymentTransferTable).values({
-    paymentIntentId: session.payment_intent,
-    checkoutSessionId: session.id,
-    eventId: meetingData.id,
-    expertConnectAccountId: transferData.account,
-    expertClerkUserId: meetingData.expert,
-    amount,
-    platformFee,
-    currency: session.currency || 'eur',
-    sessionStartTime: new Date(meetingData.start),
-    scheduledTransferTime: new Date(transferData.scheduled),
-    status: PAYMENT_TRANSFER_STATUS_PENDING,
-    requiresApproval: session.metadata?.approval === 'true',
-    created: new Date(),
-    updated: new Date(),
-  });
+  // Use onConflictDoNothing so concurrent inserts are safe (DB unique on checkoutSessionId).
+  const inserted = await db
+    .insert(PaymentTransferTable)
+    .values({
+      paymentIntentId: session.payment_intent,
+      checkoutSessionId: session.id,
+      eventId: meetingData.id,
+      expertConnectAccountId: transferData.account,
+      expertClerkUserId: meetingData.expert,
+      amount,
+      platformFee,
+      currency: session.currency || 'eur',
+      sessionStartTime: new Date(meetingData.start),
+      scheduledTransferTime: new Date(transferData.scheduled),
+      status: PAYMENT_TRANSFER_STATUS_PENDING,
+      requiresApproval: false,
+      guestName: meetingData.guestName || session.metadata?.buyerName || null,
+      guestEmail: meetingData.guest || session.metadata?.buyerEmail || null,
+      serviceName: session.metadata?.eventName || null,
+      created: new Date(),
+      updated: new Date(),
+    })
+    .onConflictDoNothing({ target: PaymentTransferTable.checkoutSessionId })
+    .returning({ id: PaymentTransferTable.id });
 
-  console.log(`Created payment transfer record for session ${session.id}`, {
-    amount,
-    platformFee,
-    currency: session.currency || 'eur',
-  });
+  if (inserted.length === 0) {
+    console.log(`Transfer record already exists for session ${session.id} (conflict ignored)`);
+  } else {
+    console.log(`Created payment transfer record for session ${session.id}`, {
+      amount,
+      platformFee,
+      currency: session.currency || 'eur',
+    });
+  }
 }
 
 // Map Stripe payment status to database enum with proper validation
@@ -1437,6 +1450,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
+  // Deduplicate: skip events we have already processed successfully.
+  // We CHECK first (not insert), so a failed processing attempt can be retried.
+  // The row is only recorded AFTER successful processing below.
+  try {
+    const existing = await db.query.StripeProcessedEventTable.findFirst({
+      where: eq(StripeProcessedEventTable.eventId, event.id),
+    });
+    if (existing) {
+      console.log(`⏭️ Skipping already-processed event ${event.id} (${event.type})`);
+      return NextResponse.json({ received: true, deduplicated: true });
+    }
+  } catch (dedupeError) {
+    console.warn('⚠️ Event deduplication check failed, processing anyway:', {
+      eventId: event.id,
+      error: dedupeError instanceof Error ? dedupeError.message : dedupeError,
+    });
+  }
+
   // Process the event based on type
   try {
     switch (event.type) {
@@ -1489,6 +1520,70 @@ export async function POST(request: NextRequest) {
         }
         break;
       case 'checkout.session.async_payment_succeeded':
+        try {
+          console.log('🎉 Processing checkout.session.async_payment_succeeded event:', {
+            sessionId: event.data.object.id,
+            paymentStatus: (event.data.object as StripeCheckoutSession).payment_status,
+          });
+          const asyncResult = await handleCheckoutSession(
+            event.data.object as StripeCheckoutSession,
+          );
+          console.log('✅ Async payment succeeded processing completed:', asyncResult);
+        } catch (error) {
+          console.error('❌ Error in checkout.session.async_payment_succeeded handler:', {
+            error: error instanceof Error ? error.message : error,
+            sessionId: event.data.object.id,
+          });
+          throw error;
+        }
+        break;
+      case 'checkout.session.async_payment_failed':
+        try {
+          const failedSession = event.data.object as StripeCheckoutSession;
+          console.log('❌ Processing checkout.session.async_payment_failed event:', {
+            sessionId: failedSession.id,
+            paymentStatus: failedSession.payment_status,
+          });
+
+          // Clean up pending meeting and slot reservation for the failed async payment
+          const failedPaymentIntentId =
+            typeof failedSession.payment_intent === 'string'
+              ? failedSession.payment_intent
+              : (failedSession.payment_intent as Stripe.PaymentIntent | null)?.id;
+
+          if (failedPaymentIntentId) {
+            // Mark meeting as failed if it was created in pending state
+            await db
+              .update(MeetingTable)
+              .set({ stripePaymentStatus: 'failed', updatedAt: new Date() })
+              .where(eq(MeetingTable.stripePaymentIntentId, failedPaymentIntentId));
+
+            // Clean up slot reservation
+            await db
+              .delete(SlotReservationTable)
+              .where(eq(SlotReservationTable.stripePaymentIntentId, failedPaymentIntentId));
+
+            console.log('🧹 Cleaned up pending meeting and reservation for failed async payment:', {
+              paymentIntentId: failedPaymentIntentId,
+            });
+          }
+
+          // Trigger the payment_failed handler for notifications if we have a PI
+          if (failedPaymentIntentId) {
+            try {
+              const pi = await stripe.paymentIntents.retrieve(failedPaymentIntentId);
+              await handlePaymentFailed(pi);
+            } catch (piError) {
+              console.warn('Could not retrieve PI for failed async payment notification:', piError);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error in checkout.session.async_payment_failed handler:', {
+            error: error instanceof Error ? error.message : error,
+            sessionId: event.data.object.id,
+          });
+          throw error;
+        }
         break;
       case 'payment_intent.succeeded':
         await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
@@ -1533,6 +1628,13 @@ export async function POST(request: NextRequest) {
       });
       // Don't throw - Novu failures shouldn't block webhook processing
     }
+
+    // Mark event as processed AFTER successful handling so failed attempts can be retried.
+    await db
+      .insert(StripeProcessedEventTable)
+      .values({ eventId: event.id, eventType: event.type })
+      .onConflictDoNothing()
+      .catch((err) => console.warn('⚠️ Failed to record processed event (non-blocking):', err));
 
     // 📊 Record successful webhook processing for monitoring
     const processingTime = Date.now() - processingStartTime;

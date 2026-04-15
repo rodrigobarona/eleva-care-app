@@ -830,8 +830,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           ),
         });
 
-        // 🔒 IDEMPOTENCY CHECK: Skip conflict detection if this payment was already processed
-        // This prevents false positive refunds when Stripe webhooks are resent
+        // 🔒 IDEMPOTENCY CHECK: Skip conflict detection if this payment was already processed.
+        // However, do NOT return early if prior processing was incomplete (missing calendar
+        // or transfer not promoted to READY). This lets retried webhooks repair partial failures.
         const existingSuccessfulMeeting = await db.query.MeetingTable.findFirst({
           where: and(
             eq(MeetingTable.stripePaymentIntentId, paymentIntent.id),
@@ -840,10 +841,32 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         });
 
         if (existingSuccessfulMeeting) {
+          const existingTransfer = await db.query.PaymentTransferTable.findFirst({
+            where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
+          });
+
+          const isFullyProcessed =
+            !!existingSuccessfulMeeting.meetingUrl &&
+            !!existingTransfer &&
+            existingTransfer.status !== PAYMENT_TRANSFER_STATUS_PENDING;
+
+          if (isFullyProcessed) {
+            console.log(
+              `⏭️ Skipping fully processed payment ${paymentIntent.id} for meeting ${existingSuccessfulMeeting.id}`,
+            );
+            return;
+          }
+
+          // Payment succeeded before but side effects are incomplete -- skip conflict
+          // checks (already validated) and fall through to repair calendar/transfer/notifications
           console.log(
-            `⏭️ Skipping conflict check - payment ${paymentIntent.id} already succeeded for meeting ${existingSuccessfulMeeting.id}`,
+            `🔄 Payment ${paymentIntent.id} succeeded but side effects incomplete, repairing:`,
+            {
+              meetingId: existingSuccessfulMeeting.id,
+              hasMeetingUrl: !!existingSuccessfulMeeting.meetingUrl,
+              transferStatus: existingTransfer?.status ?? 'missing',
+            },
           );
-          return; // Idempotent: already processed successfully
         }
 
         // Check for conflicts (blocked dates, overlaps, minimum notice)
@@ -1118,23 +1141,39 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             });
           }
 
-          // All validations passed, create transfer record
-          await db.insert(PaymentTransferTable).values({
-            paymentIntentId: paymentIntent.id,
-            checkoutSessionId: 'UNKNOWN', // Session ID not available in payment intent metadata per best practices
-            eventId: meeting.eventId,
-            expertConnectAccountId: transferData.account,
-            expertClerkUserId: meeting.clerkUserId,
-            amount: amount,
-            platformFee: fee,
-            currency: 'eur',
-            sessionStartTime: meeting.startTime,
-            scheduledTransferTime: scheduledTime, // 🆕 Uses recalculated time if available
-            status: PAYMENT_TRANSFER_STATUS_READY,
-            created: new Date(),
-            updated: new Date(),
-          });
-          console.log(`Created new transfer record for payment ${paymentIntent.id}`);
+          // All validations passed, create transfer record.
+          // Use the session_id from PI metadata (set during checkout creation) to
+          // satisfy the unique constraint. Fall back to PI id if missing.
+          const sessionIdFromMeta = paymentIntent.metadata?.session_id || `pi_${paymentIntent.id}`;
+          const inserted = await db
+            .insert(PaymentTransferTable)
+            .values({
+              paymentIntentId: paymentIntent.id,
+              checkoutSessionId: sessionIdFromMeta,
+              eventId: meeting.eventId,
+              expertConnectAccountId: transferData.account,
+              expertClerkUserId: meeting.clerkUserId,
+              amount: amount,
+              platformFee: fee,
+              currency: 'eur',
+              sessionStartTime: meeting.startTime,
+              scheduledTransferTime: scheduledTime,
+              status: PAYMENT_TRANSFER_STATUS_READY,
+              guestName: meetingData.guestName || null,
+              guestEmail: meetingData.guest || null,
+              created: new Date(),
+              updated: new Date(),
+            })
+            .onConflictDoNothing({ target: PaymentTransferTable.paymentIntentId })
+            .returning({ id: PaymentTransferTable.id });
+
+          if (inserted.length > 0) {
+            console.log(`Created new transfer record for payment ${paymentIntent.id}`);
+          } else {
+            console.log(
+              `Transfer record already exists for payment ${paymentIntent.id} (conflict ignored)`,
+            );
+          }
         } else {
           console.error(
             `Missing required metadata for creating transfer record for PI ${paymentIntent.id}. Transfer Data: ${!!transferData}, Payment Data: ${!!paymentData}, Meeting: ${!!meeting}`,
@@ -1156,6 +1195,45 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           1000,
         );
         console.log(`Transfer record ${transfer.id} status updated to READY.`);
+
+        // Update the destination_payment charge description so the expert can
+        // identify the customer in their Stripe Express Dashboard.
+        try {
+          const charges = await stripe.charges.list({
+            payment_intent: paymentIntent.id,
+            limit: 1,
+          });
+          const charge = charges.data[0];
+          if (charge?.transfer && typeof charge.transfer === 'string') {
+            const stripeTransfer = await stripe.transfers.retrieve(charge.transfer);
+            if (stripeTransfer.destination_payment) {
+              const destinationPaymentId =
+                typeof stripeTransfer.destination_payment === 'string'
+                  ? stripeTransfer.destination_payment
+                  : stripeTransfer.destination_payment.id;
+
+              const guestName = meetingData.guestName || meetingData.guest || 'Customer';
+              const appointmentDate = new Date(meetingData.start).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+              });
+
+              await stripe.charges.update(
+                destinationPaymentId,
+                { description: `Session with ${guestName} - ${appointmentDate}` },
+                { stripeAccount: transfer.expertConnectAccountId },
+              );
+              console.log(
+                `✅ Updated destination payment description for expert ${transfer.expertConnectAccountId}`,
+              );
+            }
+          }
+        } catch (descError) {
+          console.warn('⚠️ Could not update destination payment description:', {
+            paymentIntentId: paymentIntent.id,
+            error: descError instanceof Error ? descError.message : descError,
+          });
+        }
 
         // Trigger Novu marketplace workflow for expert payment notification
         // Note: Removed notifyExpertOfPaymentSuccess() as it incorrectly sent welcome emails

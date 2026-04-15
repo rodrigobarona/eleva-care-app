@@ -34,7 +34,6 @@ const checkoutRequestSchema = z.object({
   }),
   username: z.string().min(1),
   eventSlug: z.string().min(1),
-  requiresApproval: z.boolean().optional().default(false),
   requestKey: z.string().optional(),
 });
 
@@ -337,8 +336,10 @@ export async function POST(request: NextRequest) {
       price: clientProvidedPrice,
       meetingData: extractedMeetingData,
       username,
-      requiresApproval,
     } = parsed.data;
+
+    // Approval is always server-controlled, never accepted from the client
+    const requiresApproval = false;
 
     eventId = extractedEventId;
     meetingData = extractedMeetingData;
@@ -388,10 +389,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // **IDEMPOTENCY: Stripe-native idempotency via Idempotency-Key header**
-    // Stripe retains idempotency keys for 24h and returns the same result for
-    // matching requests, which is stricter and more reliable than app-level caching.
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim();
+
+    if (!idempotencyKey) {
+      return NextResponse.json({ error: 'Missing Idempotency-Key header' }, { status: 400 });
+    }
 
     // **FORM CACHE: Additional duplicate prevention for form submissions**
     if (meetingData?.guestEmail && meetingData?.startTime) {
@@ -622,20 +624,29 @@ export async function POST(request: NextRequest) {
         return { type: 'SLOT_TEMPORARILY_RESERVED' as const, reservation: activeReservation };
       }
 
-      // 4. No conflicts -- atomically insert a reservation within the transaction
-      const [newReservation] = await tx
-        .insert(SlotReservationTable)
-        .values({
-          eventId,
-          clerkUserId,
-          guestEmail: validatedMeetingData.guestEmail,
-          startTime: appointmentStartTime,
-          endTime: appointmentEndTime,
-          expiresAt: reservationExpiry,
-        })
-        .returning();
+      // 4. No conflicts -- atomically insert a reservation within the transaction.
+      // The DB unique on (eventId, startTime) is the final safety net: if a concurrent
+      // transaction also inserts for this slot, only one succeeds.
+      try {
+        const [newReservation] = await tx
+          .insert(SlotReservationTable)
+          .values({
+            eventId,
+            clerkUserId,
+            guestEmail: validatedMeetingData.guestEmail,
+            startTime: appointmentStartTime,
+            endTime: appointmentEndTime,
+            expiresAt: reservationExpiry,
+          })
+          .returning();
 
-      return { type: 'RESERVED' as const, reservation: newReservation };
+        return { type: 'RESERVED' as const, reservation: newReservation };
+      } catch (insertError) {
+        if (insertError instanceof Error && insertError.message.includes('duplicate key')) {
+          return { type: 'SLOT_TEMPORARILY_RESERVED' as const, reservation: null };
+        }
+        throw insertError;
+      }
     });
 
     // Handle slot result before proceeding to Stripe
@@ -657,8 +668,8 @@ export async function POST(request: NextRequest) {
     if (slotResult.type === 'SLOT_TEMPORARILY_RESERVED') {
       console.warn('Slot already reserved by another user:', {
         requestingUser: meetingData.guestEmail,
-        reservedBy: slotResult.reservation.guestEmail,
-        expiresAt: slotResult.reservation.expiresAt,
+        reservedBy: slotResult.reservation?.guestEmail ?? '(concurrent insert)',
+        expiresAt: slotResult.reservation?.expiresAt ?? '(unknown)',
       });
       return NextResponse.json(
         {

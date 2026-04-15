@@ -45,6 +45,9 @@ type PaymentTransfer = {
   requiresApproval: boolean;
   adminUserId: string | null;
   adminNotes: string | null;
+  guestName: string | null;
+  guestEmail: string | null;
+  serviceName: string | null;
   created: string;
   updated: string;
 };
@@ -275,10 +278,10 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
+              <TableHead>Customer</TableHead>
               <TableHead>Expert</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Session Date</TableHead>
-              <TableHead>Transfer Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -286,7 +289,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
           <TableBody>
             {data.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                   No payment transfers found
                 </TableCell>
               </TableRow>
@@ -294,10 +297,19 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
               data.data.map((transfer) => (
                 <TableRow key={transfer.id}>
                   <TableCell className="font-medium">{transfer.id}</TableCell>
+                  <TableCell>
+                    <div className="max-w-[160px]">
+                      <p className="truncate font-medium">{transfer.guestName || 'N/A'}</p>
+                      {transfer.serviceName && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {transfer.serviceName}
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{transfer.expertClerkUserId}</TableCell>
                   <TableCell>{formatCurrency(transfer.amount, transfer.currency)}</TableCell>
                   <TableCell>{formatDate(transfer.sessionStartTime)}</TableCell>
-                  <TableCell>{formatDate(transfer.scheduledTransferTime)}</TableCell>
                   <TableCell>{getStatusBadge(transfer.status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
