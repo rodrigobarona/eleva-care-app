@@ -65,7 +65,7 @@ function parseMonth(value: string | string[] | undefined) {
 
 function getPeriodLabel(year: number, month: number | null) {
   if (!month) {
-    return `All sessions in ${year}`;
+    return `All earnings in ${year}`;
   }
 
   return `${MONTH_LABELS[month - 1]} ${year}`;
@@ -112,7 +112,8 @@ function SummaryBreakdown({ summary }: { summary: EarningsSummary }) {
       <p>Your net earnings: {formatCurrency(summary.netAmount, summary.currency)}</p>
       <p>Platform fee: {formatCurrency(summary.platformFeeAmount, summary.currency)}</p>
       <p>
-        Sessions / clients: {summary.totalSessions} / {summary.totalCustomers}
+        Sessions / pack sales / clients: {summary.totalSessions} / {summary.totalPackSales} /{' '}
+        {summary.totalCustomers}
       </p>
     </div>
   );
@@ -153,8 +154,8 @@ export default async function EarningsPage({
         <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Earnings</h1>
           <p className="max-w-3xl text-muted-foreground">
-            Track what clients have paid, what you earned for each session, what is still on the
-            way, and what has already reached your bank account.
+            Track what clients have paid across sessions and pack sales, what you earned on each
+            line item, what is still on the way, and what has already reached your bank account.
           </p>
         </div>
 
@@ -196,12 +197,12 @@ export default async function EarningsPage({
         <SummaryCard
           title="This year"
           amount={formatCurrency(data.yearSummary.netAmount, data.yearSummary.currency)}
-          description={`Net earnings across all ${year} sessions.`}
+          description={`Net earnings across all ${year} sessions and pack sales.`}
         />
         <SummaryCard
           title="Upcoming payout"
           amount={formatCurrency(selectedPeriodPending, data.periodSummary.currency)}
-          description="Scheduled plus available amounts that have not reached your bank yet."
+          description="Session earnings marked as scheduled or available before they reach your bank."
         />
         <SummaryCard
           title="Paid out"
@@ -239,7 +240,7 @@ export default async function EarningsPage({
           <CardHeader>
             <CardTitle>Monthly earnings</CardTitle>
             <CardDescription>
-              See how your session revenue is distributed through the year.
+              See how session revenue and pack sales are distributed through the year.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -261,6 +262,12 @@ export default async function EarningsPage({
                       <span className="font-medium">{item.label}</span>
                       <div className="text-right text-muted-foreground">
                         <p>{formatCurrency(item.netAmount, data.yearSummary.currency)}</p>
+                        <p className="text-xs">
+                          Sessions{' '}
+                          {formatCurrency(item.sessionNetAmount, data.yearSummary.currency)}
+                          {' · '}Packs{' '}
+                          {formatCurrency(item.packNetAmount, data.yearSummary.currency)}
+                        </p>
                         <p className="text-xs">
                           Paid out {formatCurrency(item.paidOutAmount, data.yearSummary.currency)}
                         </p>
@@ -368,7 +375,7 @@ export default async function EarningsPage({
           <CardHeader>
             <CardTitle>Clients in {periodLabel}</CardTitle>
             <CardDescription>
-              Who paid you the most, how many sessions they booked, and how much is still on the
+              Who paid you the most across sessions and pack sales, plus how much is still on the
               way.
             </CardDescription>
           </CardHeader>
@@ -383,6 +390,7 @@ export default async function EarningsPage({
                   <TableRow>
                     <TableHead>Client</TableHead>
                     <TableHead className="text-right">Sessions</TableHead>
+                    <TableHead className="text-right">Packs</TableHead>
                     <TableHead className="text-right">Client paid</TableHead>
                     <TableHead className="text-right">You earn</TableHead>
                   </TableRow>
@@ -399,6 +407,7 @@ export default async function EarningsPage({
                         </div>
                       </TableCell>
                       <TableCell className="text-right">{customer.sessionsCount}</TableCell>
+                      <TableCell className="text-right">{customer.packSalesCount}</TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(customer.grossAmount, data.periodSummary.currency)}
                       </TableCell>
@@ -421,21 +430,21 @@ export default async function EarningsPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Session ledger</CardTitle>
+            <CardTitle>Earnings ledger</CardTitle>
             <CardDescription>
-              A per-session view of what the client paid, what you receive, and payout timing.
+              A line-by-line view of sessions and pack sales, what the client paid, and payout
+              timing when it is available.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {data.sessionLedger.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No session earnings found for this period.
-              </p>
+            {data.earningsLedger.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No earnings found for this period.</p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Session</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Activity</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead className="text-right">Client paid</TableHead>
                     <TableHead className="text-right">You earn</TableHead>
@@ -444,47 +453,54 @@ export default async function EarningsPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.sessionLedger.map((session) => (
-                    <TableRow key={session.transferId}>
+                  {data.earningsLedger.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">{entry.sourceLabel}</TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{session.serviceName}</p>
+                          <p className="font-medium">{entry.serviceName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {formatDateTime(new Date(session.sessionStartTime))}
+                            {entry.sourceType === 'session' && entry.sessionStartTime
+                              ? formatDateTime(new Date(entry.sessionStartTime))
+                              : `Purchased ${formatDateTime(new Date(entry.activityDate))}`}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{session.customerName}</p>
+                          <p className="font-medium">{entry.customerName}</p>
                           <p className="text-xs text-muted-foreground">
-                            Paid {formatDateTime(new Date(session.paidAt))}
+                            Paid {formatDateTime(new Date(entry.paidAt))}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(session.grossAmount, session.currency)}
+                        {formatCurrency(entry.grossAmount, entry.currency)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="space-y-1">
-                          <p>{formatCurrency(session.netAmount, session.currency)}</p>
+                          <p>{formatCurrency(entry.netAmount, entry.currency)}</p>
                           <p className="text-xs text-muted-foreground">
-                            Fee {formatCurrency(session.platformFeeAmount, session.currency)}
+                            Fee {formatCurrency(entry.platformFeeAmount, entry.currency)}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-muted-foreground">
-                          <p>{formatDateTime(new Date(session.scheduledTransferTime))}</p>
-                          {session.payoutId ? (
-                            <p className="text-xs">Payout ID: {session.payoutId}</p>
+                          {entry.scheduledTransferTime ? (
+                            <p>{formatDateTime(new Date(entry.scheduledTransferTime))}</p>
+                          ) : (
+                            <p>See Stripe balance and payouts</p>
+                          )}
+                          {entry.payoutId ? (
+                            <p className="text-xs">Payout ID: {entry.payoutId}</p>
                           ) : null}
                         </div>
                       </TableCell>
                       <TableCell>
                         <EarningsStatusBadge
-                          statusGroup={session.statusGroup}
-                          label={session.statusLabel}
+                          statusGroup={entry.statusGroup}
+                          label={entry.statusLabel}
                         />
                       </TableCell>
                     </TableRow>

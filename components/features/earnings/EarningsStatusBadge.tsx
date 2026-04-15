@@ -7,6 +7,7 @@ const badgeStyles: Record<EarningsStatusGroup, string> = {
   paid_out: 'bg-green-50 text-green-700',
   refunded: 'bg-slate-100 text-slate-700',
   issue: 'bg-red-50 text-red-700',
+  sale: 'bg-violet-50 text-violet-700',
 };
 
 type EarningsStatusBadgeProps = {

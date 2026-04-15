@@ -195,7 +195,7 @@ export default async function HomePage() {
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {earningsPreview
-                    ? `This month: ${earningsPreview.periodSummary.totalSessions} sessions, ${formatCurrency(
+                    ? `This month: ${earningsPreview.periodSummary.totalSessions} sessions, ${earningsPreview.periodSummary.totalPackSales} pack sales, ${formatCurrency(
                         earningsPreview.periodSummary.scheduledAmount +
                           earningsPreview.periodSummary.availableAmount,
                         earningsPreview.periodSummary.currency,

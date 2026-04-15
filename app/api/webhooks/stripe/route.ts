@@ -23,6 +23,7 @@
  * @see {@link ./handlers/payout} - Payout event handlers
  */
 import { ENV_CONFIG } from '@/config/env';
+import { calculateApplicationFee } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
   EventTable,
@@ -614,6 +615,10 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     typeof session.payment_intent === 'string'
       ? session.payment_intent
       : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+  const grossAmount = session.amount_total ?? pack.price;
+  const platformFeeAmount = calculateApplicationFee(pack.price);
+  const netAmount = Math.max(grossAmount - platformFeeAmount, 0);
+  const currency = session.currency ?? pack.currency ?? 'eur';
 
   let purchase: { id: string } | undefined;
   try {
@@ -621,13 +626,20 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       .insert(PackPurchaseTable)
       .values({
         packId,
+        expertClerkUserId: metadata.expertClerkUserId || pack.clerkUserId,
         buyerEmail,
         buyerName: buyerName || null,
+        packNameSnapshot: packName,
+        eventNameSnapshot: eventName,
         stripeCustomerId: customerId || null,
         stripeSessionId: session.id,
         stripePaymentIntentId: paymentIntentId || null,
         stripeCouponId: coupon.id,
         stripePromotionCodeId: promoCode.id,
+        currency,
+        grossAmount,
+        platformFeeAmount,
+        netAmount,
         promotionCode: promoCode.code,
         maxRedemptions: sessionsCount,
         redemptionsUsed: 0,

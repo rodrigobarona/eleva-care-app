@@ -17,7 +17,7 @@ function createWidget(
   connectInstance: StripeConnectInstance,
   container: HTMLDivElement,
   tagName: ConnectElementTagName,
-) {
+): () => void {
   const element = connectInstance.create(tagName);
   container.replaceChildren(element);
   return () => {
@@ -39,8 +39,8 @@ export function StripeConnectWidgets({ enabled }: StripeConnectWidgetsProps) {
 
     const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-    let cleanupBalances = () => undefined;
-    let cleanupPayouts = () => undefined;
+    let cleanupBalances: () => void = () => {};
+    let cleanupPayouts: () => void = () => {};
     let isCancelled = false;
 
     async function initializeWidgets() {

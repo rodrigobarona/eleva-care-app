@@ -33,6 +33,7 @@ export const routing = defineRouting({
     '/my-packs': '/my-packs',
     '/pack-purchase/success': '/pack-purchase/success',
     '/dashboard': '/dashboard',
+    '/dashboard/earnings': '/dashboard/earnings',
     '/help': '/help',
     '/contact': '/contact',
     '/community': '/community',

@@ -604,8 +604,8 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
                   <div className="space-y-2">
                     <p className="font-medium text-foreground">Need a clearer earnings view?</p>
                     <p className="text-muted-foreground">
-                      The new earnings dashboard shows monthly and yearly totals, each client, each
-                      session, and what is scheduled versus already paid out.
+                      The new earnings dashboard shows monthly and yearly totals, each client,
+                      sessions, pack sales, and what is scheduled versus already paid out.
                     </p>
                     <Button asChild variant="outline" size="sm">
                       <Link href="/dashboard/earnings">Go to earnings</Link>

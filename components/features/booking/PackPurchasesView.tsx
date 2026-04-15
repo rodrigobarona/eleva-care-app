@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils/formatters';
 import { Package, ShoppingBag } from 'lucide-react';
 
 type Purchase = {
@@ -14,6 +15,10 @@ type Purchase = {
   status: 'active' | 'fully_redeemed' | 'expired' | 'cancelled';
   expiresAt: Date | null;
   createdAt: Date;
+  currency: string;
+  grossAmount: number;
+  platformFeeAmount: number;
+  netAmount: number;
   packName: string;
   packSessionsCount: number;
 };
@@ -35,7 +40,7 @@ export function PackPurchasesView({ purchases }: PackPurchasesViewProps) {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Pack Purchases</h1>
         <p className="text-muted-foreground">
-          Track all pack purchases made by your customers and their redemption progress.
+          Track all pack purchases made by your customers, their revenue, and redemption progress.
         </p>
       </div>
 
@@ -76,6 +81,27 @@ export function PackPurchasesView({ purchases }: PackPurchasesViewProps) {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 text-sm md:grid-cols-3">
+                    <div>
+                      <p className="text-muted-foreground">Client paid</p>
+                      <p className="font-medium">
+                        {formatCurrency(purchase.grossAmount, purchase.currency)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">You earn</p>
+                      <p className="font-medium">
+                        {formatCurrency(purchase.netAmount, purchase.currency)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Platform fee</p>
+                      <p className="font-medium">
+                        {formatCurrency(purchase.platformFeeAmount, purchase.currency)}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Sessions used</span>

@@ -1,5 +1,12 @@
+import { calculateApplicationFee } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import {
+  MeetingTable,
+  PackPurchaseTable,
+  PaymentTransferTable,
+  SessionPackTable,
+  UserTable,
+} from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_COMPLETED,
@@ -14,11 +21,33 @@ import {
 import { getConnectAccountBalance, getConnectAccountPayouts } from '@/lib/integrations/stripe';
 import { and, eq, gte, inArray, lt } from 'drizzle-orm';
 import 'server-only';
-import type Stripe from 'stripe';
 
 type MeetingPaymentStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'refunded' | null;
 
 type PaymentTransferRecord = typeof PaymentTransferTable.$inferSelect;
+type PackPurchaseDbRecord = typeof PackPurchaseTable.$inferSelect;
+type PackPurchaseRecord = {
+  id: string;
+  packId: string;
+  eventId: string;
+  expertClerkUserId: string | null;
+  buyerEmail: string;
+  buyerName: string | null;
+  packNameSnapshot: string | null;
+  eventNameSnapshot: string | null;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  currency: string | null;
+  grossAmount: number | null;
+  platformFeeAmount: number | null;
+  netAmount: number | null;
+  status: PackPurchaseDbRecord['status'];
+  maxRedemptions: number;
+  createdAt: Date;
+  packName: string;
+  packCurrency: string;
+  packPrice: number;
+};
 
 type MeetingRecord = Pick<
   typeof MeetingTable.$inferSelect,
@@ -34,25 +63,38 @@ type MeetingRecord = Pick<
   | 'eventId'
 >;
 
-export type EarningsStatusGroup = 'scheduled' | 'available' | 'paid_out' | 'refunded' | 'issue';
+export type EarningsSourceType = 'session' | 'pack';
+
+export type EarningsStatusGroup =
+  | 'scheduled'
+  | 'available'
+  | 'paid_out'
+  | 'refunded'
+  | 'issue'
+  | 'sale';
 
 export type EarningsRecord = {
-  transferId: number;
-  paymentIntentId: string;
-  checkoutSessionId: string;
+  id: string;
+  sourceType: EarningsSourceType;
+  transferId: number | null;
+  packPurchaseId: string | null;
+  paymentIntentId: string | null;
+  checkoutSessionId: string | null;
   eventId: string;
   currency: string;
   grossAmount: number;
   netAmount: number;
   platformFeeAmount: number;
   paidAt: Date;
-  sessionStartTime: Date;
-  scheduledTransferTime: Date;
+  activityDate: Date;
+  sessionStartTime: Date | null;
+  scheduledTransferTime: Date | null;
   customerName: string;
   customerEmail: string;
   serviceName: string;
+  sourceLabel: string;
   payoutId: string | null;
-  rawStatus: PaymentTransferStatus;
+  rawStatus: string;
   customerPaymentStatus: MeetingPaymentStatus;
   statusGroup: EarningsStatusGroup;
   statusLabel: string;
@@ -60,7 +102,9 @@ export type EarningsRecord = {
 
 export type EarningsSummary = {
   currency: string;
+  totalLineItems: number;
   totalSessions: number;
+  totalPackSales: number;
   totalCustomers: number;
   grossAmount: number;
   netAmount: number;
@@ -78,18 +122,22 @@ export type EarningsMonthlySeriesItem = {
   label: string;
   grossAmount: number;
   netAmount: number;
+  sessionNetAmount: number;
+  packNetAmount: number;
   paidOutAmount: number;
 };
 
 export type EarningsCustomerBreakdownItem = {
   customerName: string;
   customerEmail: string;
+  totalLineItems: number;
   sessionsCount: number;
+  packSalesCount: number;
   grossAmount: number;
   netAmount: number;
   paidOutAmount: number;
   scheduledAmount: number;
-  latestSessionDate: string;
+  latestActivityDate: string;
 };
 
 export type StripeBalanceSummary = {
@@ -118,7 +166,7 @@ export type ExpertEarningsDashboardData = {
   periodSummary: EarningsSummary;
   monthlySeries: EarningsMonthlySeriesItem[];
   customerBreakdown: EarningsCustomerBreakdownItem[];
-  sessionLedger: EarningsRecord[];
+  earningsLedger: EarningsRecord[];
   stripeBalance: StripeBalanceSummary | null;
   recentPayouts: StripePayoutSnapshot[];
 };
@@ -189,6 +237,8 @@ export function getEarningsStatusLabel(statusGroup: EarningsStatusGroup) {
       return 'Refunded';
     case 'issue':
       return 'Needs attention';
+    case 'sale':
+      return 'Pack sale recorded';
     default:
       return 'Scheduled for payout';
   }
@@ -206,7 +256,10 @@ export function buildEarningsRecords(
     const platformFeeAmount = meeting?.stripeApplicationFeeAmount ?? transfer.platformFee;
 
     return {
+      id: `session-${transfer.id}`,
+      sourceType: 'session',
       transferId: transfer.id,
+      packPurchaseId: null,
       paymentIntentId: transfer.paymentIntentId,
       checkoutSessionId: transfer.checkoutSessionId,
       eventId: transfer.eventId,
@@ -215,11 +268,13 @@ export function buildEarningsRecords(
       netAmount: transfer.amount,
       platformFeeAmount,
       paidAt: transfer.created,
+      activityDate: meeting?.startTime ?? transfer.sessionStartTime,
       sessionStartTime: meeting?.startTime ?? transfer.sessionStartTime,
       scheduledTransferTime: transfer.scheduledTransferTime,
       customerName: meeting?.guestName ?? transfer.guestName ?? 'Client',
       customerEmail: meeting?.guestEmail ?? transfer.guestEmail ?? '',
       serviceName: transfer.serviceName ?? 'Session',
+      sourceLabel: 'Session',
       payoutId: transfer.payoutId ?? meeting?.stripePayoutId ?? null,
       rawStatus: transfer.status,
       customerPaymentStatus,
@@ -229,14 +284,61 @@ export function buildEarningsRecords(
   });
 }
 
+export function buildPackEarningsRecords(purchases: PackPurchaseRecord[]): EarningsRecord[] {
+  return purchases.map((purchase) => {
+    const grossAmount = purchase.grossAmount ?? purchase.packPrice;
+    const platformFeeAmount =
+      purchase.platformFeeAmount ?? calculateApplicationFee(purchase.packPrice);
+    const netAmount = purchase.netAmount ?? Math.max(grossAmount - platformFeeAmount, 0);
+    const activityDate = purchase.createdAt;
+    const serviceName = purchase.packNameSnapshot ?? purchase.packName ?? 'Session pack';
+
+    return {
+      id: `pack-${purchase.id}`,
+      sourceType: 'pack',
+      transferId: null,
+      packPurchaseId: purchase.id,
+      paymentIntentId: purchase.stripePaymentIntentId,
+      checkoutSessionId: purchase.stripeSessionId,
+      eventId: purchase.eventId,
+      currency: normalizeCurrency(purchase.currency ?? purchase.packCurrency),
+      grossAmount,
+      netAmount,
+      platformFeeAmount,
+      paidAt: purchase.createdAt,
+      activityDate,
+      sessionStartTime: null,
+      scheduledTransferTime: null,
+      customerName: purchase.buyerName ?? purchase.buyerEmail ?? 'Client',
+      customerEmail: purchase.buyerEmail,
+      serviceName,
+      sourceLabel: 'Pack sale',
+      payoutId: null,
+      rawStatus: purchase.status,
+      customerPaymentStatus: null,
+      statusGroup: 'sale',
+      statusLabel: getEarningsStatusLabel('sale'),
+    };
+  });
+}
+
 function isCountedAsEarnings(record: EarningsRecord) {
-  return COUNTED_EARNINGS_STATUSES.has(record.rawStatus) && record.statusGroup !== 'refunded';
+  if (record.sourceType === 'pack') {
+    return record.statusGroup === 'sale';
+  }
+
+  return (
+    COUNTED_EARNINGS_STATUSES.has(record.rawStatus as PaymentTransferStatus) &&
+    record.statusGroup !== 'refunded'
+  );
 }
 
 function createEmptySummary(currency = 'EUR'): EarningsSummary {
   return {
     currency,
+    totalLineItems: 0,
     totalSessions: 0,
+    totalPackSales: 0,
     totalCustomers: 0,
     grossAmount: 0,
     netAmount: 0,
@@ -258,7 +360,9 @@ export function buildEarningsSummary(records: EarningsRecord[]): EarningsSummary
     countedRecords.map((record) => record.customerEmail || record.customerName),
   );
 
-  summary.totalSessions = countedRecords.length;
+  summary.totalLineItems = countedRecords.length;
+  summary.totalSessions = countedRecords.filter((record) => record.sourceType === 'session').length;
+  summary.totalPackSales = countedRecords.filter((record) => record.sourceType === 'pack').length;
   summary.totalCustomers = customerEmails.size;
 
   for (const record of records) {
@@ -270,21 +374,23 @@ export function buildEarningsSummary(records: EarningsRecord[]): EarningsSummary
 
     if (record.statusGroup === 'scheduled') {
       summary.scheduledAmount += record.netAmount;
+      const scheduledTransferTime = record.scheduledTransferTime?.toISOString();
       if (
-        !summary.nextPayoutDate ||
-        record.scheduledTransferTime.toISOString() < summary.nextPayoutDate
+        scheduledTransferTime &&
+        (!summary.nextPayoutDate || scheduledTransferTime < summary.nextPayoutDate)
       ) {
-        summary.nextPayoutDate = record.scheduledTransferTime.toISOString();
+        summary.nextPayoutDate = scheduledTransferTime;
       }
     }
 
     if (record.statusGroup === 'available') {
       summary.availableAmount += record.netAmount;
+      const scheduledTransferTime = record.scheduledTransferTime?.toISOString();
       if (
-        !summary.nextPayoutDate ||
-        record.scheduledTransferTime.toISOString() < summary.nextPayoutDate
+        scheduledTransferTime &&
+        (!summary.nextPayoutDate || scheduledTransferTime < summary.nextPayoutDate)
       ) {
-        summary.nextPayoutDate = record.scheduledTransferTime.toISOString();
+        summary.nextPayoutDate = scheduledTransferTime;
       }
     }
 
@@ -313,17 +419,25 @@ export function buildMonthlySeries(
     label,
     grossAmount: 0,
     netAmount: 0,
+    sessionNetAmount: 0,
+    packNetAmount: 0,
     paidOutAmount: 0,
   }));
 
   for (const record of records) {
-    if (record.sessionStartTime.getUTCFullYear() !== year || !isCountedAsEarnings(record)) {
+    if (record.activityDate.getUTCFullYear() !== year || !isCountedAsEarnings(record)) {
       continue;
     }
 
-    const monthIndex = record.sessionStartTime.getUTCMonth();
+    const monthIndex = record.activityDate.getUTCMonth();
     months[monthIndex].grossAmount += record.grossAmount;
     months[monthIndex].netAmount += record.netAmount;
+
+    if (record.sourceType === 'pack') {
+      months[monthIndex].packNetAmount += record.netAmount;
+    } else {
+      months[monthIndex].sessionNetAmount += record.netAmount;
+    }
 
     if (record.statusGroup === 'paid_out') {
       months[monthIndex].paidOutAmount += record.netAmount;
@@ -348,7 +462,9 @@ export function buildCustomerBreakdown(records: EarningsRecord[]): EarningsCusto
       customerMap.set(key, {
         customerName: record.customerName,
         customerEmail: record.customerEmail,
-        sessionsCount: 1,
+        totalLineItems: 1,
+        sessionsCount: record.sourceType === 'session' ? 1 : 0,
+        packSalesCount: record.sourceType === 'pack' ? 1 : 0,
         grossAmount: record.grossAmount,
         netAmount: record.netAmount,
         paidOutAmount: record.statusGroup === 'paid_out' ? record.netAmount : 0,
@@ -356,12 +472,14 @@ export function buildCustomerBreakdown(records: EarningsRecord[]): EarningsCusto
           record.statusGroup === 'scheduled' || record.statusGroup === 'available'
             ? record.netAmount
             : 0,
-        latestSessionDate: record.sessionStartTime.toISOString(),
+        latestActivityDate: record.activityDate.toISOString(),
       });
       continue;
     }
 
-    existing.sessionsCount += 1;
+    existing.totalLineItems += 1;
+    existing.packSalesCount += record.sourceType === 'pack' ? 1 : 0;
+    existing.sessionsCount += record.sourceType === 'session' ? 1 : 0;
     existing.grossAmount += record.grossAmount;
     existing.netAmount += record.netAmount;
     existing.paidOutAmount += record.statusGroup === 'paid_out' ? record.netAmount : 0;
@@ -370,15 +488,15 @@ export function buildCustomerBreakdown(records: EarningsRecord[]): EarningsCusto
         ? record.netAmount
         : 0;
 
-    if (record.sessionStartTime.toISOString() > existing.latestSessionDate) {
-      existing.latestSessionDate = record.sessionStartTime.toISOString();
+    if (record.activityDate.toISOString() > existing.latestActivityDate) {
+      existing.latestActivityDate = record.activityDate.toISOString();
     }
   }
 
   return [...customerMap.values()].toSorted((left, right) => right.netAmount - left.netAmount);
 }
 
-function aggregateBalanceAmounts(entries: Stripe.ApiList<Stripe.Balance.BalanceAmount>) {
+function aggregateBalanceAmounts(entries: Array<{ currency: string; amount: number }>) {
   return entries.reduce<Record<string, number>>((result, entry) => {
     const currency = normalizeCurrency(entry.currency);
     result[currency] = (result[currency] || 0) + entry.amount;
@@ -409,7 +527,7 @@ function filterRecordsForPeriod(records: EarningsRecord[], month: number | null)
     return records;
   }
 
-  return records.filter((record) => record.sessionStartTime.getUTCMonth() + 1 === month);
+  return records.filter((record) => record.activityDate.getUTCMonth() + 1 === month);
 }
 
 export async function getExpertEarningsDashboardData({
@@ -462,13 +580,48 @@ export async function getExpertEarningsDashboardData({
       })
     : [];
 
+  const packPurchases = await db
+    .select({
+      id: PackPurchaseTable.id,
+      packId: PackPurchaseTable.packId,
+      eventId: SessionPackTable.eventId,
+      expertClerkUserId: PackPurchaseTable.expertClerkUserId,
+      buyerEmail: PackPurchaseTable.buyerEmail,
+      buyerName: PackPurchaseTable.buyerName,
+      packNameSnapshot: PackPurchaseTable.packNameSnapshot,
+      eventNameSnapshot: PackPurchaseTable.eventNameSnapshot,
+      stripeSessionId: PackPurchaseTable.stripeSessionId,
+      stripePaymentIntentId: PackPurchaseTable.stripePaymentIntentId,
+      currency: PackPurchaseTable.currency,
+      grossAmount: PackPurchaseTable.grossAmount,
+      platformFeeAmount: PackPurchaseTable.platformFeeAmount,
+      netAmount: PackPurchaseTable.netAmount,
+      status: PackPurchaseTable.status,
+      maxRedemptions: PackPurchaseTable.maxRedemptions,
+      createdAt: PackPurchaseTable.createdAt,
+      packName: SessionPackTable.name,
+      packCurrency: SessionPackTable.currency,
+      packPrice: SessionPackTable.price,
+    })
+    .from(PackPurchaseTable)
+    .innerJoin(SessionPackTable, eq(PackPurchaseTable.packId, SessionPackTable.id))
+    .where(
+      and(
+        eq(SessionPackTable.clerkUserId, clerkUserId),
+        gte(PackPurchaseTable.createdAt, startDate),
+        lt(PackPurchaseTable.createdAt, endDate),
+      ),
+    );
+
   const meetingsByPaymentIntentId = new Map(
     meetings
       .filter((meeting) => Boolean(meeting.stripePaymentIntentId))
       .map((meeting) => [meeting.stripePaymentIntentId!, meeting]),
   );
 
-  const yearRecords = buildEarningsRecords(transfers, meetingsByPaymentIntentId);
+  const sessionRecords = buildEarningsRecords(transfers, meetingsByPaymentIntentId);
+  const packRecords = buildPackEarningsRecords(packPurchases);
+  const yearRecords = [...sessionRecords, ...packRecords];
   const periodRecords = filterRecordsForPeriod(yearRecords, month);
 
   let stripeBalance: StripeBalanceSummary | null = null;
@@ -514,8 +667,8 @@ export async function getExpertEarningsDashboardData({
     periodSummary: buildEarningsSummary(periodRecords),
     monthlySeries: buildMonthlySeries(yearRecords, year),
     customerBreakdown: buildCustomerBreakdown(periodRecords),
-    sessionLedger: periodRecords.toSorted(
-      (left, right) => right.sessionStartTime.getTime() - left.sessionStartTime.getTime(),
+    earningsLedger: periodRecords.toSorted(
+      (left, right) => right.activityDate.getTime() - left.activityDate.getTime(),
     ),
     stripeBalance,
     recentPayouts,

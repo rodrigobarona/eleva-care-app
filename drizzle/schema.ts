@@ -664,13 +664,20 @@ export const PackPurchaseTable = pgTable(
     packId: uuid('pack_id')
       .notNull()
       .references(() => SessionPackTable.id),
+    expertClerkUserId: text('expert_clerk_user_id'),
     buyerEmail: text('buyer_email').notNull(),
     buyerName: text('buyer_name'),
+    packNameSnapshot: text('pack_name_snapshot'),
+    eventNameSnapshot: text('event_name_snapshot'),
     stripeCustomerId: text('stripe_customer_id'),
     stripeSessionId: text('stripe_session_id').unique(),
     stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
     stripeCouponId: text('stripe_coupon_id'),
     stripePromotionCodeId: text('stripe_promotion_code_id'),
+    currency: text('currency'),
+    grossAmount: integer('gross_amount'),
+    platformFeeAmount: integer('platform_fee_amount'),
+    netAmount: integer('net_amount'),
     promotionCode: text('promotion_code').notNull().unique(),
     maxRedemptions: integer('max_redemptions').notNull(),
     redemptionsUsed: integer('redemptions_used').notNull().default(0),
@@ -681,6 +688,9 @@ export const PackPurchaseTable = pgTable(
   },
   (table) => ({
     packIdIndex: index('pack_purchases_pack_id_idx').on(table.packId),
+    expertClerkUserIdIndex: index('pack_purchases_expert_clerk_user_id_idx').on(
+      table.expertClerkUserId,
+    ),
     buyerEmailIndex: index('pack_purchases_buyer_email_idx').on(table.buyerEmail),
     promotionCodeIndex: index('pack_purchases_promotion_code_idx').on(table.promotionCode),
     stripeSessionIdIndex: index('pack_purchases_stripe_session_id_idx').on(table.stripeSessionId),

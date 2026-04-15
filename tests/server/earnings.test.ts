@@ -3,6 +3,7 @@ import {
   buildEarningsRecords,
   buildEarningsSummary,
   buildMonthlySeries,
+  buildPackEarningsRecords,
   getEarningsStatusGroup,
 } from '@/server/earnings';
 import { describe, expect, it } from '@jest/globals';
@@ -145,6 +146,31 @@ describe('expert earnings aggregation', () => {
     ] as any,
     meetingMap as any,
   );
+  const packRecords = buildPackEarningsRecords([
+    {
+      id: 'pack_purchase_1',
+      packId: 'pack_1',
+      eventId: 'event-pack-1',
+      expertClerkUserId: 'user_1',
+      buyerEmail: 'alice@example.com',
+      buyerName: 'Alice',
+      packNameSnapshot: 'Transformation Pack',
+      eventNameSnapshot: 'Nutrition Session',
+      stripeSessionId: 'cs_pack_1',
+      stripePaymentIntentId: 'pi_pack_1',
+      currency: 'eur',
+      grossAmount: 30000,
+      platformFeeAmount: 4500,
+      netAmount: 25500,
+      status: 'active',
+      maxRedemptions: 5,
+      createdAt: new Date('2026-03-20T10:00:00.000Z'),
+      packName: 'Transformation Pack',
+      packCurrency: 'eur',
+      packPrice: 30000,
+    },
+  ] as any);
+  const mergedRecords = [...records, ...packRecords];
 
   it('maps transfer and meeting states into expert-friendly status groups', () => {
     expect(getEarningsStatusGroup('READY', 'succeeded')).toBe('scheduled');
@@ -169,25 +195,42 @@ describe('expert earnings aggregation', () => {
     expect(summary.nextPayoutDate).toBe('2026-03-05T10:00:00.000Z');
   });
 
+  it('adds pack sales into totals without inflating session counts', () => {
+    const summary = buildEarningsSummary(mergedRecords);
+
+    expect(summary.totalLineItems).toBe(3);
+    expect(summary.totalSessions).toBe(2);
+    expect(summary.totalPackSales).toBe(1);
+    expect(summary.totalCustomers).toBe(1);
+    expect(summary.grossAmount).toBe(52000);
+    expect(summary.netAmount).toBe(44200);
+    expect(summary.platformFeeAmount).toBe(7800);
+    expect(summary.scheduledAmount).toBe(8500);
+    expect(summary.paidOutAmount).toBe(10200);
+  });
+
   it('aggregates customer and monthly views from the same record set', () => {
-    const customerBreakdown = buildCustomerBreakdown(records);
-    const monthlySeries = buildMonthlySeries(records, 2026);
+    const customerBreakdown = buildCustomerBreakdown(mergedRecords);
+    const monthlySeries = buildMonthlySeries(mergedRecords, 2026);
 
     expect(customerBreakdown).toHaveLength(1);
     expect(customerBreakdown[0]).toMatchObject({
       customerName: 'Alice',
       sessionsCount: 2,
-      grossAmount: 22000,
-      netAmount: 18700,
+      packSalesCount: 1,
+      grossAmount: 52000,
+      netAmount: 44200,
       paidOutAmount: 10200,
       scheduledAmount: 8500,
     });
 
     expect(monthlySeries[2]).toMatchObject({
       month: 3,
-      netAmount: 18700,
+      netAmount: 44200,
+      sessionNetAmount: 18700,
+      packNetAmount: 25500,
       paidOutAmount: 10200,
-      grossAmount: 22000,
+      grossAmount: 52000,
     });
   });
 });
