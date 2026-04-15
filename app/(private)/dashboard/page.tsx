@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
+import { formatCurrency } from '@/lib/utils/formatters';
+import { getExpertEarningsDashboardData } from '@/server/earnings';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { CalendarIcon, CheckCircle2, CompassIcon, UsersIcon } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, CompassIcon, UsersIcon, WalletIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function HomePage() {
@@ -53,6 +55,14 @@ export default async function HomePage() {
       })
     : null;
   const isProfilePublished = profile?.published ?? false;
+  const now = new Date();
+  const earningsPreview = isExpert
+    ? await getExpertEarningsDashboardData({
+        clerkUserId: userId,
+        year: now.getUTCFullYear(),
+        month: now.getUTCMonth() + 1,
+      })
+    : null;
 
   return (
     <div className="over container max-w-6xl py-6">
@@ -168,7 +178,36 @@ export default async function HomePage() {
             </div>
           )}
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Earnings</CardTitle>
+                <WalletIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm font-semibold">
+                  {earningsPreview
+                    ? formatCurrency(
+                        earningsPreview.periodSummary.netAmount,
+                        earningsPreview.periodSummary.currency,
+                      )
+                    : 'EUR0.00'}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {earningsPreview
+                    ? `This month: ${earningsPreview.periodSummary.totalSessions} sessions, ${formatCurrency(
+                        earningsPreview.periodSummary.scheduledAmount +
+                          earningsPreview.periodSummary.availableAmount,
+                        earningsPreview.periodSummary.currency,
+                      )} still on the way.`
+                    : 'Review what clients paid, what is scheduled, and what has already paid out.'}
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/dashboard/earnings">View earnings</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Appointments</CardTitle>

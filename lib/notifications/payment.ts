@@ -58,7 +58,7 @@ export async function createUpcomingPayoutNotification({
         userName: expert?.firstName ?? 'Expert', // Use expert name from user data
         title: `Upcoming Payout: ${formattedAmount}`,
         message,
-        actionUrl: `/events/${eventId}`,
+        actionUrl: '/dashboard/earnings',
         amount: formattedAmount,
         payoutDate: formattedPayoutDate,
         eventId,
@@ -113,7 +113,7 @@ export async function createPayoutCompletedNotification({
         userName: expertName || 'Expert',
         title: `💰 Payout Sent: ${formattedAmount}`,
         message: `Your earnings of ${formattedAmount} have been sent to your bank account. Expected arrival: 1-2 business days.`,
-        actionUrl: `/events/${eventId}`,
+        actionUrl: '/dashboard/earnings',
         amount: formattedAmount,
         eventId,
         payoutId,

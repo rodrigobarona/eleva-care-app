@@ -26,6 +26,7 @@ import {
   type LucideIcon,
   MoreHorizontal,
   Users,
+  Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -83,6 +84,14 @@ export function NavMainContent({ items }: NavMainContentProps) {
             <SidebarGroup>
               <SidebarGroupLabel>Appointments</SidebarGroupLabel>
               <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/dashboard/earnings'}>
+                    <Link href="/dashboard/earnings" prefetch>
+                      <Wallet className="size-4" />
+                      <span>Earnings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname === '/appointments'}>
                     <Link href="/appointments" prefetch>

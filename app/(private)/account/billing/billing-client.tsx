@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getMinimumPayoutDelay } from '@/config/stripe';
 import { Link } from '@/lib/i18n/navigation';
 import { syncIdentityToConnect } from '@/server/actions/billing';
-import { FileText, Info } from 'lucide-react';
+import { ArrowRight, FileText, Info, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React, { Suspense, useState } from 'react';
 import { toast } from 'sonner';
@@ -532,8 +532,14 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
                     {isLoadingDashboard
                       ? 'Loading...'
                       : accountStatus?.detailsSubmitted
-                        ? 'View Stripe Dashboard'
+                        ? 'Open Stripe payout settings'
                         : 'Complete Stripe Setup'}
+                  </Button>
+                  <Button asChild variant="outline" className="flex-1">
+                    <Link href="/dashboard/earnings">
+                      Open earnings dashboard
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                   </Button>
                 </div>
                 {showSyncIdentityButton && (
@@ -584,13 +590,31 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Payment Information</CardTitle>
-            <CardDescription>Learn about payment processing and payout schedules.</CardDescription>
+            <CardTitle>How to use Billing</CardTitle>
+            <CardDescription>
+              Billing is for Connect setup, bank details, and payout operations. Use Earnings for
+              client-by-client and session-by-session visibility.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+                <div className="flex items-start gap-3">
+                  <Wallet className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground">Need a clearer earnings view?</p>
+                    <p className="text-muted-foreground">
+                      The new earnings dashboard shows monthly and yearly totals, each client, each
+                      session, and what is scheduled versus already paid out.
+                    </p>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/dashboard/earnings">Go to earnings</Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
               <div className="text-sm">
-                <h4 className="mb-2 font-medium">Payment Breakdown</h4>
+                <h4 className="mb-2 font-medium">Revenue split</h4>
                 <ul className="list-inside list-disc space-y-1">
                   <li>Your earnings: 85% of the booking amount</li>
                   <li>Platform fee: 15% of the booking amount</li>
@@ -600,12 +624,11 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
                 <PaymentAgingInformation />
               </div>
               <div className="text-sm">
-                <h4 className="mb-2 font-medium">Requirements</h4>
+                <h4 className="mb-2 font-medium">What to manage here</h4>
                 <ul className="list-inside list-disc space-y-1">
-                  <li>Valid bank account in your country</li>
-                  <li>Government-issued ID or passport</li>
-                  <li>Proof of address (may be required)</li>
-                  <li>Additional documentation based on your location</li>
+                  <li>Complete Stripe Connect onboarding and compliance requirements</li>
+                  <li>Update bank account details and payout settings</li>
+                  <li>Open the Earnings dashboard to understand what each session paid you</li>
                 </ul>
               </div>
             </div>
