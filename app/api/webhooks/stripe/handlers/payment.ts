@@ -300,15 +300,33 @@ async function createDeferredCalendarEvent(
         .where(eq(MeetingTable.id, meeting.id));
     }
 
-    // Clean up slot reservation if it exists
+    // Clean up slot reservation if it exists.
+    // Critical: orphaned rows cause the cron job to send false cancellation emails.
     try {
       await db
         .delete(SlotReservationTable)
         .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
       console.log(`🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`);
     } catch (cleanupError) {
-      console.error('❌ Failed to clean up slot reservation:', cleanupError);
-      // Continue execution - this is not critical
+      console.warn('⚠️ First attempt to clean up slot reservation failed, retrying:', {
+        paymentIntentId: paymentIntent.id,
+        meetingId: meeting.id,
+        error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+      });
+      try {
+        await db
+          .delete(SlotReservationTable)
+          .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
+      } catch (retryError) {
+        console.error(
+          '❌ Slot reservation cleanup failed after retry (cron guard will prevent false emails):',
+          {
+            paymentIntentId: paymentIntent.id,
+            meetingId: meeting.id,
+            error: retryError instanceof Error ? retryError.message : retryError,
+          },
+        );
+      }
     }
   } catch (calendarError) {
     console.error(`❌ Failed to create deferred calendar event for meeting ${meeting.id}:`, {

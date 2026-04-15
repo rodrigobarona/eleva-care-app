@@ -33,7 +33,13 @@
  */
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { EventTable, ScheduleTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
+import {
+  EventTable,
+  MeetingTable,
+  ScheduleTable,
+  SlotReservationTable,
+  UserTable,
+} from '@/drizzle/schema';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
@@ -41,7 +47,7 @@ import {
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { format, toZonedTime } from 'date-fns-tz';
-import { eq, lt, sql } from 'drizzle-orm';
+import { and, eq, lt, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -110,7 +116,9 @@ export async function GET(request: NextRequest) {
     const currentTime = new Date();
 
     // **Step 1: Query expired reservations with full details for notifications**
-    // Join with ScheduleTable to get the expert's actual timezone
+    // Join with ScheduleTable to get the expert's actual timezone.
+    // LEFT JOIN MeetingTable to detect reservations that already have a confirmed meeting
+    // (payment succeeded but the reservation row wasn't cleaned up by the webhook).
     const expiredReservationsQuery = await db
       .select({
         reservation: SlotReservationTable,
@@ -120,20 +128,54 @@ export async function GET(request: NextRequest) {
         expertFirstName: UserTable.firstName,
         expertLastName: UserTable.lastName,
         expertEmail: UserTable.email,
-        // Get expert's timezone from their schedule settings
         expertTimezone: ScheduleTable.timezone,
+        meetingId: MeetingTable.id,
+        meetingPaymentStatus: MeetingTable.stripePaymentStatus,
       })
       .from(SlotReservationTable)
       .innerJoin(EventTable, eq(EventTable.id, SlotReservationTable.eventId))
       .innerJoin(UserTable, eq(UserTable.clerkUserId, SlotReservationTable.clerkUserId))
       .leftJoin(ScheduleTable, eq(ScheduleTable.clerkUserId, SlotReservationTable.clerkUserId))
+      .leftJoin(
+        MeetingTable,
+        or(
+          // Match by payment intent ID (primary link)
+          and(eq(MeetingTable.stripePaymentIntentId, SlotReservationTable.stripePaymentIntentId)),
+          // Fallback: match by event + time + guest (covers null paymentIntentId edge cases)
+          and(
+            eq(MeetingTable.eventId, SlotReservationTable.eventId),
+            eq(MeetingTable.startTime, SlotReservationTable.startTime),
+            eq(MeetingTable.guestEmail, SlotReservationTable.guestEmail),
+          ),
+        ),
+      )
       .where(lt(SlotReservationTable.expiresAt, currentTime));
 
-    console.log(`[CRON] Found ${expiredReservationsQuery.length} expired reservations to process`);
+    // Separate reservations into those with and without existing meetings
+    const orphanedReservations = expiredReservationsQuery.filter((r) => !r.meetingId);
+    const paidReservations = expiredReservationsQuery.filter((r) => r.meetingId);
 
-    // **Step 2: Send notifications before deleting**
+    if (paidReservations.length > 0) {
+      console.log(
+        `[CRON] Skipping ${paidReservations.length} expired reservations that already have meetings (silently cleaning up orphaned rows):`,
+        paidReservations.map((r) => ({
+          reservationId: r.reservation.id,
+          meetingId: r.meetingId,
+          paymentStatus: r.meetingPaymentStatus,
+          guestEmail: r.reservation.guestEmail,
+        })),
+      );
+    }
+
+    console.log(
+      `[CRON] Found ${expiredReservationsQuery.length} expired reservations total, ` +
+        `${orphanedReservations.length} truly orphaned (will notify), ` +
+        `${paidReservations.length} with existing meetings (silent cleanup)`,
+    );
+
+    // **Step 2: Send notifications only for truly orphaned reservations (no meeting exists)**
     let notificationsSent = 0;
-    for (const expired of expiredReservationsQuery) {
+    for (const expired of orphanedReservations) {
       const {
         reservation,
         eventName,

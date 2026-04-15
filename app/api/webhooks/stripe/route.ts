@@ -874,8 +874,8 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       paymentStatus: result.meeting?.stripePaymentStatus,
     });
 
-    // Clean up any existing slot reservation since meeting is now confirmed
-    // This handles Multibanco payments where a reservation was created during pending state
+    // Clean up any existing slot reservation since meeting is now confirmed.
+    // This is critical: if cleanup fails, the cron job may send a false "booking cancelled" email.
     if (result.meeting && paymentIntentId) {
       try {
         const deletedReservations = await db
@@ -889,8 +889,27 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
           );
         }
       } catch (cleanupError) {
-        console.error('Failed to clean up slot reservation after meeting creation:', cleanupError);
-        // Don't fail the process - reservation will expire naturally
+        // Retry once before giving up — an orphaned row causes the cron to send a
+        // false cancellation email (the cron now guards against this, but belt-and-suspenders).
+        console.warn('⚠️ First attempt to clean up slot reservation failed, retrying:', {
+          paymentIntentId,
+          meetingId: result.meeting?.id,
+          error: cleanupError instanceof Error ? cleanupError.message : cleanupError,
+        });
+        try {
+          await db
+            .delete(SlotReservationTable)
+            .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntentId));
+        } catch (retryError) {
+          console.error(
+            '❌ Slot reservation cleanup failed after retry (cron guard will prevent false emails):',
+            {
+              paymentIntentId,
+              meetingId: result.meeting?.id,
+              error: retryError instanceof Error ? retryError.message : retryError,
+            },
+          );
+        }
       }
     }
 

@@ -1060,22 +1060,16 @@ export const reservationExpiredWorkflow = workflow(
       };
     });
 
-    // Email notification
+    // Email notification using the branded ReservationExpiredEmail template
     await step.email('reservation-expired-email', async () => {
-      const emailBody = await elevaEmailService.renderGenericEmail({
-        templateName: 'reservation-expired',
-        subject: `⏰ Booking cancelled - ${payload.serviceName}`,
-        templateData: {
-          recipientName,
-          recipientType: payload.recipientType || 'expert',
-          expertName: payload.expertName,
-          clientName: payload.clientName,
-          serviceName: payload.serviceName,
-          appointmentDate: payload.appointmentDate,
-          appointmentTime: payload.appointmentTime,
-          timezone: payload.timezone || 'UTC',
-          locale: payload.locale || 'en',
-        },
+      const emailBody = await elevaEmailService.renderReservationExpired({
+        recipientName,
+        recipientType: (payload.recipientType as 'patient' | 'expert') || 'expert',
+        expertName: payload.expertName,
+        serviceName: payload.serviceName,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        timezone: payload.timezone || 'UTC',
         locale: payload.locale || 'en',
       });
 

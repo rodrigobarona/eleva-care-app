@@ -7,6 +7,7 @@ import { ExpertPayoutNotificationTemplate, RefundNotificationTemplate } from '@/
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
+import ReservationExpiredEmail from '@/emails/payments/reservation-expired';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
 import type { SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
@@ -352,6 +353,21 @@ export class TemplateSelectionService {
           default: ExpertPayoutNotificationTemplate,
           urgent: ExpertPayoutNotificationTemplate,
           reminder: ExpertPayoutNotificationTemplate,
+        },
+      },
+    },
+
+    'reservation-expired': {
+      default: {
+        patient: {
+          default: ReservationExpiredEmail as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+        },
+        expert: {
+          default: ReservationExpiredEmail as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
       },
     },
@@ -1392,6 +1408,38 @@ export class ElevaEmailService {
 
     // Fallback to original implementation for backward compatibility
     const template = React.createElement(MultibancoBookingPendingTemplate, data);
+    return render(template);
+  }
+
+  /**
+   * Render reservation expired email using the branded React Email template
+   */
+  async renderReservationExpired(data: {
+    recipientName: string;
+    recipientType: 'patient' | 'expert';
+    expertName: string;
+    serviceName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    timezone?: string;
+    locale?: string;
+  }) {
+    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
+    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
+      ? (data.locale as SupportedLocale)
+      : 'en';
+
+    const template = React.createElement(ReservationExpiredEmail, {
+      recipientName: data.recipientName,
+      recipientType: data.recipientType,
+      expertName: data.expertName,
+      serviceName: data.serviceName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      timezone: data.timezone || 'UTC',
+      locale,
+    });
+
     return render(template);
   }
 
