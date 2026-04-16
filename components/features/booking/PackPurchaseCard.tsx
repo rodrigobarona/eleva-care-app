@@ -34,12 +34,30 @@ interface PackPurchaseCardProps {
   };
 }
 
+/**
+ * Derive a stable SHA-256 hex digest for use as an `Idempotency-Key`. Same
+ * input produces the same key, so rapid double-clicks on "Buy Pack" reuse
+ * the same key and Stripe returns the same Checkout Session (within its 24h
+ * retention window) instead of creating duplicates.
+ */
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
+
+  // Cache the derived idempotency key per (packId, email) so retries within
+  // the same session send the same Stripe key and don't create duplicates.
+  const idempotencyKeyCache = React.useRef<{ signature: string; key: string } | null>(null);
 
   const individualTotal = pack.event.price * pack.sessionsCount;
   const savings = individualTotal > 0 ? individualTotal - pack.price : 0;
@@ -55,11 +73,22 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
 
     setIsLoading(true);
     try {
+      // Derive the Idempotency-Key deterministically from (packId, buyerEmail).
+      // Same context → same key → Stripe returns the same Checkout Session.
+      const idempotencySignature = `pack:${pack.id}|${email.toLowerCase().trim()}`;
+      let idempotencyKey: string;
+      if (idempotencyKeyCache.current?.signature === idempotencySignature) {
+        idempotencyKey = idempotencyKeyCache.current.key;
+      } else {
+        idempotencyKey = await sha256Hex(idempotencySignature);
+        idempotencyKeyCache.current = { signature: idempotencySignature, key: idempotencyKey };
+      }
+
       const response = await fetch('/api/create-pack-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
+          'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify({
           packId: pack.id,

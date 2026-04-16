@@ -18,7 +18,6 @@ import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
-import { hasValidTokens } from '@/lib/integrations/google/calendar';
 import { generateFormCacheKey } from '@/lib/utils/cache-keys';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
@@ -41,6 +40,26 @@ import type { z } from 'zod';
 
 // Stripe checkout URL validation
 const ALLOWED_CHECKOUT_HOSTS = new Set(['checkout.stripe.com']);
+
+/**
+ * Derive a stable SHA-256 hex digest from a deterministic input string.
+ *
+ * Used to produce Stripe `Idempotency-Key` values that are the same for
+ * a given booking context (eventId + guestEmail + startTime) regardless of
+ * how many times the component calls the payment-intent endpoint (prefetch,
+ * explicit submit, retries within Stripe's 24h key retention window).
+ *
+ * Stripe treats matching keys as the same request and returns the same
+ * Checkout Session, so prefetch + submit no longer race to create two
+ * different sessions.
+ */
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 /**
  * Validates a Stripe checkout URL
@@ -423,7 +442,6 @@ export function MeetingFormContent({
   // State management
   const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
@@ -441,6 +459,13 @@ export function MeetingFormContent({
   const prefetchPromiseRef = React.useRef<Promise<string | null> | null>(null);
   const checkoutUrlRef = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
+
+  // **STRIPE IDEMPOTENCY KEY CACHE**: Derived once per booking context so that
+  // prefetch and explicit submit send the SAME key to Stripe (within its 24h
+  // retention window). Without this, prior code generated a fresh UUID per
+  // call, defeating idempotency and allowing two Checkout Sessions to be
+  // created for the same booking if the calls overlapped.
+  const idempotencyKeyCache = React.useRef<{ signature: string; key: string } | null>(null);
 
   // **REF: Store handleNextStep to break circular dependency**
   const handleNextStepRef = React.useRef<((nextStep: '1' | '2' | '3') => Promise<void>) | null>(
@@ -580,13 +605,44 @@ export function MeetingFormContent({
       try {
         validateCheckoutUrl(targetUrl);
 
-        setTimeout(() => {
-          if (!document.hidden) {
-            isProcessingRef.current = false;
-            setIsProcessing(false);
-            setIsSubmitting(false);
+        // Re-enable the submit UI only if the browser is still on this page
+        // well after the redirect was initiated (e.g., user tapped Back before
+        // Stripe loaded, or the navigation was blocked). The previous 3s
+        // unconditional timer caused a regression on slow mobile redirects:
+        // the button re-enabled mid-navigation, the user tapped again, and
+        // the second request always hit a 409 because the first had already
+        // reserved the slot.
+        const FALLBACK_REENABLE_MS = 15000;
+
+        const resetSubmitState = () => {
+          isProcessingRef.current = false;
+          setIsProcessing(false);
+          setIsSubmitting(false);
+        };
+
+        const fallbackTimer = window.setTimeout(() => {
+          // If we're still on this page 15s later, the navigation almost
+          // certainly failed — release the UI so the user can retry.
+          if (document.visibilityState === 'visible' && !document.hidden) {
+            resetSubmitState();
           }
-        }, 3000);
+        }, FALLBACK_REENABLE_MS);
+
+        // If the page becomes hidden (user navigated away / tab backgrounded)
+        // or is unloaded (navigation succeeded), cancel the fallback so we
+        // don't unnecessarily flip state while the user is already on Stripe.
+        const cancelFallback = () => {
+          window.clearTimeout(fallbackTimer);
+          window.removeEventListener('pagehide', cancelFallback);
+          document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+        const onVisibilityChange = () => {
+          if (document.visibilityState === 'hidden') {
+            cancelFallback();
+          }
+        };
+        window.addEventListener('pagehide', cancelFallback, { once: true });
+        document.addEventListener('visibilitychange', onVisibilityChange);
 
         window.location.href = targetUrl;
         return true;
@@ -606,6 +662,8 @@ export function MeetingFormContent({
 
   const getCreateMeetingErrorMessage = React.useCallback((code?: string, fallback?: string) => {
     switch (code) {
+      case 'ALREADY_BOOKED_BY_YOU':
+        return 'You already have a confirmed booking for this time. Check your email for the meeting details, or pick a different time.';
       case 'SLOT_ALREADY_BOOKED':
         return 'This time slot has been booked. Please choose a different time.';
       case 'SLOT_TEMPORARILY_RESERVED':
@@ -652,18 +710,30 @@ export function MeetingFormContent({
       );
 
       const currentRequestId = generateRequestKey();
-      const stripeIdempotencyKey = crypto.randomUUID();
+
+      // Derive a DETERMINISTIC Stripe idempotency key from the booking context.
+      // Cache it in a ref so prefetch + submit + any retries within the same
+      // booking context produce the same key. Stripe honours matching keys for
+      // 24h and returns the same Checkout Session — preventing duplicate
+      // sessions from prefetch racing against explicit submit.
+      const idempotencySignature = `${eventId}|${formValues.guestEmail.toLowerCase().trim()}|${formValues.startTime.toISOString()}`;
+      let stripeIdempotencyKey: string;
+      if (idempotencyKeyCache.current?.signature === idempotencySignature) {
+        stripeIdempotencyKey = idempotencyKeyCache.current.key;
+      } else {
+        stripeIdempotencyKey = await sha256Hex(idempotencySignature);
+        idempotencyKeyCache.current = {
+          signature: idempotencySignature,
+          key: stripeIdempotencyKey,
+        };
+      }
+
       console.log(
         '[MeetingForm] createPaymentIntent: requestId=%s, cacheKey=%s, stripeKey=%s',
         currentRequestId,
         formCacheKey,
         stripeIdempotencyKey,
       );
-
-      if (activeRequestId.current === currentRequestId) {
-        console.log('[MeetingForm] createPaymentIntent: BLOCKED - same request already active');
-        return null;
-      }
 
       if (activeRequestId.current !== null) {
         console.log(
@@ -677,7 +747,6 @@ export function MeetingFormContent({
       setIsCreatingCheckout(true);
 
       try {
-        const requestKey = currentRequestId;
         const userLocale = locale || 'en';
 
         console.log('[MeetingForm] createPaymentIntent: sending POST /api/create-payment-intent');
@@ -708,7 +777,6 @@ export function MeetingFormContent({
             },
             username,
             eventSlug,
-            requestKey,
           }),
         });
 
@@ -1196,28 +1264,6 @@ export function MeetingFormContent({
     }
   }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
 
-  // Check if user has valid calendar access
-  React.useEffect(() => {
-    const checkCalendarAccess = async () => {
-      try {
-        const hasValidAccess = await hasValidTokens(clerkUserId);
-
-        if (!hasValidAccess) {
-          setIsCalendarSynced(false);
-          router.push(
-            `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
-          );
-        }
-      } catch (error) {
-        console.error('Error checking calendar access:', error);
-        setIsCalendarSynced(false);
-        router.push(`/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`);
-      }
-    };
-
-    checkCalendarAccess();
-  }, [clerkUserId, router]);
-
   // Handle date selection
   const handleDateSelect = React.useCallback(
     (selectedDate: Date) => {
@@ -1268,27 +1314,6 @@ export function MeetingFormContent({
       }
     }
   }, [currentStep, queryStates.date, queryStates.time, form, transitionToStep]);
-
-  // Early return for calendar sync check
-  if (!isCalendarSynced) {
-    return (
-      <div className="py-8 text-center">
-        <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="mb-4 text-muted-foreground">
-          We need access to your Google Calendar to show available time slots.
-        </p>
-        <Button
-          onClick={() =>
-            router.push(
-              `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
-            )
-          }
-        >
-          Connect Google Calendar
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <Form {...form}>

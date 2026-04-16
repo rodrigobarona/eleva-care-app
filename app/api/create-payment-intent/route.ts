@@ -638,6 +638,22 @@ export async function POST(request: NextRequest) {
       });
 
       if (conflictingMeeting) {
+        // Distinguish the case where the SAME guest already booked this slot:
+        // telling them "booked by another user" is misleading and drives
+        // retries that hit the FormCache 429 lockout before Fix A landed, and
+        // still leads to a confusing UX afterwards. Normalize emails to avoid
+        // a false negative on casing differences (Stripe stores lowercased).
+        const normalizedConflictEmail = conflictingMeeting.guestEmail?.toLowerCase().trim();
+        const normalizedRequestEmail = validatedMeetingData.guestEmail?.toLowerCase().trim();
+
+        if (
+          normalizedConflictEmail &&
+          normalizedRequestEmail &&
+          normalizedConflictEmail === normalizedRequestEmail
+        ) {
+          return { type: 'ALREADY_BOOKED_BY_YOU' as const, conflictingMeeting };
+        }
+
         return { type: 'SLOT_ALREADY_BOOKED' as const, conflictingMeeting };
       }
 
@@ -685,6 +701,23 @@ export async function POST(request: NextRequest) {
     });
 
     // Handle slot result before proceeding to Stripe
+    if (slotResult.type === 'ALREADY_BOOKED_BY_YOU') {
+      console.warn('Guest attempting to re-book their own confirmed slot:', {
+        eventId,
+        startTime: appointmentStartTime,
+        requestingUser: meetingData.guestEmail,
+        existingMeetingId: slotResult.conflictingMeeting.id,
+      });
+      return await errorResponse(
+        {
+          error:
+            'You already have a confirmed booking for this time. Check your email for the meeting details, or choose a different time.',
+          code: 'ALREADY_BOOKED_BY_YOU',
+        },
+        409,
+      );
+    }
+
     if (slotResult.type === 'SLOT_ALREADY_BOOKED') {
       console.error('Time slot already booked with confirmed payment:', {
         eventId,
