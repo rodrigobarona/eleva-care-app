@@ -35,7 +35,6 @@ const checkoutRequestSchema = z.object({
   }),
   username: z.string().min(1),
   eventSlug: z.string().min(1),
-  requestKey: z.string().optional(),
 });
 
 // Initialize Stripe client
@@ -317,19 +316,38 @@ export async function POST(request: NextRequest) {
       }
     | undefined;
 
+  // Tracks the FormCache key once set so every early-return path can clear it.
+  // Without this, a 4xx response leaves the key in `processing` state for the
+  // full TTL, blocking all retries from the same (eventId, guestEmail, startTime).
+  let formCacheKey: string | null = null;
+
+  const clearFormCache = async () => {
+    if (!formCacheKey) return;
+    try {
+      await FormCache.delete(formCacheKey);
+    } catch (cacheError) {
+      console.error('Failed to clear FormCache on early return:', cacheError);
+    }
+  };
+
+  const errorResponse = async (body: unknown, status: number, init?: ResponseInit) => {
+    await clearFormCache();
+    return NextResponse.json(body, { status, ...init });
+  };
+
   try {
     const body = await request.json();
     const parsed = checkoutRequestSchema.safeParse(body);
 
     if (!parsed.success) {
       console.warn('Request validation failed:', parsed.error.flatten().fieldErrors);
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'Invalid request',
           code: 'VALIDATION_ERROR',
           details: parsed.error.flatten().fieldErrors,
         },
-        { status: 400 },
+        400,
       );
     }
 
@@ -369,7 +387,7 @@ export async function POST(request: NextRequest) {
         },
       );
 
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: rateLimitResult.message,
           details: {
@@ -378,8 +396,8 @@ export async function POST(request: NextRequest) {
             limit: rateLimitResult.limit,
           },
         },
+        429,
         {
-          status: 429,
           headers: {
             'X-RateLimit-Limit': rateLimitResult.limit || 'Payment rate limit exceeded',
             'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '0',
@@ -395,32 +413,46 @@ export async function POST(request: NextRequest) {
     const idempotencyKey = request.headers.get('Idempotency-Key')?.trim();
 
     if (!idempotencyKey) {
-      return NextResponse.json({ error: 'Missing Idempotency-Key header' }, { status: 400 });
+      return await errorResponse({ error: 'Missing Idempotency-Key header' }, 400);
     }
 
     // **FORM CACHE: Additional duplicate prevention for form submissions**
+    // We intentionally use a SHORT TTL (30s) for the `processing` state so a
+    // dropped / errored request only blocks the user briefly. `completed` and
+    // `failed` states use the normal TTL (set via FormCache.markCompleted).
+    const FORM_PROCESSING_TTL_SECONDS = 30;
     if (meetingData?.guestEmail && meetingData?.startTime) {
-      const formCacheKey = FormCache.generateKey(
+      const candidateKey = FormCache.generateKey(
         eventId,
         meetingData.guestEmail,
         meetingData.startTime,
       );
 
-      // Check if this exact form submission is already being processed
-      const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
+      // Check if this exact form submission is already being processed.
+      // Do NOT assign formCacheKey yet — if we detect an in-flight duplicate,
+      // another request owns the cache entry and we must not clear it on 429.
+      const isAlreadyProcessing = await FormCache.isProcessing(candidateKey);
       if (isAlreadyProcessing) {
         console.log('🚫 Form submission already in progress (FormCache) - blocking duplicate');
         return NextResponse.json({ error: 'Request already in progress' }, { status: 429 });
       }
 
-      // Mark this submission as processing
-      await FormCache.set(formCacheKey, {
-        eventId,
-        guestEmail: meetingData.guestEmail,
-        startTime: meetingData.startTime,
-        status: 'processing',
-        timestamp: Date.now(),
-      });
+      // This request now owns the cache entry — record the key so any subsequent
+      // early-return (4xx) or the catch block can clear it via errorResponse().
+      formCacheKey = candidateKey;
+
+      // Mark this submission as processing (short TTL — acts as a transient lock)
+      await FormCache.set(
+        formCacheKey,
+        {
+          eventId,
+          guestEmail: meetingData.guestEmail,
+          startTime: meetingData.startTime,
+          status: 'processing',
+          timestamp: Date.now(),
+        },
+        FORM_PROCESSING_TTL_SECONDS,
+      );
 
       console.log('📝 Marked form submission as processing in FormCache:', formCacheKey);
     }
@@ -478,12 +510,12 @@ export async function POST(request: NextRequest) {
         eventId,
         connectAccountId: event.user.stripeConnectAccountId,
       });
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'This expert cannot accept payments at this time. Please try again later.',
           code: 'CONNECT_ACCOUNT_NOT_READY',
         },
-        { status: 422 },
+        422,
       );
     }
 
@@ -493,23 +525,23 @@ export async function POST(request: NextRequest) {
         eventOwner: event.clerkUserId,
         requestOwner: clerkUserId,
       });
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'Event ownership mismatch',
           code: 'EVENT_OWNERSHIP_MISMATCH',
         },
-        { status: 403 },
+        403,
       );
     }
 
     const authoritativePrice = event.price;
     if (authoritativePrice <= 0) {
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'This event is not configured for paid checkout',
           code: 'EVENT_NOT_PAYABLE',
         },
-        { status: 400 },
+        400,
       );
     }
 
@@ -518,12 +550,12 @@ export async function POST(request: NextRequest) {
       !Number.isInteger(clientProvidedPrice) ||
       clientProvidedPrice <= 0
     ) {
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'Invalid price amount',
           code: 'INVALID_PRICE',
         },
-        { status: 400 },
+        400,
       );
     }
 
@@ -533,12 +565,12 @@ export async function POST(request: NextRequest) {
         clientProvidedPrice,
         authoritativePrice,
       });
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'Price mismatch. Please refresh and try again.',
           code: 'PRICE_MISMATCH',
         },
-        { status: 409 },
+        409,
       );
     }
 
@@ -659,12 +691,12 @@ export async function POST(request: NextRequest) {
         startTime: appointmentStartTime,
         requestingUser: meetingData.guestEmail,
       });
-      return NextResponse.json(
+      return await errorResponse(
         {
           error: 'This time slot has been booked by another user. Please choose a different time.',
           code: 'SLOT_ALREADY_BOOKED',
         },
-        { status: 409 },
+        409,
       );
     }
 
@@ -674,13 +706,13 @@ export async function POST(request: NextRequest) {
         reservedBy: slotResult.reservation?.guestEmail ?? '(concurrent insert)',
         expiresAt: slotResult.reservation?.expiresAt ?? '(unknown)',
       });
-      return NextResponse.json(
+      return await errorResponse(
         {
           error:
             'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
           code: 'SLOT_TEMPORARILY_RESERVED',
         },
-        { status: 409 },
+        409,
       );
     }
 
@@ -996,12 +1028,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark form submission as completed before responding to avoid race conditions on retries
-    if (meetingData?.guestEmail && meetingData?.startTime) {
-      const formCacheKey = FormCache.generateKey(
-        eventId,
-        meetingData.guestEmail,
-        meetingData.startTime,
-      );
+    if (formCacheKey) {
       await FormCache.markCompleted(formCacheKey);
       console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
     }
@@ -1030,20 +1057,12 @@ export async function POST(request: NextRequest) {
           : undefined,
     });
 
-    // **FORM CACHE: Mark submission as failed**
-    if (eventId && meetingData?.guestEmail && meetingData?.startTime) {
-      try {
-        const formCacheKey = FormCache.generateKey(
-          eventId,
-          meetingData.guestEmail,
-          meetingData.startTime,
-        );
-        await FormCache.markFailed(formCacheKey);
-        console.log('❌ Marked form submission as failed in FormCache:', formCacheKey);
-      } catch (cacheError) {
-        console.error('Failed to mark FormCache as failed:', cacheError);
-      }
-    }
+    // Delete (not mark-failed) on exception so the cache key is fully released and
+    // the user can retry immediately. `markFailed` would leave the entry in place
+    // for the full TTL without blocking (since isProcessing() only blocks on
+    // 'processing' / recently-completed), but deletion is cleaner and matches
+    // the 4xx early-return behavior in errorResponse().
+    await clearFormCache();
 
     return NextResponse.json(
       {
