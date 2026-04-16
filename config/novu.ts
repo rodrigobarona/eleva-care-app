@@ -1124,6 +1124,103 @@ export const reservationExpiredWorkflow = workflow(
   },
 );
 
+// Appointment Cancelled Workflow - Triggered when an expert cancels a confirmed
+// appointment from the in-app cancel flow. Notifies BOTH the patient (refund
+// notice) and the expert (audit confirmation), with localized subjects.
+export const appointmentCancelledWorkflow = workflow(
+  'appointment-cancelled',
+  async ({ payload, step }) => {
+    const isPatient = payload.recipientType === 'patient';
+    const recipientName = isPatient ? payload.clientName : payload.expertName;
+
+    // In-app notification (lightweight bell entry)
+    await step.inApp('appointment-cancelled-inapp', async () => {
+      const body = isPatient
+        ? `Your appointment with ${payload.expertName} on ${payload.appointmentDate} has been cancelled. A refund of ${payload.refundAmountFormatted} is being processed.`
+        : `You cancelled the appointment with ${payload.clientName} on ${payload.appointmentDate}. A refund of ${payload.refundAmountFormatted} has been initiated.`;
+
+      return {
+        subject: `❌ Appointment cancelled - ${payload.serviceName}`,
+        body,
+        data: {
+          expertName: payload.expertName,
+          clientName: payload.clientName,
+          serviceName: payload.serviceName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          timezone: payload.timezone,
+          refundAmountFormatted: payload.refundAmountFormatted,
+          recipientType: payload.recipientType,
+        },
+      };
+    });
+
+    // Branded email
+    await step.email('appointment-cancelled-email', async () => {
+      const emailBody = await elevaEmailService.renderAppointmentCancelled({
+        recipientName,
+        recipientType: (payload.recipientType as 'patient' | 'expert') || 'patient',
+        expertName: payload.expertName,
+        clientName: payload.clientName,
+        serviceName: payload.serviceName,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        timezone: payload.timezone || 'UTC',
+        refundAmountFormatted: payload.refundAmountFormatted,
+        cancellationReason: payload.cancellationReason,
+        locale: payload.locale || 'en',
+      });
+
+      let subject: string;
+      if (isPatient) {
+        subject =
+          payload.locale === 'pt'
+            ? `❌ A sua consulta foi cancelada — ${payload.serviceName}`
+            : payload.locale === 'es'
+              ? `❌ Su cita ha sido cancelada — ${payload.serviceName}`
+              : `❌ Your appointment was cancelled — ${payload.serviceName}`;
+      } else {
+        subject =
+          payload.locale === 'pt'
+            ? `❌ Cancelou uma consulta — ${payload.serviceName}`
+            : payload.locale === 'es'
+              ? `❌ Canceló una cita — ${payload.serviceName}`
+              : `❌ You cancelled an appointment — ${payload.serviceName}`;
+      }
+
+      return {
+        subject,
+        body: emailBody,
+      };
+    });
+  },
+  {
+    name: 'Appointment Cancelled Notifications',
+    description:
+      'Notifies the patient (refund notice) and the expert (audit confirmation) when a confirmed appointment is cancelled via the in-app cancel flow',
+    payloadSchema: z.object({
+      expertName: z.string(),
+      clientName: z.string(),
+      serviceName: z.string(),
+      appointmentDate: z.string(),
+      appointmentTime: z.string(),
+      timezone: z.string().optional(),
+      locale: z.string().optional(),
+      recipientType: z.enum(['expert', 'patient']),
+      refundAmountFormatted: z.string(),
+      cancellationReason: z.string().optional(),
+    }),
+    tags: ['appointments', 'cancellation', 'refunds'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
+  },
+);
+
 // All workflows exported for the Novu framework
 export const workflows = [
   userLifecycleWorkflow,
@@ -1138,6 +1235,7 @@ export const workflows = [
   multibancoPaymentReminderWorkflow,
   expertPayoutNotificationWorkflow,
   reservationExpiredWorkflow,
+  appointmentCancelledWorkflow,
 ];
 
 // Add to the existing workflow configuration
