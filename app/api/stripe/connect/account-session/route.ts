@@ -40,9 +40,9 @@ export async function POST() {
         balances: {
           enabled: true,
           features: {
-            edit_payout_schedule: true,
-            external_account_collection: true,
-            standard_payouts: true,
+            edit_payout_schedule: false,
+            external_account_collection: false,
+            standard_payouts: false,
           },
         },
         payouts_list: {
