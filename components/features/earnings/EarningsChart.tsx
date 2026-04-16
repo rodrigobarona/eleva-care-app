@@ -12,11 +12,11 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 const chartConfig = {
   paidOutAmount: {
     label: 'Paid out',
-    color: 'var(--chart-1)',
+    color: '#16a34a',
   },
   upcomingAmount: {
     label: 'Upcoming',
-    color: 'var(--chart-3)',
+    color: '#86efac',
   },
 } satisfies ChartConfig;
 
