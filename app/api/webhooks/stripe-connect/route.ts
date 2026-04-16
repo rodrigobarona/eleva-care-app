@@ -6,6 +6,10 @@
  * - `account.application.deauthorized` - Expert disconnects Stripe
  * - `account.external_account.*` - Bank account changes
  * - `payout.*` - Payout status (created, paid, failed)
+ * - `charge.refunded` / `charge.refund.updated` - Refunds initiated from
+ *   the connected account view of a destination_payment marketplace charge.
+ *   Stripe fires these on the connected account (not the platform), so the
+ *   main `/api/webhooks/stripe` endpoint never sees them.
  *
  * @route POST /api/webhooks/stripe-connect
  *
@@ -22,6 +26,7 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+import { handleChargeRefunded, handleRefundUpdated } from '../stripe/handlers/payment';
 import { handlePayoutFailed, handlePayoutPaid } from '../stripe/handlers/payout';
 
 // Route segment config
@@ -206,6 +211,38 @@ export const POST = async (request: Request) => {
             payoutId: payout.id,
             error:
               payoutHandlerError instanceof Error ? payoutHandlerError.message : payoutHandlerError,
+          });
+        }
+        break;
+      }
+
+      case 'charge.refunded': {
+        // For destination_payment marketplace charges, refunding from the
+        // connected-account view fires this event on the connected account,
+        // NOT on the platform. Without this branch the platform endpoint
+        // would never see the refund and the DB stays at 'succeeded'.
+        const charge = event.data.object as Stripe.Charge;
+        try {
+          await handleChargeRefunded(charge);
+        } catch (handlerError) {
+          console.error('Error in handleChargeRefunded (connect endpoint):', {
+            chargeId: charge.id,
+            error: handlerError instanceof Error ? handlerError.message : handlerError,
+          });
+        }
+        break;
+      }
+
+      case 'charge.refund.updated': {
+        // Reverses our earlier refund-state assumption when a refund
+        // ultimately fails or is canceled (e.g., bank rejected the credit).
+        const refund = event.data.object as Stripe.Refund;
+        try {
+          await handleRefundUpdated(refund);
+        } catch (handlerError) {
+          console.error('Error in handleRefundUpdated (connect endpoint):', {
+            refundId: refund.id,
+            error: handlerError instanceof Error ? handlerError.message : handlerError,
           });
         }
         break;

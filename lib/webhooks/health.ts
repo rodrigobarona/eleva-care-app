@@ -52,7 +52,8 @@ export const WEBHOOK_ENDPOINTS: WebhookEndpoint[] = [
   {
     name: 'Stripe Main Webhooks',
     path: '/api/webhooks/stripe',
-    description: 'Handle payment events (payment_intent.succeeded, checkout.session.completed)',
+    description:
+      'Handle platform payment events (checkout.session.completed, payment_intent.*, charge.refunded, charge.refund.updated, charge.dispute.created)',
     requiredEnvVars: [
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
@@ -78,7 +79,8 @@ export const WEBHOOK_ENDPOINTS: WebhookEndpoint[] = [
   {
     name: 'Stripe Connect Webhooks',
     path: '/api/webhooks/stripe-connect',
-    description: 'Handle Connect account events (account.updated, capability.updated)',
+    description:
+      'Handle connected-account events (account.updated, account.application.deauthorized, account.external_account.*, payout.*, charge.refunded, charge.refund.updated). Refund events fire here for destination_payment marketplace charges refunded from the connected-account view.',
     requiredEnvVars: ['STRIPE_SECRET_KEY', 'STRIPE_CONNECT_WEBHOOK_SECRET'],
     provider: 'stripe-connect',
     authMethod: 'signature',

@@ -3,6 +3,7 @@ import {
   BlockedDatesTable,
   EventTable,
   MeetingTable,
+  PackPurchaseTable,
   PaymentTransferTable,
   schedulingSettings,
   SlotReservationTable,
@@ -1683,6 +1684,65 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 }
 
+/**
+ * Handle a refunded pack purchase.
+ *
+ * Marks the local PackPurchaseTable row as cancelled and deactivates the
+ * associated Stripe promotion code so the customer can no longer redeem
+ * remaining sessions after being refunded. The coupon itself is left in
+ * place — Stripe doesn't allow deleting coupons that have ever been used.
+ *
+ * Idempotent: re-runs see the row is already in `cancelled` state and exit
+ * cleanly. Promotion-code deactivation is also idempotent on Stripe's side.
+ */
+async function handleRefundedPackPurchase(paymentIntentId: string): Promise<boolean> {
+  const pack = await db.query.PackPurchaseTable.findFirst({
+    where: eq(PackPurchaseTable.stripePaymentIntentId, paymentIntentId),
+  });
+
+  if (!pack) return false;
+
+  if (pack.status === 'cancelled') {
+    console.log(`📦 Pack purchase ${pack.id} already cancelled — skipping.`);
+    return true;
+  }
+
+  // 1) Mark the local pack as cancelled (the existing enum doesn't have
+  //    a 'refunded' value; 'cancelled' carries the same semantic — no
+  //    further redemptions allowed — and avoids a migration here).
+  await db
+    .update(PackPurchaseTable)
+    .set({ status: 'cancelled', updatedAt: new Date() })
+    .where(eq(PackPurchaseTable.id, pack.id));
+
+  console.log(
+    `📦 Pack purchase ${pack.id} marked cancelled (PI: ${paymentIntentId}, redemptions used: ${pack.redemptionsUsed}/${pack.maxRedemptions}).`,
+  );
+
+  // 2) Deactivate the Stripe promotion code so the buyer cannot redeem
+  //    remaining sessions. We deactivate (not delete) for audit history.
+  if (pack.stripePromotionCodeId) {
+    try {
+      await stripe.promotionCodes.update(pack.stripePromotionCodeId, { active: false });
+      console.log(
+        `🎟️ Deactivated promotion code ${pack.stripePromotionCodeId} for refunded pack ${pack.id}.`,
+      );
+    } catch (promoError) {
+      console.error(
+        `Failed to deactivate promotion code ${pack.stripePromotionCodeId} for refunded pack ${pack.id}:`,
+        promoError,
+      );
+      // Don't throw — we want the rest of the refund flow to complete.
+    }
+  } else {
+    console.warn(
+      `Pack purchase ${pack.id} has no stripePromotionCodeId — cannot deactivate promo code.`,
+    );
+  }
+
+  return true;
+}
+
 export async function handleChargeRefunded(charge: Stripe.Charge) {
   console.log('Payment refunded:', charge.id);
 
@@ -1694,56 +1754,189 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 
   try {
-    // Update Meeting status
+    // 1) Try the pack-purchase path first. If this PI corresponds to a pack,
+    //    the meeting/transfer paths below will be no-ops (no row to update).
+    const handledAsPack = await handleRefundedPackPurchase(paymentIntentId);
+
+    // 2) Update Meeting status (idempotent — only updates rows still at
+    //    'succeeded' so reruns don't churn updatedAt). For pack refunds
+    //    this WHERE clause matches zero rows, which is the correct no-op.
     const updatedMeeting = await db
       .update(MeetingTable)
       .set({
-        stripePaymentStatus: 'refunded', // Ensure this matches the enum in MeetingTable schema
+        stripePaymentStatus: 'refunded',
         updatedAt: new Date(),
       })
-      .where(eq(MeetingTable.stripePaymentIntentId, paymentIntentId))
+      .where(
+        and(
+          eq(MeetingTable.stripePaymentIntentId, paymentIntentId),
+          eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+        ),
+      )
       .returning();
 
-    if (updatedMeeting.length === 0) {
+    if (updatedMeeting.length === 0 && !handledAsPack) {
       console.warn(
-        `No meeting found with paymentIntentId ${paymentIntentId} to update status to refunded.`,
+        `No meeting or pack purchase found with paymentIntentId ${paymentIntentId} to mark as refunded.`,
       );
-    } else {
+    } else if (updatedMeeting.length > 0) {
       console.log(
         `Meeting ${updatedMeeting[0].id} status updated to refunded for paymentIntentId ${paymentIntentId}`,
       );
     }
 
-    // Find and update the payment transfer record
+    // Find and update the payment transfer record (idempotent guard)
     const transfer = await db.query.PaymentTransferTable.findFirst({
       where: eq(PaymentTransferTable.paymentIntentId, paymentIntentId),
     });
 
     if (!transfer) {
-      console.error(
-        'No transfer record found for refunded payment:',
-        paymentIntentId,
-        'This might be normal if the meeting was free or if transfer record creation failed earlier.',
-      );
-      return; // No transfer to update, but meeting status (if found) is updated.
+      if (!handledAsPack) {
+        console.error(
+          'No transfer record found for refunded payment:',
+          paymentIntentId,
+          'This might be normal if the meeting was free or if transfer record creation failed earlier.',
+        );
+      }
+      return; // Pack handled (no transfer expected) or genuinely missing.
     }
 
-    // Update transfer status
-    // No need for withRetry here usually as charge.refunded is a final state from Stripe's perspective.
-    await db
-      .update(PaymentTransferTable)
-      .set({
-        status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransferTable schema/enum if any
-        updated: new Date(),
-      })
-      .where(eq(PaymentTransferTable.id, transfer.id));
-    console.log(`Transfer record ${transfer.id} status updated to REFUNDED.`);
+    if (transfer.status !== PAYMENT_TRANSFER_STATUS_REFUNDED) {
+      await db
+        .update(PaymentTransferTable)
+        .set({
+          status: PAYMENT_TRANSFER_STATUS_REFUNDED,
+          updated: new Date(),
+        })
+        .where(eq(PaymentTransferTable.id, transfer.id));
+      console.log(`Transfer record ${transfer.id} status updated to REFUNDED.`);
 
-    // Notify the expert about the refund
-    await notifyExpertOfPaymentRefund(transfer);
+      // Notify the expert about the refund (only on first transition)
+      await notifyExpertOfPaymentRefund(transfer);
+    } else {
+      console.log(`Transfer record ${transfer.id} already REFUNDED — skipping notification.`);
+    }
   } catch (error) {
     console.error(
       `Error in handleChargeRefunded for charge ${charge.id} (PI: ${paymentIntentId}):`,
+      error,
+    );
+  }
+}
+
+/**
+ * Handle a Stripe refund.updated event.
+ *
+ * Refunds aren't always synchronous: bank-account refunds can fail or be
+ * canceled days after creation. When that happens, our DB optimistically
+ * marked the meeting as `refunded` (via charge.refunded), but the money
+ * never actually moved back to the customer. We need to reverse those local
+ * state changes so the meeting is honoured again and the expert gets paid.
+ *
+ * For `succeeded` we no-op (charge.refunded already handled the success path).
+ */
+export async function handleRefundUpdated(refund: Stripe.Refund) {
+  const refundId = refund.id;
+  const refundStatus = refund.status;
+  const paymentIntentId =
+    typeof refund.payment_intent === 'string'
+      ? refund.payment_intent
+      : (refund.payment_intent as Stripe.PaymentIntent | null)?.id;
+
+  console.log('Refund updated:', { refundId, status: refundStatus, paymentIntentId });
+
+  if (!paymentIntentId) {
+    console.warn(`Refund ${refundId} has no payment_intent — cannot reverse DB state.`);
+    return;
+  }
+
+  // We only need to act when a refund is reversed (failed / canceled).
+  // succeeded / pending / requires_action don't change our optimistic DB.
+  if (refundStatus !== 'failed' && refundStatus !== 'canceled') {
+    return;
+  }
+
+  console.warn(
+    `🛑 Refund ${refundId} for PI ${paymentIntentId} ended in status "${refundStatus}". Reverting local refunded state.`,
+  );
+
+  try {
+    // 1) Restore the meeting from 'refunded' back to 'succeeded' (idempotent
+    //    via the eq guard on stripePaymentStatus).
+    const restoredMeetings = await db
+      .update(MeetingTable)
+      .set({ stripePaymentStatus: 'succeeded', updatedAt: new Date() })
+      .where(
+        and(
+          eq(MeetingTable.stripePaymentIntentId, paymentIntentId),
+          eq(MeetingTable.stripePaymentStatus, 'refunded'),
+        ),
+      )
+      .returning({ id: MeetingTable.id });
+    if (restoredMeetings.length > 0) {
+      console.log(
+        `↩️ Restored meeting ${restoredMeetings[0].id} to 'succeeded' after failed refund ${refundId}.`,
+      );
+    }
+
+    // 2) Restore the PaymentTransfer row to PENDING so the payout cron can
+    //    re-pick it up. Only flip rows currently REFUNDED.
+    const restoredTransfers = await db
+      .update(PaymentTransferTable)
+      .set({ status: PAYMENT_TRANSFER_STATUS_PENDING, updated: new Date() })
+      .where(
+        and(
+          eq(PaymentTransferTable.paymentIntentId, paymentIntentId),
+          eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_REFUNDED),
+        ),
+      )
+      .returning({ id: PaymentTransferTable.id });
+    if (restoredTransfers.length > 0) {
+      console.log(
+        `↩️ Restored payment transfer ${restoredTransfers[0].id} to PENDING after failed refund ${refundId}.`,
+      );
+    }
+
+    // 3) Restore pack purchase: undo the cancelled status and re-activate
+    //    the Stripe promotion code so the buyer can redeem again.
+    const cancelledPack = await db.query.PackPurchaseTable.findFirst({
+      where: and(
+        eq(PackPurchaseTable.stripePaymentIntentId, paymentIntentId),
+        eq(PackPurchaseTable.status, 'cancelled'),
+      ),
+    });
+    if (cancelledPack) {
+      // Restore based on remaining redemptions
+      const newStatus =
+        cancelledPack.redemptionsUsed >= cancelledPack.maxRedemptions ? 'fully_redeemed' : 'active';
+
+      await db
+        .update(PackPurchaseTable)
+        .set({ status: newStatus, updatedAt: new Date() })
+        .where(eq(PackPurchaseTable.id, cancelledPack.id));
+      console.log(
+        `↩️ Restored pack purchase ${cancelledPack.id} to '${newStatus}' after failed refund ${refundId}.`,
+      );
+
+      if (cancelledPack.stripePromotionCodeId && newStatus === 'active') {
+        try {
+          await stripe.promotionCodes.update(cancelledPack.stripePromotionCodeId, {
+            active: true,
+          });
+          console.log(
+            `🎟️ Re-activated promotion code ${cancelledPack.stripePromotionCodeId} after failed refund.`,
+          );
+        } catch (promoError) {
+          console.error(
+            `Failed to re-activate promotion code ${cancelledPack.stripePromotionCodeId} after failed refund:`,
+            promoError,
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Error in handleRefundUpdated for refund ${refundId} (PI: ${paymentIntentId}, status: ${refundStatus}):`,
       error,
     );
   }

@@ -7,6 +7,8 @@
  * - `payment_intent.payment_failed` - Payment failed
  * - `payment_intent.requires_action` - Multibanco voucher generated
  * - `charge.refunded` - Payment refunded
+ * - `charge.refund.updated` - Refund status change (e.g., refund failed/canceled
+ *   after creation; reverses our earlier 'refunded' DB state if needed)
  * - `charge.dispute.created` - Chargeback initiated
  * - Connect account/payout events are intentionally delegated to `/api/webhooks/stripe-connect`
  * - `identity.*` - Identity verification updates
@@ -74,6 +76,7 @@ import {
   handlePaymentFailed,
   handlePaymentIntentRequiresAction,
   handlePaymentSucceeded,
+  handleRefundUpdated,
 } from './handlers/payment';
 
 /**
@@ -1628,6 +1631,13 @@ export async function POST(request: NextRequest) {
         break;
       case 'charge.refunded':
         await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+      case 'charge.refund.updated':
+        // Refunds aren't always immediate (e.g., bank-account rejections).
+        // This event fires when the refund's status changes after creation —
+        // critical for catching `failed`/`canceled` so the DB doesn't stay
+        // at `refunded` for a charge that ultimately wasn't.
+        await handleRefundUpdated(event.data.object as Stripe.Refund);
         break;
       case 'charge.dispute.created':
         await handleDisputeCreated(event.data.object as Stripe.Dispute);
