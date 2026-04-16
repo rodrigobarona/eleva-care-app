@@ -255,7 +255,7 @@ export default async function EarningsPage({
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Recent payouts</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 {data.recentPayouts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No payouts yet.</p>
                 ) : (
@@ -263,14 +263,21 @@ export default async function EarningsPage({
                     const linkedSessions = data.earningsLedger.filter(
                       (entry) => entry.payoutId === payout.id,
                     );
-                    const clientNames = [...new Set(linkedSessions.map((s) => s.customerName))];
 
                     return (
-                      <div key={payout.id} className="rounded-md border px-3 py-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium">
-                            {formatCurrency(payout.amount, payout.currency)}
-                          </p>
+                      <div key={payout.id} className="rounded-md border text-sm">
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <div>
+                            <p className="font-medium">
+                              {formatCurrency(payout.amount, payout.currency)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Arrived{' '}
+                              {payout.arrivalDate
+                                ? formatShortDate(new Date(payout.arrivalDate))
+                                : 'pending'}
+                            </p>
+                          </div>
                           <Badge
                             variant="outline"
                             className={
@@ -282,19 +289,33 @@ export default async function EarningsPage({
                             {payout.status}
                           </Badge>
                         </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {payout.arrivalDate
-                            ? formatShortDate(new Date(payout.arrivalDate))
-                            : 'Pending'}
-                          {clientNames.length > 0 && (
-                            <>
-                              {' · '}
-                              {clientNames.length <= 2
-                                ? clientNames.join(', ')
-                                : `${clientNames[0]} + ${clientNames.length - 1} more`}
-                            </>
-                          )}
-                        </p>
+                        {linkedSessions.length > 0 && (
+                          <div className="border-t bg-muted/30 px-3 py-1.5">
+                            {linkedSessions.map((session) => (
+                              <div
+                                key={session.id}
+                                className="flex items-center justify-between gap-2 py-1 text-xs"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-medium">{session.customerName}</span>
+                                  <span className="text-muted-foreground">
+                                    {' · '}
+                                    {session.serviceName}
+                                    {session.sessionStartTime && (
+                                      <>
+                                        {' · '}
+                                        {formatShortDate(new Date(session.sessionStartTime))}
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
+                                <span className="shrink-0 tabular-nums text-muted-foreground">
+                                  {formatCurrency(session.netAmount, session.currency)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })
