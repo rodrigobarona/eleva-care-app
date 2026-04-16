@@ -57,52 +57,46 @@ export function EarningsFilters({
   };
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end">
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Year</p>
-        <Select
-          value={selectedYear.toString()}
-          onValueChange={(value) => updateFilters('year', value)}
+    <div className="flex items-center gap-2">
+      <Select
+        value={selectedYear.toString()}
+        onValueChange={(value) => updateFilters('year', value)}
+      >
+        <SelectTrigger
+          className="h-8 w-[100px] text-xs"
+          aria-label="Select earnings year"
+          disabled={isPending}
         >
-          <SelectTrigger
-            className="w-[140px]"
-            aria-label="Select earnings year"
-            disabled={isPending}
-          >
-            <SelectValue placeholder="Select year" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <SelectValue placeholder="Year" />
+        </SelectTrigger>
+        <SelectContent>
+          {availableYears.map((year) => (
+            <SelectItem key={year} value={year.toString()}>
+              {year}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Month</p>
-        <Select
-          value={selectedMonth?.toString() ?? 'all'}
-          onValueChange={(value) => updateFilters('month', value)}
+      <Select
+        value={selectedMonth?.toString() ?? 'all'}
+        onValueChange={(value) => updateFilters('month', value)}
+      >
+        <SelectTrigger
+          className="h-8 w-[130px] text-xs"
+          aria-label="Select earnings month"
+          disabled={isPending}
         >
-          <SelectTrigger
-            className="w-[180px]"
-            aria-label="Select earnings month"
-            disabled={isPending}
-          >
-            <SelectValue placeholder="All months" />
-          </SelectTrigger>
-          <SelectContent>
-            {MONTHS.map((month) => (
-              <SelectItem key={month.value} value={month.value}>
-                {month.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <SelectValue placeholder="All months" />
+        </SelectTrigger>
+        <SelectContent>
+          {MONTHS.map((month) => (
+            <SelectItem key={month.value} value={month.value}>
+              {month.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

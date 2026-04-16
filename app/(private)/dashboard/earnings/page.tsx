@@ -1,9 +1,10 @@
+import { EarningsChart } from '@/components/features/earnings/EarningsChart';
 import { EarningsFilters } from '@/components/features/earnings/EarningsFilters';
 import { EarningsStatusBadge } from '@/components/features/earnings/EarningsStatusBadge';
 import { StripeConnectWidgets } from '@/components/features/earnings/StripeConnectWidgets';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -12,11 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { isExpert } from '@/lib/auth/roles.server';
-import { formatCurrency, formatDateTime } from '@/lib/utils/formatters';
-import { type EarningsSummary, getExpertEarningsDashboardData } from '@/server/earnings';
+import { formatCurrency } from '@/lib/utils/formatters';
+import { getExpertEarningsDashboardData } from '@/server/earnings';
 import { auth } from '@clerk/nextjs/server';
-import { AlertCircle, ArrowRight, CalendarClock, CreditCard, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -65,7 +68,7 @@ function parseMonth(value: string | string[] | undefined) {
 
 function getPeriodLabel(year: number, month: number | null) {
   if (!month) {
-    return `All earnings in ${year}`;
+    return String(year);
   }
 
   return `${MONTH_LABELS[month - 1]} ${year}`;
@@ -83,40 +86,8 @@ function buildAvailableYears(selectedYear: number) {
   return [...years].filter((year) => year >= 2024).toSorted((left, right) => right - left);
 }
 
-function SummaryCard({
-  title,
-  amount,
-  description,
-}: {
-  title: string;
-  amount: string;
-  description: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-2xl">{amount}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SummaryBreakdown({ summary }: { summary: EarningsSummary }) {
-  return (
-    <div className="grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
-      <p>Client paid: {formatCurrency(summary.grossAmount, summary.currency)}</p>
-      <p>Your net earnings: {formatCurrency(summary.netAmount, summary.currency)}</p>
-      <p>Platform fee: {formatCurrency(summary.platformFeeAmount, summary.currency)}</p>
-      <p>
-        Sessions / pack sales / clients: {summary.totalSessions} / {summary.totalPackSales} /{' '}
-        {summary.totalCustomers}
-      </p>
-    </div>
-  );
+function formatShortDate(date: Date) {
+  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default async function EarningsPage({
@@ -145,394 +116,339 @@ export default async function EarningsPage({
 
   const availableYears = buildAvailableYears(year);
   const periodLabel = getPeriodLabel(year, month);
-  const selectedPeriodPending =
-    data.periodSummary.scheduledAmount + data.periodSummary.availableAmount;
+  const currency = data.periodSummary.currency;
+  const upcomingAmount = data.periodSummary.scheduledAmount + data.periodSummary.availableAmount;
 
   return (
-    <div className="container space-y-8 py-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Earnings</h1>
-          <p className="max-w-3xl text-muted-foreground">
-            Track what clients have paid across sessions and pack sales, what you earned on each
-            line item, what is still on the way, and what has already reached your bank account.
+    <div className="container max-w-5xl space-y-6 py-8">
+      {/* ── Hero header ── */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">Earnings</h1>
+            <EarningsFilters
+              selectedYear={year}
+              selectedMonth={month}
+              availableYears={availableYears}
+            />
+          </div>
+          <div className="flex gap-3 text-xs text-muted-foreground">
+            <Link href="/account/billing" className="underline-offset-4 hover:underline">
+              Payout setup
+            </Link>
+            <Link href="/appointments" className="underline-offset-4 hover:underline">
+              Bookings
+            </Link>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-4xl font-bold tracking-tight">
+            {formatCurrency(data.periodSummary.netAmount, currency)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Net earnings{month ? ` for ${periodLabel}` : ` in ${year}`}
+            {' · '}
+            {data.periodSummary.totalSessions} sessions, {data.periodSummary.totalPackSales} packs,{' '}
+            {data.periodSummary.totalCustomers} clients
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="outline" asChild>
-            <Link href="/account/billing">Manage payout setup</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/appointments">
-              Review bookings
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
+            Upcoming {formatCurrency(upcomingAmount, currency)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+            Paid out {formatCurrency(data.periodSummary.paidOutAmount, currency)}
+          </span>
+          {data.periodSummary.refundedAmount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-slate-400" />
+              Refunded {formatCurrency(data.periodSummary.refundedAmount, currency)}
+            </span>
+          )}
+          <span className="text-muted-foreground">
+            Client paid {formatCurrency(data.periodSummary.grossAmount, currency)}
+            {' · '}Fee {formatCurrency(data.periodSummary.platformFeeAmount, currency)}
+          </span>
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-1">
-            <CardTitle>{periodLabel}</CardTitle>
-            <CardDescription>
-              Use the filters to review earnings by month while keeping your yearly totals in view.
-            </CardDescription>
-          </div>
-          <EarningsFilters
-            selectedYear={year}
-            selectedMonth={month}
-            availableYears={availableYears}
-          />
-        </CardHeader>
-      </Card>
+      <Separator />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          title="Selected period"
-          amount={formatCurrency(data.periodSummary.netAmount, data.periodSummary.currency)}
-          description={`Net earnings for ${periodLabel.toLowerCase()}.`}
-        />
-        <SummaryCard
-          title="This year"
-          amount={formatCurrency(data.yearSummary.netAmount, data.yearSummary.currency)}
-          description={`Net earnings across all ${year} sessions and pack sales.`}
-        />
-        <SummaryCard
-          title="Upcoming payout"
-          amount={formatCurrency(selectedPeriodPending, data.periodSummary.currency)}
-          description="Session earnings marked as scheduled or available before they reach your bank."
-        />
-        <SummaryCard
-          title="Paid out"
-          amount={formatCurrency(data.periodSummary.paidOutAmount, data.periodSummary.currency)}
-          description="Amounts already marked as paid out to your bank."
-        />
-      </div>
+      {/* ── Tabbed content ── */}
+      <Tabs defaultValue="performance" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="clients">Clients</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>What this means</CardTitle>
-          <CardDescription>
-            A quick split between what the client paid, what you keep, and what is already out.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <SummaryBreakdown summary={data.periodSummary} />
-          {data.periodSummary.refundedAmount > 0 || data.periodSummary.issueAmount > 0 ? (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Adjustments detected</AlertTitle>
-              <AlertDescription>
-                Refunded:{' '}
-                {formatCurrency(data.periodSummary.refundedAmount, data.periodSummary.currency)}.
-                Needs attention:{' '}
-                {formatCurrency(data.periodSummary.issueAmount, data.periodSummary.currency)}.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly earnings</CardTitle>
-            <CardDescription>
-              See how session revenue and pack sales are distributed through the year.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {data.monthlySeries.every((item) => item.netAmount === 0) ? (
-              <p className="text-sm text-muted-foreground">
-                No paid session earnings recorded for this year yet.
-              </p>
-            ) : (
-              data.monthlySeries.map((item) => {
-                const maxAmount = Math.max(
-                  ...data.monthlySeries.map((entry) => entry.netAmount),
-                  1,
-                );
-                const width = `${Math.max((item.netAmount / maxAmount) * 100, item.netAmount > 0 ? 8 : 0)}%`;
-
-                return (
-                  <div key={item.month} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.label}</span>
-                      <div className="text-right text-muted-foreground">
-                        <p>{formatCurrency(item.netAmount, data.yearSummary.currency)}</p>
-                        <p className="text-xs">
-                          Sessions{' '}
-                          {formatCurrency(item.sessionNetAmount, data.yearSummary.currency)}
-                          {' · '}Packs{' '}
-                          {formatCurrency(item.packNetAmount, data.yearSummary.currency)}
-                        </p>
-                        <p className="text-xs">
-                          Paid out {formatCurrency(item.paidOutAmount, data.yearSummary.currency)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted">
-                      <div className="h-2 rounded-full bg-eleva-primary" style={{ width }} />
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
+        {/* ── Performance tab ── */}
+        <TabsContent value="performance" className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                Stripe balance snapshot
-              </CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Monthly earnings in {year}</CardTitle>
               <CardDescription>
-                Live balance information from your connected Stripe account.
+                Session revenue and pack sales distributed through the year.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {data.stripeBalance ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span>Available now</span>
-                    <span className="font-medium">
-                      {formatCurrency(
-                        data.stripeBalance.availableAmount,
-                        data.stripeBalance.currency,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Pending in Stripe</span>
-                    <span className="font-medium">
-                      {formatCurrency(
-                        data.stripeBalance.pendingAmount,
-                        data.stripeBalance.currency,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Instant payout eligible</span>
-                    <span className="font-medium">
-                      {formatCurrency(
-                        data.stripeBalance.instantAvailableAmount,
-                        data.stripeBalance.currency,
-                      )}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <p className="text-muted-foreground">
-                  Finish your billing setup to see live Stripe balance data here.
+            <CardContent>
+              <EarningsChart data={data.monthlySeries} currency={currency} />
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Wallet className="h-4 w-4" />
+                  Stripe balance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {data.stripeBalance ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Available</span>
+                      <span className="font-medium">
+                        {formatCurrency(
+                          data.stripeBalance.availableAmount,
+                          data.stripeBalance.currency,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Pending</span>
+                      <span className="font-medium">
+                        {formatCurrency(
+                          data.stripeBalance.pendingAmount,
+                          data.stripeBalance.currency,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Instant eligible</span>
+                      <span className="font-medium">
+                        {formatCurrency(
+                          data.stripeBalance.instantAvailableAmount,
+                          data.stripeBalance.currency,
+                        )}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Complete your{' '}
+                    <Link href="/account/billing" className="underline">
+                      billing setup
+                    </Link>{' '}
+                    to see live balance data.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Recent payouts</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {data.recentPayouts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No payouts yet.</p>
+                ) : (
+                  data.recentPayouts.slice(0, 3).map((payout) => (
+                    <div
+                      key={payout.id}
+                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {formatCurrency(payout.amount, payout.currency)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {payout.arrivalDate
+                            ? formatShortDate(new Date(payout.arrivalDate))
+                            : 'Pending'}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={
+                          payout.status === 'paid'
+                            ? 'bg-green-50 text-green-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }
+                      >
+                        {payout.status}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ── Activity tab (ledger) ── */}
+        <TabsContent value="activity" className="space-y-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Earnings ledger</CardTitle>
+              <CardDescription>
+                Each session and pack sale with what the client paid, your net, and current status.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.earningsLedger.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No earnings found for this period.
                 </p>
+              ) : (
+                <TooltipProvider>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Client paid</TableHead>
+                        <TableHead className="text-right">You earn</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.earningsLedger.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="whitespace-nowrap text-sm">
+                            {formatShortDate(new Date(entry.activityDate))}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  entry.sourceType === 'pack'
+                                    ? 'bg-violet-50 text-violet-700'
+                                    : 'bg-muted text-muted-foreground'
+                                }
+                              >
+                                {entry.sourceType === 'pack' ? 'Pack' : 'Session'}
+                              </Badge>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{entry.customerName}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {entry.serviceName}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {formatCurrency(entry.grossAmount, entry.currency)}
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-default font-medium">
+                                  {formatCurrency(entry.netAmount, entry.currency)}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="text-xs">
+                                Fee: {formatCurrency(entry.platformFeeAmount, entry.currency)}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <EarningsStatusBadge
+                              statusGroup={entry.statusGroup}
+                              label={entry.statusLabel}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TooltipProvider>
               )}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4" />
-                Recent payouts
-              </CardTitle>
-              <CardDescription>Your latest Stripe payout events.</CardDescription>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Stripe payout widgets</CardTitle>
+              <CardDescription>
+                Live balance and payout history from your connected account.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {data.recentPayouts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No Stripe payouts found yet.</p>
-              ) : (
-                data.recentPayouts.map((payout) => (
-                  <div key={payout.id} className="rounded-lg border p-3 text-sm">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="font-medium">
-                        {formatCurrency(payout.amount, payout.currency)}
-                      </span>
-                      <span className="capitalize text-muted-foreground">{payout.status}</span>
-                    </div>
-                    <p className="mt-1 text-muted-foreground">
-                      Created {formatDateTime(new Date(payout.createdAt))}
-                    </p>
-                    <p className="text-muted-foreground">
-                      Arrival{' '}
-                      {payout.arrivalDate
-                        ? formatDateTime(new Date(payout.arrivalDate))
-                        : 'Pending'}
-                    </p>
-                  </div>
-                ))
-              )}
+            <CardContent>
+              <StripeConnectWidgets enabled={Boolean(data.connectAccountId)} />
             </CardContent>
           </Card>
-        </div>
-      </div>
+        </TabsContent>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_1.4fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Clients in {periodLabel}</CardTitle>
-            <CardDescription>
-              Who paid you the most across sessions and pack sales, plus how much is still on the
-              way.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {data.customerBreakdown.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No customer earnings found for the selected period.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Sessions</TableHead>
-                    <TableHead className="text-right">Packs</TableHead>
-                    <TableHead className="text-right">Client paid</TableHead>
-                    <TableHead className="text-right">You earn</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.customerBreakdown.map((customer) => (
-                    <TableRow key={customer.customerEmail || customer.customerName}>
-                      <TableCell>
-                        <div>
+        {/* ── Clients tab ── */}
+        <TabsContent value="clients">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Clients in {periodLabel}</CardTitle>
+              <CardDescription>
+                Who paid you the most across sessions and pack sales.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.customerBreakdown.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No client earnings found for this period.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client</TableHead>
+                      <TableHead className="text-right">Items</TableHead>
+                      <TableHead className="text-right">Client paid</TableHead>
+                      <TableHead className="text-right">You earn</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.customerBreakdown.map((customer) => (
+                      <TableRow key={customer.customerEmail || customer.customerName}>
+                        <TableCell>
                           <p className="font-medium">{customer.customerName}</p>
                           <p className="text-xs text-muted-foreground">
                             {customer.customerEmail || 'No email'}
                           </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">{customer.sessionsCount}</TableCell>
-                      <TableCell className="text-right">{customer.packSalesCount}</TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(customer.grossAmount, data.periodSummary.currency)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="space-y-1">
-                          <p>{formatCurrency(customer.netAmount, data.periodSummary.currency)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Paid out{' '}
-                            {formatCurrency(customer.paidOutAmount, data.periodSummary.currency)}
-                          </p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Earnings ledger</CardTitle>
-            <CardDescription>
-              A line-by-line view of sessions and pack sales, what the client paid, and payout
-              timing when it is available.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {data.earningsLedger.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No earnings found for this period.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Client paid</TableHead>
-                    <TableHead className="text-right">You earn</TableHead>
-                    <TableHead>Payout timing</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.earningsLedger.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="font-medium">{entry.sourceLabel}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{entry.serviceName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {entry.sourceType === 'session' && entry.sessionStartTime
-                              ? formatDateTime(new Date(entry.sessionStartTime))
-                              : `Purchased ${formatDateTime(new Date(entry.activityDate))}`}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{entry.customerName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Paid {formatDateTime(new Date(entry.paidAt))}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(entry.grossAmount, entry.currency)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="space-y-1">
-                          <p>{formatCurrency(entry.netAmount, entry.currency)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Fee {formatCurrency(entry.platformFeeAmount, entry.currency)}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {entry.scheduledTransferTime ? (
-                            <p>{formatDateTime(new Date(entry.scheduledTransferTime))}</p>
-                          ) : (
-                            <p>See Stripe balance and payouts</p>
-                          )}
-                          {entry.payoutId ? (
-                            <p className="text-xs">Payout ID: {entry.payoutId}</p>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <EarningsStatusBadge
-                          statusGroup={entry.statusGroup}
-                          label={entry.statusLabel}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" />
-              Stripe payout widgets
-            </CardTitle>
-            <CardDescription>
-              Live connected account widgets for balance visibility and payout history.
-            </CardDescription>
-          </div>
-          {data.connectAccountId ? null : (
-            <Button variant="outline" asChild>
-              <Link href="/account/billing">Connect Stripe</Link>
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          <StripeConnectWidgets enabled={Boolean(data.connectAccountId)} />
-        </CardContent>
-      </Card>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-default tabular-nums">
+                                  {customer.totalLineItems}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="text-xs">
+                                {customer.sessionsCount} sessions, {customer.packSalesCount} packs
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatCurrency(customer.grossAmount, currency)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">
+                          {formatCurrency(customer.netAmount, currency)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
