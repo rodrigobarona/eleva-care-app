@@ -174,7 +174,7 @@ export default async function EarningsPage({
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-            Paid out {formatCurrency(data.periodSummary.paidOutAmount, currency)}
+            Paid {formatCurrency(data.periodSummary.paidOutAmount, currency)}
           </span>
           {data.periodSummary.refundedAmount > 0 && (
             <span className="flex items-center gap-1.5">
@@ -216,12 +216,12 @@ export default async function EarningsPage({
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Recent payouts</CardTitle>
+                <CardTitle className="text-base">Paid</CardTitle>
                 <CardDescription>Money that already reached your bank.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {data.recentPayouts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No payouts yet.</p>
+                  <p className="text-sm text-muted-foreground">No paid sessions yet.</p>
                 ) : (
                   data.recentPayouts.slice(0, 3).map((payout) => {
                     const linkedSessions = data.earningsLedger.filter(
@@ -303,7 +303,7 @@ export default async function EarningsPage({
               </CardHeader>
               <CardContent className="space-y-3">
                 {upcomingSessions.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No upcoming payouts right now.</p>
+                  <p className="text-sm text-muted-foreground">No upcoming sessions right now.</p>
                 ) : (
                   upcomingSessions.slice(0, 5).map((session) => {
                     const patientId =
@@ -403,10 +403,10 @@ export default async function EarningsPage({
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {entry.statusGroup === 'paid_out' && entry.payoutId
-                                    ? `Paid out · ${entry.payoutId.slice(0, 14)}…`
+                                    ? `Paid · ${entry.payoutId.slice(0, 14)}…`
                                     : entry.scheduledTransferTime
-                                      ? `Est. payout ${formatShortDate(new Date(entry.scheduledTransferTime))}`
-                                      : 'Payout pending'}
+                                      ? `Est. paid ${formatShortDate(new Date(entry.scheduledTransferTime))}`
+                                      : 'Upcoming'}
                                 </p>
                               </>
                             ) : (
@@ -414,7 +414,7 @@ export default async function EarningsPage({
                                 <p className="font-medium">
                                   Purchased {formatShortDate(new Date(entry.paidAt))}
                                 </p>
-                                <p className="text-xs text-muted-foreground">See Stripe payouts</p>
+                                <p className="text-xs text-muted-foreground">See paid history</p>
                               </>
                             )}
                           </TableCell>
@@ -481,9 +481,9 @@ export default async function EarningsPage({
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Stripe payout widgets</CardTitle>
+              <CardTitle className="text-base">Stripe payment history</CardTitle>
               <CardDescription>
-                Live balance and payout history from your connected account.
+                Live balance and payment history from your connected account.
               </CardDescription>
             </CardHeader>
             <CardContent>

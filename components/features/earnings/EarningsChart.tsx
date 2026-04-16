@@ -11,7 +11,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 const chartConfig = {
   paidOutAmount: {
-    label: 'Paid out',
+    label: 'Paid',
     color: '#16a34a',
   },
   upcomingAmount: {
@@ -69,7 +69,7 @@ export function EarningsChart({ data, currency, year }: EarningsChartProps) {
               labelFormatter={(label) => `${label} ${year}`}
               formatter={(value, name) => {
                 const amount = Number(value) / 100;
-                const displayLabel = name === 'paidOutAmount' ? 'Paid out' : 'Upcoming';
+                const displayLabel = name === 'paidOutAmount' ? 'Paid' : 'Upcoming';
                 return [
                   <span key={String(name)} className="tabular-nums">
                     {currencySymbol}
