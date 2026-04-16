@@ -20,7 +20,6 @@ import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { getExpertEarningsDashboardData } from '@/server/earnings';
 import { auth } from '@clerk/nextjs/server';
-import { Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -91,6 +90,16 @@ function formatShortDate(date: Date) {
   return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function formatDateWithTime(date: Date) {
+  return date.toLocaleDateString('en-GB', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default async function EarningsPage({
   searchParams,
 }: {
@@ -119,6 +128,9 @@ export default async function EarningsPage({
   const periodLabel = getPeriodLabel(year, month);
   const currency = data.periodSummary.currency;
   const upcomingAmount = data.periodSummary.scheduledAmount + data.periodSummary.availableAmount;
+  const upcomingSessions = data.earningsLedger.filter(
+    (entry) => entry.statusGroup === 'scheduled' || entry.statusGroup === 'available',
+  );
 
   return (
     <div className="container max-w-5xl space-y-6 py-8">
@@ -204,57 +216,8 @@ export default async function EarningsPage({
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Wallet className="h-4 w-4" />
-                  Stripe balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {data.stripeBalance ? (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Available</span>
-                      <span className="font-medium">
-                        {formatCurrency(
-                          data.stripeBalance.availableAmount,
-                          data.stripeBalance.currency,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Pending</span>
-                      <span className="font-medium">
-                        {formatCurrency(
-                          data.stripeBalance.pendingAmount,
-                          data.stripeBalance.currency,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Instant eligible</span>
-                      <span className="font-medium">
-                        {formatCurrency(
-                          data.stripeBalance.instantAvailableAmount,
-                          data.stripeBalance.currency,
-                        )}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">
-                    Complete your{' '}
-                    <Link href="/account/billing" className="underline">
-                      billing setup
-                    </Link>{' '}
-                    to see live balance data.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
                 <CardTitle className="text-base">Recent payouts</CardTitle>
+                <CardDescription>Money that already reached your bank.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {data.recentPayouts.length === 0 ? (
@@ -279,14 +242,7 @@ export default async function EarningsPage({
                                 : 'pending'}
                             </p>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={
-                              payout.status === 'paid'
-                                ? 'bg-green-50 text-green-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }
-                          >
+                          <Badge variant="outline" className="bg-green-50 text-green-700">
                             {payout.status}
                           </Badge>
                         </div>
@@ -339,6 +295,71 @@ export default async function EarningsPage({
                 )}
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Upcoming</CardTitle>
+                <CardDescription>Sessions on their way to your bank.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {upcomingSessions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming payouts right now.</p>
+                ) : (
+                  upcomingSessions.slice(0, 5).map((session) => {
+                    const patientId =
+                      session.customerEmail && userId
+                        ? generateCustomerId(userId, session.customerEmail)
+                        : null;
+
+                    return (
+                      <div
+                        key={session.id}
+                        className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">
+                            {patientId ? (
+                              <Link
+                                href={`/appointments/patients/${patientId}`}
+                                className="underline-offset-4 hover:underline"
+                              >
+                                {session.customerName}
+                              </Link>
+                            ) : (
+                              session.customerName
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {session.serviceName}
+                            {session.sessionStartTime && (
+                              <>
+                                {' · '}
+                                {formatShortDate(new Date(session.sessionStartTime))}
+                              </>
+                            )}
+                            {session.scheduledTransferTime && (
+                              <>
+                                {' · Est. '}
+                                {formatShortDate(new Date(session.scheduledTransferTime))}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-medium tabular-nums">
+                            {formatCurrency(session.netAmount, session.currency)}
+                          </p>
+                          <EarningsStatusBadge
+                            statusGroup={session.statusGroup}
+                            label={session.statusLabel}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -361,7 +382,7 @@ export default async function EarningsPage({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
+                        <TableHead>Timeline</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead className="text-right">Client paid</TableHead>
                         <TableHead className="text-right">You earn</TableHead>
@@ -370,9 +391,32 @@ export default async function EarningsPage({
                     </TableHeader>
                     <TableBody>
                       {data.earningsLedger.map((entry) => (
-                        <TableRow key={entry.id}>
+                        <TableRow key={entry.id} className="align-top">
                           <TableCell className="whitespace-nowrap text-sm">
-                            {formatShortDate(new Date(entry.activityDate))}
+                            {entry.sourceType === 'session' && entry.sessionStartTime ? (
+                              <>
+                                <p className="font-medium">
+                                  {formatDateWithTime(new Date(entry.sessionStartTime))}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Booked {formatShortDate(new Date(entry.paidAt))}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {entry.statusGroup === 'paid_out' && entry.payoutId
+                                    ? `Paid out · ${entry.payoutId.slice(0, 14)}…`
+                                    : entry.scheduledTransferTime
+                                      ? `Est. payout ${formatShortDate(new Date(entry.scheduledTransferTime))}`
+                                      : 'Payout pending'}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="font-medium">
+                                  Purchased {formatShortDate(new Date(entry.paidAt))}
+                                </p>
+                                <p className="text-xs text-muted-foreground">See Stripe payouts</p>
+                              </>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
