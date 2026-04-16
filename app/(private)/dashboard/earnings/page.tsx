@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { isExpert } from '@/lib/auth/roles.server';
+import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { getExpertEarningsDashboardData } from '@/server/earnings';
 import { auth } from '@clerk/nextjs/server';
@@ -291,29 +292,45 @@ export default async function EarningsPage({
                         </div>
                         {linkedSessions.length > 0 && (
                           <div className="border-t bg-muted/30 px-3 py-1.5">
-                            {linkedSessions.map((session) => (
-                              <div
-                                key={session.id}
-                                className="flex items-center justify-between gap-2 py-1 text-xs"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <span className="font-medium">{session.customerName}</span>
-                                  <span className="text-muted-foreground">
-                                    {' · '}
-                                    {session.serviceName}
-                                    {session.sessionStartTime && (
-                                      <>
-                                        {' · '}
-                                        {formatShortDate(new Date(session.sessionStartTime))}
-                                      </>
+                            {linkedSessions.map((session) => {
+                              const patientId =
+                                session.customerEmail && userId
+                                  ? generateCustomerId(userId, session.customerEmail)
+                                  : null;
+
+                              return (
+                                <div
+                                  key={session.id}
+                                  className="flex items-center justify-between gap-2 py-1 text-xs"
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    {patientId ? (
+                                      <Link
+                                        href={`/appointments/patients/${patientId}`}
+                                        className="font-medium underline-offset-4 hover:underline"
+                                      >
+                                        {session.customerName}
+                                      </Link>
+                                    ) : (
+                                      <span className="font-medium">{session.customerName}</span>
                                     )}
+                                    <span className="text-muted-foreground">
+                                      {' · '}
+                                      {session.serviceName}
+                                      {session.sessionStartTime && (
+                                        <>
+                                          {' · '}
+                                          {formatShortDate(new Date(session.sessionStartTime))}
+                                        </>
+                                      )}
+                                    </span>
+                                  </div>
+                                  <span className="shrink-0 tabular-nums text-muted-foreground">
+                                    {formatCurrency(session.netAmount, session.currency)}
                                   </span>
                                 </div>
-                                <span className="shrink-0 tabular-nums text-muted-foreground">
-                                  {formatCurrency(session.netAmount, session.currency)}
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -370,7 +387,18 @@ export default async function EarningsPage({
                                 {entry.sourceType === 'pack' ? 'Pack' : 'Session'}
                               </Badge>
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-medium">{entry.customerName}</p>
+                                <p className="truncate text-sm font-medium">
+                                  {entry.customerEmail ? (
+                                    <Link
+                                      href={`/appointments/patients/${generateCustomerId(userId, entry.customerEmail)}`}
+                                      className="underline-offset-4 hover:underline"
+                                    >
+                                      {entry.customerName}
+                                    </Link>
+                                  ) : (
+                                    entry.customerName
+                                  )}
+                                </p>
                                 <p className="truncate text-xs text-muted-foreground">
                                   {entry.serviceName}
                                 </p>
@@ -448,7 +476,18 @@ export default async function EarningsPage({
                     {data.customerBreakdown.map((customer) => (
                       <TableRow key={customer.customerEmail || customer.customerName}>
                         <TableCell>
-                          <p className="font-medium">{customer.customerName}</p>
+                          <p className="font-medium">
+                            {customer.customerEmail ? (
+                              <Link
+                                href={`/appointments/patients/${generateCustomerId(userId, customer.customerEmail)}`}
+                                className="underline-offset-4 hover:underline"
+                              >
+                                {customer.customerName}
+                              </Link>
+                            ) : (
+                              customer.customerName
+                            )}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {customer.customerEmail || 'No email'}
                           </p>
