@@ -526,12 +526,6 @@ const proxyHandler = clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  // Handle special cases for webhooks
-  if (path.startsWith('/api/webhooks/')) {
-    console.log(`🪝 Webhook route allowed: ${path}`);
-    return NextResponse.next();
-  }
-
   // Handle special auth routes (cron jobs, etc.)
   if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
     console.log(`🔑 Special auth route detected: ${path}`);
