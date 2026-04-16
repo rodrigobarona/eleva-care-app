@@ -287,8 +287,42 @@ describe('expert earnings aggregation', () => {
       netAmount: 44200,
       sessionNetAmount: 18700,
       packNetAmount: 25500,
-      paidOutAmount: 10200,
+      // Session paid_out + pack sale (packs never use paid_out status but are settled at checkout)
+      paidOutAmount: 35700,
       grossAmount: 52000,
     });
+  });
+
+  it('excludes cancelled pack purchases from monthly totals and paid bar', () => {
+    const cancelledPack = buildPackEarningsRecords([
+      {
+        id: 'pack_cancelled',
+        packId: 'pack_1',
+        eventId: 'event-pack-1',
+        expertClerkUserId: 'user_1',
+        buyerEmail: 'bob@example.com',
+        buyerName: 'Bob',
+        packNameSnapshot: 'Pack',
+        eventNameSnapshot: 'Event',
+        stripeSessionId: 'cs_pack_cancelled',
+        stripePaymentIntentId: 'pi_pack_cancelled',
+        currency: 'eur',
+        grossAmount: 10000,
+        platformFeeAmount: 1500,
+        netAmount: 8500,
+        status: 'cancelled',
+        maxRedemptions: 5,
+        createdAt: new Date('2026-03-21T10:00:00.000Z'),
+        packName: 'Pack',
+        packCurrency: 'eur',
+        packPrice: 10000,
+      },
+    ] as any);
+
+    const monthlySeries = buildMonthlySeries(cancelledPack, 2026);
+    const march = monthlySeries[2];
+    expect(march.netAmount).toBe(0);
+    expect(march.packNetAmount).toBe(0);
+    expect(march.paidOutAmount).toBe(0);
   });
 });

@@ -328,9 +328,23 @@ export function buildPackEarningsRecords(purchases: PackPurchaseRecord[]): Earni
   });
 }
 
+/** Pack purchase DB status: only these count as a completed (successful) checkout for earnings. */
+function isPackPurchaseSuccessfulForEarnings(rawStatus: string): boolean {
+  switch (rawStatus) {
+    case 'active':
+    case 'fully_redeemed':
+    case 'expired':
+      return true;
+    case 'cancelled':
+      return false;
+    default:
+      return false;
+  }
+}
+
 function isCountedAsEarnings(record: EarningsRecord) {
   if (record.sourceType === 'pack') {
-    return record.statusGroup === 'sale';
+    return record.statusGroup === 'sale' && isPackPurchaseSuccessfulForEarnings(record.rawStatus);
   }
 
   return (
@@ -445,7 +459,13 @@ export function buildMonthlySeries(
       months[monthIndex].sessionNetAmount += record.netAmount;
     }
 
-    if (record.statusGroup === 'paid_out') {
+    // Sessions use Connect transfer → paid_out. Pack rows stay statusGroup `sale` and never
+    // become paid_out; counting successful pack purchases here keeps the chart stack honest.
+    const countsTowardPaidBar =
+      record.statusGroup === 'paid_out' ||
+      (record.sourceType === 'pack' && isPackPurchaseSuccessfulForEarnings(record.rawStatus));
+
+    if (countsTowardPaidBar) {
       months[monthIndex].paidOutAmount += record.netAmount;
     }
   }
