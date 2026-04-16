@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { isExpert } from '@/lib/auth/roles.server';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { getExpertEarningsDashboardData } from '@/server/earnings';
+import { type EarningsRecord, getExpertEarningsDashboardData } from '@/server/earnings';
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -100,6 +100,28 @@ function formatDateWithTime(date: Date) {
   });
 }
 
+/** Prefer payout ETA, then session time, for “next payment” ordering. */
+function upcomingPaymentSortTimestamp(entry: EarningsRecord): number {
+  if (entry.scheduledTransferTime) {
+    return entry.scheduledTransferTime.getTime();
+  }
+  if (entry.sessionStartTime) {
+    return entry.sessionStartTime.getTime();
+  }
+  return entry.activityDate.getTime();
+}
+
+/** Nearest calendar moment to today first (past or future). */
+function sortUpcomingByProximityToToday(left: EarningsRecord, right: EarningsRecord): number {
+  const now = Date.now();
+  const leftDelta = Math.abs(upcomingPaymentSortTimestamp(left) - now);
+  const rightDelta = Math.abs(upcomingPaymentSortTimestamp(right) - now);
+  if (leftDelta !== rightDelta) {
+    return leftDelta - rightDelta;
+  }
+  return upcomingPaymentSortTimestamp(left) - upcomingPaymentSortTimestamp(right);
+}
+
 export default async function EarningsPage({
   searchParams,
 }: {
@@ -128,9 +150,9 @@ export default async function EarningsPage({
   const periodLabel = getPeriodLabel(year, month);
   const currency = data.periodSummary.currency;
   const upcomingAmount = data.periodSummary.scheduledAmount + data.periodSummary.availableAmount;
-  const upcomingSessions = data.earningsLedger.filter(
-    (entry) => entry.statusGroup === 'scheduled' || entry.statusGroup === 'available',
-  );
+  const upcomingSessions = data.earningsLedger
+    .filter((entry) => entry.statusGroup === 'scheduled' || entry.statusGroup === 'available')
+    .toSorted(sortUpcomingByProximityToToday);
 
   return (
     <div className="container max-w-5xl space-y-6 py-8">
