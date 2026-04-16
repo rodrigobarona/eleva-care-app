@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { sha256Hex } from '@/lib/utils/idempotency';
 import { Package } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
@@ -32,20 +33,6 @@ interface PackPurchaseCardProps {
       durationInMinutes: number;
     };
   };
-}
-
-/**
- * Derive a stable SHA-256 hex digest for use as an `Idempotency-Key`. Same
- * input produces the same key, so rapid double-clicks on "Buy Pack" reuse
- * the same key and Stripe returns the same Checkout Session (within its 24h
- * retention window) instead of creating duplicates.
- */
-async function sha256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
 }
 
 export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {

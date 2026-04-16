@@ -432,11 +432,24 @@ export async function POST(request: NextRequest) {
         meetingData.startTime,
       );
 
-      // Check if this exact form submission is already being processed.
-      // Do NOT assign formCacheKey yet — if we detect an in-flight duplicate,
-      // another request owns the cache entry and we must not clear it on 429.
-      const isAlreadyProcessing = await FormCache.isProcessing(candidateKey);
-      if (isAlreadyProcessing) {
+      // Atomic SET-NX acquire: replaces the previous isProcessing()-then-set()
+      // pattern, which had a TOCTOU race window where two concurrent requests
+      // could both observe an empty cache and both proceed. tryAcquireProcessing
+      // returns true only for the single caller that actually created the key.
+      // Do NOT assign formCacheKey before the call — if acquisition fails, the
+      // entry belongs to another in-flight request and we must not clear it on 429.
+      const acquired = await FormCache.tryAcquireProcessing(
+        candidateKey,
+        {
+          eventId,
+          guestEmail: meetingData.guestEmail,
+          startTime: meetingData.startTime,
+          timestamp: Date.now(),
+        },
+        FORM_PROCESSING_TTL_SECONDS,
+      );
+
+      if (!acquired) {
         console.log('🚫 Form submission already in progress (FormCache) - blocking duplicate');
         return NextResponse.json({ error: 'Request already in progress' }, { status: 429 });
       }
@@ -444,19 +457,6 @@ export async function POST(request: NextRequest) {
       // This request now owns the cache entry — record the key so any subsequent
       // early-return (4xx) or the catch block can clear it via errorResponse().
       formCacheKey = candidateKey;
-
-      // Mark this submission as processing (short TTL — acts as a transient lock)
-      await FormCache.set(
-        formCacheKey,
-        {
-          eventId,
-          guestEmail: meetingData.guestEmail,
-          startTime: meetingData.startTime,
-          status: 'processing',
-          timestamp: Date.now(),
-        },
-        FORM_PROCESSING_TTL_SECONDS,
-      );
 
       console.log('📝 Marked form submission as processing in FormCache:', formCacheKey);
     }
@@ -671,8 +671,19 @@ export async function POST(request: NextRequest) {
       });
 
       if (activeReservation) {
-        // Same guest can reuse their existing reservation
-        if (activeReservation.guestEmail === validatedMeetingData.guestEmail) {
+        // Normalize emails to mirror the conflict-check above: a casing or
+        // whitespace difference between the stored reservation and the new
+        // request would otherwise cause a false-negative match and route the
+        // same guest into the SLOT_TEMPORARILY_RESERVED branch (a confusing
+        // 409 against their own in-flight reservation).
+        const normalizedActiveEmail = activeReservation.guestEmail?.toLowerCase().trim();
+        const normalizedRequestEmail = validatedMeetingData.guestEmail?.toLowerCase().trim();
+
+        if (
+          normalizedActiveEmail &&
+          normalizedRequestEmail &&
+          normalizedActiveEmail === normalizedRequestEmail
+        ) {
           return { type: 'REUSE_RESERVATION' as const, reservation: activeReservation };
         }
         // Different guest -- slot is held
@@ -762,10 +773,25 @@ export async function POST(request: NextRequest) {
 
         if (existingSession.status === 'open' && existingSession.payment_status === 'unpaid') {
           console.log('Reusing existing valid session:', existingSession.id);
+          // Release the FormCache lock before returning. Without this, the
+          // 'processing' entry stays alive for the full FORM_PROCESSING_TTL
+          // and any retry from the same (eventId, guestEmail, startTime)
+          // would 429 for ~30s even though we already handed back a valid
+          // checkout URL. Mirrors the cleanup on the main success path.
+          if (formCacheKey) {
+            await FormCache.markCompleted(formCacheKey);
+            console.log(
+              '✅ Marked form submission as completed in FormCache (reused session):',
+              formCacheKey,
+            );
+          }
+          await clearFormCache();
           return NextResponse.json({ url: existingSession.url });
         }
 
-        // Session expired/completed, clean up reservation so we create a new one
+        // Session expired/completed, clean up reservation so we create a new one.
+        // Do NOT clear the FormCache here -- we keep the lock for the rest of
+        // this request, which proceeds to create a fresh Stripe session below.
         await db
           .delete(SlotReservationTable)
           .where(eq(SlotReservationTable.id, slotResult.reservation.id));

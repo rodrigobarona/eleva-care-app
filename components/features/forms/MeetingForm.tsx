@@ -19,6 +19,7 @@ import {
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
 import { generateFormCacheKey } from '@/lib/utils/cache-keys';
+import { sha256Hex } from '@/lib/utils/idempotency';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,26 +41,6 @@ import type { z } from 'zod';
 
 // Stripe checkout URL validation
 const ALLOWED_CHECKOUT_HOSTS = new Set(['checkout.stripe.com']);
-
-/**
- * Derive a stable SHA-256 hex digest from a deterministic input string.
- *
- * Used to produce Stripe `Idempotency-Key` values that are the same for
- * a given booking context (eventId + guestEmail + startTime) regardless of
- * how many times the component calls the payment-intent endpoint (prefetch,
- * explicit submit, retries within Stripe's 24h key retention window).
- *
- * Stripe treats matching keys as the same request and returns the same
- * Checkout Session, so prefetch + submit no longer race to create two
- * different sessions.
- */
-async function sha256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 /**
  * Validates a Stripe checkout URL
