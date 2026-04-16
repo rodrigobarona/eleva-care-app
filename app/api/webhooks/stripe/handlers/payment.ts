@@ -25,6 +25,7 @@ import { sendEmail } from '@/lib/integrations/novu/email';
 import { elevaEmailService } from '@/lib/integrations/novu/email-service';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
+import { resolveMarketplaceAmounts } from '@/lib/payments/marketplace-amounts';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { format, toZonedTime } from 'date-fns-tz';
@@ -765,6 +766,18 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       dur: 0,
       notes: '',
     });
+    const paymentData = parseMetadata(paymentIntent.metadata?.payment, {
+      amount: '0',
+      fee: '0',
+      expert: '0',
+    });
+    const resolvedAmounts = resolveMarketplaceAmounts({
+      actualGrossAmount: paymentIntent.amount_received || paymentIntent.amount,
+      configuredGrossAmount: Number.parseInt(paymentData.amount, 10),
+      actualPlatformFeeAmount: paymentIntent.application_fee_amount,
+      configuredPlatformFeeAmount: Number.parseInt(paymentData.fee, 10),
+      configuredExpertAmount: Number.parseInt(paymentData.expert, 10),
+    });
 
     // Check if this is a Multibanco payment and if it's potentially late
     const isMultibancoPayment = paymentIntent.payment_method_types?.includes('multibanco');
@@ -960,6 +973,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       .update(MeetingTable)
       .set({
         stripePaymentStatus: 'succeeded',
+        stripeAmount: resolvedAmounts.grossAmount,
+        stripeApplicationFeeAmount: resolvedAmounts.platformFeeAmount,
         updatedAt: new Date(),
       })
       .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id))
@@ -1079,12 +1094,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           scheduled: '',
         });
 
-        const paymentData = parseMetadata(paymentIntent.metadata?.payment, {
-          amount: '0',
-          fee: '0',
-          expert: '0',
-        });
-
         // Validate critical fields before creating transfer record
         if (transferData && paymentData && meeting) {
           // Validate transfer data
@@ -1103,8 +1112,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           }
 
           // Validate payment amounts
-          const amount = Number.parseInt(paymentData.expert, 10);
-          const fee = Number.parseInt(paymentData.fee, 10);
+          const amount = resolvedAmounts.expertAmount;
+          const fee = resolvedAmounts.platformFeeAmount;
 
           if (Number.isNaN(amount) || amount <= 0) {
             console.error(

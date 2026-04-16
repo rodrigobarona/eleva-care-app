@@ -180,6 +180,64 @@ describe('expert earnings aggregation', () => {
     expect(getEarningsStatusGroup('FAILED', 'failed')).toBe('issue');
   });
 
+  it('recalculates ledger values when a discount lowers the charged amount', () => {
+    const discountedRecords = buildEarningsRecords(
+      [
+        {
+          id: 4,
+          paymentIntentId: 'pi_discounted',
+          checkoutSessionId: 'cs_discounted',
+          eventId: 'event-4',
+          expertConnectAccountId: 'acct_1',
+          expertClerkUserId: 'user_1',
+          amount: 5950,
+          currency: 'eur',
+          platformFee: 1050,
+          sessionStartTime: new Date('2026-04-21T09:00:00.000Z'),
+          scheduledTransferTime: new Date('2026-04-22T09:00:00.000Z'),
+          status: 'READY',
+          transferId: null,
+          payoutId: null,
+          stripeErrorCode: null,
+          stripeErrorMessage: null,
+          retryCount: 0,
+          requiresApproval: false,
+          adminUserId: null,
+          adminNotes: null,
+          notifiedAt: null,
+          guestName: 'Rodrigo Barona',
+          guestEmail: 'rodrigo@example.com',
+          serviceName: 'Session',
+          created: new Date('2026-04-15T23:30:00.000Z'),
+          updated: new Date('2026-04-15T23:30:00.000Z'),
+        },
+      ] as any,
+      new Map([
+        [
+          'pi_discounted',
+          {
+            stripePaymentIntentId: 'pi_discounted',
+            stripePaymentStatus: 'succeeded',
+            stripeAmount: 700,
+            stripeApplicationFeeAmount: null,
+            stripePayoutId: null,
+            startTime: new Date('2026-04-21T09:00:00.000Z'),
+            endTime: new Date('2026-04-21T10:00:00.000Z'),
+            guestName: 'Rodrigo Barona',
+            guestEmail: 'rodrigo@example.com',
+            eventId: 'event-4',
+          },
+        ],
+      ]) as any,
+    );
+
+    expect(discountedRecords[0]).toMatchObject({
+      grossAmount: 700,
+      netAmount: 595,
+      platformFeeAmount: 105,
+    });
+  });
+
   it('builds summaries excluding refunded sessions from active earnings totals', () => {
     const summary = buildEarningsSummary(records);
 

@@ -55,6 +55,7 @@ import {
   triggerNovuWorkflow,
 } from '@/lib/integrations/novu/utils';
 import type { StripeWebhookPayload } from '@/lib/integrations/novu/utils';
+import { resolveMarketplaceAmounts } from '@/lib/payments/marketplace-amounts';
 import { webhookMonitor } from '@/lib/redis/webhook-monitor';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
@@ -848,6 +849,13 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent as Stripe.PaymentIntent | null)?.id;
+    const resolvedAmounts = resolveMarketplaceAmounts({
+      actualGrossAmount: session.amount_total,
+      configuredGrossAmount: paymentData ? Number.parseInt(paymentData.amount, 10) : null,
+      actualPlatformFeeAmount: session.application_fee_amount,
+      configuredPlatformFeeAmount: paymentData ? Number.parseInt(paymentData.fee, 10) : null,
+      configuredExpertAmount: paymentData ? Number.parseInt(paymentData.expert, 10) : null,
+    });
 
     const result = await createMeeting({
       eventId: meetingData.id,
@@ -861,8 +869,8 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       stripeSessionId: session.id,
       stripePaymentIntentId: paymentIntentId, // 🔧 FIX: Store paymentIntentId for later lookup in payment_intent.succeeded
       stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
-      stripeAmount: session.amount_total ?? undefined,
-      stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
+      stripeAmount: resolvedAmounts.grossAmount || undefined,
+      stripeApplicationFeeAmount: resolvedAmounts.platformFeeAmount || undefined,
       locale: meetingData.locale || 'en',
     });
 
@@ -1091,8 +1099,18 @@ async function createPaymentTransferIfNotExists({
     throw new Error('Expert Connect account ID is required for transfer record creation');
   }
 
-  const amount = Number.parseInt(paymentData.expert, 10);
-  const platformFee = Number.parseInt(paymentData.fee, 10);
+  const configuredGrossAmount = Number.parseInt(paymentData.amount, 10);
+  const configuredPlatformFeeAmount = Number.parseInt(paymentData.fee, 10);
+  const configuredExpertAmount = Number.parseInt(paymentData.expert, 10);
+  const resolvedAmounts = resolveMarketplaceAmounts({
+    actualGrossAmount: session.amount_total,
+    configuredGrossAmount,
+    actualPlatformFeeAmount: session.application_fee_amount,
+    configuredPlatformFeeAmount,
+    configuredExpertAmount,
+  });
+  const amount = resolvedAmounts.expertAmount;
+  const platformFee = resolvedAmounts.platformFeeAmount;
 
   if (Number.isNaN(amount) || amount <= 0) {
     console.error('Invalid expert payment amount:', {

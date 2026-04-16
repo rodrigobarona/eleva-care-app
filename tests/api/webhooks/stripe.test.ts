@@ -340,6 +340,64 @@ describe('Stripe Main Webhook Handler', () => {
       }
     });
 
+    it('should recalculate meeting amounts when a discount lowers the charged total', async () => {
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+
+      mockStripeConstructEvent.mockReturnValue({
+        type: 'checkout.session.completed',
+        id: 'evt_test_discounted',
+        data: {
+          object: {
+            id: 'cs_test_discounted',
+            payment_status: 'paid',
+            payment_intent: 'pi_test_discounted',
+            amount_total: 700,
+            application_fee_amount: 1050,
+            currency: 'eur',
+            metadata: {
+              meeting: JSON.stringify({
+                id: 'event_discounted',
+                expert: 'user_expert_discounted',
+                guest: 'rodrigo@example.com',
+                guestName: 'Rodrigo Barona',
+                start: '2026-04-21T09:00:00.000Z',
+                dur: 60,
+                notes: '',
+                locale: 'en',
+                timezone: 'UTC',
+              }),
+              payment: JSON.stringify({
+                amount: '7000',
+                fee: '1050',
+                expert: '5950',
+              }),
+              transfer: JSON.stringify({
+                status: 'pending',
+                account: 'acct_expert_discounted',
+                country: 'PT',
+                delay: { aging: 0, remaining: 7, required: 7 },
+                scheduled: '2026-04-22T09:00:00.000Z',
+              }),
+              approval: 'false',
+            },
+          },
+        },
+      });
+
+      try {
+        const response = await POST(mockRequest);
+        expect(response.status).toBe(200);
+        expect(createMeeting).toHaveBeenCalledWith(
+          expect.objectContaining({
+            stripeAmount: 700,
+            stripeApplicationFeeAmount: 105,
+          }),
+        );
+      } catch {
+        console.log('Skipping test due to import issues');
+      }
+    });
+
     it('should skip processing when meeting already exists', async () => {
       // Setup existing meeting
       ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue({

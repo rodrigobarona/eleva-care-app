@@ -19,6 +19,7 @@ import {
   type PaymentTransferStatus,
 } from '@/lib/constants/payment-transfers';
 import { getConnectAccountBalance, getConnectAccountPayouts } from '@/lib/integrations/stripe';
+import { resolveMarketplaceAmounts } from '@/lib/payments/marketplace-amounts';
 import { and, eq, gte, inArray, lt } from 'drizzle-orm';
 import 'server-only';
 
@@ -252,8 +253,13 @@ export function buildEarningsRecords(
     const meeting = meetingsByPaymentIntentId.get(transfer.paymentIntentId);
     const customerPaymentStatus = meeting?.stripePaymentStatus ?? null;
     const statusGroup = getEarningsStatusGroup(transfer.status, customerPaymentStatus);
-    const grossAmount = meeting?.stripeAmount ?? transfer.amount + transfer.platformFee;
-    const platformFeeAmount = meeting?.stripeApplicationFeeAmount ?? transfer.platformFee;
+    const resolvedAmounts = resolveMarketplaceAmounts({
+      actualGrossAmount: meeting?.stripeAmount,
+      configuredGrossAmount: transfer.amount + transfer.platformFee,
+      actualPlatformFeeAmount: meeting?.stripeApplicationFeeAmount,
+      configuredPlatformFeeAmount: transfer.platformFee,
+      configuredExpertAmount: transfer.amount,
+    });
 
     return {
       id: `session-${transfer.id}`,
@@ -264,9 +270,9 @@ export function buildEarningsRecords(
       checkoutSessionId: transfer.checkoutSessionId,
       eventId: transfer.eventId,
       currency: normalizeCurrency(transfer.currency),
-      grossAmount,
-      netAmount: transfer.amount,
-      platformFeeAmount,
+      grossAmount: resolvedAmounts.grossAmount,
+      netAmount: resolvedAmounts.expertAmount,
+      platformFeeAmount: resolvedAmounts.platformFeeAmount,
       paidAt: transfer.created,
       activityDate: meeting?.startTime ?? transfer.sessionStartTime,
       sessionStartTime: meeting?.startTime ?? transfer.sessionStartTime,
