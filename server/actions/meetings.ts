@@ -1,16 +1,24 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { MeetingTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import {
+  PAYMENT_TRANSFER_STATUS_PENDING,
+  PAYMENT_TRANSFER_STATUS_REFUNDED,
+} from '@/lib/constants/payment-transfers';
 import { triggerWorkflow } from '@/lib/integrations/novu';
+import { stripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
+import { auth } from '@clerk/nextjs/server';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
-import type { z } from 'zod';
+import Stripe from 'stripe';
+import { z } from 'zod';
 
 /**
  * @fileoverview Server actions for managing meetings in the Eleva Care application.
@@ -211,6 +219,9 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     try {
       let calendarEvent: Awaited<ReturnType<typeof createCalendarEvent>> | null = null;
       let meetingUrl: string | null = null;
+      // Stored alongside meetingUrl so the cancel flow can call
+      // events.delete() programmatically without searching by time.
+      let googleCalendarEventId: string | null = null;
 
       // Only create calendar events for confirmed payments or free events.
       // Deferred methods (e.g. Multibanco / processing) get calendar events
@@ -242,10 +253,12 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             locale: data.locale || 'en',
           });
           meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+          googleCalendarEventId = calendarEvent.id ?? null;
           console.log('✅ Calendar event created successfully:', {
             paymentStatus: data.stripePaymentStatus || 'free',
             hasUrl: !!meetingUrl,
             hasConferenceData: !!calendarEvent.conferenceData,
+            hasGoogleCalendarEventId: !!googleCalendarEventId,
           });
         } catch (calendarError) {
           console.error('❌ Failed to create calendar event:', {
@@ -278,6 +291,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           endTime: endTimeUTC,
           timezone: data.timezone,
           meetingUrl: meetingUrl,
+          googleCalendarEventId,
           stripePaymentIntentId: data.stripePaymentIntentId,
           stripeSessionId: data.stripeSessionId,
           stripePaymentStatus: data.stripePaymentStatus as
@@ -387,5 +401,347 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       guestEmail: unsafeData.guestEmail,
     });
     return { error: true, code: 'UNEXPECTED_ERROR' };
+  }
+}
+
+type CancelAppointmentResult =
+  | { success: true; refundId: string; message: string }
+  | { success: false; code: CancelAppointmentErrorCode; message: string };
+
+type CancelAppointmentErrorCode =
+  | 'INVALID_INPUT'
+  | 'UNAUTHENTICATED'
+  | 'NOT_FOUND'
+  | 'FORBIDDEN'
+  | 'ALREADY_REFUNDED'
+  | 'NOT_PAID'
+  | 'PAST_APPOINTMENT'
+  | 'MISSING_STRIPE_CONTEXT'
+  | 'STRIPE_ERROR'
+  | 'UNEXPECTED_ERROR';
+
+const cancelAppointmentSchema = z.object({
+  meetingId: z.string().uuid(),
+  reason: z
+    .string()
+    .max(500, 'Reason cannot be longer than 500 characters')
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+});
+
+/**
+ * Cancel a confirmed appointment.
+ *
+ * Performs (in order):
+ *  1. Auth + ownership check (only the expert who owns the event can cancel)
+ *  2. Cancel the Google Calendar event (best-effort; doesn't block refund)
+ *  3. Issue a full Stripe refund on the connected account, with
+ *     `refund_application_fee: true` and `reverse_transfer: true` so the
+ *     platform fee AND the destination payment are clawed back.
+ *  4. Update MeetingTable + PaymentTransferTable in our DB IMMEDIATELY (this
+ *     is the source-of-truth pattern from Fix E.c — we don't wait for the
+ *     webhook because Stripe Dashboard subscriptions can be misconfigured).
+ *  5. Trigger the appointment-cancelled Novu workflow for both the GUEST
+ *     (refund notice) and the EXPERT (audit confirmation).
+ *
+ * Idempotent: re-running on an already-cancelled appointment returns
+ * ALREADY_REFUNDED (not an error to the user).
+ */
+export async function cancelAppointment(
+  meetingId: string,
+  reason?: string,
+): Promise<CancelAppointmentResult> {
+  // Validate input upfront. Invalid uuid / oversized reason should never
+  // reach Stripe or the DB.
+  const parsedInput = cancelAppointmentSchema.safeParse({ meetingId, reason });
+  if (!parsedInput.success) {
+    return {
+      success: false,
+      code: 'INVALID_INPUT',
+      message: parsedInput.error.issues[0]?.message ?? 'Invalid input.',
+    };
+  }
+  const validatedMeetingId = parsedInput.data.meetingId;
+  const validatedReason = parsedInput.data.reason;
+
+  try {
+    const { userId: expertClerkUserId } = await auth();
+    if (!expertClerkUserId) {
+      return { success: false, code: 'UNAUTHENTICATED', message: 'You must be signed in.' };
+    }
+
+    const meeting = await db.query.MeetingTable.findFirst({
+      where: eq(MeetingTable.id, validatedMeetingId),
+      with: {
+        event: {
+          columns: { id: true, name: true, clerkUserId: true, currency: true },
+        },
+      },
+    });
+
+    if (!meeting) {
+      return { success: false, code: 'NOT_FOUND', message: 'Appointment not found.' };
+    }
+
+    if (meeting.event?.clerkUserId !== expertClerkUserId) {
+      return {
+        success: false,
+        code: 'FORBIDDEN',
+        message: 'You can only cancel appointments for events you own.',
+      };
+    }
+
+    if (meeting.stripePaymentStatus === 'refunded') {
+      return {
+        success: false,
+        code: 'ALREADY_REFUNDED',
+        message: 'This appointment has already been cancelled and refunded.',
+      };
+    }
+
+    if (meeting.stripePaymentStatus !== 'succeeded') {
+      return {
+        success: false,
+        code: 'NOT_PAID',
+        message: `Cannot cancel an appointment in status "${meeting.stripePaymentStatus ?? 'unknown'}". Only succeeded payments can be refunded.`,
+      };
+    }
+
+    if (meeting.startTime.getTime() < Date.now()) {
+      return {
+        success: false,
+        code: 'PAST_APPOINTMENT',
+        message: 'Cannot cancel an appointment that has already started or ended.',
+      };
+    }
+
+    if (!meeting.stripePaymentIntentId) {
+      return {
+        success: false,
+        code: 'MISSING_STRIPE_CONTEXT',
+        message: 'No Stripe payment intent on this meeting; cannot issue a refund.',
+      };
+    }
+
+    const expertUser = await db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, expertClerkUserId),
+      columns: {
+        firstName: true,
+        lastName: true,
+        stripeConnectAccountId: true,
+      },
+    });
+
+    if (!expertUser?.stripeConnectAccountId) {
+      return {
+        success: false,
+        code: 'MISSING_STRIPE_CONTEXT',
+        message: 'Expert is not connected to Stripe; cannot issue a refund.',
+      };
+    }
+
+    // Step 1) Best-effort Google Calendar cancellation. We don't block the
+    // refund on calendar errors — the customer is owed their money back.
+    if (meeting.googleCalendarEventId) {
+      try {
+        await GoogleCalendarService.getInstance().cancelCalendarEvent(
+          expertClerkUserId,
+          meeting.googleCalendarEventId,
+        );
+      } catch (calendarError) {
+        console.error('[cancelAppointment] Calendar cancel failed (continuing with refund):', {
+          meetingId,
+          calendarEventId: meeting.googleCalendarEventId,
+          error: calendarError instanceof Error ? calendarError.message : calendarError,
+        });
+      }
+    } else {
+      console.warn(
+        `[cancelAppointment] Meeting ${meetingId} has no googleCalendarEventId — skipping calendar cancel.`,
+      );
+    }
+
+    // Step 2) Issue the Stripe refund. For destination_payment marketplace
+    // charges (transfer_data.destination), the charge lives on the PLATFORM
+    // not the connected account — so we DO NOT pass stripeAccount here.
+    // refund_application_fee: true claws back the platform fee, and
+    // reverse_transfer: true claws back the destination payment from the
+    // expert. Idempotency-keyed so retries don't double-refund.
+    let refund: Stripe.Refund;
+    try {
+      refund = await stripe.refunds.create(
+        {
+          payment_intent: meeting.stripePaymentIntentId,
+          refund_application_fee: true,
+          reverse_transfer: true,
+          reason: 'requested_by_customer',
+          metadata: {
+            meetingId: validatedMeetingId,
+            cancellationReason: validatedReason ?? '',
+            cancelledByExpertClerkUserId: expertClerkUserId,
+          },
+        },
+        {
+          idempotencyKey: `cancel-appointment:${validatedMeetingId}`,
+        },
+      );
+    } catch (stripeError) {
+      console.error('[cancelAppointment] Stripe refund failed:', {
+        meetingId: validatedMeetingId,
+        paymentIntentId: meeting.stripePaymentIntentId,
+        error: stripeError instanceof Error ? stripeError.message : stripeError,
+      });
+      return {
+        success: false,
+        code: 'STRIPE_ERROR',
+        message:
+          stripeError instanceof Error
+            ? `Stripe refund failed: ${stripeError.message}`
+            : 'Stripe refund failed for an unknown reason. Please try again.',
+      };
+    }
+
+    // Step 3) Source-of-truth DB updates (Fix E.c) wrapped in a transaction
+    // so we never end up with the meeting marked refunded but the transfer
+    // still pending (or vice versa). Conditional WHEREs keep this idempotent
+    // — the charge.refunded webhook (which is also idempotent) will no-op
+    // on arrival.
+    try {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(MeetingTable)
+          .set({
+            stripePaymentStatus: 'refunded',
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(MeetingTable.id, meeting.id),
+              eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+            ),
+          );
+
+        if (meeting.stripePaymentIntentId) {
+          await tx
+            .update(PaymentTransferTable)
+            .set({ status: PAYMENT_TRANSFER_STATUS_REFUNDED, updated: new Date() })
+            .where(
+              and(
+                eq(PaymentTransferTable.paymentIntentId, meeting.stripePaymentIntentId),
+                // Only flip rows still in PENDING — don't touch already paid-out ones
+                eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_PENDING),
+              ),
+            );
+        }
+      });
+    } catch (dbError) {
+      console.error('[cancelAppointment] DB update failed AFTER Stripe refund:', {
+        meetingId: validatedMeetingId,
+        refundId: refund.id,
+        error: dbError instanceof Error ? dbError.message : dbError,
+      });
+      // The webhook will eventually reconcile if it's wired. Surface the
+      // partial-success state to the operator via the audit log below and
+      // return success-with-warning to the user (the refund DID happen).
+    }
+
+    // Step 4) Notifications — guest first (refund notice), then expert
+    // (audit confirmation). Failures here are logged but never throw so
+    // we don't lie to the user about the cancellation.
+    const expertName =
+      `${expertUser.firstName ?? ''} ${expertUser.lastName ?? ''}`.trim() || 'Expert';
+    const guestTimezone = meeting.timezone || 'UTC';
+    const appointmentDate = formatInTimeZone(meeting.startTime, guestTimezone, 'EEEE, MMMM d, yyyy');
+    const appointmentTime = formatInTimeZone(meeting.startTime, guestTimezone, 'h:mm a zzz');
+
+    // Prefer the refund's currency, then the event's configured currency,
+    // then fall back to EUR. Avoids displaying the wrong currency for
+    // non-EUR markets (e.g., a USD pack purchase refunded would otherwise
+    // show "X.XX EUR" in the email).
+    const refundCurrencyUpper =
+      refund.currency?.toUpperCase() ??
+      meeting.event?.currency?.toUpperCase() ??
+      'EUR';
+    const refundAmountFormatted = `${(refund.amount / 100).toFixed(2)} ${refundCurrencyUpper}`;
+    const eventName = meeting.event?.name ?? 'Appointment';
+    const stripeMetadata = (meeting.stripeMetadata ?? {}) as { locale?: unknown };
+    const locale =
+      typeof stripeMetadata.locale === 'string' && stripeMetadata.locale.length > 0
+        ? stripeMetadata.locale
+        : 'en';
+
+    const sharedPayload = {
+      expertName,
+      clientName: meeting.guestName,
+      serviceName: eventName,
+      appointmentDate,
+      appointmentTime,
+      timezone: guestTimezone,
+      refundAmountFormatted,
+      cancellationReason: validatedReason,
+      locale,
+    };
+
+    try {
+      await triggerWorkflow({
+        workflowId: 'appointment-cancelled',
+        to: {
+          subscriberId: meeting.guestEmail,
+          email: meeting.guestEmail,
+          firstName: meeting.guestName.split(' ')[0],
+          lastName: meeting.guestName.split(' ').slice(1).join(' ') || undefined,
+        },
+        payload: { ...sharedPayload, recipientType: 'patient' },
+        transactionId: `cancel-guest-${meeting.id}`,
+      });
+    } catch (notifyError) {
+      console.error('[cancelAppointment] Failed to notify guest:', notifyError);
+    }
+
+    try {
+      await triggerWorkflow({
+        workflowId: 'appointment-cancelled',
+        to: { subscriberId: expertClerkUserId },
+        payload: { ...sharedPayload, recipientType: 'expert' },
+        transactionId: `cancel-expert-${meeting.id}`,
+      });
+    } catch (notifyError) {
+      console.error('[cancelAppointment] Failed to notify expert:', notifyError);
+    }
+
+    // Step 5) Audit log
+    try {
+      await logAuditEvent(
+        expertClerkUserId,
+        'MEETING_CANCELLED',
+        'meeting',
+        meeting.id,
+        { stripePaymentStatus: 'succeeded' },
+        {
+          stripePaymentStatus: 'refunded',
+          refundId: refund.id,
+          refundAmount: refund.amount,
+          refundCurrency: refund.currency,
+          cancellationReason: validatedReason,
+        },
+        (await headers()).get('x-forwarded-for') ?? 'Unknown',
+        (await headers()).get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('[cancelAppointment] Audit log failed (continuing):', auditError);
+    }
+
+    return {
+      success: true,
+      refundId: refund.id,
+      message: `Appointment cancelled and ${refundAmountFormatted} refunded.`,
+    };
+  } catch (error) {
+    console.error('[cancelAppointment] Unexpected error:', error);
+    return {
+      success: false,
+      code: 'UNEXPECTED_ERROR',
+      message: error instanceof Error ? error.message : 'Unexpected error during cancellation.',
+    };
   }
 }

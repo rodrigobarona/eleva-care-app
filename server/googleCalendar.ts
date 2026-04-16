@@ -434,6 +434,59 @@ class GoogleCalendarService {
   }
 
   /**
+   * Cancels (deletes) a Google Calendar event for the given expert.
+   *
+   * Used by the appointment cancel flow. Sends `sendUpdates: 'all'` so
+   * Google emails the guest a calendar cancellation notice automatically.
+   *
+   * Idempotent: if the event has already been deleted (404 from Google) or
+   * is gone (410), the helper logs a warning and returns successfully so a
+   * retried cancel doesn't blow up.
+   *
+   * @param expertClerkUserId - Clerk user id of the expert who owns the calendar
+   * @param calendarEventId - Google Calendar event id (from MeetingTable.googleCalendarEventId)
+   */
+  async cancelCalendarEvent(expertClerkUserId: string, calendarEventId: string): Promise<void> {
+    if (!calendarEventId) {
+      console.warn('[GoogleCalendar] cancelCalendarEvent called with empty event id, skipping');
+      return;
+    }
+
+    // getOAuthClient throws on missing/invalid auth — no falsy return possible.
+    const oAuthClient = await this.getOAuthClient(expertClerkUserId);
+
+    try {
+      await google.calendar('v3').events.delete({
+        calendarId: 'primary',
+        auth: oAuthClient,
+        eventId: calendarEventId,
+        sendUpdates: 'all',
+      });
+      console.log('[GoogleCalendar] cancelCalendarEvent: deleted event', { calendarEventId });
+    } catch (err: unknown) {
+      // Google returns 404 (Not Found) or 410 (Gone) if the event was already
+      // deleted (e.g., expert manually removed it from the calendar UI).
+      // Treat both as successful no-ops so cancel retries are safe.
+      const code = (err as { code?: number; status?: number; response?: { status?: number } })
+        ?.code;
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (code === 404 || code === 410 || status === 404 || status === 410) {
+        console.warn('[GoogleCalendar] cancelCalendarEvent: event already gone, treating as ok', {
+          calendarEventId,
+          code,
+          status,
+        });
+        return;
+      }
+      console.error('[GoogleCalendar] cancelCalendarEvent failed', {
+        calendarEventId,
+        error: err instanceof Error ? err.message : err,
+      });
+      throw err;
+    }
+  }
+
+  /**
    * Checks if a user has valid Google OAuth tokens
    *
    * Verifies that the specified user has connected their Google account
