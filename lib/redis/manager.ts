@@ -81,6 +81,53 @@ class RedisManager {
   }
 
   /**
+   * Atomically set a key only if it does not already exist (Redis `SET NX`).
+   *
+   * Returns `true` when this call created the key, `false` when the key was
+   * already present. Always sets a TTL so callers don't accidentally create
+   * a permanent lock if they forget to release it.
+   *
+   * Used as a primitive for distributed locks: replace the classic
+   * check-then-set TOCTOU pattern (exists() then set()) with a single
+   * atomic round trip.
+   */
+  async setNx(key: string, value: string, expirationSeconds: number): Promise<boolean> {
+    if (typeof value !== 'string') {
+      console.error(
+        `RedisManager.setNx: Invalid value type for key "${key}". Expected string, got ${typeof value}. Value will be coerced to string.`,
+      );
+      value = String(value);
+    }
+
+    if (this.isRedisAvailable && this.redis) {
+      try {
+        const result = await this.redis.set(key, value, {
+          nx: true,
+          ex: expirationSeconds,
+        });
+        return result === 'OK';
+      } catch (error) {
+        console.error('Redis SET NX error:', error);
+        // Fallback to in-memory cache
+      }
+    }
+
+    // In-memory fallback: emulate SET NX semantics with a single-threaded
+    // check-then-set. This is only used when Redis is unavailable (typically
+    // local dev with a single Node process), so the lack of cross-instance
+    // atomicity is acceptable.
+    this.cleanupInMemoryCache();
+    const existing = this.inMemoryCache.get(key);
+    if (existing && existing.expiresAt > Date.now()) {
+      return false;
+    }
+
+    const expiresAt = Date.now() + expirationSeconds * 1000;
+    this.inMemoryCache.set(key, { value, expiresAt });
+    return true;
+  }
+
+  /**
    * Retrieves a value from Redis by key.
    *
    * Handles multiple return types from Redis operations:
@@ -397,6 +444,54 @@ export const FormCache = {
       await redisManager.set(cacheKey, value, ttlSeconds);
     } catch (error) {
       console.error('Failed to stringify formData for FormCache:', error, formData);
+    }
+  },
+
+  /**
+   * Atomically acquire the `processing` lock for a form submission.
+   *
+   * Wraps Redis `SET NX EX` so two concurrent requests for the same booking
+   * cannot both observe an empty cache and both proceed (the classic TOCTOU
+   * race in `isProcessing()` followed by `set()`).
+   *
+   * Returns `true` when this caller now owns the lock — proceed with the
+   * request and clear the cache on completion/failure. Returns `false` when
+   * another in-flight request already holds the lock — the caller should
+   * respond with the duplicate-submission error and MUST NOT clear the
+   * cache on early return (it belongs to the other request).
+   */
+  async tryAcquireProcessing(
+    key: string,
+    formData: {
+      eventId: string;
+      guestEmail: string;
+      startTime: string;
+      timestamp: number;
+    },
+    ttlSeconds: number = FORM_DEFAULT_TTL_SECONDS,
+  ): Promise<boolean> {
+    const cacheKey = FORM_CACHE_PREFIX + key;
+
+    if (!formData || typeof formData !== 'object') {
+      console.error('Invalid formData provided to FormCache.tryAcquireProcessing:', formData);
+      return false;
+    }
+
+    const { eventId, guestEmail, startTime, timestamp } = formData;
+    if (!eventId || !guestEmail || !startTime || !timestamp) {
+      console.error(
+        'Missing required fields in formData for FormCache.tryAcquireProcessing:',
+        formData,
+      );
+      return false;
+    }
+
+    try {
+      const value = JSON.stringify({ ...formData, status: 'processing' as const });
+      return await redisManager.setNx(cacheKey, value, ttlSeconds);
+    } catch (error) {
+      console.error('Failed to acquire FormCache processing lock:', error, 'Key:', key);
+      return false;
     }
   },
 

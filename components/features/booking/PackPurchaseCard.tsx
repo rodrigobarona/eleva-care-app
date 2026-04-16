@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { sha256Hex } from '@/lib/utils/idempotency';
 import { Package } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
@@ -41,6 +42,24 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
 
+  // Cache the derived idempotency key per (packId, email, dialogSessionId) so
+  // rapid double-clicks within a single dialog open reuse the same Stripe key
+  // (no duplicate sessions), while closing + re-opening the dialog — or the
+  // user returning 24h later to buy the same pack again — generates a fresh
+  // nonce and therefore a fresh Checkout Session (Stripe's idempotency cache
+  // retains keys for 24h and would otherwise return the prior completed URL).
+  const idempotencyKeyCache = React.useRef<{ signature: string; key: string } | null>(null);
+  const dialogSessionIdRef = React.useRef<string>(crypto.randomUUID());
+
+  // Roll the dialog-session nonce whenever the dialog closes so the next open
+  // produces a fresh idempotency key.
+  React.useEffect(() => {
+    if (!isOpen) {
+      dialogSessionIdRef.current = crypto.randomUUID();
+      idempotencyKeyCache.current = null;
+    }
+  }, [isOpen]);
+
   const individualTotal = pack.event.price * pack.sessionsCount;
   const savings = individualTotal > 0 ? individualTotal - pack.price : 0;
   const savingsPercent = individualTotal > 0 ? Math.round((savings / individualTotal) * 100) : 0;
@@ -55,11 +74,24 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
 
     setIsLoading(true);
     try {
+      // Derive the Idempotency-Key from (packId, buyerEmail, dialogSessionId).
+      // The dialog-session nonce regenerates on dialog close (see useEffect
+      // above) so legitimate re-purchases produce a fresh Checkout Session
+      // instead of reusing Stripe's cached completed one within 24h.
+      const idempotencySignature = `pack:${pack.id}|${email.toLowerCase().trim()}|${dialogSessionIdRef.current}`;
+      let idempotencyKey: string;
+      if (idempotencyKeyCache.current?.signature === idempotencySignature) {
+        idempotencyKey = idempotencyKeyCache.current.key;
+      } else {
+        idempotencyKey = await sha256Hex(idempotencySignature);
+        idempotencyKeyCache.current = { signature: idempotencySignature, key: idempotencyKey };
+      }
+
       const response = await fetch('/api/create-pack-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Idempotency-Key': crypto.randomUUID(),
+          'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify({
           packId: pack.id,
