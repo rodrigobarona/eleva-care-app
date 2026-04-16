@@ -1,4 +1,3 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
   BlockedDatesTable,
@@ -23,7 +22,7 @@ import {
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { sendEmail } from '@/lib/integrations/novu/email';
 import { elevaEmailService } from '@/lib/integrations/novu/email-service';
-import { withRetry } from '@/lib/integrations/stripe';
+import { stripe, withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
 import { resolveMarketplaceAmounts } from '@/lib/payments/marketplace-amounts';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
@@ -31,11 +30,6 @@ import { logAuditEvent } from '@/lib/utils/server/audit';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq, isNull } from 'drizzle-orm';
 import Stripe from 'stripe';
-
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 // Helper function to parse metadata safely
 function parseMetadata<T>(json: string | undefined, fallback: T): T {
@@ -780,8 +774,36 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       configuredExpertAmount: Number.parseInt(paymentData.expert, 10),
     });
 
-    // Check if this is a Multibanco payment and if it's potentially late
-    const isMultibancoPayment = paymentIntent.payment_method_types?.includes('multibanco');
+    // Retrieve the latest charge once and share it across:
+    //  • Multibanco detection (using the actual payment_method_details.type
+    //    instead of the broader payment_method_types[] which lists every
+    //    method the PI was eligible for under Dashboard-driven dynamic
+    //    payment methods)
+    //  • Destination-payment description update later in this handler
+    let latestCharge: Stripe.Charge | null = null;
+    if (paymentIntent.latest_charge) {
+      try {
+        const latestChargeId =
+          typeof paymentIntent.latest_charge === 'string'
+            ? paymentIntent.latest_charge
+            : paymentIntent.latest_charge.id;
+        latestCharge = await stripe.charges.retrieve(latestChargeId, {
+          expand: ['transfer'],
+        });
+      } catch (chargeError) {
+        console.warn(
+          `⚠️ Failed to retrieve latest charge for PI ${paymentIntent.id}; falling back to payment_method_types for detection`,
+          chargeError,
+        );
+      }
+    }
+
+    // Definitive Multibanco detection from the charge that was actually
+    // captured. Falls back to payment_method_types when the charge is
+    // unavailable (e.g. PI not yet linked to a charge).
+    const isMultibancoPayment =
+      latestCharge?.payment_method_details?.type === 'multibanco' ||
+      (!latestCharge && paymentIntent.payment_method_types?.includes('multibanco'));
 
     // 🆕 CRITICAL FIX: For Multibanco payments, recalculate transfer schedule
     // based on ACTUAL payment time, not the initial booking time
@@ -1154,14 +1176,45 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           }
 
           // All validations passed, create transfer record.
-          // Use the session_id from PI metadata (set during checkout creation) to
-          // satisfy the unique constraint. Fall back to PI id if missing.
-          const sessionIdFromMeta = paymentIntent.metadata?.session_id || `pi_${paymentIntent.id}`;
+          // Resolve the canonical Checkout Session id so this row collates with
+          // any row that handleCheckoutSession may insert. Order of preference:
+          //  1. session_id stamped on PI metadata at checkout-creation time
+          //  2. live lookup via Stripe (handles the case where the post-create
+          //     metadata patch failed)
+          //  3. synthetic `pi_…` fallback (last resort; preserves uniqueness)
+          let resolvedCheckoutSessionId: string;
+          if (paymentIntent.metadata?.session_id) {
+            resolvedCheckoutSessionId = paymentIntent.metadata.session_id;
+          } else {
+            try {
+              const sessions = await stripe.checkout.sessions.list({
+                payment_intent: paymentIntent.id,
+                limit: 1,
+              });
+              resolvedCheckoutSessionId = sessions.data[0]?.id ?? `pi_${paymentIntent.id}`;
+              if (sessions.data[0]?.id) {
+                console.log(
+                  `🔗 Resolved checkout session ${sessions.data[0].id} for PI ${paymentIntent.id} via Stripe lookup`,
+                );
+              } else {
+                console.warn(
+                  `⚠️ No checkout session found for PI ${paymentIntent.id}; falling back to synthetic id`,
+                );
+              }
+            } catch (lookupError) {
+              console.error(
+                `Failed to resolve checkout session for PI ${paymentIntent.id}, using synthetic id:`,
+                lookupError,
+              );
+              resolvedCheckoutSessionId = `pi_${paymentIntent.id}`;
+            }
+          }
+
           const inserted = await db
             .insert(PaymentTransferTable)
             .values({
               paymentIntentId: paymentIntent.id,
-              checkoutSessionId: sessionIdFromMeta,
+              checkoutSessionId: resolvedCheckoutSessionId,
               eventId: meeting.eventId,
               expertConnectAccountId: transferData.account,
               expertClerkUserId: meeting.clerkUserId,
@@ -1210,36 +1263,42 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         console.log(`Transfer record ${transfer.id} status updated to READY.`);
 
         // Update the destination_payment charge description so the expert can
-        // identify the customer in their Stripe Express Dashboard.
+        // identify the customer in their Stripe Express Dashboard. Reuses the
+        // `latestCharge` we already retrieved (with `transfer` expanded) at the
+        // top of this handler, avoiding the legacy `charges.list` + extra
+        // `transfers.retrieve` round-trips.
         try {
-          const charges = await stripe.charges.list({
-            payment_intent: paymentIntent.id,
-            limit: 1,
-          });
-          const charge = charges.data[0];
-          if (charge?.transfer && typeof charge.transfer === 'string') {
-            const stripeTransfer = await stripe.transfers.retrieve(charge.transfer);
-            if (stripeTransfer.destination_payment) {
-              const destinationPaymentId =
-                typeof stripeTransfer.destination_payment === 'string'
-                  ? stripeTransfer.destination_payment
-                  : stripeTransfer.destination_payment.id;
+          const stripeTransfer =
+            latestCharge?.transfer && typeof latestCharge.transfer !== 'string'
+              ? latestCharge.transfer
+              : null;
 
-              const guestName = meetingData.guestName || meetingData.guest || 'Customer';
-              const appointmentDate = new Date(meetingData.start).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-              });
+          if (stripeTransfer?.destination_payment) {
+            const destinationPaymentId =
+              typeof stripeTransfer.destination_payment === 'string'
+                ? stripeTransfer.destination_payment
+                : stripeTransfer.destination_payment.id;
 
-              await stripe.charges.update(
-                destinationPaymentId,
-                { description: `Session with ${guestName} - ${appointmentDate}` },
-                { stripeAccount: transfer.expertConnectAccountId },
-              );
-              console.log(
-                `✅ Updated destination payment description for expert ${transfer.expertConnectAccountId}`,
-              );
-            }
+            const guestName = meetingData.guestName || meetingData.guest || 'Customer';
+            const appointmentDate = new Date(meetingData.start).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+            });
+
+            await stripe.charges.update(
+              destinationPaymentId,
+              { description: `Session with ${guestName} - ${appointmentDate}` },
+              { stripeAccount: transfer.expertConnectAccountId },
+            );
+            console.log(
+              `✅ Updated destination payment description for expert ${transfer.expertConnectAccountId}`,
+            );
+          } else if (latestCharge && !stripeTransfer) {
+            // Charge exists but transfer wasn't expanded or doesn't exist yet;
+            // skip silently — this can happen on legacy events.
+            console.log(
+              `ℹ️ No expanded transfer on latest charge for PI ${paymentIntent.id}; skipping description update`,
+            );
           }
         } catch (descError) {
           console.warn('⚠️ Could not update destination payment description:', {
