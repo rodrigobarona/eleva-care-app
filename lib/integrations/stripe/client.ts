@@ -5,10 +5,32 @@ import { CustomerCache } from '@/lib/redis/manager';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-// Initialize Stripe with API version from config
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+// Initialize Stripe with API version from config.
+// Exported so other modules can share a single client instance instead of
+// instantiating their own (which makes API-version drift more likely).
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
+
+/**
+ * Maps an application locale (e.g. `pt`, `pt-BR`, `en`, `es`, `fr`, `de`, `it`)
+ * to a Stripe Checkout `locale` value. Stripe does not support `pt`, so we map
+ * it to `pt-BR`. Unknown locales fall back to `en`.
+ */
+export function toStripeCheckoutLocale(
+  appLocale: string | null | undefined,
+): Stripe.Checkout.SessionCreateParams.Locale {
+  const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
+    en: 'en',
+    'pt-BR': 'pt-BR',
+    es: 'es',
+    fr: 'fr',
+    de: 'de',
+    it: 'it',
+    pt: 'pt-BR',
+  };
+  return (appLocale && localeMap[appLocale]) || 'en';
+}
 
 // Enhanced type definitions for customer data (now using unified CustomerCache)
 interface StripeCustomerData {
@@ -38,7 +60,6 @@ interface StripeSubscriptionData {
 // Platform fee percentage for revenue sharing
 // This fee is automatically handled by Stripe Connect and can be monitored
 // in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
-
 
 export async function getServerStripe() {
   return stripe;

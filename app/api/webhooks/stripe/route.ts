@@ -55,6 +55,7 @@ import {
   triggerNovuWorkflow,
 } from '@/lib/integrations/novu/utils';
 import type { StripeWebhookPayload } from '@/lib/integrations/novu/utils';
+import { stripe } from '@/lib/integrations/stripe';
 import { resolveMarketplaceAmounts } from '@/lib/payments/marketplace-amounts';
 import { webhookMonitor } from '@/lib/redis/webhook-monitor';
 import { createMeeting } from '@/server/actions/meetings';
@@ -74,11 +75,6 @@ import {
   handlePaymentIntentRequiresAction,
   handlePaymentSucceeded,
 } from './handlers/payment';
-
-// Initialize Stripe
-const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
-  apiVersion: ENV_CONFIG.STRIPE_API_VERSION as Stripe.LatestApiVersion,
-});
 
 /**
  * Zod schema for meeting metadata validation
