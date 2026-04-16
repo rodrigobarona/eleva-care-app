@@ -620,27 +620,35 @@ export function MeetingFormContent({
           setIsSubmitting(false);
         };
 
-        const fallbackTimer = window.setTimeout(() => {
+        // Declared up front so cancelFallback can reference it without TDZ.
+        let fallbackTimer: number | null = null;
+
+        const onVisibilityChange = () => {
+          if (document.hidden) {
+            cancelFallback();
+          }
+        };
+
+        const cancelFallback = () => {
+          if (fallbackTimer !== null) {
+            window.clearTimeout(fallbackTimer);
+            fallbackTimer = null;
+          }
+          window.removeEventListener('pagehide', cancelFallback);
+          document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+
+        fallbackTimer = window.setTimeout(() => {
           // If we're still on this page 15s later, the navigation almost
-          // certainly failed — release the UI so the user can retry.
-          if (document.visibilityState === 'visible' && !document.hidden) {
+          // certainly failed — release the UI so the user can retry. Clean
+          // up the listeners first to avoid stale references lingering in
+          // memory on long-lived SPA sessions.
+          cancelFallback();
+          if (!document.hidden) {
             resetSubmitState();
           }
         }, FALLBACK_REENABLE_MS);
 
-        // If the page becomes hidden (user navigated away / tab backgrounded)
-        // or is unloaded (navigation succeeded), cancel the fallback so we
-        // don't unnecessarily flip state while the user is already on Stripe.
-        const cancelFallback = () => {
-          window.clearTimeout(fallbackTimer);
-          window.removeEventListener('pagehide', cancelFallback);
-          document.removeEventListener('visibilitychange', onVisibilityChange);
-        };
-        const onVisibilityChange = () => {
-          if (document.visibilityState === 'hidden') {
-            cancelFallback();
-          }
-        };
         window.addEventListener('pagehide', cancelFallback, { once: true });
         document.addEventListener('visibilitychange', onVisibilityChange);
 

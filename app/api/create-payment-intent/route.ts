@@ -42,6 +42,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
+// Short TTL (seconds) for the FormCache `processing` state. Acts as a
+// transient lock so a dropped/errored request only blocks the same
+// (eventId, guestEmail, startTime) briefly. `completed` and `failed`
+// states keep the normal FORM_DEFAULT_TTL_SECONDS from lib/redis/manager.ts.
+const FORM_PROCESSING_TTL_SECONDS = 30;
+
 // Payment rate limiting configuration (stricter than identity verification)
 const PAYMENT_RATE_LIMITS = {
   // User-based limits (very strict for financial operations)
@@ -417,10 +423,8 @@ export async function POST(request: NextRequest) {
     }
 
     // **FORM CACHE: Additional duplicate prevention for form submissions**
-    // We intentionally use a SHORT TTL (30s) for the `processing` state so a
-    // dropped / errored request only blocks the user briefly. `completed` and
-    // `failed` states use the normal TTL (set via FormCache.markCompleted).
-    const FORM_PROCESSING_TTL_SECONDS = 30;
+    // Uses the module-level FORM_PROCESSING_TTL_SECONDS as a transient lock;
+    // see the constant's JSDoc for the rationale on the short TTL.
     if (meetingData?.guestEmail && meetingData?.startTime) {
       const candidateKey = FormCache.generateKey(
         eventId,
