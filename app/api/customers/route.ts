@@ -29,7 +29,7 @@ export async function GET() {
       .select({
         email: MeetingTable.guestEmail,
         name: MeetingTable.guestName,
-        // Count appointments per customer
+        phone: sql<string>`max(${MeetingTable.guestPhone})`.as('phone'),
         appointmentsCount: sql<number>`count(${MeetingTable.id})`.as('appointment_count'),
         // Calculate total spend
         totalSpend: sql<number>`sum(${EventTable.price})`.as('total_spend'),
@@ -53,9 +53,10 @@ export async function GET() {
       const customerId = generateCustomerId(userId, customer.email);
 
       return {
-        id: customerId, // Secure, non-email-based ID
+        id: customerId,
         email: customer.email,
         name: customer.name,
+        phone: customer.phone || null,
         appointmentsCount: customer.appointmentsCount,
         totalSpend: customer.totalSpend || 0,
         lastAppointment: customer.lastAppointment,

@@ -271,6 +271,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           clerkUserId: data.clerkUserId,
           guestEmail: data.guestEmail,
           guestName: data.guestName,
+          guestPhone: data.guestPhone,
           guestNotes: data.guestNotes,
           startTime: startTimeUTC,
           endTime: endTimeUTC,
@@ -340,10 +341,11 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             expertName:
               `${event.user?.firstName || ''} ${event.user?.lastName || ''}`.trim() || 'Expert',
             clientName: data.guestName,
-            appointmentDate: appointmentDateForExpert, // ✅ Expert's timezone
-            appointmentTime: appointmentTimeForExpert, // ✅ Expert's timezone
-            timezone: expertTimezone, // ✅ Expert's timezone for display
-            guestTimezone: guestTimezone, // Store guest's timezone for reference
+            clientPhone: data.guestPhone || undefined,
+            appointmentDate: appointmentDateForExpert,
+            appointmentTime: appointmentTimeForExpert,
+            timezone: expertTimezone,
+            guestTimezone: guestTimezone,
             appointmentDuration,
             eventTitle: event.name,
             meetLink: meetingUrl || undefined,

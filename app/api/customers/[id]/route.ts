@@ -53,6 +53,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
         id: MeetingTable.id,
         guestName: MeetingTable.guestName,
         guestEmail: MeetingTable.guestEmail,
+        guestPhone: MeetingTable.guestPhone,
         startTime: MeetingTable.startTime,
         endTime: MeetingTable.endTime,
         timezone: MeetingTable.timezone,
@@ -80,10 +81,13 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
     );
 
     // Create customer object with secure ID
+    const latestPhone = appointments.find((a) => a.guestPhone)?.guestPhone || null;
+
     const customer = {
-      id: customerId, // Use the provided secure ID
+      id: customerId,
       email: customerEmail,
       name: appointments[0].guestName || '',
+      phoneNumber: latestPhone,
       stripeCustomerId: appointments[0]?.stripePaymentIntentId
         ? `cus_${appointments[0].stripePaymentIntentId.substring(3, 11)}`
         : null,
@@ -91,7 +95,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
       appointmentsCount: appointments.length,
       lastAppointment: appointments[0]?.startTime || null,
       appointments,
-      notes: '', // This could be fetched from a separate notes table if you have one
+      notes: '',
       createdAt: appointments[appointments.length - 1]?.startTime || new Date().toISOString(),
     };
 

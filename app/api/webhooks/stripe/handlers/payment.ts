@@ -759,6 +759,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       expert: '',
       guest: '',
       guestName: '',
+      guestPhone: '',
       start: '',
       dur: 0,
       notes: '',
@@ -1161,6 +1162,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               status: PAYMENT_TRANSFER_STATUS_READY,
               guestName: meetingData.guestName || null,
               guestEmail: meetingData.guest || null,
+              guestPhone: meetingData.guestPhone || null,
               created: new Date(),
               updated: new Date(),
             })
@@ -1766,6 +1768,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
               expert?: string;
               guest?: string;
               guestName?: string;
+              guestPhone?: string;
               start?: string;
               dur?: number;
               notes?: string;

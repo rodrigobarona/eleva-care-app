@@ -49,9 +49,10 @@ export async function GET() {
         type: 'appointment' as const,
         guestName: appointment.guestName,
         guestEmail: appointment.guestEmail,
+        guestPhone: appointment.guestPhone,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
-        timezone: appointment.timezone, // This is the guest's timezone (kept for reference)
+        timezone: appointment.timezone,
         meetingUrl: appointment.meetingUrl,
         guestNotes: appointment.guestNotes,
         stripePaymentStatus: appointment.stripePaymentStatus,

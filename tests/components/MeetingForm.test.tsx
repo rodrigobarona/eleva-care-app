@@ -12,10 +12,11 @@ jest.mock('@/server/actions/meetings', () => ({
 interface BookingFormData {
   name: string;
   email: string;
+  phone: string;
   notes: string;
   date: string;
   time: string;
-  [key: string]: string; // Allow for additional fields
+  [key: string]: string;
 }
 
 // Create a simplified booking form component for testing
@@ -39,6 +40,7 @@ const BookingFormSimple: React.FC<{
   const [formData, setFormData] = React.useState<BookingFormData>({
     name: '',
     email: '',
+    phone: '',
     notes: '',
     date: '2025-01-01',
     time: '10:00',
@@ -239,6 +241,16 @@ const BookingFormSimple: React.FC<{
                   {errors.email}
                 </span>
               )}
+            </div>
+            <div>
+              <label htmlFor="phone">Phone (optional)</label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+              />
             </div>
             <div>
               <label htmlFor="notes">Notes</label>

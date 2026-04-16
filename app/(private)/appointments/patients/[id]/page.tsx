@@ -12,9 +12,10 @@ import React, { Suspense } from 'react';
 
 interface Appointment {
   id: string;
-  type: 'appointment'; // Required to match AppointmentCard expectations
+  type: 'appointment';
   guestName: string;
   guestEmail: string;
+  guestPhone?: string | null;
   startTime: Date;
   endTime: Date;
   timezone: string;

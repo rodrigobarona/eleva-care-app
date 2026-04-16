@@ -18,6 +18,7 @@ export default async function PackPurchasesPage() {
       id: PackPurchaseTable.id,
       buyerEmail: PackPurchaseTable.buyerEmail,
       buyerName: PackPurchaseTable.buyerName,
+      buyerPhone: PackPurchaseTable.buyerPhone,
       promotionCode: PackPurchaseTable.promotionCode,
       maxRedemptions: PackPurchaseTable.maxRedemptions,
       redemptionsUsed: PackPurchaseTable.redemptionsUsed,

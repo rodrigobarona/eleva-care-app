@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatInTimeZone } from 'date-fns-tz';
-import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
+import { Clock, Link as LinkIcon, Mail, Phone, User } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -14,6 +14,7 @@ interface Appointment {
   type: 'appointment';
   guestName: string;
   guestEmail: string;
+  guestPhone?: string | null;
   startTime: Date;
   endTime: Date;
   timezone: string;
@@ -164,6 +165,14 @@ export function AppointmentCard({
               <span className="text-gray-600">{appointment.guestEmail}</span>
             )}
           </div>
+          {!isReservation && appointment.guestPhone && (
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              <a href={`tel:${appointment.guestPhone}`} className="text-blue-500 hover:underline">
+                {appointment.guestPhone}
+              </a>
+            </div>
+          )}
 
           {isReservation && (
             <div className="rounded-md bg-orange-100 p-3 text-sm text-orange-800">

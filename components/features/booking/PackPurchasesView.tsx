@@ -9,6 +9,7 @@ type Purchase = {
   id: string;
   buyerEmail: string;
   buyerName: string | null;
+  buyerPhone: string | null;
   promotionCode: string;
   maxRedemptions: number;
   redemptionsUsed: number;
@@ -71,6 +72,9 @@ export function PackPurchasesView({ purchases }: PackPurchasesViewProps) {
                           {purchase.buyerName || purchase.buyerEmail}
                           {purchase.buyerName && (
                             <span className="ml-1 text-xs">({purchase.buyerEmail})</span>
+                          )}
+                          {purchase.buyerPhone && (
+                            <span className="ml-1 text-xs">• {purchase.buyerPhone}</span>
                           )}
                         </CardDescription>
                       </div>
