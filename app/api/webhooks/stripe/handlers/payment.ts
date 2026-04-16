@@ -196,6 +196,7 @@ async function createDeferredCalendarEvent(
     clerkUserId: string;
     guestName: string;
     guestEmail: string;
+    guestPhone?: string | null;
     startTime: Date;
     guestNotes: string | null;
     timezone: string;
