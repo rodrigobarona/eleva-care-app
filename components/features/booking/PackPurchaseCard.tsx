@@ -39,6 +39,7 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [name, setName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
 
   const individualTotal = pack.event.price * pack.sessionsCount;
   const savings = individualTotal > 0 ? individualTotal - pack.price : 0;
@@ -64,6 +65,7 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
           packId: pack.id,
           buyerEmail: email,
           buyerName: name,
+          buyerPhone: phone,
           locale: document.documentElement.lang || 'en',
         }),
       });
@@ -185,6 +187,16 @@ export function PackPurchaseCard({ pack }: PackPurchaseCardProps) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="buyer-phone">Phone (optional)</Label>
+                  <Input
+                    id="buyer-phone"
+                    type="tel"
+                    placeholder="+351 912 345 678"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
               </div>

@@ -122,7 +122,7 @@ export function NavUser() {
               </DropdownMenuItem>
               <RequireRole roles={['community_expert', 'top_expert']}>
                 <DropdownMenuItem asChild>
-                  <Link href="/account/billing">
+                  <Link href="/dashboard/earnings">
                     <BanknoteIcon className="mr-2 h-4 w-4" />
                     <span>Earnings</span>
                   </Link>

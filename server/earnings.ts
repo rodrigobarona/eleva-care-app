@@ -530,6 +530,49 @@ function filterRecordsForPeriod(records: EarningsRecord[], month: number | null)
   return records.filter((record) => record.activityDate.getUTCMonth() + 1 === month);
 }
 
+async function getPackPurchasesForExpert({
+  clerkUserId,
+  startDate,
+  endDate,
+}: {
+  clerkUserId: string;
+  startDate: Date;
+  endDate: Date;
+}): Promise<PackPurchaseRecord[]> {
+  return db
+    .select({
+      id: PackPurchaseTable.id,
+      packId: PackPurchaseTable.packId,
+      eventId: SessionPackTable.eventId,
+      expertClerkUserId: PackPurchaseTable.expertClerkUserId,
+      buyerEmail: PackPurchaseTable.buyerEmail,
+      buyerName: PackPurchaseTable.buyerName,
+      packNameSnapshot: PackPurchaseTable.packNameSnapshot,
+      eventNameSnapshot: PackPurchaseTable.eventNameSnapshot,
+      stripeSessionId: PackPurchaseTable.stripeSessionId,
+      stripePaymentIntentId: PackPurchaseTable.stripePaymentIntentId,
+      currency: PackPurchaseTable.currency,
+      grossAmount: PackPurchaseTable.grossAmount,
+      platformFeeAmount: PackPurchaseTable.platformFeeAmount,
+      netAmount: PackPurchaseTable.netAmount,
+      status: PackPurchaseTable.status,
+      maxRedemptions: PackPurchaseTable.maxRedemptions,
+      createdAt: PackPurchaseTable.createdAt,
+      packName: SessionPackTable.name,
+      packCurrency: SessionPackTable.currency,
+      packPrice: SessionPackTable.price,
+    })
+    .from(PackPurchaseTable)
+    .innerJoin(SessionPackTable, eq(PackPurchaseTable.packId, SessionPackTable.id))
+    .where(
+      and(
+        eq(SessionPackTable.clerkUserId, clerkUserId),
+        gte(PackPurchaseTable.createdAt, startDate),
+        lt(PackPurchaseTable.createdAt, endDate),
+      ),
+    );
+}
+
 export async function getExpertEarningsDashboardData({
   clerkUserId,
   year,
@@ -580,38 +623,11 @@ export async function getExpertEarningsDashboardData({
       })
     : [];
 
-  const packPurchases = await db
-    .select({
-      id: PackPurchaseTable.id,
-      packId: PackPurchaseTable.packId,
-      eventId: SessionPackTable.eventId,
-      expertClerkUserId: PackPurchaseTable.expertClerkUserId,
-      buyerEmail: PackPurchaseTable.buyerEmail,
-      buyerName: PackPurchaseTable.buyerName,
-      packNameSnapshot: PackPurchaseTable.packNameSnapshot,
-      eventNameSnapshot: PackPurchaseTable.eventNameSnapshot,
-      stripeSessionId: PackPurchaseTable.stripeSessionId,
-      stripePaymentIntentId: PackPurchaseTable.stripePaymentIntentId,
-      currency: PackPurchaseTable.currency,
-      grossAmount: PackPurchaseTable.grossAmount,
-      platformFeeAmount: PackPurchaseTable.platformFeeAmount,
-      netAmount: PackPurchaseTable.netAmount,
-      status: PackPurchaseTable.status,
-      maxRedemptions: PackPurchaseTable.maxRedemptions,
-      createdAt: PackPurchaseTable.createdAt,
-      packName: SessionPackTable.name,
-      packCurrency: SessionPackTable.currency,
-      packPrice: SessionPackTable.price,
-    })
-    .from(PackPurchaseTable)
-    .innerJoin(SessionPackTable, eq(PackPurchaseTable.packId, SessionPackTable.id))
-    .where(
-      and(
-        eq(SessionPackTable.clerkUserId, clerkUserId),
-        gte(PackPurchaseTable.createdAt, startDate),
-        lt(PackPurchaseTable.createdAt, endDate),
-      ),
-    );
+  const packPurchases = await getPackPurchasesForExpert({
+    clerkUserId,
+    startDate,
+    endDate,
+  });
 
   const meetingsByPaymentIntentId = new Map(
     meetings

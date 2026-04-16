@@ -95,6 +95,7 @@ const MeetingMetadataSchema = z.object({
     ),
   dur: z.number().positive('Duration must be positive'),
   notes: z.string().optional(),
+  guestPhone: z.string().optional(),
   locale: z.string().optional(),
   timezone: z.string().optional(),
 });
@@ -194,6 +195,7 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     packId?: string;
     buyerEmail?: string;
     buyerName?: string;
+    buyerPhone?: string;
     sessionsCount?: string;
     expertClerkUserId?: string;
     expertName?: string;
@@ -442,6 +444,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
   const packId = metadata.packId;
   const buyerEmail = metadata.buyerEmail;
   const buyerName = metadata.buyerName || '';
+  const buyerPhone = metadata.buyerPhone || '';
   const sessionsCount = Number.parseInt(metadata.sessionsCount, 10);
   const expirationDays = Number.parseInt(metadata.expirationDays || '180', 10);
   const locale = metadata.locale || 'en';
@@ -629,6 +632,7 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
         expertClerkUserId: metadata.expertClerkUserId || pack.clerkUserId,
         buyerEmail,
         buyerName: buyerName || null,
+        buyerPhone: buyerPhone || null,
         packNameSnapshot: packName,
         eventNameSnapshot: eventName,
         stripeCustomerId: customerId || null,
@@ -851,8 +855,9 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       startTime: new Date(meetingData.start),
       guestEmail: meetingData.guest,
       guestName: getGuestName(meetingData),
+      guestPhone: meetingData.guestPhone,
       guestNotes: meetingData.notes,
-      timezone: meetingData.timezone || 'UTC', // Use provided timezone or fallback to UTC
+      timezone: meetingData.timezone || 'UTC',
       stripeSessionId: session.id,
       stripePaymentIntentId: paymentIntentId, // 🔧 FIX: Store paymentIntentId for later lookup in payment_intent.succeeded
       stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
@@ -1125,6 +1130,7 @@ async function createPaymentTransferIfNotExists({
       requiresApproval: false,
       guestName: meetingData.guestName || session.metadata?.buyerName || null,
       guestEmail: meetingData.guest || session.metadata?.buyerEmail || null,
+      guestPhone: meetingData.guestPhone || session.metadata?.buyerPhone || null,
       serviceName: session.metadata?.eventName || null,
       created: new Date(),
       updated: new Date(),

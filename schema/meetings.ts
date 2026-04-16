@@ -9,6 +9,7 @@ import { z } from 'zod';
  * - guestEmail: Must be a valid email
  * - guestName: Required field for the guest's name
  * - guestNotes: Optional notes from the guest about the meeting
+ * - guestPhone: Optional phone number for the guest
  * - timezone: Required timezone identifier (e.g. 'America/New_York')
  */
 const meetingSchemaBase = z.object({
@@ -16,6 +17,7 @@ const meetingSchemaBase = z.object({
   guestEmail: z.string().email().min(1, 'Required'),
   guestName: z.string().min(1, 'Required'),
   guestNotes: z.string().optional(),
+  guestPhone: z.string().optional(),
   timezone: z.string().min(1, 'Required'),
 });
 
@@ -45,6 +47,7 @@ export const meetingFormSchema = z
  * - guestEmail: Email of the guest/client booking the meeting
  * - guestName: Name of the guest/client
  * - guestNotes: Optional notes from the guest about the meeting
+ * - guestPhone: Optional phone number for the guest
  * - timezone: Timezone identifier for the meeting
  * - startTime: Start time of the meeting (in UTC)
  * - stripePaymentIntentId: Optional Stripe payment intent ID for paid meetings
@@ -64,6 +67,7 @@ export const meetingActionSchema = z.object({
   guestEmail: z.string().email(),
   guestName: z.string(),
   guestNotes: z.string().optional(),
+  guestPhone: z.string().optional(),
   timezone: z.string(),
   startTime: z.date(),
   stripePaymentIntentId: z.string().optional(),

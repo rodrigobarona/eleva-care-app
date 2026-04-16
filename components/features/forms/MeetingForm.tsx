@@ -102,6 +102,7 @@ type QueryStates = {
   time: Date | null;
   name: string;
   email: string;
+  phone: string;
   timezone: string;
 };
 
@@ -164,10 +165,12 @@ const Step2Content = React.memo<Step2ContentProps>(
     const updateURLOnBlur = React.useCallback(() => {
       const name = form.getValues('guestName')?.trim();
       const email = form.getValues('guestEmail')?.trim();
+      const phone = form.getValues('guestPhone')?.trim();
 
       const updates: Record<string, string | undefined> = {};
       if (name) updates.name = name;
       if (email) updates.email = email;
+      if (phone) updates.phone = phone;
 
       if (Object.keys(updates).length > 0) {
         setQueryStates((prev) => ({ ...prev, ...updates }));
@@ -252,6 +255,27 @@ const Step2Content = React.memo<Step2ContentProps>(
                   <Input
                     type="email"
                     placeholder="you@example.com"
+                    {...field}
+                    onBlur={() => {
+                      field.onBlur();
+                      updateURLOnBlur();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestPhone"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel className="font-semibold">Phone Number (optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="tel"
+                    placeholder="+351 912 345 678"
                     {...field}
                     onBlur={() => {
                       field.onBlur();
@@ -431,6 +455,7 @@ export function MeetingFormContent({
       time: parseAsIsoDateTime,
       name: parseAsString.withDefault(''),
       email: parseAsString.withDefault(''),
+      phone: parseAsString.withDefault(''),
       timezone: parseAsString.withDefault(''),
     }),
     [],
@@ -445,6 +470,7 @@ export function MeetingFormContent({
       time: 't',
       name: 'n',
       email: 'e',
+      phone: 'p',
       timezone: 'tz',
     },
   });
@@ -456,7 +482,8 @@ export function MeetingFormContent({
       timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       guestName: queryStates.name || '',
       guestEmail: queryStates.email || '',
-      guestNotes: '', // Initialize with empty string
+      guestPhone: queryStates.phone || '',
+      guestNotes: '',
       // Initialize with date and time from URL if they exist
       ...(queryStates.date && { date: queryStates.date }),
       ...(queryStates.time && { startTime: queryStates.time }),
@@ -668,6 +695,7 @@ export function MeetingFormContent({
             meetingData: {
               guestName: formValues.guestName,
               guestEmail: formValues.guestEmail,
+              guestPhone: formValues.guestPhone,
               guestNotes: formValues.guestNotes,
               startTime: formValues.startTime.toISOString(),
               startTimeFormatted: formValues.startTime.toLocaleString(userLocale, {

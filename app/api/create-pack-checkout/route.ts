@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     const rawPackId = body.packId;
     const rawEmail = body.buyerEmail;
     const rawName = body.buyerName;
+    const rawPhone = body.buyerPhone;
     const rawLocale = body.locale;
 
     if (!rawPackId || !rawEmail) {
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     const buyerEmail = String(rawEmail).trim().toLowerCase();
     const buyerName = rawName ? String(rawName).trim() : '';
+    const buyerPhone = rawPhone ? String(rawPhone).trim() : '';
     const packId = String(rawPackId).trim();
     const locale = ['en', 'pt', 'pt-BR', 'es', 'fr', 'de', 'it'].includes(rawLocale)
       ? rawLocale
@@ -254,6 +256,7 @@ export async function POST(request: NextRequest) {
           eventSlug: pack.event.slug,
           buyerEmail,
           buyerName: buyerName || '',
+          buyerPhone: buyerPhone || '',
           sessionsCount: pack.sessionsCount.toString(),
           expertClerkUserId: pack.clerkUserId,
           expertName,

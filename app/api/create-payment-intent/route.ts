@@ -24,6 +24,7 @@ const checkoutRequestSchema = z.object({
   meetingData: z.object({
     guestEmail: z.string().email(),
     guestName: z.string().min(1),
+    guestPhone: z.string().optional(),
     startTime: z.string().min(1),
     guestNotes: z.string().optional(),
     timezone: z.string().optional(),
@@ -259,6 +260,7 @@ function createSharedMetadata({
     locale?: string;
     guestEmail: string;
     guestName: string;
+    guestPhone?: string;
     startTime: string;
     guestNotes?: string;
   };
@@ -269,6 +271,7 @@ function createSharedMetadata({
       expert: expertClerkUserId,
       guest: guestEmail,
       guestName: guestName,
+      guestPhone: meetingData.guestPhone || '',
       start: startTime,
       dur: duration,
       notes: guestNotes || '',
