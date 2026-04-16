@@ -1157,9 +1157,13 @@ export const appointmentCancelledWorkflow = workflow(
 
     // Branded email
     await step.email('appointment-cancelled-email', async () => {
+      // Normalize locale so regional variants (pt-BR, es-MX, etc.) match
+      // the base-language subjects/templates we provide.
+      const normalizedLocale = (payload.locale || 'en').toLowerCase().split('-')[0];
+
       const emailBody = await elevaEmailService.renderAppointmentCancelled({
         recipientName,
-        recipientType: (payload.recipientType as 'patient' | 'expert') || 'patient',
+        recipientType: payload.recipientType,
         expertName: payload.expertName,
         clientName: payload.clientName,
         serviceName: payload.serviceName,
@@ -1168,22 +1172,22 @@ export const appointmentCancelledWorkflow = workflow(
         timezone: payload.timezone || 'UTC',
         refundAmountFormatted: payload.refundAmountFormatted,
         cancellationReason: payload.cancellationReason,
-        locale: payload.locale || 'en',
+        locale: normalizedLocale,
       });
 
       let subject: string;
       if (isPatient) {
         subject =
-          payload.locale === 'pt'
+          normalizedLocale === 'pt'
             ? `❌ A sua consulta foi cancelada — ${payload.serviceName}`
-            : payload.locale === 'es'
+            : normalizedLocale === 'es'
               ? `❌ Su cita ha sido cancelada — ${payload.serviceName}`
               : `❌ Your appointment was cancelled — ${payload.serviceName}`;
       } else {
         subject =
-          payload.locale === 'pt'
+          normalizedLocale === 'pt'
             ? `❌ Cancelou uma consulta — ${payload.serviceName}`
-            : payload.locale === 'es'
+            : normalizedLocale === 'es'
               ? `❌ Canceló una cita — ${payload.serviceName}`
               : `❌ You cancelled an appointment — ${payload.serviceName}`;
       }

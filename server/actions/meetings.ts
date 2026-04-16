@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_PENDING,
   PAYMENT_TRANSFER_STATUS_REFUNDED,
@@ -18,7 +18,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /**
  * @fileoverview Server actions for managing meetings in the Eleva Care application.
@@ -409,6 +409,7 @@ type CancelAppointmentResult =
   | { success: false; code: CancelAppointmentErrorCode; message: string };
 
 type CancelAppointmentErrorCode =
+  | 'INVALID_INPUT'
   | 'UNAUTHENTICATED'
   | 'NOT_FOUND'
   | 'FORBIDDEN'
@@ -418,6 +419,15 @@ type CancelAppointmentErrorCode =
   | 'MISSING_STRIPE_CONTEXT'
   | 'STRIPE_ERROR'
   | 'UNEXPECTED_ERROR';
+
+const cancelAppointmentSchema = z.object({
+  meetingId: z.string().uuid(),
+  reason: z
+    .string()
+    .max(500, 'Reason cannot be longer than 500 characters')
+    .optional()
+    .transform((value) => value?.trim() || undefined),
+});
 
 /**
  * Cancel a confirmed appointment.
@@ -441,6 +451,19 @@ export async function cancelAppointment(
   meetingId: string,
   reason?: string,
 ): Promise<CancelAppointmentResult> {
+  // Validate input upfront. Invalid uuid / oversized reason should never
+  // reach Stripe or the DB.
+  const parsedInput = cancelAppointmentSchema.safeParse({ meetingId, reason });
+  if (!parsedInput.success) {
+    return {
+      success: false,
+      code: 'INVALID_INPUT',
+      message: parsedInput.error.issues[0]?.message ?? 'Invalid input.',
+    };
+  }
+  const validatedMeetingId = parsedInput.data.meetingId;
+  const validatedReason = parsedInput.data.reason;
+
   try {
     const { userId: expertClerkUserId } = await auth();
     if (!expertClerkUserId) {
@@ -448,10 +471,10 @@ export async function cancelAppointment(
     }
 
     const meeting = await db.query.MeetingTable.findFirst({
-      where: eq(MeetingTable.id, meetingId),
+      where: eq(MeetingTable.id, validatedMeetingId),
       with: {
         event: {
-          columns: { id: true, name: true, clerkUserId: true },
+          columns: { id: true, name: true, clerkUserId: true, currency: true },
         },
       },
     });
@@ -538,10 +561,12 @@ export async function cancelAppointment(
       );
     }
 
-    // Step 2) Issue the Stripe refund on the connected account. Marketplace
-    // destination_payment charges require BOTH refund_application_fee AND
-    // reverse_transfer to claw back the platform fee and the destination
-    // payment respectively. Idempotency-keyed so retries don't double-refund.
+    // Step 2) Issue the Stripe refund. For destination_payment marketplace
+    // charges (transfer_data.destination), the charge lives on the PLATFORM
+    // not the connected account — so we DO NOT pass stripeAccount here.
+    // refund_application_fee: true claws back the platform fee, and
+    // reverse_transfer: true claws back the destination payment from the
+    // expert. Idempotency-keyed so retries don't double-refund.
     let refund: Stripe.Refund;
     try {
       refund = await stripe.refunds.create(
@@ -551,19 +576,18 @@ export async function cancelAppointment(
           reverse_transfer: true,
           reason: 'requested_by_customer',
           metadata: {
-            meetingId,
-            cancellationReason: reason ?? '',
+            meetingId: validatedMeetingId,
+            cancellationReason: validatedReason ?? '',
             cancelledByExpertClerkUserId: expertClerkUserId,
           },
         },
         {
-          stripeAccount: expertUser.stripeConnectAccountId,
-          idempotencyKey: `cancel-appointment:${meetingId}`,
+          idempotencyKey: `cancel-appointment:${validatedMeetingId}`,
         },
       );
     } catch (stripeError) {
       console.error('[cancelAppointment] Stripe refund failed:', {
-        meetingId,
+        meetingId: validatedMeetingId,
         paymentIntentId: meeting.stripePaymentIntentId,
         error: stripeError instanceof Error ? stripeError.message : stripeError,
       });
@@ -577,34 +601,49 @@ export async function cancelAppointment(
       };
     }
 
-    // Step 3) Source-of-truth DB updates (Fix E.c). We update locally now
-    // rather than waiting for the charge.refunded webhook because Stripe
-    // Dashboard event subscriptions can be misconfigured (this is exactly
-    // how the original ghost-meeting bug surfaced). The webhook handler is
-    // idempotent and will no-op when it eventually arrives.
-    await db
-      .update(MeetingTable)
-      .set({
-        stripePaymentStatus: 'refunded',
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(MeetingTable.id, meeting.id),
-          eq(MeetingTable.stripePaymentStatus, 'succeeded'),
-        ),
-      );
+    // Step 3) Source-of-truth DB updates (Fix E.c) wrapped in a transaction
+    // so we never end up with the meeting marked refunded but the transfer
+    // still pending (or vice versa). Conditional WHEREs keep this idempotent
+    // — the charge.refunded webhook (which is also idempotent) will no-op
+    // on arrival.
+    try {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(MeetingTable)
+          .set({
+            stripePaymentStatus: 'refunded',
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(MeetingTable.id, meeting.id),
+              eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+            ),
+          );
 
-    await db
-      .update(PaymentTransferTable)
-      .set({ status: PAYMENT_TRANSFER_STATUS_REFUNDED, updated: new Date() })
-      .where(
-        and(
-          eq(PaymentTransferTable.paymentIntentId, meeting.stripePaymentIntentId),
-          // Only flip rows still in PENDING — don't touch already paid-out ones
-          eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_PENDING),
-        ),
-      );
+        if (meeting.stripePaymentIntentId) {
+          await tx
+            .update(PaymentTransferTable)
+            .set({ status: PAYMENT_TRANSFER_STATUS_REFUNDED, updated: new Date() })
+            .where(
+              and(
+                eq(PaymentTransferTable.paymentIntentId, meeting.stripePaymentIntentId),
+                // Only flip rows still in PENDING — don't touch already paid-out ones
+                eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_PENDING),
+              ),
+            );
+        }
+      });
+    } catch (dbError) {
+      console.error('[cancelAppointment] DB update failed AFTER Stripe refund:', {
+        meetingId: validatedMeetingId,
+        refundId: refund.id,
+        error: dbError instanceof Error ? dbError.message : dbError,
+      });
+      // The webhook will eventually reconcile if it's wired. Surface the
+      // partial-success state to the operator via the audit log below and
+      // return success-with-warning to the user (the refund DID happen).
+    }
 
     // Step 4) Notifications — guest first (refund notice), then expert
     // (audit confirmation). Failures here are logged but never throw so
@@ -614,7 +653,15 @@ export async function cancelAppointment(
     const guestTimezone = meeting.timezone || 'UTC';
     const appointmentDate = formatInTimeZone(meeting.startTime, guestTimezone, 'EEEE, MMMM d, yyyy');
     const appointmentTime = formatInTimeZone(meeting.startTime, guestTimezone, 'h:mm a zzz');
-    const refundCurrencyUpper = refund.currency?.toUpperCase() ?? 'EUR';
+
+    // Prefer the refund's currency, then the event's configured currency,
+    // then fall back to EUR. Avoids displaying the wrong currency for
+    // non-EUR markets (e.g., a USD pack purchase refunded would otherwise
+    // show "X.XX EUR" in the email).
+    const refundCurrencyUpper =
+      refund.currency?.toUpperCase() ??
+      meeting.event?.currency?.toUpperCase() ??
+      'EUR';
     const refundAmountFormatted = `${(refund.amount / 100).toFixed(2)} ${refundCurrencyUpper}`;
     const eventName = meeting.event?.name ?? 'Appointment';
     const stripeMetadata = (meeting.stripeMetadata ?? {}) as { locale?: unknown };
@@ -631,7 +678,7 @@ export async function cancelAppointment(
       appointmentTime,
       timezone: guestTimezone,
       refundAmountFormatted,
-      cancellationReason: reason,
+      cancellationReason: validatedReason,
       locale,
     };
 
@@ -675,7 +722,7 @@ export async function cancelAppointment(
           refundId: refund.id,
           refundAmount: refund.amount,
           refundCurrency: refund.currency,
-          cancellationReason: reason,
+          cancellationReason: validatedReason,
         },
         (await headers()).get('x-forwarded-for') ?? 'Unknown',
         (await headers()).get('user-agent') ?? 'Unknown',

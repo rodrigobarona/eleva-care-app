@@ -452,10 +452,8 @@ class GoogleCalendarService {
       return;
     }
 
+    // getOAuthClient throws on missing/invalid auth — no falsy return possible.
     const oAuthClient = await this.getOAuthClient(expertClerkUserId);
-    if (!oAuthClient) {
-      throw new Error('Could not authenticate Google Calendar for expert');
-    }
 
     try {
       await google.calendar('v3').events.delete({
