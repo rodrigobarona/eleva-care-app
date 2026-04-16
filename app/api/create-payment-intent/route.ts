@@ -8,7 +8,11 @@ import {
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
-import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
+import {
+  getOrCreateStripeCustomer,
+  stripe,
+  toStripeCheckoutLocale,
+} from '@/lib/integrations/stripe';
 import { FormCache, RateLimitCache } from '@/lib/redis/manager';
 import { and, eq, gt, lt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
@@ -35,11 +39,6 @@ const checkoutRequestSchema = z.object({
   }),
   username: z.string().min(1),
   eventSlug: z.string().min(1),
-});
-
-// Initialize Stripe client
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
 // Short TTL (seconds) for the FormCache `processing` state. Acts as a
@@ -974,22 +973,31 @@ export async function POST(request: NextRequest) {
         mode: 'payment',
         success_url: `${baseUrl}/${locale}/${username}/${event.slug}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/${locale}/${username}/${event.slug}`,
+        // `customer_creation` is mutually exclusive with `customer`. We always
+        // resolve a Stripe customer above via getOrCreateStripeCustomer, so
+        // omit `customer_creation` entirely.
         customer: customerId,
-        customer_creation: customerId ? undefined : 'always',
+        // Use the meeting id we'd write to MeetingTable as the
+        // checkout-session-level idempotent reference. This gives webhooks a
+        // path to correlate without round-tripping to Stripe.
+        client_reference_id:
+          `evt_${eventId}_${meetingData.guestEmail}_${meetingData.startTime}`.slice(0, 200),
         expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
         // Keep split deterministic: 85/15 is calculated on authoritative listing amount.
         allow_promotion_codes: STRIPE_CONFIG.MARKETPLACE_SPLIT.ALLOW_PROMOTION_CODES,
-        automatic_tax: {
-          enabled: true,
-          liability: { type: 'self' },
-        },
-        invoice_creation: {
-          enabled: true,
-          invoice_data: {
-            issuer: { type: 'self' },
-          },
-        },
-        tax_id_collection: { enabled: true, required: 'never' },
+        // Healthcare-marketplace model: experts are licensed PT health
+        // professionals (psicólogos, fisios, nutricionistas, etc.) whose
+        // services are objectively VAT-exempt under Art. 9º CIVA. Stripe Tax
+        // cannot represent that exemption, so we deliberately do NOT enable
+        // `automatic_tax` or `invoice_creation` here — Stripe is the payment
+        // facilitator only, and the expert issues the Art. 9 fiscal invoice
+        // externally (Vendus / Moloni / Faturamais / AT portal) after
+        // payment_intent.succeeded.
+        //
+        // We still set `on_behalf_of` (see payment_intent_data below) so the
+        // settlement merchant, statement descriptor, and dispute risk attach
+        // to the expert's Connect account. The patient's NIF for that fiscal
+        // invoice is collected via the `nif` custom field above.
         billing_address_collection: 'auto',
         consent_collection: {
           terms_of_service: 'required',
@@ -1011,20 +1019,7 @@ export async function POST(request: NextRequest) {
             },
           },
         }),
-        locale: (() => {
-          const userLocale = meetingData.locale || 'en';
-          // Map our locales to valid Stripe locales
-          const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
-            en: 'en',
-            'pt-BR': 'pt-BR',
-            es: 'es',
-            fr: 'fr',
-            de: 'de',
-            it: 'it',
-            pt: 'pt-BR', // Map pt to pt-BR for Stripe
-          };
-          return localeMap[userLocale] || 'en';
-        })(),
+        locale: toStripeCheckoutLocale(meetingData.locale),
         customer_update: {
           name: 'auto',
           address: 'auto',
@@ -1040,13 +1035,20 @@ export async function POST(request: NextRequest) {
         metadata: sharedMetadata,
         payment_intent_data: {
           application_fee_amount: platformFee,
+          // Settlement merchant is the expert: their statement descriptor is
+          // shown on the customer's card statement, settlement currency follows
+          // their Connect account, and refund/dispute responsibility flows
+          // through their balance first. See docs:
+          // https://stripe.com/docs/connect/destination-charges#settlement-merchant
+          on_behalf_of: expertStripeAccountId,
           transfer_data: {
             destination: expertStripeAccountId,
           },
-          metadata: {
-            ...sharedMetadata,
-            session_id: '', // Will be updated after session creation
-          },
+          // We patch metadata.session_id after creation (see below). Stripe
+          // does not allow templating `{CHECKOUT_SESSION_ID}` inside metadata,
+          // so we omit the empty placeholder here to save metadata budget and
+          // avoid storing a misleading empty key.
+          metadata: sharedMetadata,
         },
       },
       idempotencyKey ? { idempotencyKey } : undefined,

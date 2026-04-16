@@ -1,16 +1,15 @@
 import { calculateApplicationFee, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { SessionPackTable } from '@/drizzle/schema';
-import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
+import {
+  getOrCreateStripeCustomer,
+  stripe,
+  toStripeCheckoutLocale,
+} from '@/lib/integrations/stripe';
 import { RateLimitCache } from '@/lib/redis/manager';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { after, NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
 
 const RATE_LIMITS = {
   USER: { maxAttempts: 5, windowSeconds: 900 },
@@ -180,6 +179,11 @@ export async function POST(request: NextRequest) {
     const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
     const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
 
+    // Match the parity of the booking endpoint: explicit 24h expiry instead of
+    // relying on the Stripe default. Pack checkout is always "advance" so 24h
+    // is appropriate (a pack is not tied to a single appointment slot).
+    const checkoutExpiresAt = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
+
     const session = await stripe.checkout.sessions.create(
       {
         line_items: [
@@ -212,23 +216,29 @@ export async function POST(request: NextRequest) {
           },
         ],
         mode: 'payment',
+        // Stripe Checkout sessions auto-expire after 24h; we set this explicitly
+        // so the value is observable in our logs and matches create-payment-intent.
+        expires_at: checkoutExpiresAt,
         success_url: `${baseUrl}/${locale}/pack-purchase/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/${locale}`,
+        // `customer_creation` is not allowed when `customer` is set, and we always
+        // resolve a customerId above via getOrCreateStripeCustomer, so we omit it.
         customer: customerId,
-        customer_creation: customerId ? undefined : 'always',
         // Keep split deterministic: 85/15 is calculated on authoritative listing amount.
         allow_promotion_codes: STRIPE_CONFIG.MARKETPLACE_SPLIT.ALLOW_PROMOTION_CODES,
-        automatic_tax: {
-          enabled: true,
-          liability: { type: 'self' },
-        },
-        invoice_creation: {
-          enabled: true,
-          invoice_data: {
-            issuer: { type: 'self' },
-          },
-        },
-        tax_id_collection: { enabled: true, required: 'never' },
+        // Healthcare-marketplace model: experts are licensed PT health
+        // professionals (psicólogos, fisios, nutricionistas, etc.) whose
+        // services are objectively VAT-exempt under Art. 9º CIVA. Stripe Tax
+        // cannot represent that exemption, so we deliberately do NOT enable
+        // `automatic_tax` or `invoice_creation` here — Stripe is the payment
+        // facilitator only, and the expert issues the Art. 9 fiscal invoice
+        // externally (Vendus / Moloni / Faturamais / AT portal) after
+        // payment_intent.succeeded.
+        //
+        // We still set `on_behalf_of` (see payment_intent_data below) so the
+        // settlement merchant, statement descriptor, and dispute risk attach
+        // to the expert's Connect account. The patient's NIF for that fiscal
+        // invoice is collected via the `nif` custom field above.
         billing_address_collection: 'auto',
         consent_collection: { terms_of_service: 'required' },
         custom_text: {
@@ -236,18 +246,7 @@ export async function POST(request: NextRequest) {
             message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
           },
         },
-        locale: (() => {
-          const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
-            en: 'en',
-            'pt-BR': 'pt-BR',
-            es: 'es',
-            fr: 'fr',
-            de: 'de',
-            it: 'it',
-            pt: 'pt-BR',
-          };
-          return localeMap[locale] || 'en';
-        })(),
+        locale: toStripeCheckoutLocale(locale),
         customer_update: { name: 'auto', address: 'auto' },
         metadata: {
           type: 'pack_purchase',
@@ -267,6 +266,12 @@ export async function POST(request: NextRequest) {
         },
         payment_intent_data: {
           application_fee_amount: applicationFeeAmount,
+          // Settlement merchant is the expert: their statement descriptor is
+          // shown on the customer's card statement, settlement currency follows
+          // their Connect account, and refund/dispute responsibility flows
+          // through their balance first. See docs:
+          // https://stripe.com/docs/connect/destination-charges#settlement-merchant
+          on_behalf_of: expertStripeAccountId,
           transfer_data: {
             destination: expertStripeAccountId,
           },
