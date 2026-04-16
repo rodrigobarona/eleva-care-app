@@ -13,6 +13,7 @@ import React from 'react';
 interface ExpertNewAppointmentProps {
   expertName?: string;
   clientName?: string;
+  clientPhone?: string;
   appointmentDate?: string;
   appointmentTime?: string;
   timezone?: string;
@@ -50,6 +51,7 @@ interface ExpertNewAppointmentProps {
 export default function ExpertNewAppointmentTemplate({
   expertName = 'Patricia Mota',
   clientName = 'Marta Carvalho',
+  clientPhone,
   appointmentDate = 'Wednesday, January 21, 2026',
   appointmentTime = '12:30 PM',
   timezone = 'Europe/Lisbon',
@@ -134,6 +136,19 @@ export default function ExpertNewAppointmentTemplate({
                 {clientName}
               </td>
             </tr>
+            {clientPhone && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Phone:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  <a
+                    href={`tel:${clientPhone}`}
+                    style={{ color: ELEVA_COLORS.primary, textDecoration: 'none' }}
+                  >
+                    {clientPhone}
+                  </a>
+                </td>
+              </tr>
+            )}
             <tr>
               <td style={createTableCellStyle(true)}>Date:</td>
               <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
@@ -291,6 +306,7 @@ export default function ExpertNewAppointmentTemplate({
 ExpertNewAppointmentTemplate.PreviewProps = {
   expertName: 'Patricia Mota',
   clientName: 'Marta Carvalho',
+  clientPhone: '+351 912 345 678',
   appointmentDate: 'Wednesday, January 21, 2026',
   appointmentTime: '12:30 PM',
   timezone: 'Europe/Lisbon',

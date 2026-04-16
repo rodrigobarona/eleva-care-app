@@ -258,6 +258,7 @@ async function createDeferredCalendarEvent(
         clerkUserId: meeting.clerkUserId,
         guestName: meeting.guestName,
         guestEmail: meeting.guestEmail,
+        guestPhone: meeting.guestPhone,
         startTime: meeting.startTime,
         guestNotes: meeting.guestNotes || undefined,
         durationInMinutes: event.durationInMinutes,

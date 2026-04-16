@@ -755,9 +755,10 @@ export const appointmentConfirmationWorkflow = workflow(
       const emailBody = await elevaEmailService.renderExpertNewAppointment({
         expertName: payload.expertName,
         clientName: payload.clientName,
+        clientPhone: payload.clientPhone,
         appointmentDate: payload.appointmentDate,
         appointmentTime: payload.appointmentTime,
-        timezone: payload.timezone, // ✅ Expert's timezone
+        timezone: payload.timezone,
         appointmentDuration: payload.appointmentDuration,
         eventTitle: payload.eventTitle,
         meetLink: payload.meetLink,
@@ -777,10 +778,11 @@ export const appointmentConfirmationWorkflow = workflow(
     payloadSchema: z.object({
       expertName: z.string(),
       clientName: z.string(),
+      clientPhone: z.string().optional(),
       appointmentDate: z.string(),
       appointmentTime: z.string(),
-      timezone: z.string(), // Expert's timezone for display
-      guestTimezone: z.string().optional(), // Guest's timezone for reference
+      timezone: z.string(),
+      guestTimezone: z.string().optional(),
       appointmentDuration: z.string(),
       eventTitle: z.string(),
       meetLink: z.string().optional(),

@@ -920,6 +920,7 @@ export class ElevaEmailService {
   async renderExpertNewAppointment(data: {
     expertName: string;
     clientName: string;
+    clientPhone?: string;
     appointmentDate: string;
     appointmentTime: string;
     timezone: string;
@@ -938,6 +939,7 @@ export class ElevaEmailService {
     const template = React.createElement(ExpertNewAppointmentTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
+      clientPhone: data.clientPhone,
       appointmentDate: data.appointmentDate,
       appointmentTime: data.appointmentTime,
       timezone: data.timezone,

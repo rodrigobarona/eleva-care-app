@@ -163,6 +163,7 @@ class GoogleCalendarService {
     clerkUserId,
     guestName,
     guestEmail,
+    guestPhone,
     startTime,
     guestNotes,
     durationInMinutes,
@@ -173,6 +174,7 @@ class GoogleCalendarService {
     clerkUserId: string;
     guestName: string;
     guestEmail: string;
+    guestPhone?: string | null;
     startTime: Date;
     guestNotes?: string | null;
     durationInMinutes: number;
@@ -276,7 +278,13 @@ class GoogleCalendarService {
             optional: false,
           },
         ],
-        description: guestNotes ? `Additional Details: ${guestNotes}` : undefined,
+        description:
+          [
+            guestPhone ? `Patient Phone: ${guestPhone}` : '',
+            guestNotes ? `Additional Details: ${guestNotes}` : '',
+          ]
+            .filter(Boolean)
+            .join('\n\n') || undefined,
         start: {
           dateTime: startTime.toISOString(),
         },
@@ -332,11 +340,12 @@ class GoogleCalendarService {
 
           // Update the calendar event description to include the shortened link
           if (shortMeetLink && shortMeetLink !== meetLink) {
-            const updatedDescription = `Join the meeting: ${shortMeetLink}\n\n${
-              calendarEvent.data.description || guestNotes
-                ? `Additional Details: ${guestNotes}`
-                : ''
-            }`;
+            const descriptionParts = [
+              `Join the meeting: ${shortMeetLink}`,
+              guestPhone ? `Patient Phone: ${guestPhone}` : '',
+              guestNotes ? `Additional Details: ${guestNotes}` : '',
+            ].filter(Boolean);
+            const updatedDescription = descriptionParts.join('\n\n');
 
             // Update the calendar event with the new description
             await google.calendar('v3').events.patch({
@@ -469,12 +478,13 @@ export async function createCalendarEvent(params: {
   clerkUserId: string;
   guestName: string;
   guestEmail: string;
+  guestPhone?: string | null;
   startTime: Date;
   guestNotes?: string | null;
   durationInMinutes: number;
   eventName: string;
-  timezone?: string; // Will be validated - invalid timezones will fall back to UTC
-  locale?: string; // Add locale parameter
+  timezone?: string;
+  locale?: string;
 }) {
   return GoogleCalendarService.getInstance().createCalendarEvent(params);
 }
@@ -507,4 +517,3 @@ export async function getGoogleCalendarClient(userId: string) {
     throw error;
   }
 }
-

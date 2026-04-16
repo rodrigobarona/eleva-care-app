@@ -233,6 +233,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             clerkUserId: data.clerkUserId,
             guestName: data.guestName,
             guestEmail: data.guestEmail,
+            guestPhone: data.guestPhone,
             startTime: startTimeUTC,
             guestNotes: data.guestNotes,
             durationInMinutes: event.durationInMinutes,
