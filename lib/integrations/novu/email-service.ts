@@ -1020,7 +1020,7 @@ export class ElevaEmailService {
     // Use enhanced template selection if advanced options provided
     if (data.userSegment || data.templateVariant) {
       const selector: TemplateSelector = {
-        workflowId: 'appointment-reminder',
+        workflowId: 'appointment-universal',
         eventType: 'reminder',
         userSegment,
         locale,

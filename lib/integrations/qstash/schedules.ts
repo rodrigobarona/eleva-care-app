@@ -71,7 +71,12 @@ const SCHEDULE_CONFIGS = [
   {
     name: 'appointment-reminders',
     endpoint: '/api/cron/appointment-reminders',
-    schedule: { cron: '0 9 * * *' }, // Daily at 9 AM
+    schedule: { cron: '0 * * * *' }, // Every hour (1-hour window per run)
+  },
+  {
+    name: 'appointment-reminders-1hr',
+    endpoint: '/api/cron/appointment-reminders-1hr',
+    schedule: { cron: '*/15 * * * *' }, // Every 15 minutes
   },
   {
     name: 'send-payment-reminders',

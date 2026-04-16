@@ -35,7 +35,7 @@ const DEFAULT_TIMEZONE = 'UTC';
 const CONFIGURED_SCHEDULES = {
   appointmentReminders: {
     endpoint: '/api/cron/appointment-reminders',
-    cron: '0 9 * * *',
+    cron: '0 * * * *',
     description: '24-hour appointment reminders for confirmed bookings',
     priority: 'high',
   },
@@ -205,30 +205,41 @@ async function scheduleAllJobs() {
 
       const destination = `${baseUrl}${config.endpoint}`;
 
-      const scheduleConfig = {
-        destination,
-        cron: config.cron,
-        retries: 3,
+      // QStash v2 API: destination in URL path, cron/retries as Upstash-* headers
+      const response = await fetch(`${QSTASH_BASE_URL}/schedules/${destination}`, {
+        method: 'POST',
         headers: {
+          Authorization: `Bearer ${QSTASH_TOKEN}`,
           'Content-Type': 'application/json',
-          'x-qstash-request': 'true',
-          'x-cron-job-name': jobName,
-          'x-cron-priority': config.priority,
-          'Upstash-Cron-TZ': DEFAULT_TIMEZONE,
-          ...(process.env.CRON_API_KEY && { 'x-api-key': process.env.CRON_API_KEY }),
+          'Upstash-Cron': config.cron,
+          'Upstash-Retries': '3',
+          'Upstash-Cron-Timezone': DEFAULT_TIMEZONE,
+          'Upstash-Forward-x-qstash-request': 'true',
+          'Upstash-Forward-x-cron-job-name': jobName,
+          'Upstash-Forward-x-cron-priority': config.priority,
+          ...(process.env.CRON_API_KEY && {
+            'Upstash-Forward-x-api-key': process.env.CRON_API_KEY,
+          }),
         },
-      };
+      });
 
-      const response = await makeQStashRequest('/schedules', 'POST', scheduleConfig);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(
+          `QStash API error: ${response.status} ${response.statusText} - ${errorBody}`,
+        );
+      }
+
+      const responseData = await response.json();
 
       results.push({
         name: jobName,
-        scheduleId: response.scheduleId,
+        scheduleId: responseData.scheduleId,
         endpoint: config.endpoint,
         success: true,
       });
 
-      console.log(`   ✅ Successfully scheduled ${jobName} (ID: ${response.scheduleId})\n`);
+      console.log(`   ✅ Successfully scheduled ${jobName} (ID: ${responseData.scheduleId})\n`);
     } catch (error) {
       console.error(`   ❌ Failed to schedule ${jobName}:`, error.message);
       results.push({

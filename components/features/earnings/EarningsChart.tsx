@@ -10,27 +10,28 @@ import type { EarningsMonthlySeriesItem } from '@/server/earnings';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 const chartConfig = {
-  sessionNetAmount: {
-    label: 'Sessions',
-    color: 'var(--eleva-primary)',
+  paidOutAmount: {
+    label: 'Paid out',
+    color: 'var(--chart-1)',
   },
-  packNetAmount: {
-    label: 'Packs',
-    color: 'var(--chart-2)',
+  upcomingAmount: {
+    label: 'Upcoming',
+    color: 'var(--chart-3)',
   },
 } satisfies ChartConfig;
 
 type EarningsChartProps = {
   data: EarningsMonthlySeriesItem[];
   currency: string;
+  year: number;
 };
 
-export function EarningsChart({ data, currency }: EarningsChartProps) {
+export function EarningsChart({ data, currency, year }: EarningsChartProps) {
   const hasData = data.some((item) => item.netAmount > 0);
 
   if (!hasData) {
     return (
-      <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
         No earnings recorded for this year yet.
       </div>
     );
@@ -38,41 +39,58 @@ export function EarningsChart({ data, currency }: EarningsChartProps) {
 
   const currencySymbol = currency === 'EUR' ? '€' : currency;
 
+  const chartData = data.map((item) => ({
+    ...item,
+    upcomingAmount: Math.max(item.netAmount - item.paidOutAmount, 0),
+  }));
+
   return (
-    <ChartContainer config={chartConfig} className="h-[260px] w-full">
-      <BarChart accessibilityLayer data={data} margin={{ top: 4, right: 4, bottom: 0, left: -12 }}>
+    <ChartContainer config={chartConfig} className="h-[280px] w-full">
+      <BarChart
+        accessibilityLayer
+        data={chartData}
+        margin={{ top: 8, right: 8, bottom: 0, left: -8 }}
+      >
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
         <YAxis
           tickLine={false}
           axisLine={false}
-          fontSize={12}
+          fontSize={11}
+          width={52}
           tickFormatter={(value: number) =>
-            value >= 100 ? `${currencySymbol}${Math.round(value / 100)}` : ''
+            value > 0 ? `${currencySymbol}${(value / 100).toFixed(0)}` : ''
           }
         />
         <ChartTooltip
           content={
             <ChartTooltipContent
-              labelFormatter={(label) => `${label} ${new Date().getFullYear()}`}
+              className="min-w-[180px]"
+              labelFormatter={(label) => `${label} ${year}`}
               formatter={(value, name) => {
                 const amount = Number(value) / 100;
-                const label = name === 'sessionNetAmount' ? 'Sessions' : 'Packs';
-                return [`${currencySymbol}${amount.toFixed(2)}`, label];
+                const displayLabel = name === 'paidOutAmount' ? 'Paid out' : 'Upcoming';
+                return [
+                  <span key={String(name)} className="tabular-nums">
+                    {currencySymbol}
+                    {amount.toFixed(2)}
+                  </span>,
+                  displayLabel,
+                ];
               }}
             />
           }
         />
         <Bar
-          dataKey="sessionNetAmount"
+          dataKey="paidOutAmount"
           stackId="earnings"
-          fill="var(--color-sessionNetAmount)"
+          fill="var(--color-paidOutAmount)"
           radius={[0, 0, 0, 0]}
         />
         <Bar
-          dataKey="packNetAmount"
+          dataKey="upcomingAmount"
           stackId="earnings"
-          fill="var(--color-packNetAmount)"
+          fill="var(--color-upcomingAmount)"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>

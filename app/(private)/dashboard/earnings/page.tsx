@@ -196,7 +196,7 @@ export default async function EarningsPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <EarningsChart data={data.monthlySeries} currency={currency} />
+              <EarningsChart data={data.monthlySeries} currency={currency} year={year} />
             </CardContent>
           </Card>
 
@@ -259,33 +259,45 @@ export default async function EarningsPage({
                 {data.recentPayouts.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No payouts yet.</p>
                 ) : (
-                  data.recentPayouts.slice(0, 3).map((payout) => (
-                    <div
-                      key={payout.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {formatCurrency(payout.amount, payout.currency)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
+                  data.recentPayouts.slice(0, 3).map((payout) => {
+                    const linkedSessions = data.earningsLedger.filter(
+                      (entry) => entry.payoutId === payout.id,
+                    );
+                    const clientNames = [...new Set(linkedSessions.map((s) => s.customerName))];
+
+                    return (
+                      <div key={payout.id} className="rounded-md border px-3 py-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">
+                            {formatCurrency(payout.amount, payout.currency)}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              payout.status === 'paid'
+                                ? 'bg-green-50 text-green-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }
+                          >
+                            {payout.status}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {payout.arrivalDate
                             ? formatShortDate(new Date(payout.arrivalDate))
                             : 'Pending'}
+                          {clientNames.length > 0 && (
+                            <>
+                              {' · '}
+                              {clientNames.length <= 2
+                                ? clientNames.join(', ')
+                                : `${clientNames[0]} + ${clientNames.length - 1} more`}
+                            </>
+                          )}
                         </p>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={
-                          payout.status === 'paid'
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }
-                      >
-                        {payout.status}
-                      </Badge>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </CardContent>
             </Card>

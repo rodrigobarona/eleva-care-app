@@ -81,7 +81,14 @@ async function handler() {
           appointment.expertLocale,
         );
 
-        await triggerWorkflow({
+        const expertLocaleLower = (appointment.expertLocale || 'en').toLowerCase();
+        const expertLocale: SupportedLocale = expertLocaleLower.startsWith('pt')
+          ? 'pt'
+          : expertLocaleLower.startsWith('es')
+            ? 'es'
+            : 'en';
+
+        const expertResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
             subscriberId: appointment.expertClerkId,
@@ -95,10 +102,16 @@ async function handler() {
             appointmentTime: expertDateTime.timePart,
             timezone: appointment.expertTimezone,
             message: `Appointment reminder: You have an appointment with ${appointment.customerName} ${expertTimeUntil}`,
-            meetLink: appointment.meetingUrl,
+            meetingUrl: appointment.meetingUrl,
+            userSegment: 'expert',
+            locale: expertLocale,
           },
           transactionId: `reminder-24h-expert-${appointment.id}`, // Idempotency key
         });
+
+        if (!expertResult) {
+          throw new Error('Workflow trigger returned null');
+        }
 
         console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
         expertRemindersSent++;
@@ -133,7 +146,7 @@ async function handler() {
             : 'en';
 
         // Trigger patient reminder via Novu workflow (uses email as subscriber ID)
-        await triggerWorkflow({
+        const patientResult = await triggerWorkflow({
           workflowId: 'appointment-universal',
           to: {
             subscriberId: appointment.guestEmail, // Use email as subscriber ID for guests
@@ -157,6 +170,10 @@ async function handler() {
           },
           transactionId: `reminder-24h-patient-${appointment.id}`, // Idempotency key
         });
+
+        if (!patientResult) {
+          throw new Error('Workflow trigger returned null');
+        }
 
         console.log(`✅ Reminder sent to patient via Novu: ${appointment.guestEmail}`);
         patientRemindersSent++;

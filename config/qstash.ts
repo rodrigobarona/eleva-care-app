@@ -32,7 +32,7 @@ export const qstash = {
     // 📅 APPOINTMENT MANAGEMENT
     appointmentReminders: {
       endpoint: '/api/cron/appointment-reminders',
-      cron: '0 9 * * *', // Daily at 9 AM UTC - 24-hour reminders
+      cron: '0 * * * *', // Every hour - 24-hour reminders (1-hour window per run)
       description: '24-hour appointment reminders for confirmed bookings',
       priority: 'high',
     },
