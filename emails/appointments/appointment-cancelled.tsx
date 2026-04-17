@@ -138,7 +138,7 @@ export const AppointmentCancelledEmail = ({
   // Fall back to English for any unsupported locale (including pt-BR for now;
   // we can add a dedicated pt-BR variant later if needed).
   const t =
-    (translations as unknown as Record<string, (typeof translations)['en']>)[locale as string] ??
+    (translations as Record<string, (typeof translations)['en']>)[locale as string] ??
     translations.en;
 
   const subject = isPatient ? t.patientSubject : t.expertSubject;
