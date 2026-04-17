@@ -271,18 +271,13 @@ async function createDeferredCalendarEvent(
     }
 
     const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-    // Persist the Google Calendar event ID so the cancel flow can call
-    // events.delete() programmatically. Falls back to null if Google didn't
-    // return one (shouldn't happen, but cancel handles null gracefully).
-    const googleCalendarEventId = calendarEvent.id ?? null;
 
-    // Update meeting with the new URL, calendar event id, and mark claim as completed
+    // Update meeting with the new URL and mark claim as completed
     if (meetingUrl) {
       await db
         .update(MeetingTable)
         .set({
           meetingUrl: meetingUrl,
-          googleCalendarEventId,
           calendarCreationClaimed: true, // Keep claimed to prevent re-processing
           updatedAt: new Date(),
         })
@@ -297,7 +292,6 @@ async function createDeferredCalendarEvent(
       await db
         .update(MeetingTable)
         .set({
-          googleCalendarEventId,
           calendarCreationClaimed: true,
           updatedAt: new Date(),
         })

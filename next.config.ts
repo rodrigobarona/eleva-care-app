@@ -48,26 +48,9 @@ const config: NextConfig = {
   // For now, using traditional revalidate pattern for static content caching
   // cacheComponents: true,
 
-  // Ensure content/ MDX files are included in serverless functions for ISR.
-  //
-  // Why: lib/mdx/server-mdx.tsx reads MDX with
-  //   path.join(process.cwd(), 'content', namespace, `${locale}.mdx`)
-  // Next's file tracer (NFT) can only see string literals, so `namespace` and
-  // `locale` are invisible — the content/ directory is NOT auto-traced into
-  // the serverless function bundle and runtime fs.readFile fails with ENOENT
-  // (page renders `notFound()`).
-  //
-  // The keys here are picomatch globs against the build-time route path. The
-  // previous key '/*' only matched single-segment routes (e.g. /about), so
-  // every locale-prefixed route under app/[locale]/(public)/... — i.e. the
-  // route key /[locale]/about, /[locale]/history, /[locale]/legal/[document],
-  // /[locale]/trust/[document] — was missed and broke on Vercel for /es/about,
-  // /pt/about, /br/about, /legal/*, /trust/*, etc.
-  //
-  // '/**' matches any route depth, which is what we want for all MDX-backed
-  // pages.
+  // Ensure content/ MDX files are included in serverless functions for ISR
   outputFileTracingIncludes: {
-    '/**': ['./content/**'],
+    '/*': ['./content/**'],
   },
 
   // Enable React Compiler for automatic memoization

@@ -1,29 +1,13 @@
 'use client';
 
 import { RecordDialog } from '@/components/features/appointments/RecordDialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { cancelAppointment } from '@/server/actions/meetings';
 import { formatInTimeZone } from 'date-fns-tz';
-import { Clock, Link as LinkIcon, Loader2, Mail, Phone, User, X } from 'lucide-react';
+import { Clock, Link as LinkIcon, Mail, Phone, User } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 interface Appointment {
   id: string;
@@ -80,45 +64,8 @@ export function AppointmentCard({
   customerId,
   expertTimezone = 'UTC',
 }: AppointmentCardProps) {
-  const router = useRouter();
   const isReservation = appointment.type === 'reservation';
   const reservation = isReservation ? (appointment as Reservation) : null;
-
-  // Cancel-appointment dialog state. Only shown for confirmed FUTURE
-  // appointments that haven't already been refunded.
-  const [isCancelOpen, setIsCancelOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [isCancelling, setIsCancelling] = useState(false);
-
-  const isCancellable =
-    !isReservation &&
-    appointment.stripePaymentStatus === 'succeeded' &&
-    new Date(appointment.startTime).getTime() > Date.now();
-
-  async function handleCancel() {
-    if (isReservation) return;
-    setIsCancelling(true);
-    try {
-      const trimmedReason = cancelReason.trim();
-      const result = await cancelAppointment(
-        appointment.id,
-        trimmedReason.length > 0 ? trimmedReason : undefined,
-      );
-      if (result.success) {
-        toast.success(result.message);
-        setIsCancelOpen(false);
-        setCancelReason('');
-        router.refresh();
-      } else {
-        toast.error(result.message);
-      }
-    } catch (err) {
-      console.error('[AppointmentCard] cancel failed', err);
-      toast.error('Could not cancel the appointment. Please try again.');
-    } finally {
-      setIsCancelling(false);
-    }
-  }
 
   // Calculate time until expiration for reservations
   const [timeUntilExpiration, setTimeUntilExpiration] = useState(() => {
@@ -248,7 +195,7 @@ export function AppointmentCard({
           {!isReservation && appointment.meetingUrl && (
             <div className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <Link href={appointment.meetingUrl} target="_blank" rel="noopener noreferrer">
                     Join Meeting
@@ -260,63 +207,6 @@ export function AppointmentCard({
                   guestEmail={appointment.guestEmail}
                   appointmentDate={appointment.startTime}
                 />
-                {isCancellable && (
-                  <AlertDialog open={isCancelOpen} onOpenChange={setIsCancelOpen}>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <X className="mr-1 h-4 w-4" />
-                        Cancel booking
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Cancel this appointment?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will issue a full refund to {appointment.guestName} and email
-                          them the cancellation notice. The Google Calendar event will be
-                          removed and the slot becomes available again. This cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <div className="grid gap-2 py-2">
-                        <Label htmlFor={`cancel-reason-${appointment.id}`}>
-                          Reason (optional, shared with the guest)
-                        </Label>
-                        <Textarea
-                          id={`cancel-reason-${appointment.id}`}
-                          placeholder="e.g., Personal emergency — I'll reach out to reschedule."
-                          value={cancelReason}
-                          onChange={(e) => setCancelReason(e.target.value)}
-                          maxLength={500}
-                          disabled={isCancelling}
-                        />
-                      </div>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isCancelling}>
-                          Keep appointment
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={(e) => {
-                            // Prevent the dialog from closing immediately so the
-                            // user sees the loading state on the button.
-                            e.preventDefault();
-                            void handleCancel();
-                          }}
-                          disabled={isCancelling}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {isCancelling ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Cancelling…
-                            </>
-                          ) : (
-                            'Cancel and refund'
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
               </div>
             </div>
           )}

@@ -1,7 +1,6 @@
 // Email templates are now imported through the email service functions
 // Import email templates
 import { ENV_CONFIG } from '@/config/env';
-import AppointmentCancelledEmail from '@/emails/appointments/appointment-cancelled';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
 import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
 import { ExpertPayoutNotificationTemplate, RefundNotificationTemplate } from '@/emails/payments';
@@ -1440,46 +1439,6 @@ export class ElevaEmailService {
       appointmentDate: data.appointmentDate,
       appointmentTime: data.appointmentTime,
       timezone: data.timezone || 'UTC',
-      locale,
-    });
-
-    return render(template);
-  }
-
-  /**
-   * Render the branded `appointment-cancelled` email. Sent to BOTH the
-   * patient (refund notice) and the expert (audit confirmation) when an
-   * appointment is cancelled via the in-app cancel flow.
-   */
-  async renderAppointmentCancelled(data: {
-    recipientName: string;
-    recipientType: 'patient' | 'expert';
-    expertName: string;
-    clientName: string;
-    serviceName: string;
-    appointmentDate: string;
-    appointmentTime: string;
-    timezone?: string;
-    refundAmountFormatted: string;
-    cancellationReason?: string;
-    locale?: string;
-  }) {
-    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
-    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
-      ? (data.locale as SupportedLocale)
-      : 'en';
-
-    const template = React.createElement(AppointmentCancelledEmail, {
-      recipientName: data.recipientName,
-      recipientType: data.recipientType,
-      expertName: data.expertName,
-      clientName: data.clientName,
-      serviceName: data.serviceName,
-      appointmentDate: data.appointmentDate,
-      appointmentTime: data.appointmentTime,
-      timezone: data.timezone || 'UTC',
-      refundAmountFormatted: data.refundAmountFormatted,
-      cancellationReason: data.cancellationReason,
       locale,
     });
 

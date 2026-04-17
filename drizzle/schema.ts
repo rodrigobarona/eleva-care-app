@@ -152,10 +152,6 @@ export const MeetingTable = pgTable(
     endTime: timestamp('endTime').notNull(),
     timezone: text('timezone').notNull(),
     meetingUrl: text('meetingUrl'),
-    // Google Calendar event ID returned by events.insert. Stored so we can
-    // programmatically cancel/patch the event (e.g., expert cancel flow,
-    // future reschedule) without having to search by time range.
-    googleCalendarEventId: text('google_calendar_event_id'),
     // Stripe payment processing fields
     stripePaymentIntentId: text('stripePaymentIntentId').unique(),
     stripeSessionId: text('stripeSessionId').unique(),
