@@ -11,8 +11,25 @@ interface ExpertNotificationEmailProps {
   locale?: string;
 }
 
-// Neutral fallbacks — realistic samples live only in PreviewProps below.
-// See plan: fix_fake_email_content_bug.
+/**
+ * Generic notification email for experts (e.g. account updates, security
+ * alerts, marketplace events). Renders a heading, a body block with the
+ * notification message, and an optional call-to-action button.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <ExpertNotificationEmail
+ *   expertName="Patricia Mota"
+ *   notificationTitle="Account update"
+ *   notificationMessage="Your payout has been sent to your bank account."
+ *   actionUrl="https://eleva.care/dashboard/earnings"
+ *   actionText="View earnings"
+ * />
+ * ```
+ */
 export const ExpertNotificationEmail = ({
   expertName = 'Expert',
   notificationTitle = 'You have a new notification',
@@ -21,7 +38,11 @@ export const ExpertNotificationEmail = ({
   actionText,
 }: ExpertNotificationEmailProps) => {
   const subject = `${notificationTitle} - Eleva Care`;
-  const previewText = `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`;
+  // Only append the message snippet when there's actually a message, so we
+  // don't end up with "You have a new notification - ..." in the inbox preview.
+  const previewText = notificationMessage.trim().length
+    ? `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`
+    : notificationTitle;
 
   return (
     <EmailLayout

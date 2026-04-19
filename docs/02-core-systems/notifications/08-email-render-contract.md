@@ -88,7 +88,8 @@ a template and assuming the names matched.
 
 1. **Manually map the props** in the corresponding render method
    (`ElevaEmailService.render*`). This is what every render method now does
-   after Phase 1 — and what new render methods MUST do.
+   after the initial remediation that disabled the dynamic selection path —
+   and what new render methods MUST do.
 2. **Register a typed adapter** in `propAdapters` inside
    `lib/integrations/novu/email-service.ts`. The adapter receives the workflow
    payload and returns the template's prop bag. This is required if the

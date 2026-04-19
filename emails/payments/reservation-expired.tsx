@@ -247,16 +247,21 @@ export const ReservationExpiredEmail = ({
                 {isPatient ? expertName : recipientName}
               </td>
             </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.date}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.time}:</td>
-              <td style={createTableCellStyle(false, 'right')}>
-                {appointmentTime} ({timezone})
-              </td>
-            </tr>
+            {appointmentDate && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.date}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.time}:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {appointmentTime}
+                  {timezone && ` (${timezone})`}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Section>

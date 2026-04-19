@@ -24,10 +24,32 @@ interface AppointmentConfirmationProps {
   locale?: string;
 }
 
-// Neutral fallbacks: realistic-sounding sample data (names, services, dates) was
-// previously used as default values, which leaked into production emails when a
-// payload field was missing (e.g. the "João Silva / Consulta de Cardiologia"
-// incident). Realistic samples now live only in PreviewProps below.
+/**
+ * Confirmation email sent to a patient after their booking is confirmed.
+ * Renders appointment details, a "Join Video Call" button when available,
+ * and pre-appointment preparation tips.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them — see
+ * the "João Silva / Consulta de Cardiologia" incident in
+ * `docs/02-core-systems/notifications/08-email-render-contract.md`.
+ *
+ * @example
+ * ```tsx
+ * <AppointmentConfirmationTemplate
+ *   expertName="Patricia Mota"
+ *   clientName="Matilde Henriques"
+ *   appointmentDate="Tuesday, April 22, 2026"
+ *   appointmentTime="2:00 PM"
+ *   timezone="Europe/Lisbon"
+ *   appointmentDuration="45 minutes"
+ *   eventTitle="Physiotherapy session"
+ *   meetLink="https://meet.google.com/abc-defg-hij"
+ *   notes="First session"
+ *   locale="en"
+ * />
+ * ```
+ */
 export default function AppointmentConfirmationTemplate({
   expertName = 'Your Expert',
   clientName = 'Customer',
@@ -109,20 +131,27 @@ export default function AppointmentConfirmationTemplate({
               {eventTitle}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Date:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Time:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {appointmentTime} ({timezone})
-            </td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Duration:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
-          </tr>
+          {appointmentDate && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Date:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+            </tr>
+          )}
+          {appointmentTime && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Time:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {appointmentTime}
+                {timezone && ` (${timezone})`}
+              </td>
+            </tr>
+          )}
+          {appointmentDuration && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Duration:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
+            </tr>
+          )}
           <tr>
             <td style={createTableCellStyle(true)}>Your Expert:</td>
             <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>

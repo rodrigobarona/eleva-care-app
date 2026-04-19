@@ -1091,10 +1091,13 @@ export const reservationExpiredWorkflow = workflow(
         locale: payload.locale || 'en',
       });
 
+      // Normalize regional locales (e.g. 'pt-BR' → 'pt') so subject lines
+      // match the same way other workflows in this file do.
+      const baseLocale = (payload.locale || 'en').split('-')[0].toLowerCase();
       const subject =
-        payload.locale === 'pt'
+        baseLocale === 'pt'
           ? `⏰ A sua reserva expirou - ${payload.serviceName}`
-          : payload.locale === 'es'
+          : baseLocale === 'es'
             ? `⏰ Su reserva ha expirado - ${payload.serviceName}`
             : `⏰ Your booking has expired - ${payload.serviceName}`;
 

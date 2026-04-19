@@ -64,7 +64,15 @@ export default function ExpertNewAppointmentTemplate({
   locale = 'en',
 }: ExpertNewAppointmentProps) {
   const subject = `New Booking: ${eventTitle} with ${clientName}`;
-  const previewText = `You have a new appointment with ${clientName} on ${appointmentDate} at ${appointmentTime}`;
+  // Build preview text dynamically so missing date/time don't produce
+  // awkward "on  at " fragments.
+  const previewText = [
+    `You have a new appointment with ${clientName}`,
+    appointmentDate ? `on ${appointmentDate}` : null,
+    appointmentTime ? `at ${appointmentTime}` : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <EmailLayout
@@ -151,20 +159,27 @@ export default function ExpertNewAppointmentTemplate({
                 </td>
               </tr>
             )}
-            <tr>
-              <td style={createTableCellStyle(true)}>Date:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>Time:</td>
-              <td style={createTableCellStyle(false, 'right')}>
-                {appointmentTime} ({timezone})
-              </td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>Duration:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
-            </tr>
+            {appointmentDate && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Date:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Time:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {appointmentTime}
+                  {timezone && ` (${timezone})`}
+                </td>
+              </tr>
+            )}
+            {appointmentDuration && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Duration:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
+              </tr>
+            )}
             {notes && (
               <tr>
                 <td style={createTableCellStyle(true)}>Patient Notes:</td>

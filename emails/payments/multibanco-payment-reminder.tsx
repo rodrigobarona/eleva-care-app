@@ -217,22 +217,29 @@ export default function MultibancoPaymentReminderTemplate({
               {serviceName}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.date}:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.time}:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {appointmentTime} ({timezone})
-            </td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.duration}:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {duration} {t.minutes}
-            </td>
-          </tr>
+          {appointmentDate && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.date}:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+            </tr>
+          )}
+          {appointmentTime && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.time}:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {appointmentTime}
+                {timezone && ` (${timezone})`}
+              </td>
+            </tr>
+          )}
+          {duration > 0 && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.duration}:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {duration} {t.minutes}
+              </td>
+            </tr>
+          )}
           <tr>
             <td style={createTableCellStyle(true)}>Expert:</td>
             <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
@@ -385,22 +392,25 @@ export default function MultibancoPaymentReminderTemplate({
         />
       </Section>
 
-      {/* Premium Action Button */}
-      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-        <EmailButton
-          href={hostedVoucherUrl}
-          style={{
-            ...ELEVA_BUTTON_STYLES.primary,
-            backgroundColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-            borderColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-            fontSize: isUrgent ? '20px' : '18px',
-            padding: isUrgent ? '24px 48px' : '20px 40px',
-            animation: isUrgent ? 'pulse 2s infinite' : 'none',
-          }}
-        >
-          {isUrgent ? t.payNowUrgent : t.completePayment}
-        </EmailButton>
-      </Section>
+      {/* Premium Action Button — only render when we have a real voucher URL.
+          An empty href would otherwise reload the email view in some clients. */}
+      {hostedVoucherUrl && (
+        <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+          <EmailButton
+            href={hostedVoucherUrl}
+            style={{
+              ...ELEVA_BUTTON_STYLES.primary,
+              backgroundColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+              borderColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+              fontSize: isUrgent ? '20px' : '18px',
+              padding: isUrgent ? '24px 48px' : '20px 40px',
+              animation: isUrgent ? 'pulse 2s infinite' : 'none',
+            }}
+          >
+            {isUrgent ? t.payNowUrgent : t.completePayment}
+          </EmailButton>
+        </Section>
+      )}
 
       {/* Premium Warning Section */}
       <Section style={ELEVA_CARD_STYLES.warning}>

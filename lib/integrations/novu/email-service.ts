@@ -19,21 +19,41 @@ import { render } from '@react-email/render';
 import React from 'react';
 
 /**
- * Phase 4 (fix_fake_email_content_bug): per-method opt-in flag for the dynamic
- * template selection path. Default OFF — every render method uses its
+ * Per-method opt-in flag for the dynamic template selection path
+ * (`renderEmailWithSelection`). Default OFF — every render method uses its
  * manually-mapped fallback. Flip on by setting the env var
- * `NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION=true` AND, in the specific render
- * method you want to opt in, restoring the selection-path gate (see git
- * history of this file circa Phase 1) — but ONLY after that workflow's
- * template mapping AND prop adapter (see `propAdapters` below) are correct
- * and covered by tests in `tests/lib/integrations/novu/`.
+ * `NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION=true`.
  *
- * This guard exists so the production placeholder-leak bug ("João Silva /
- * Consulta de Cardiologia" leaking into Matilde Henriques' confirmation email)
- * can never come back via a careless re-enable of the selection layer.
+ * The flag is enforced inside `renderEmailWithSelection` itself (see
+ * implementation), which throws a descriptive error if invoked while the flag
+ * is off. That makes the safety guarantee a runtime fact, not just a
+ * convention — the production placeholder-leak bug ("João Silva / Consulta de
+ * Cardiologia" leaking into Matilde Henriques' confirmation email) cannot
+ * come back via a careless re-enable of the selection layer.
  */
 export const ENABLE_DYNAMIC_TEMPLATE_SELECTION =
   process.env.NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION === 'true';
+
+/**
+ * Centralized cast for the `templateMappings` and `propAdapters` tables.
+ *
+ * React Email components have strongly-typed prop interfaces, but the dynamic
+ * selection layer needs to store them in a uniform map keyed by string. This
+ * helper makes that intentional widening explicit (and greppable) in one
+ * place instead of repeating `as unknown as React.ComponentType<...>` ~15
+ * times. The matching prop adapter (see `propAdapters` below) is the only
+ * thing that re-narrows the bag of `unknown` values into the template's real
+ * prop shape.
+ *
+ * @example
+ * ```ts
+ * default: asTemplate(ExpertNewAppointmentTemplate),
+ * ```
+ */
+type AnyTemplate = React.ComponentType<Record<string, unknown>>;
+const asTemplate = <T extends React.ComponentType<Record<string, unknown>> | React.FC<unknown>>(
+  template: T,
+): AnyTemplate => template as unknown as AnyTemplate;
 
 // Re-export SupportedLocale for use in other modules
 export type { SupportedLocale };
@@ -253,39 +273,21 @@ export class TemplateSelectionService {
           reminder: AppointmentConfirmationTemplate,
         },
         expert: {
-          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          reminder: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ExpertNewAppointmentTemplate),
+          urgent: asTemplate(ExpertNewAppointmentTemplate),
+          reminder: asTemplate(ExpertNewAppointmentTemplate),
         },
       },
       reminder: {
         patient: {
-          default: AppointmentReminderEmail as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          urgent: AppointmentReminderEmail as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          reminder: AppointmentReminderEmail as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(AppointmentReminderEmail),
+          urgent: asTemplate(AppointmentReminderEmail),
+          reminder: asTemplate(AppointmentReminderEmail),
         },
         expert: {
-          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          reminder: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ExpertNewAppointmentTemplate),
+          urgent: asTemplate(ExpertNewAppointmentTemplate),
+          reminder: asTemplate(ExpertNewAppointmentTemplate),
         },
       },
       cancelled: {
@@ -294,12 +296,8 @@ export class TemplateSelectionService {
           urgent: AppointmentConfirmationTemplate,
         },
         expert: {
-          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ExpertNewAppointmentTemplate),
+          urgent: asTemplate(ExpertNewAppointmentTemplate),
         },
       },
       default: {
@@ -308,12 +306,8 @@ export class TemplateSelectionService {
           urgent: AppointmentConfirmationTemplate,
         },
         expert: {
-          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
-          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ExpertNewAppointmentTemplate),
+          urgent: asTemplate(ExpertNewAppointmentTemplate),
         },
       },
     },
@@ -432,16 +426,15 @@ export class TemplateSelectionService {
       },
     },
 
-    // Phase 4 fix: previously absent entirely, so renderExpertNotification's
-    // selection path threw "No mapping found for workflow: expert-notification".
-    // Real eventType values come from the notificationType field at the call site;
-    // we map them all to the same dedicated ExpertNotificationTemplate.
+    // Real eventType values for this workflow come from the dynamic
+    // `notificationType` field at the call site (e.g. 'appointment_cancelled',
+    // 'account_update'). Listing every possible value here is impractical, so
+    // `selectTemplate` falls back to the `default` event mapping for any
+    // unknown event — see the catch-all logic below.
     'expert-notification': {
       default: {
         expert: {
-          default: ExpertNotificationEmail as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ExpertNotificationEmail),
         },
       },
     },
@@ -449,14 +442,10 @@ export class TemplateSelectionService {
     'reservation-expired': {
       default: {
         patient: {
-          default: ReservationExpiredEmail as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ReservationExpiredEmail),
         },
         expert: {
-          default: ReservationExpiredEmail as unknown as React.ComponentType<
-            Record<string, unknown>
-          >,
+          default: asTemplate(ReservationExpiredEmail),
         },
       },
     },
@@ -475,10 +464,15 @@ export class TemplateSelectionService {
       return null;
     }
 
-    const eventMapping = workflowMapping[eventType];
+    // Look up the event by exact match, then fall back to the workflow's
+    // 'default' event entry. This is essential for workflows like
+    // 'expert-notification' whose eventType is dynamic (driven by the
+    // caller's `notificationType` string) — without the fallback, every
+    // unknown event would return null and the selection path would throw.
+    const eventMapping = workflowMapping[eventType] ?? workflowMapping['default'];
     if (!eventMapping) {
       console.warn(
-        `[TemplateSelector] No mapping found for event: ${eventType} in workflow: ${workflowId}`,
+        `[TemplateSelector] No mapping found for event: ${eventType} in workflow: ${workflowId} (and no 'default' event entry)`,
       );
       return null;
     }
@@ -763,6 +757,40 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
   },
 };
 
+/**
+ * Resolves the prop adapter for a given `(workflowId, eventType, userSegment)`
+ * triple. Adapters translate workflow trigger payloads into the destination
+ * template's prop bag — they're the bridge that prevents workflow-key /
+ * template-prop mismatches from falling through to template defaults (the
+ * original placeholder-leak bug).
+ *
+ * Falls back gracefully:
+ *   - unknown workflowId → identity adapter (pass-through)
+ *   - unknown eventType → looks up the workflow's `default` event entry
+ *   - unknown userSegment → looks up the event's `patient` entry
+ *   - still nothing → identity adapter
+ *
+ * @example
+ * ```ts
+ * const adapter = getPropAdapter({
+ *   workflowId: 'appointment-universal',
+ *   eventType: 'reminder',
+ *   userSegment: 'patient',
+ *   locale: 'en',
+ *   templateVariant: 'default',
+ * });
+ *
+ * const templateProps = adapter({
+ *   userName: 'Matilde',
+ *   serviceName: 'Physio',
+ *   meetingUrl: 'https://meet.google.com/abc',
+ *   // ...
+ * });
+ * // templateProps.patientName === 'Matilde'
+ * // templateProps.appointmentType === 'Physio'
+ * // templateProps.meetingLink === 'https://meet.google.com/abc'
+ * ```
+ */
 export function getPropAdapter(selector: TemplateSelector): PropAdapter {
   const byEvent = propAdapters[selector.workflowId];
   if (!byEvent) return passThrough;
@@ -800,8 +828,12 @@ function recordRenderBreadcrumb(params: {
         providedKeys: Object.keys(params.data).sort(),
       },
     });
-  } catch {
-    // Sentry must never break email rendering.
+  } catch (err) {
+    // Sentry must never break email rendering, but surface the failure
+    // during local development so a misconfigured DSN is visible immediately.
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug('[email.render] Sentry breadcrumb failed:', err);
+    }
   }
 }
 
@@ -1096,6 +1128,24 @@ export class ElevaEmailService {
       }>;
     },
   ) {
+    // Hard runtime guard: until the dynamic selection path is fully covered
+    // by template mappings + prop adapters + tests, refuse to render through
+    // it. The flag flip is the explicit opt-in, gated by an env var
+    // (`NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION=true`). This makes the
+    // production placeholder-leak bug structurally impossible to reintroduce
+    // by accident — any caller who tries gets a loud error instead of a
+    // silently-broken email.
+    if (!ENABLE_DYNAMIC_TEMPLATE_SELECTION) {
+      throw new Error(
+        '[ElevaEmailService] renderEmailWithSelection is disabled by default ' +
+          '(see fix_fake_email_content_bug). Set ' +
+          'NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION=true to enable, but only ' +
+          'after verifying the workflow has a templateMappings entry AND a ' +
+          'matching prop adapter AND regression tests in ' +
+          'tests/lib/integrations/novu/.',
+      );
+    }
+
     // Select template based on criteria
     const { template, selectedVariant } = templateSelectionService.selectTemplateForExperiment(
       selector,
@@ -1624,7 +1674,9 @@ export class ElevaEmailService {
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
     // Strip the forward-compat selection options before passing to the template,
-    // so they don't end up as unknown DOM/JSX props.
+    // so they don't end up as unknown DOM/JSX props. The trailing `void`
+    // statements satisfy ESLint's no-unused-vars rule (the project's config
+    // does not whitelist the `_` prefix).
     const { userSegment: _userSegment, templateVariant: _templateVariant, ...templateProps } = data;
     void _userSegment;
     void _templateVariant;

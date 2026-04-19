@@ -1,3 +1,10 @@
+import {
+  ElevaEmailService,
+  getPropAdapter,
+  templateSelectionService,
+} from '@/lib/integrations/novu/email-service';
+import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals';
+
 /**
  * Regression tests for the placeholder-leak bug
  * (plan: fix_fake_email_content_bug).
@@ -15,12 +22,10 @@
  *
  * If either invariant breaks, this suite fails.
  */
-import {
-  ElevaEmailService,
-  getPropAdapter,
-  templateSelectionService,
-} from '@/lib/integrations/novu/email-service';
-import { beforeAll, describe, expect, test } from '@jest/globals';
+// Set up mocks BEFORE importing the modules under test so the mocks are in
+// place when the module's top-level code runs. Jest hoists `jest.mock` calls
+// automatically, but placing them above the imports makes the order explicit
+// and matches the project's coding guidelines.
 
 // Mock the Novu client so the module loads without real credentials.
 jest.mock('@novu/api', () => ({
@@ -83,6 +88,11 @@ describe('ElevaEmailService — placeholder-leak regression', () => {
 
   beforeAll(() => {
     service = new ElevaEmailService();
+  });
+
+  beforeEach(() => {
+    // Reset mocks between tests to prevent state leakage as the suite grows.
+    jest.clearAllMocks();
   });
 
   describe('renderAppointmentConfirmation', () => {
@@ -163,7 +173,7 @@ describe('ElevaEmailService — placeholder-leak regression', () => {
       // The reminder template's title is "Appointment Reminder" (or PT/ES variant).
       expect(html).not.toContain('✅ Appointment Confirmed');
       // It SHOULD contain reminder-specific copy.
-      expect(html.toLowerCase()).toMatch(/reminder|lembrete/i);
+      expect(html).toMatch(/reminder|lembrete/i);
     });
   });
 

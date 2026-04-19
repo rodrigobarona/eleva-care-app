@@ -28,8 +28,36 @@ interface MultibancoBookingPendingProps {
   locale?: string;
 }
 
-// Neutral fallbacks — realistic samples live only in PreviewProps below.
-// See plan: fix_fake_email_content_bug.
+/**
+ * Email sent to a patient immediately after they choose Multibanco at
+ * checkout. Renders the appointment summary plus the entity/reference/amount
+ * needed to pay the voucher and a CTA linking to the hosted voucher page.
+ *
+ * The action button is only rendered when `hostedVoucherUrl` is non-empty so
+ * an empty href cannot reload the email view in some clients.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <MultibancoBookingPendingTemplate
+ *   customerName="Matilde Henriques"
+ *   expertName="Patricia Mota"
+ *   serviceName="Physiotherapy session"
+ *   appointmentDate="Tuesday, April 22, 2026"
+ *   appointmentTime="2:00 PM"
+ *   timezone="Europe/Lisbon"
+ *   duration={45}
+ *   multibancoEntity="11249"
+ *   multibancoReference="500300600"
+ *   multibancoAmount="70.00"
+ *   voucherExpiresAt="Friday, April 25, 2026"
+ *   hostedVoucherUrl="https://stripe.com/voucher/real"
+ *   locale="en"
+ * />
+ * ```
+ */
 export default function MultibancoBookingPendingTemplate({
   customerName = 'Customer',
   expertName = 'Your Expert',
@@ -170,22 +198,29 @@ export default function MultibancoBookingPendingTemplate({
               {serviceName}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.date}:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.time}:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {appointmentTime} ({timezone})
-            </td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.duration}:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {duration} {t.minutes}
-            </td>
-          </tr>
+          {appointmentDate && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.date}:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+            </tr>
+          )}
+          {appointmentTime && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.time}:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {appointmentTime}
+                {timezone && ` (${timezone})`}
+              </td>
+            </tr>
+          )}
+          {duration > 0 && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.duration}:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {duration} {t.minutes}
+              </td>
+            </tr>
+          )}
           <tr>
             <td style={createTableCellStyle(true)}>Expert:</td>
             <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
@@ -331,21 +366,23 @@ export default function MultibancoBookingPendingTemplate({
         <Text style={ELEVA_TEXT_STYLES.bodyRegular}>{t.instructions}</Text>
       </Section>
 
-      {/* Premium Action Button */}
-      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-        <EmailButton
-          href={hostedVoucherUrl}
-          style={{
-            ...ELEVA_BUTTON_STYLES.primary,
-            backgroundColor: ELEVA_COLORS.warning,
-            borderColor: ELEVA_COLORS.warning,
-            fontSize: '18px',
-            padding: '20px 40px',
-          }}
-        >
-          {t.viewVoucher}
-        </EmailButton>
-      </Section>
+      {/* Premium Action Button — only render when we have a real voucher URL. */}
+      {hostedVoucherUrl && (
+        <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+          <EmailButton
+            href={hostedVoucherUrl}
+            style={{
+              ...ELEVA_BUTTON_STYLES.primary,
+              backgroundColor: ELEVA_COLORS.warning,
+              borderColor: ELEVA_COLORS.warning,
+              fontSize: '18px',
+              padding: '20px 40px',
+            }}
+          >
+            {t.viewVoucher}
+          </EmailButton>
+        </Section>
+      )}
 
       <Hr style={{ margin: '40px 0', borderColor: ELEVA_COLORS.neutral.border }} />
 

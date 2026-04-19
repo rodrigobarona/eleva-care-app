@@ -386,6 +386,26 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
  * (`expert-appointment-${meetingId}`). Novu deduplicates by `transactionId`,
  * so retries or accidental double-fires from race conditions cannot send the
  * same expert two emails for the same meeting.
+ *
+ * @example
+ * ```ts
+ * await triggerExpertAppointmentConfirmation({
+ *   meetingId: 'meeting-123',
+ *   clerkUserId: 'user_2tYRmKEdAbmZUJUDPvkIzzdnMvq',
+ *   guestName: 'Matilde Henriques',
+ *   guestPhone: '+351912345678',
+ *   guestNotes: 'First session',
+ *   guestTimezone: 'Europe/Lisbon',
+ *   startTime: new Date('2026-04-22T13:00:00Z'),
+ *   meetingUrl: 'https://meet.google.com/abc-defg-hij',
+ *   locale: 'pt',
+ *   event: {
+ *     name: 'Physiotherapy session',
+ *     durationInMinutes: 45,
+ *     user: { email: 'expert@example.com', firstName: 'Patricia', lastName: 'Mota' },
+ *   },
+ * });
+ * ```
  */
 export async function triggerExpertAppointmentConfirmation(params: {
   meetingId: string;

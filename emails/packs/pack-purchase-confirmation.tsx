@@ -136,11 +136,17 @@ export const PackPurchaseConfirmation = ({
     : normalizedLocale.startsWith('es')
       ? 'es-ES'
       : 'en-US';
-  const formattedExpiry = new Date(expiresAt).toLocaleDateString(localeTag, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  // Guard against missing or malformed `expiresAt` so the "Valid Until" row
+  // never renders the literal string "Invalid Date".
+  const expiryDate = expiresAt ? new Date(expiresAt) : null;
+  const formattedExpiry =
+    expiryDate && !isNaN(expiryDate.getTime())
+      ? expiryDate.toLocaleDateString(localeTag, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : '—';
 
   const subject = `${t.successTitle} - ${packName}`;
   const previewText = `${t.promoInstructions} ${promotionCode}`;

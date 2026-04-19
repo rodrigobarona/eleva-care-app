@@ -71,6 +71,36 @@ export const RefundNotificationEmail = ({
   transactionId = '',
   locale = 'en',
 }: RefundNotificationEmailProps) => {
+  // Build a "scheduled for X at Y" fragment that omits the date/time clause
+  // entirely when those values are missing — avoids "scheduled for  at " or
+  // double spaces in the rendered sentence.
+  const scheduledFragment = {
+    en:
+      appointmentDate && appointmentTime
+        ? ` scheduled for ${appointmentDate} at ${appointmentTime}`
+        : appointmentDate
+          ? ` scheduled for ${appointmentDate}`
+          : appointmentTime
+            ? ` scheduled at ${appointmentTime}`
+            : '',
+    pt:
+      appointmentDate && appointmentTime
+        ? ` agendada para ${appointmentDate} às ${appointmentTime}`
+        : appointmentDate
+          ? ` agendada para ${appointmentDate}`
+          : appointmentTime
+            ? ` agendada às ${appointmentTime}`
+            : '',
+    es:
+      appointmentDate && appointmentTime
+        ? ` programada para ${appointmentDate} a las ${appointmentTime}`
+        : appointmentDate
+          ? ` programada para ${appointmentDate}`
+          : appointmentTime
+            ? ` programada a las ${appointmentTime}`
+            : '',
+  };
+
   // Internationalization support
   const translations = {
     en: {
@@ -79,7 +109,7 @@ export const RefundNotificationEmail = ({
       title: 'Appointment Conflict',
       subtitle: 'Full Refund Processed',
       greeting: `Hello ${customerName},`,
-      conflictMessage: `We regret to inform you that your appointment with ${expertName} scheduled for ${appointmentDate} at ${appointmentTime} is no longer available.`,
+      conflictMessage: `We regret to inform you that your appointment with ${expertName}${scheduledFragment.en} is no longer available.`,
       reasonExplanation: {
         time_range_overlap:
           'The time slot has been booked by another client. Since this was a delayed Multibanco payment, the slot was released before your payment was received.',
@@ -114,7 +144,7 @@ export const RefundNotificationEmail = ({
       title: 'Conflito de Agendamento',
       subtitle: 'Reembolso Total Processado',
       greeting: `Olá ${customerName},`,
-      conflictMessage: `Lamentamos informar que a sua consulta com ${expertName} agendada para ${appointmentDate} às ${appointmentTime} já não está disponível.`,
+      conflictMessage: `Lamentamos informar que a sua consulta com ${expertName}${scheduledFragment.pt} já não está disponível.`,
       reasonExplanation: {
         time_range_overlap:
           'O horário foi reservado por outro cliente. Como este foi um pagamento Multibanco atrasado, o horário foi libertado antes do seu pagamento ser recebido.',
@@ -149,7 +179,7 @@ export const RefundNotificationEmail = ({
       title: 'Conflicto de Cita',
       subtitle: 'Reembolso Total Procesado',
       greeting: `Hola ${customerName},`,
-      conflictMessage: `Lamentamos informarle que su cita con ${expertName} programada para ${appointmentDate} a las ${appointmentTime} ya no está disponible.`,
+      conflictMessage: `Lamentamos informarle que su cita con ${expertName}${scheduledFragment.es} ya no está disponible.`,
       reasonExplanation: {
         time_range_overlap:
           'El horario ha sido reservado por otro cliente. Como este fue un pago Multibanco retrasado, el horario fue liberado antes de recibir su pago.',

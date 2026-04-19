@@ -22,8 +22,29 @@ interface AppointmentReminderEmailProps {
   locale?: string;
 }
 
-// Neutral fallbacks — realistic samples live only in PreviewProps below.
-// See plan: fix_fake_email_content_bug.
+/**
+ * Reminder email sent to a patient ahead of an upcoming appointment.
+ * Renders appointment details and a "Join Video Call" button when a meeting
+ * link is available. Conditional rows ensure no labels appear without values.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <AppointmentReminderEmail
+ *   patientName="Matilde Henriques"
+ *   expertName="Patricia Mota"
+ *   appointmentType="Physiotherapy session"
+ *   appointmentDate="Monday, April 20, 2026"
+ *   appointmentTime="12:00 PM"
+ *   timezone="Europe/Lisbon"
+ *   duration={60}
+ *   meetingLink="https://meet.google.com/abc-defg-hij"
+ *   locale="en"
+ * />
+ * ```
+ */
 export const AppointmentReminderEmail = ({
   patientName = 'Customer',
   expertName = 'Your Expert',
@@ -142,24 +163,32 @@ export const AppointmentReminderEmail = ({
                 {expertName}
               </td>
             </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.date}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.time}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.duration}:</td>
-              <td style={createTableCellStyle(false, 'right')}>
-                {duration} {t.minutes}
-              </td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.timezoneLabel}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{timezone}</td>
-            </tr>
+            {appointmentDate && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.date}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.time}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
+              </tr>
+            )}
+            {duration > 0 && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.duration}:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {duration} {t.minutes}
+                </td>
+              </tr>
+            )}
+            {timezone && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.timezoneLabel}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{timezone}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 

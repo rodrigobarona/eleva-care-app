@@ -183,6 +183,10 @@ async function releaseClaim(meetingId: string): Promise<void> {
  * - Does NOT throw on failure - calendar errors are logged but don't fail the webhook
  * - Cleans up any slot reservations after successful calendar creation
  * - Updates the meeting record with the Google Meet URL
+ * - Triggers the expert "New Booking" notification via
+ *   {@link triggerExpertAppointmentConfirmation} once the meeting URL is set.
+ *   For deferred-payment methods this is the FIRST point at which the expert
+ *   is told about the booking — see plan: fix_fake_email_content_bug, Phase 3.
  */
 async function createDeferredCalendarEvent(
   meeting: {
@@ -307,23 +311,33 @@ async function createDeferredCalendarEvent(
     // methods this is the FIRST time the expert hears about the booking — by
     // design. See the JSDoc on `triggerExpertAppointmentConfirmation` and the
     // `patimota@gmail.com` incident write-up in the plan.
-    const { triggerExpertAppointmentConfirmation } = await import('@/server/actions/meetings');
-    await triggerExpertAppointmentConfirmation({
-      meetingId: meeting.id,
-      clerkUserId: meeting.clerkUserId,
-      guestName: meeting.guestName,
-      guestPhone: meeting.guestPhone,
-      guestNotes: meeting.guestNotes,
-      guestTimezone: meeting.timezone,
-      startTime: meeting.startTime,
-      meetingUrl,
-      locale: extractLocaleFromPaymentIntent(paymentIntent),
-      event: {
-        name: event.name,
-        durationInMinutes: event.durationInMinutes,
-        user: event.user,
-      },
-    });
+    //
+    // The notification has its own try/catch so a Novu outage cannot
+    // re-trigger the outer "Failed to create deferred calendar event" error
+    // path — at this point the calendar event has succeeded and the meeting
+    // is real; only the courtesy email is at risk.
+    try {
+      const { triggerExpertAppointmentConfirmation } = await import('@/server/actions/meetings');
+      await triggerExpertAppointmentConfirmation({
+        meetingId: meeting.id,
+        clerkUserId: meeting.clerkUserId,
+        guestName: meeting.guestName,
+        guestPhone: meeting.guestPhone,
+        guestNotes: meeting.guestNotes,
+        guestTimezone: meeting.timezone,
+        startTime: meeting.startTime,
+        meetingUrl,
+        locale: extractLocaleFromPaymentIntent(paymentIntent),
+        event: {
+          name: event.name,
+          durationInMinutes: event.durationInMinutes,
+          user: event.user,
+        },
+      });
+    } catch (notificationError) {
+      console.error(`⚠️ Failed to notify expert for meeting ${meeting.id}:`, notificationError);
+      // Don't rethrow — calendar event already succeeded.
+    }
 
     // Clean up slot reservation if it exists.
     // Critical: orphaned rows cause the cron job to send false cancellation emails.

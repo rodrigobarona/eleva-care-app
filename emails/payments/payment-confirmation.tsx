@@ -26,8 +26,32 @@ interface PaymentConfirmationEmailProps {
   locale?: string;
 }
 
-// Neutral fallbacks — realistic samples live only in PreviewProps below.
-// See plan: fix_fake_email_content_bug.
+/**
+ * Payment confirmation email sent to the customer after a successful charge.
+ * Renders payment details (amount, method, transaction id) plus the linked
+ * appointment summary and optional CTA buttons.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <PaymentConfirmationEmail
+ *   customerName="Matilde Henriques"
+ *   expertName="Patricia Mota"
+ *   serviceName="Physiotherapy session"
+ *   appointmentDate="Tuesday, April 22, 2026"
+ *   appointmentTime="2:00 PM"
+ *   amount="70.00"
+ *   currency="EUR"
+ *   paymentMethod="MB WAY"
+ *   transactionId="pi_3TMxiDK5Ap4Um3Sp0c35isNt"
+ *   appointmentUrl="https://meet.google.com/abc-defg-hij"
+ *   receiptUrl="https://eleva.care/receipts/pi_..."
+ *   locale="en"
+ * />
+ * ```
+ */
 export const PaymentConfirmationEmail = ({
   customerName = 'Customer',
   expertName = 'Your Expert',
@@ -121,52 +145,64 @@ export const PaymentConfirmationEmail = ({
               {currency} {amount}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Payment Method:</td>
-            <td style={createTableCellStyle(false, 'right')}>{paymentMethod}</td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Transaction ID:</td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontFamily: 'monospace',
-                fontSize: '14px',
-              }}
-            >
-              {transactionId}
-            </td>
-          </tr>
+          {paymentMethod && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Payment Method:</td>
+              <td style={createTableCellStyle(false, 'right')}>{paymentMethod}</td>
+            </tr>
+          )}
+          {transactionId && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Transaction ID:</td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontFamily: 'monospace',
+                  fontSize: '14px',
+                }}
+              >
+                {transactionId}
+              </td>
+            </tr>
+          )}
           <tr>
             <td style={createTableCellStyle(true)}>Expert:</td>
             <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
               {expertName}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Date:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Time:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
-          </tr>
+          {appointmentDate && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Date:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+            </tr>
+          )}
+          {appointmentTime && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Time:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
+            </tr>
+          )}
         </table>
       </Section>
 
-      {/* Premium Action Buttons — only render the buttons we have URLs for */}
+      {/* Premium Action Buttons — render only the buttons whose URL we have,
+          and tailor the prompt text so it doesn't claim "join your appointment"
+          when only the receipt link is available. Wrapped in <Section> rather
+          than <div> for better email-client compatibility. */}
       {(appointmentUrl || receiptUrl) && (
         <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-          <Text
-            style={{
-              ...ELEVA_TEXT_STYLES.bodyRegular,
-              marginBottom: '24px',
-            }}
-          >
-            Ready to join your appointment?
-          </Text>
+          {appointmentUrl ? (
+            <Text style={{ ...ELEVA_TEXT_STYLES.bodyRegular, marginBottom: '24px' }}>
+              Ready to join your appointment?
+            </Text>
+          ) : (
+            <Text style={{ ...ELEVA_TEXT_STYLES.bodyRegular, marginBottom: '24px' }}>
+              Your payment receipt is ready.
+            </Text>
+          )}
 
-          <div style={{ margin: '16px 0' }}>
+          <Section style={{ margin: '16px 0' }}>
             {appointmentUrl && (
               <EmailButton
                 href={appointmentUrl}
@@ -186,7 +222,7 @@ export const PaymentConfirmationEmail = ({
                 📄 Download Receipt
               </EmailButton>
             )}
-          </div>
+          </Section>
         </Section>
       )}
 

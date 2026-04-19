@@ -22,11 +22,37 @@
  *   - app/api/webhooks/stripe/handlers/payment.ts:`createDeferredCalendarEvent`
  *   - app/api/cron/cleanup-expired-reservations/route.ts (expert branch removed)
  */
-import { describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 
 describe('reservationExpiredWorkflow — expert recipient guard', () => {
+  // Different Novu framework versions expose the runnable handler in
+  // different places (`execute` or `handler`). Keep the type narrow enough
+  // for both, declared once for the whole suite.
+  type ExecutableWorkflow = {
+    execute?: (ctx: unknown) => Promise<unknown>;
+    handler?: (ctx: unknown) => Promise<unknown>;
+  };
+
+  /**
+   * Loads the workflow and returns its callable handler. Returns `null` when
+   * the installed Novu framework version does not expose a directly callable
+   * `execute` / `handler` — callers should soft-skip in that case.
+   */
+  async function loadExecute(): Promise<{
+    workflow: unknown;
+    execute: ExecutableWorkflow['execute'] | null;
+  }> {
+    const { reservationExpiredWorkflow } = await import('@/config/novu');
+    const wf = reservationExpiredWorkflow as unknown as ExecutableWorkflow;
+    const execute = wf.execute ?? wf.handler ?? null;
+    return { workflow: reservationExpiredWorkflow, execute };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test('drops payloads with recipientType: "expert" before any step runs', async () => {
-    // Capture step.email and step.inApp invocations.
     const stepCalls: Array<{ name: string }> = [];
     const fakeStep = {
       email: jest.fn(async (name: string) => {
@@ -37,22 +63,13 @@ describe('reservationExpiredWorkflow — expert recipient guard', () => {
       }),
     };
 
-    const { reservationExpiredWorkflow } = await import('@/config/novu');
+    const { workflow, execute } = await loadExecute();
 
-    // Different Novu framework versions expose the runnable handler in
-    // different places. Find whichever is callable.
-    type ExecutableWorkflow = {
-      execute?: (ctx: unknown) => Promise<unknown>;
-      handler?: (ctx: unknown) => Promise<unknown>;
-    };
-    const wf = reservationExpiredWorkflow as unknown as ExecutableWorkflow;
-    const execute = wf.execute ?? wf.handler;
-
-    if (typeof execute !== 'function') {
-      // Some Novu versions don't expose `execute` directly. We can't unit-test
-      // the guard in that case, but the production guard remains in place
-      // (see config/novu.ts:reservationExpiredWorkflow). Soft-skip.
-      expect(reservationExpiredWorkflow).toBeDefined();
+    if (!execute) {
+      // The production guard remains in place
+      // (see config/novu.ts:reservationExpiredWorkflow); we just can't
+      // exercise it here. Soft-skip.
+      expect(workflow).toBeDefined();
       return;
     }
 
@@ -76,27 +93,20 @@ describe('reservationExpiredWorkflow — expert recipient guard', () => {
   test('still runs steps for recipientType: "patient"', async () => {
     const stepCalls: Array<{ name: string }> = [];
     const fakeStep = {
-      email: jest.fn(async (name: string, builder: () => Promise<unknown>) => {
+      // Underscore-prefix the unused `_builder` so ESLint's no-unused-vars
+      // rule recognizes it as intentionally unused.
+      email: jest.fn(async (name: string, _builder: () => Promise<unknown>) => {
         stepCalls.push({ name });
-        // Don't actually invoke builder — just record the step call.
-        void builder;
       }),
-      inApp: jest.fn(async (name: string, builder: () => Promise<unknown>) => {
+      inApp: jest.fn(async (name: string, _builder: () => Promise<unknown>) => {
         stepCalls.push({ name });
-        void builder;
       }),
     };
 
-    const { reservationExpiredWorkflow } = await import('@/config/novu');
-    type ExecutableWorkflow = {
-      execute?: (ctx: unknown) => Promise<unknown>;
-      handler?: (ctx: unknown) => Promise<unknown>;
-    };
-    const wf = reservationExpiredWorkflow as unknown as ExecutableWorkflow;
-    const execute = wf.execute ?? wf.handler;
+    const { workflow, execute } = await loadExecute();
 
-    if (typeof execute !== 'function') {
-      expect(reservationExpiredWorkflow).toBeDefined();
+    if (!execute) {
+      expect(workflow).toBeDefined();
       return;
     }
 
