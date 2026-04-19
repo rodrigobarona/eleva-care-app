@@ -262,9 +262,9 @@ export async function GET(request: NextRequest) {
       // sending them a "Pending booking cancelled" email would be noise about
       // something they have no context for.
       //
-      // Production incident: patimota@gmail.com received 7 such cancellation
+      // Production incident: an expert account received 7 such cancellation
       // emails in one day for vouchers that expired without payment. This is the
-      // fix. See plan: fix_fake_email_content_bug.
+      // fix. See docs/02-core-systems/notifications/08-email-render-contract.md.
     }
 
     // **Step 3: Clean up expired reservations**

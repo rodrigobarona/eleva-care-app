@@ -113,8 +113,30 @@ function getLocaleStrings(locale: string) {
   return i18n[prefix] || i18n.en;
 }
 
-// Neutral fallbacks — realistic samples live only in PreviewProps below.
-// See plan: fix_fake_email_content_bug.
+/**
+ * Email sent to the buyer after a successful session-pack purchase. Renders
+ * pack details, the promotion code to apply at booking, and a CTA linking to
+ * the booking page. Localized for `en` / `pt` / `es` / `pt-BR`.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <PackPurchaseConfirmation
+ *   buyerName="Matilde Henriques"
+ *   buyerEmail="matilde@example.com"
+ *   packName="5-Session Wellness Pack"
+ *   eventName="Wellness Consultation"
+ *   expertName="Patricia Mota"
+ *   sessionsCount={5}
+ *   promotionCode="PACK-XY7K9M"
+ *   expiresAt="2026-09-01T00:00:00.000Z"
+ *   bookingUrl="https://eleva.care/en/dr-maria-santos"
+ *   locale="en"
+ * />
+ * ```
+ */
 export const PackPurchaseConfirmation = ({
   buyerName = 'Customer',
   buyerEmail = '',

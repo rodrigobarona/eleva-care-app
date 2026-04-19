@@ -30,9 +30,9 @@ of which were her real booking data. Root cause:
    `AppointmentConfirmationTemplate` — so reminder emails additionally rendered
    as "✅ Appointment Confirmed!" instead of "Appointment Reminder".
 
-### Bug 2 — Expert spam from the `patimota@gmail.com` incident
+### Bug 2 — Expert spam from the Multibanco-pending booking incident
 
-The expert **Patricia Mota** received in a single day:
+An expert account received in a single day:
 
 - 7× **"⏰ Pending booking cancelled"** emails for Multibanco vouchers from
   three different customers that ultimately expired without payment.

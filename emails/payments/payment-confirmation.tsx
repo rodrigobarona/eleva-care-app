@@ -132,19 +132,21 @@ export const PaymentConfirmationEmail = ({
               {serviceName}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>Amount:</td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontSize: '20px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                color: ELEVA_COLORS.success,
-              }}
-            >
-              {currency} {amount}
-            </td>
-          </tr>
+          {amount && amount !== '0.00' && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Amount:</td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontSize: '20px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                  color: ELEVA_COLORS.success,
+                }}
+              >
+                {currency} {amount}
+              </td>
+            </tr>
+          )}
           {paymentMethod && (
             <tr>
               <td style={createTableCellStyle(true)}>Payment Method:</td>

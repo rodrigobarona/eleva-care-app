@@ -314,7 +314,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       // For deferred-payment methods (Multibanco), `stripePaymentStatus` is 'pending'
       // here. Triggering the expert email at this point spammed experts with "New
       // Booking" notifications for unpaid bookings (production incident:
-      // patimota@gmail.com received 7 such emails plus 7 cancellations when the
+      // an expert received 7 such emails plus 7 cancellations when the
       // vouchers eventually expired). Defer the notification to
       // `createDeferredCalendarEvent` in the payment_intent.succeeded handler instead.
       const shouldNotifyExpertNow =

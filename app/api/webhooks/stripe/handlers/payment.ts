@@ -310,7 +310,8 @@ async function createDeferredCalendarEvent(
     // populated for paid bookings), notify the expert. For deferred-payment
     // methods this is the FIRST time the expert hears about the booking — by
     // design. See the JSDoc on `triggerExpertAppointmentConfirmation` and the
-    // `patimota@gmail.com` incident write-up in the plan.
+    // expert-spam incident write-up in
+    // docs/02-core-systems/notifications/08-email-render-contract.md.
     //
     // The notification has its own try/catch so a Novu outage cannot
     // re-trigger the outer "Failed to create deferred calendar event" error

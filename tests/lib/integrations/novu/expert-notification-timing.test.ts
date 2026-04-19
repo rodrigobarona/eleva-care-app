@@ -2,8 +2,8 @@
  * Regression tests for the expert-notification timing fix
  * (plan: fix_fake_email_content_bug, Phase 3).
  *
- * Production incident this prevents: `patimota@gmail.com` (Patricia Mota,
- * an expert) received in a single day:
+ * Production incident this prevents: an expert account received in a single
+ * day (see `docs/02-core-systems/notifications/08-email-render-contract.md`):
  *   - 1 "📅 New Booking" email per Multibanco-pending booking (sent BEFORE
  *     payment was confirmed)
  *   - 7 "⏰ Pending booking cancelled" emails for vouchers that ultimately

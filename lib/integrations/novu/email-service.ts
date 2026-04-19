@@ -792,11 +792,30 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
  * ```
  */
 export function getPropAdapter(selector: TemplateSelector): PropAdapter {
+  const warn = (reason: string) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        `[getPropAdapter] ${reason} (workflowId=${selector.workflowId}, eventType=${selector.eventType}, userSegment=${selector.userSegment}). Falling back to passThrough — this is the configuration gap that originally caused the placeholder-leak bug.`,
+      );
+    }
+  };
+
   const byEvent = propAdapters[selector.workflowId];
-  if (!byEvent) return passThrough;
+  if (!byEvent) {
+    warn('No adapter for workflowId');
+    return passThrough;
+  }
   const bySegment = byEvent[selector.eventType] ?? byEvent['default'];
-  if (!bySegment) return passThrough;
-  return bySegment[selector.userSegment] ?? bySegment['patient'] ?? passThrough;
+  if (!bySegment) {
+    warn('No adapter for eventType (and no default event entry)');
+    return passThrough;
+  }
+  const adapter = bySegment[selector.userSegment] ?? bySegment['patient'];
+  if (!adapter) {
+    warn('No adapter for userSegment (and no patient fallback)');
+    return passThrough;
+  }
+  return adapter;
 }
 
 /**

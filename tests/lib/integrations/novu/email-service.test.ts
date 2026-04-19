@@ -3,6 +3,11 @@ import {
   getPropAdapter,
   templateSelectionService,
 } from '@/lib/integrations/novu/email-service';
+// NOTE: do NOT import `jest` from `@jest/globals` here — doing so disables
+// the global mock-hoisting that `jest.mock('@novu/api', ...)` and
+// `jest.mock('@react-email/render', ...)` above rely on, causing the React
+// Email render mock to be bypassed and the real render to attempt dynamic
+// imports that need --experimental-vm-modules.
 import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals';
 
 /**

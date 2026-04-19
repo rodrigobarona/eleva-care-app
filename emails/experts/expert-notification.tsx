@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
 interface ExpertNotificationEmailProps {
@@ -8,7 +9,13 @@ interface ExpertNotificationEmailProps {
   notificationMessage?: string;
   actionUrl?: string;
   actionText?: string;
-  locale?: string;
+  /**
+   * Locale used by the surrounding `EmailLayout` (header / footer copy is
+   * localized there). The body of this template is generic — title and
+   * message strings come straight from the caller, so they should already
+   * be in the recipient's language at the point of trigger.
+   */
+  locale?: SupportedLocale;
 }
 
 /**
@@ -36,12 +43,17 @@ export const ExpertNotificationEmail = ({
   notificationMessage = '',
   actionUrl,
   actionText,
+  locale = 'en',
 }: ExpertNotificationEmailProps) => {
   const subject = `${notificationTitle} - Eleva Care`;
   // Only append the message snippet when there's actually a message, so we
-  // don't end up with "You have a new notification - ..." in the inbox preview.
-  const previewText = notificationMessage.trim().length
-    ? `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`
+  // don't end up with "You have a new notification - ..." in the inbox
+  // preview. Only add the ellipsis when the message was actually truncated.
+  const trimmedMessage = notificationMessage.trim();
+  const previewText = trimmedMessage.length
+    ? `${notificationTitle} - ${
+        trimmedMessage.length > 100 ? `${trimmedMessage.substring(0, 100)}...` : trimmedMessage
+      }`
     : notificationTitle;
 
   return (
@@ -50,6 +62,7 @@ export const ExpertNotificationEmail = ({
       previewText={previewText}
       headerVariant="branded"
       footerVariant="default"
+      locale={locale}
     >
       <Heading
         style={{
