@@ -19,7 +19,14 @@ interface AppointmentReminderEmailProps {
   duration?: number;
   appointmentType?: string;
   meetingLink?: string;
-  locale?: string;
+  /**
+   * Recipient's locale. Typed as `SupportedLocale` to surface unsupported
+   * values at compile time rather than silently falling back to English at
+   * runtime. The translation table inside this template only includes `en`
+   * and `pt` — extending it requires both adding a new key here and a new
+   * entry in `translations` below.
+   */
+  locale?: SupportedLocale;
 }
 
 /**
@@ -157,12 +164,20 @@ export const AppointmentReminderEmail = ({
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.yourExpert}:</td>
-              <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-                {expertName}
-              </td>
-            </tr>
+            {/* Skip the expert row when only the neutral fallback is available
+                — the row would just say "Your Expert" verbatim, which is no
+                more informative than no row at all. Consistent with the
+                conditional rendering of date / time / duration rows below. */}
+            {expertName && expertName !== 'Your Expert' && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.yourExpert}:</td>
+                <td
+                  style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}
+                >
+                  {expertName}
+                </td>
+              </tr>
+            )}
             {appointmentDate && (
               <tr>
                 <td style={createTableCellStyle(true)}>{t.date}:</td>

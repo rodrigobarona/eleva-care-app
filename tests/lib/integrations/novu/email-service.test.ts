@@ -1,13 +1,12 @@
+// NOTE: do NOT import `jest` from `@jest/globals` below — doing so disables
+// the global mock-hoisting that the `jest.mock` calls above rely on, causing
+// the React Email render mock to be bypassed and the real render to attempt
+// dynamic imports that need --experimental-vm-modules.
 import {
   ElevaEmailService,
   getPropAdapter,
   templateSelectionService,
 } from '@/lib/integrations/novu/email-service';
-// NOTE: do NOT import `jest` from `@jest/globals` here — doing so disables
-// the global mock-hoisting that `jest.mock('@novu/api', ...)` and
-// `jest.mock('@react-email/render', ...)` above rely on, causing the React
-// Email render mock to be bypassed and the real render to attempt dynamic
-// imports that need --experimental-vm-modules.
 import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals';
 
 /**
@@ -27,10 +26,11 @@ import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals';
  *
  * If either invariant breaks, this suite fails.
  */
+
 // Set up mocks BEFORE importing the modules under test so the mocks are in
 // place when the module's top-level code runs. Jest hoists `jest.mock` calls
-// automatically, but placing them above the imports makes the order explicit
-// and matches the project's coding guidelines.
+// automatically, but placing them physically above the imports makes the
+// order explicit and matches the project's coding guidelines.
 
 // Mock the Novu client so the module loads without real credentials.
 jest.mock('@novu/api', () => ({

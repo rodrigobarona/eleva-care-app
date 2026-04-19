@@ -1048,7 +1048,7 @@ export const reservationExpiredWorkflow = workflow(
     if (!isPatient) {
       console.warn(
         '[reservation-expired] Dropping non-patient notification — experts are not ' +
-          'notified about expired Multibanco vouchers. See plan: fix_fake_email_content_bug.',
+          'notified about expired Multibanco vouchers (they were never told about the unpaid booking).',
         {
           recipientType: payload.recipientType,
           serviceName: payload.serviceName,

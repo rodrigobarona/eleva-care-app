@@ -159,13 +159,25 @@ export default function ExpertNewAppointmentTemplate({
                 </td>
               </tr>
             )}
-            {appointmentDate && (
+            {/* Date / time are coupled — a time without a date would be
+                confusing to an expert reading this notification. Render any
+                of the three permutations cleanly. */}
+            {appointmentDate && appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Date &amp; Time:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {appointmentDate} at {appointmentTime}
+                  {timezone && ` (${timezone})`}
+                </td>
+              </tr>
+            )}
+            {appointmentDate && !appointmentTime && (
               <tr>
                 <td style={createTableCellStyle(true)}>Date:</td>
                 <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
               </tr>
             )}
-            {appointmentTime && (
+            {!appointmentDate && appointmentTime && (
               <tr>
                 <td style={createTableCellStyle(true)}>Time:</td>
                 <td style={createTableCellStyle(false, 'right')}>

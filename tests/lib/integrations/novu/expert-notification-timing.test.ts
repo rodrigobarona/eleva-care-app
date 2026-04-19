@@ -54,11 +54,15 @@ describe('reservationExpiredWorkflow — expert recipient guard', () => {
 
   test('drops payloads with recipientType: "expert" before any step runs', async () => {
     const stepCalls: Array<{ name: string }> = [];
+    // Same signature as the patient-branch test below so the two are
+    // interchangeable from a maintenance perspective. The expert branch
+    // never invokes the builder, but accepting it matches the real
+    // step.email / step.inApp shape Novu calls with.
     const fakeStep = {
-      email: jest.fn(async (name: string) => {
+      email: jest.fn(async (name: string, _builder?: () => Promise<unknown>) => {
         stepCalls.push({ name });
       }),
-      inApp: jest.fn(async (name: string) => {
+      inApp: jest.fn(async (name: string, _builder?: () => Promise<unknown>) => {
         stepCalls.push({ name });
       }),
     };
