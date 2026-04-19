@@ -1385,6 +1385,13 @@ export class ElevaEmailService {
       '@/emails/appointments/appointment-reminder'
     );
 
+    // Narrow `locale` to SupportedLocale before passing to the template
+    // (its prop type is `SupportedLocale`, not arbitrary strings).
+    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
+    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
+      ? (data.locale as SupportedLocale)
+      : 'en';
+
     const template = React.createElement(AppointmentReminderTemplate, {
       patientName: data.userName,
       expertName: data.expertName,
@@ -1394,7 +1401,7 @@ export class ElevaEmailService {
       timezone: data.timezone,
       duration: data.duration,
       meetingLink: data.meetingUrl,
-      locale: data.locale || 'en',
+      locale,
     });
 
     return render(template);
@@ -1618,13 +1625,19 @@ export class ElevaEmailService {
       '@/emails/experts/expert-notification'
     );
 
+    // Narrow `locale` to SupportedLocale before passing to the template.
+    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
+    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
+      ? (data.locale as SupportedLocale)
+      : 'en';
+
     const template = React.createElement(ExpertNotificationTemplate, {
       expertName: data.expertName,
       notificationTitle: data.notificationType,
       notificationMessage: data.message,
       actionUrl: data.actionUrl,
       actionText: data.actionText,
-      locale: data.locale || 'en',
+      locale,
     });
 
     return render(template);
