@@ -1,5 +1,12 @@
 # Payment Flow Analysis: Current vs. Proposed Implementation
 
+> **📧 Notification timing:** Experts are NEVER emailed about a Multibanco
+> booking until `payment_intent.succeeded` fires, and never receive a
+> cancellation when a voucher expires. See
+> [`docs/02-core-systems/notifications/08-email-render-contract.md`](../notifications/08-email-render-contract.md)
+> for the full rule set, the production incident write-up, and the regression
+> tests.
+
 ## 🎯 Current Implementation Analysis
 
 ### How It Works Now (Based on Code Review)

@@ -11,12 +11,14 @@ interface ExpertNotificationEmailProps {
   locale?: string;
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const ExpertNotificationEmail = ({
-  expertName = 'Dr. Maria Santos',
-  notificationTitle = 'New Appointment Request',
-  notificationMessage = 'You have received a new appointment request from João Silva for a cardiology consultation. Please review the request and confirm your availability.',
-  actionUrl = 'https://eleva.care/dashboard/appointments',
-  actionText = 'View Appointments',
+  expertName = 'Expert',
+  notificationTitle = 'You have a new notification',
+  notificationMessage = '',
+  actionUrl,
+  actionText,
 }: ExpertNotificationEmailProps) => {
   const subject = `${notificationTitle} - Eleva Care`;
   const previewText = `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`;
@@ -74,7 +76,7 @@ export const ExpertNotificationEmail = ({
         </Text>
       </Section>
 
-      {actionUrl && (
+      {actionUrl && actionText && (
         <Section style={{ textAlign: 'center', margin: '32px 0' }}>
           <EmailButton href={actionUrl} variant="primary" size="lg">
             {actionText}

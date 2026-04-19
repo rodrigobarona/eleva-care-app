@@ -227,9 +227,13 @@ async function createDeferredCalendarEvent(
 
     console.log(`🔒 Claimed calendar creation for meeting ${meeting.id}`);
 
-    // Get the event details for calendar creation
+    // Get the event details for calendar creation. We also load the related
+    // user (the expert) so we can notify them after the calendar event is
+    // created — that's the correct moment to email the expert about a deferred
+    // (Multibanco) booking, NOT at checkout.session.completed.
     const event = await db.query.EventTable.findFirst({
       where: eq(EventTable.id, meeting.eventId),
+      with: { user: true },
     });
 
     if (!event) {
@@ -297,6 +301,29 @@ async function createDeferredCalendarEvent(
         })
         .where(eq(MeetingTable.id, meeting.id));
     }
+
+    // Now that the meeting is fully real (calendar event created, meetingUrl
+    // populated for paid bookings), notify the expert. For deferred-payment
+    // methods this is the FIRST time the expert hears about the booking — by
+    // design. See the JSDoc on `triggerExpertAppointmentConfirmation` and the
+    // `patimota@gmail.com` incident write-up in the plan.
+    const { triggerExpertAppointmentConfirmation } = await import('@/server/actions/meetings');
+    await triggerExpertAppointmentConfirmation({
+      meetingId: meeting.id,
+      clerkUserId: meeting.clerkUserId,
+      guestName: meeting.guestName,
+      guestPhone: meeting.guestPhone,
+      guestNotes: meeting.guestNotes,
+      guestTimezone: meeting.timezone,
+      startTime: meeting.startTime,
+      meetingUrl,
+      locale: extractLocaleFromPaymentIntent(paymentIntent),
+      event: {
+        name: event.name,
+        durationInMinutes: event.durationInMinutes,
+        user: event.user,
+      },
+    });
 
     // Clean up slot reservation if it exists.
     // Critical: orphaned rows cause the cron job to send false cancellation emails.

@@ -56,17 +56,19 @@ const DIVIDER_STYLE = {
  * );
  * ```
  */
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const RefundNotificationEmail = ({
-  customerName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  serviceName = 'Consulta de Cardiologia',
-  appointmentDate = 'Monday, February 19, 2024',
-  appointmentTime = '2:30 PM',
-  originalAmount = '70.00',
-  refundAmount = '70.00',
+  customerName = 'Customer',
+  expertName = 'Your Expert',
+  serviceName = 'Your appointment',
+  appointmentDate = '',
+  appointmentTime = '',
+  originalAmount = '0.00',
+  refundAmount = '0.00',
   currency = 'EUR',
-  refundReason = 'time_range_overlap',
-  transactionId = 'pi_example123',
+  refundReason = '',
+  transactionId = '',
   locale = 'en',
 }: RefundNotificationEmailProps) => {
   // Internationalization support
@@ -388,3 +390,18 @@ export const RefundNotificationEmail = ({
 };
 
 export default RefundNotificationEmail;
+
+// Sample data for React Email preview only — never used in production rendering.
+RefundNotificationEmail.PreviewProps = {
+  customerName: 'João Silva',
+  expertName: 'Dr. Maria Santos',
+  serviceName: 'Consulta de Cardiologia',
+  appointmentDate: 'Monday, February 19, 2024',
+  appointmentTime: '2:30 PM',
+  originalAmount: '70.00',
+  refundAmount: '70.00',
+  currency: 'EUR',
+  refundReason: 'time_range_overlap',
+  transactionId: 'pi_example123',
+  locale: 'en',
+} as RefundNotificationEmailProps;

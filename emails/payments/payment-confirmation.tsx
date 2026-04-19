@@ -26,18 +26,20 @@ interface PaymentConfirmationEmailProps {
   locale?: string;
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const PaymentConfirmationEmail = ({
-  customerName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  serviceName = 'Consulta de Cardiologia',
-  appointmentDate = '2024-02-15',
-  appointmentTime = '10:00',
-  amount = '75.00',
+  customerName = 'Customer',
+  expertName = 'Your Expert',
+  serviceName = 'Your appointment',
+  appointmentDate = '',
+  appointmentTime = '',
+  amount = '0.00',
   currency = 'EUR',
-  paymentMethod = 'Credit Card',
-  transactionId = 'txn_1234567890',
-  appointmentUrl = 'https://eleva.care/appointment/123',
-  receiptUrl = 'https://eleva.care/receipt/123',
+  paymentMethod = '',
+  transactionId = '',
+  appointmentUrl,
+  receiptUrl,
   locale = 'en',
 }: PaymentConfirmationEmailProps) => {
   const subject = `Payment Confirmed - ${serviceName} with ${expertName}`;
@@ -152,35 +154,41 @@ export const PaymentConfirmationEmail = ({
         </table>
       </Section>
 
-      {/* Premium Action Buttons */}
-      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-        <Text
-          style={{
-            ...ELEVA_TEXT_STYLES.bodyRegular,
-            marginBottom: '24px',
-          }}
-        >
-          Ready to join your appointment?
-        </Text>
-
-        <div style={{ margin: '16px 0' }}>
-          <EmailButton
-            href={appointmentUrl}
+      {/* Premium Action Buttons — only render the buttons we have URLs for */}
+      {(appointmentUrl || receiptUrl) && (
+        <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+          <Text
             style={{
-              ...ELEVA_BUTTON_STYLES.primary,
-              backgroundColor: ELEVA_COLORS.primary,
-              borderColor: ELEVA_COLORS.primary,
-              marginRight: '12px',
+              ...ELEVA_TEXT_STYLES.bodyRegular,
+              marginBottom: '24px',
             }}
           >
-            🎥 Join Appointment
-          </EmailButton>
+            Ready to join your appointment?
+          </Text>
 
-          <EmailButton href={receiptUrl} style={ELEVA_BUTTON_STYLES.secondary}>
-            📄 Download Receipt
-          </EmailButton>
-        </div>
-      </Section>
+          <div style={{ margin: '16px 0' }}>
+            {appointmentUrl && (
+              <EmailButton
+                href={appointmentUrl}
+                style={{
+                  ...ELEVA_BUTTON_STYLES.primary,
+                  backgroundColor: ELEVA_COLORS.primary,
+                  borderColor: ELEVA_COLORS.primary,
+                  marginRight: '12px',
+                }}
+              >
+                🎥 Join Appointment
+              </EmailButton>
+            )}
+
+            {receiptUrl && (
+              <EmailButton href={receiptUrl} style={ELEVA_BUTTON_STYLES.secondary}>
+                📄 Download Receipt
+              </EmailButton>
+            )}
+          </div>
+        </Section>
+      )}
 
       <Hr style={{ margin: '40px 0', borderColor: ELEVA_COLORS.neutral.border }} />
 

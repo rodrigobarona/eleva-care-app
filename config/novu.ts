@@ -1033,19 +1033,35 @@ export const expertPayoutNotificationWorkflow = workflow(
   },
 );
 
-// Reservation Expired Workflow - Notifies when a Multibanco payment expires
-// Supports both expert and patient recipients based on recipientType
+// Reservation Expired Workflow - Notifies the patient when a Multibanco payment expires.
+//
+// IMPORTANT: This workflow is intentionally PATIENT-ONLY. Experts are never told
+// about a booking until payment has actually succeeded (see the
+// `triggerExpertAppointmentConfirmation` JSDoc), so emailing them about an
+// unpaid voucher that expired would be noise about something they have no
+// context for. Calls with `recipientType: 'expert'` are dropped with a warning.
 export const reservationExpiredWorkflow = workflow(
   'reservation-expired',
   async ({ payload, step }) => {
     const isPatient = payload.recipientType === 'patient';
-    const recipientName = isPatient ? payload.clientName : payload.expertName;
+
+    if (!isPatient) {
+      console.warn(
+        '[reservation-expired] Dropping non-patient notification — experts are not ' +
+          'notified about expired Multibanco vouchers. See plan: fix_fake_email_content_bug.',
+        {
+          recipientType: payload.recipientType,
+          serviceName: payload.serviceName,
+        },
+      );
+      return;
+    }
+
+    const recipientName = payload.clientName;
 
     // In-app notification
     await step.inApp('reservation-expired-inapp', async () => {
-      const body = isPatient
-        ? `Your booking for ${payload.serviceName} with ${payload.expertName} has been cancelled because the payment was not completed within 7 days.`
-        : `A pending booking from ${payload.clientName} for ${payload.serviceName} has been cancelled because the Multibanco payment was not completed within 7 days.`;
+      const body = `Your booking for ${payload.serviceName} with ${payload.expertName} has been cancelled because the payment was not completed within 7 days.`;
 
       return {
         subject: `⏰ Booking cancelled - ${payload.serviceName}`,
@@ -1066,7 +1082,7 @@ export const reservationExpiredWorkflow = workflow(
     await step.email('reservation-expired-email', async () => {
       const emailBody = await elevaEmailService.renderReservationExpired({
         recipientName,
-        recipientType: (payload.recipientType as 'patient' | 'expert') || 'expert',
+        recipientType: 'patient',
         expertName: payload.expertName,
         serviceName: payload.serviceName,
         appointmentDate: payload.appointmentDate,
@@ -1075,23 +1091,12 @@ export const reservationExpiredWorkflow = workflow(
         locale: payload.locale || 'en',
       });
 
-      // Different subjects for patient vs expert (both localized)
-      let subject: string;
-      if (isPatient) {
-        subject =
-          payload.locale === 'pt'
-            ? `⏰ A sua reserva expirou - ${payload.serviceName}`
-            : payload.locale === 'es'
-              ? `⏰ Su reserva ha expirado - ${payload.serviceName}`
-              : `⏰ Your booking has expired - ${payload.serviceName}`;
-      } else {
-        subject =
-          payload.locale === 'pt'
-            ? `⏰ Reserva pendente cancelada - ${payload.serviceName}`
-            : payload.locale === 'es'
-              ? `⏰ Reserva pendiente cancelada - ${payload.serviceName}`
-              : `⏰ Pending booking cancelled - ${payload.serviceName}`;
-      }
+      const subject =
+        payload.locale === 'pt'
+          ? `⏰ A sua reserva expirou - ${payload.serviceName}`
+          : payload.locale === 'es'
+            ? `⏰ Su reserva ha expirado - ${payload.serviceName}`
+            : `⏰ Your booking has expired - ${payload.serviceName}`;
 
       return {
         subject,
@@ -1102,7 +1107,7 @@ export const reservationExpiredWorkflow = workflow(
   {
     name: 'Reservation Expired Notifications',
     description:
-      'Notifies experts and patients when a Multibanco payment expires and the booking is cancelled',
+      'Notifies the patient when their Multibanco payment expires and the booking is cancelled. Experts are intentionally not notified — they were never told about the unpaid booking.',
     payloadSchema: z.object({
       expertName: z.string(),
       clientName: z.string(),
@@ -1111,7 +1116,9 @@ export const reservationExpiredWorkflow = workflow(
       appointmentTime: z.string(),
       timezone: z.string().optional(),
       locale: z.string().optional(),
-      recipientType: z.enum(['expert', 'patient']).optional().default('expert'),
+      // Kept in the schema for backward compat with old call sites, but only
+      // 'patient' is honored — see the early-return at the top of the workflow.
+      recipientType: z.enum(['expert', 'patient']).optional().default('patient'),
     }),
     tags: ['payments', 'reservations', 'expiration'],
     preferences: {

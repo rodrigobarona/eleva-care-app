@@ -48,17 +48,19 @@ interface ExpertNewAppointmentProps {
  * );
  * ```
  */
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export default function ExpertNewAppointmentTemplate({
-  expertName = 'Patricia Mota',
-  clientName = 'Marta Carvalho',
+  expertName = 'Expert',
+  clientName = 'New patient',
   clientPhone,
-  appointmentDate = 'Wednesday, January 21, 2026',
-  appointmentTime = '12:30 PM',
-  timezone = 'Europe/Lisbon',
-  appointmentDuration = '45 minutes',
-  eventTitle = 'Physical Therapy Appointment',
-  meetLink = 'https://meet.google.com/abc-defg-hij',
-  notes = 'First consultation - health check',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  appointmentDuration = '',
+  eventTitle = 'New appointment',
+  meetLink,
+  notes,
   locale = 'en',
 }: ExpertNewAppointmentProps) {
   const subject = `New Booking: ${eventTitle} with ${clientName}`;

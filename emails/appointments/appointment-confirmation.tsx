@@ -24,16 +24,20 @@ interface AppointmentConfirmationProps {
   locale?: string;
 }
 
+// Neutral fallbacks: realistic-sounding sample data (names, services, dates) was
+// previously used as default values, which leaked into production emails when a
+// payload field was missing (e.g. the "João Silva / Consulta de Cardiologia"
+// incident). Realistic samples now live only in PreviewProps below.
 export default function AppointmentConfirmationTemplate({
-  expertName = 'Dr. Maria Santos',
-  clientName = 'João Silva',
-  appointmentDate = '2024-02-15',
-  appointmentTime = '10:00',
-  timezone = 'Europe/Lisbon',
-  appointmentDuration = '60 minutes',
-  eventTitle = 'Consulta de Cardiologia',
-  meetLink = 'https://eleva.care/meet/apt_conf_123',
-  notes = 'First consultation - health check',
+  expertName = 'Your Expert',
+  clientName = 'Customer',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  appointmentDuration = '',
+  eventTitle = 'Your appointment',
+  meetLink,
+  notes,
   locale = 'en',
 }: AppointmentConfirmationProps) {
   const subject = `Appointment Confirmed: ${eventTitle} with ${expertName}`;
@@ -134,57 +138,59 @@ export default function AppointmentConfirmationTemplate({
         </table>
       </Section>
 
-      {/* Premium Virtual Meeting Section */}
-      <Section style={ELEVA_CARD_STYLES.warning}>
-        <Heading
-          style={{
-            ...ELEVA_TEXT_STYLES.heading3,
-            color: ELEVA_COLORS.warning,
-            margin: '0 0 16px 0',
-          }}
-        >
-          🔗 Join Your Virtual Appointment
-        </Heading>
-
-        <Text
-          style={{
-            ...ELEVA_TEXT_STYLES.bodyRegular,
-            color: ELEVA_COLORS.warning,
-            marginBottom: '20px',
-          }}
-        >
-          When it&apos;s time for your appointment, simply click the button below to join the
-          virtual consultation:
-        </Text>
-
-        <Section style={{ textAlign: 'center' as const, margin: '20px 0' }}>
-          <EmailButton
-            href={meetLink}
+      {/* Premium Virtual Meeting Section — only render when we actually have a link */}
+      {meetLink && (
+        <Section style={ELEVA_CARD_STYLES.warning}>
+          <Heading
             style={{
-              ...ELEVA_BUTTON_STYLES.primary,
-              backgroundColor: ELEVA_COLORS.success,
-              borderColor: ELEVA_COLORS.success,
+              ...ELEVA_TEXT_STYLES.heading3,
+              color: ELEVA_COLORS.warning,
+              margin: '0 0 16px 0',
             }}
           >
-            🎥 Join Video Call
-          </EmailButton>
-        </Section>
+            🔗 Join Your Virtual Appointment
+          </Heading>
 
-        <Text
-          style={{
-            ...ELEVA_TEXT_STYLES.bodySmall,
-            color: ELEVA_COLORS.warning,
-            padding: '16px',
-            backgroundColor: ELEVA_COLORS.surface,
-            borderRadius: '8px',
-            border: `1px solid ${ELEVA_COLORS.neutral.border}`,
-            fontStyle: 'italic',
-          }}
-        >
-          💡 <strong style={{ color: ELEVA_COLORS.warning }}>Tip:</strong> We recommend joining 2-3
-          minutes early to test your camera and microphone.
-        </Text>
-      </Section>
+          <Text
+            style={{
+              ...ELEVA_TEXT_STYLES.bodyRegular,
+              color: ELEVA_COLORS.warning,
+              marginBottom: '20px',
+            }}
+          >
+            When it&apos;s time for your appointment, simply click the button below to join the
+            virtual consultation:
+          </Text>
+
+          <Section style={{ textAlign: 'center' as const, margin: '20px 0' }}>
+            <EmailButton
+              href={meetLink}
+              style={{
+                ...ELEVA_BUTTON_STYLES.primary,
+                backgroundColor: ELEVA_COLORS.success,
+                borderColor: ELEVA_COLORS.success,
+              }}
+            >
+              🎥 Join Video Call
+            </EmailButton>
+          </Section>
+
+          <Text
+            style={{
+              ...ELEVA_TEXT_STYLES.bodySmall,
+              color: ELEVA_COLORS.warning,
+              padding: '16px',
+              backgroundColor: ELEVA_COLORS.surface,
+              borderRadius: '8px',
+              border: `1px solid ${ELEVA_COLORS.neutral.border}`,
+              fontStyle: 'italic',
+            }}
+          >
+            💡 <strong style={{ color: ELEVA_COLORS.warning }}>Tip:</strong> We recommend joining
+            2-3 minutes early to test your camera and microphone.
+          </Text>
+        </Section>
+      )}
 
       {/* Premium Preparation Section */}
       <Section style={ELEVA_CARD_STYLES.default}>
@@ -259,3 +265,17 @@ export default function AppointmentConfirmationTemplate({
     </EmailLayout>
   );
 }
+
+// Sample data for React Email preview only — never used in production rendering.
+AppointmentConfirmationTemplate.PreviewProps = {
+  expertName: 'Dr. Maria Santos',
+  clientName: 'João Silva',
+  appointmentDate: 'Monday, February 19, 2024',
+  appointmentTime: '2:30 PM',
+  timezone: 'Europe/Lisbon',
+  appointmentDuration: '60 minutes',
+  eventTitle: 'Consulta de Cardiologia',
+  meetLink: 'https://meet.google.com/abc-defg-hij',
+  notes: 'First consultation - health check',
+  locale: 'en',
+} as AppointmentConfirmationProps;

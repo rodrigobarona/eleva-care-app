@@ -22,15 +22,17 @@ interface AppointmentReminderEmailProps {
   locale?: string;
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const AppointmentReminderEmail = ({
-  patientName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  appointmentDate = 'Monday, February 19, 2024',
-  appointmentTime = '2:30 PM - 3:30 PM',
-  timezone = 'Europe/Lisbon',
-  duration = 60,
-  appointmentType = 'Consulta de Cardiologia',
-  meetingLink = 'https://meet.google.com/abc-defg-hij',
+  patientName = 'Customer',
+  expertName = 'Your Expert',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  duration = 0,
+  appointmentType = 'Your appointment',
+  meetingLink,
   locale = 'en',
 }: AppointmentReminderEmailProps) => {
   // Internationalization support

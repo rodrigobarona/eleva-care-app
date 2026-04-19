@@ -30,19 +30,21 @@ interface MultibancoPaymentReminderProps {
   locale?: string;
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export default function MultibancoPaymentReminderTemplate({
-  customerName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  serviceName = 'Consulta de Cardiologia',
-  appointmentDate = '2024-02-19',
-  appointmentTime = '14:30',
-  timezone = 'Europe/Lisbon',
-  duration = 60,
-  multibancoEntity = '12345',
-  multibancoReference = '987654321',
-  multibancoAmount = '75.00',
-  voucherExpiresAt = '2024-02-20',
-  hostedVoucherUrl = 'https://eleva.care/payment/voucher/123',
+  customerName = 'Customer',
+  expertName = 'Your Expert',
+  serviceName = 'Your appointment',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  duration = 0,
+  multibancoEntity = '',
+  multibancoReference = '',
+  multibancoAmount = '0.00',
+  voucherExpiresAt = '',
+  hostedVoucherUrl = '',
   customerNotes = '',
   reminderType = 'urgent',
   daysRemaining = 1,
@@ -436,3 +438,23 @@ export default function MultibancoPaymentReminderTemplate({
     </EmailLayout>
   );
 }
+
+// Sample data for React Email preview only — never used in production rendering.
+MultibancoPaymentReminderTemplate.PreviewProps = {
+  customerName: 'João Silva',
+  expertName: 'Dr. Maria Santos',
+  serviceName: 'Consulta de Cardiologia',
+  appointmentDate: '2024-02-19',
+  appointmentTime: '14:30',
+  timezone: 'Europe/Lisbon',
+  duration: 60,
+  multibancoEntity: '12345',
+  multibancoReference: '987654321',
+  multibancoAmount: '75.00',
+  voucherExpiresAt: '2024-02-20',
+  hostedVoucherUrl: 'https://eleva.care/payment/voucher/123',
+  customerNotes: 'First consultation - health check',
+  reminderType: 'urgent',
+  daysRemaining: 1,
+  locale: 'en',
+} as MultibancoPaymentReminderProps;

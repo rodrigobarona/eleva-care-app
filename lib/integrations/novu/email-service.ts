@@ -1,8 +1,11 @@
 // Email templates are now imported through the email service functions
 // Import email templates
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
+import { AppointmentReminderEmail } from '@/emails/appointments/appointment-reminder';
 import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
+import { ExpertNotificationEmail } from '@/emails/experts/expert-notification';
 import { ExpertPayoutNotificationTemplate, RefundNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
@@ -14,6 +17,23 @@ import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/ema
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
 import React from 'react';
+
+/**
+ * Phase 4 (fix_fake_email_content_bug): per-method opt-in flag for the dynamic
+ * template selection path. Default OFF — every render method uses its
+ * manually-mapped fallback. Flip on by setting the env var
+ * `NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION=true` AND, in the specific render
+ * method you want to opt in, restoring the selection-path gate (see git
+ * history of this file circa Phase 1) — but ONLY after that workflow's
+ * template mapping AND prop adapter (see `propAdapters` below) are correct
+ * and covered by tests in `tests/lib/integrations/novu/`.
+ *
+ * This guard exists so the production placeholder-leak bug ("João Silva /
+ * Consulta de Cardiologia" leaking into Matilde Henriques' confirmation email)
+ * can never come back via a careless re-enable of the selection layer.
+ */
+export const ENABLE_DYNAMIC_TEMPLATE_SELECTION =
+  process.env.NOVU_ENABLE_DYNAMIC_TEMPLATE_SELECTION === 'true';
 
 // Re-export SupportedLocale for use in other modules
 export type { SupportedLocale };
@@ -220,6 +240,11 @@ export class TemplateSelectionService {
     },
 
     // Appointment workflows
+    //
+    // Phase 4 fix: 'reminder' previously pointed to AppointmentConfirmationTemplate,
+    // which is why reminder emails were rendered as "✅ Appointment Confirmed!".
+    // Now correctly routes patient reminders to AppointmentReminderEmail and
+    // expert notifications to ExpertNewAppointmentTemplate.
     'appointment-universal': {
       confirmed: {
         patient: {
@@ -228,21 +253,39 @@ export class TemplateSelectionService {
           reminder: AppointmentConfirmationTemplate,
         },
         expert: {
-          default: AppointmentConfirmationTemplate,
-          urgent: AppointmentConfirmationTemplate,
-          reminder: AppointmentConfirmationTemplate,
+          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          reminder: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
       },
       reminder: {
         patient: {
-          default: AppointmentConfirmationTemplate,
-          urgent: AppointmentConfirmationTemplate, // Could add urgent styling
-          reminder: AppointmentConfirmationTemplate,
+          default: AppointmentReminderEmail as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          urgent: AppointmentReminderEmail as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          reminder: AppointmentReminderEmail as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
         expert: {
-          default: AppointmentConfirmationTemplate,
-          urgent: AppointmentConfirmationTemplate,
-          reminder: AppointmentConfirmationTemplate,
+          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          reminder: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
       },
       cancelled: {
@@ -251,8 +294,12 @@ export class TemplateSelectionService {
           urgent: AppointmentConfirmationTemplate,
         },
         expert: {
-          default: AppointmentConfirmationTemplate,
-          urgent: AppointmentConfirmationTemplate,
+          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
       },
       default: {
@@ -261,8 +308,12 @@ export class TemplateSelectionService {
           urgent: AppointmentConfirmationTemplate,
         },
         expert: {
-          default: AppointmentConfirmationTemplate,
-          urgent: AppointmentConfirmationTemplate,
+          default: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
+          urgent: ExpertNewAppointmentTemplate as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
       },
     },
@@ -337,6 +388,10 @@ export class TemplateSelectionService {
       },
     },
 
+    // Phase 4 fix: the cron at app/api/cron/send-payment-reminders/route.ts
+    // triggers this workflow with eventType 'gentle' or 'urgent' depending on
+    // how close the voucher is to expiring. Without these entries
+    // selectTemplate() returned null and the selection path threw.
     'multibanco-payment-reminder': {
       default: {
         patient: {
@@ -345,14 +400,48 @@ export class TemplateSelectionService {
           reminder: MultibancoPaymentReminderTemplate,
         },
       },
+      gentle: {
+        patient: {
+          default: MultibancoPaymentReminderTemplate,
+          reminder: MultibancoPaymentReminderTemplate,
+        },
+      },
+      urgent: {
+        patient: {
+          default: MultibancoPaymentReminderTemplate,
+          urgent: MultibancoPaymentReminderTemplate,
+        },
+      },
     },
 
+    // Phase 4 fix: payout notifications use eventType 'payout' (not 'default').
+    // Also moved under userSegment 'expert' since these are expert-only emails.
     'expert-payout-notification': {
       default: {
-        patient: {
+        expert: {
           default: ExpertPayoutNotificationTemplate,
           urgent: ExpertPayoutNotificationTemplate,
           reminder: ExpertPayoutNotificationTemplate,
+        },
+      },
+      payout: {
+        expert: {
+          default: ExpertPayoutNotificationTemplate,
+          urgent: ExpertPayoutNotificationTemplate,
+        },
+      },
+    },
+
+    // Phase 4 fix: previously absent entirely, so renderExpertNotification's
+    // selection path threw "No mapping found for workflow: expert-notification".
+    // Real eventType values come from the notificationType field at the call site;
+    // we map them all to the same dedicated ExpertNotificationTemplate.
+    'expert-notification': {
+      default: {
+        expert: {
+          default: ExpertNotificationEmail as unknown as React.ComponentType<
+            Record<string, unknown>
+          >,
         },
       },
     },
@@ -504,6 +593,217 @@ export class TemplateSelectionService {
 
 // Create global instance
 export const templateSelectionService = new TemplateSelectionService();
+
+/**
+ * Phase 4 (fix_fake_email_content_bug): typed prop adapters.
+ *
+ * The dynamic selection layer used to spread the workflow payload directly onto
+ * the destination template — but workflow payloads use one set of names
+ * (`userName`, `customerName`, `serviceName`, `meetingUrl`, …) and templates
+ * expect different ones (`patientName`, `clientName`, `eventTitle`, `meetLink`,
+ * …). The mismatch caused every prop to fall through to the template's default
+ * (which was a realistic-looking sample like "João Silva" / "Consulta de
+ * Cardiologia"), leaking that sample data into production emails.
+ *
+ * Each adapter takes a workflow payload and returns the prop bag for the
+ * specific destination template. If no adapter is registered for a given
+ * `(workflowId, eventType, userSegment)` triple, `getPropAdapter` returns the
+ * identity function so the caller can detect the gap and fail loudly via
+ * `selectTemplate` returning null OR the template rendering with empty props
+ * (now safe, since Phase 2 made template defaults neutral).
+ */
+type PropAdapter = (data: Record<string, unknown>) => Record<string, unknown>;
+
+const passThrough: PropAdapter = (data) => data;
+
+const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> = {
+  'appointment-universal': {
+    confirmed: {
+      // server/googleCalendar.ts → patient confirmation. The workflow payload
+      // already happens to match AppointmentConfirmationTemplate's prop names
+      // for most fields, but customerName/serviceName/meetingUrl need renaming.
+      patient: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+      expert: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        clientPhone: data.clientPhone,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+    },
+    reminder: {
+      // app/api/cron/appointment-reminders/route.ts → patient reminder.
+      patient: (data) => ({
+        patientName: data.customerName ?? data.userName ?? data.patientName,
+        expertName: data.expertName,
+        appointmentType: data.serviceName ?? data.appointmentType,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        duration: data.duration,
+        meetingLink: data.meetingUrl ?? data.meetingLink,
+        locale: data.locale,
+      }),
+      // Same cron, expert branch.
+      expert: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.message ?? data.notes,
+        locale: data.locale,
+      }),
+    },
+  },
+  'payment-universal': {
+    success: {
+      // app/api/webhooks/stripe/handlers/payment.ts → flatten appointmentDetails.
+      patient: (data) => {
+        const details = (data.appointmentDetails as Record<string, unknown> | undefined) ?? {};
+        return {
+          customerName: data.customerName,
+          amount: data.amount,
+          currency: data.currency,
+          transactionId: data.transactionId,
+          expertName: details.expert,
+          serviceName: details.service,
+          appointmentDate: details.date,
+          appointmentTime: details.time,
+          locale: data.locale,
+        };
+      },
+    },
+    failed: {
+      patient: (data) => {
+        const details = (data.appointmentDetails as Record<string, unknown> | undefined) ?? {};
+        return {
+          customerName: data.customerName,
+          expertName: details.expert,
+          serviceName: details.service,
+          appointmentDate: details.date,
+          appointmentTime: details.time,
+          locale: data.locale,
+        };
+      },
+    },
+  },
+  'multibanco-payment-reminder': {
+    // app/api/cron/send-payment-reminders/route.ts uses these eventTypes.
+    // The payload already matches MultibancoPaymentReminderTemplate's prop
+    // names exactly, so the adapter is a pass-through but kept explicit so
+    // future renames stay obvious.
+    gentle: {
+      patient: passThrough,
+    },
+    urgent: {
+      patient: passThrough,
+    },
+    default: {
+      patient: passThrough,
+    },
+  },
+  'expert-payout-notification': {
+    payout: {
+      expert: (data) => ({
+        expertName: data.expertName,
+        payoutAmount: data.amount ?? data.payoutAmount,
+        currency: data.currency,
+        expectedArrivalDate: data.payoutDate ?? data.expectedArrivalDate,
+        payoutId: data.transactionId ?? data.payoutId,
+        clientName: data.clientName,
+        serviceName: data.serviceName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        bankLastFour: data.bankLastFour,
+        _locale: data.locale ?? data._locale,
+      }),
+    },
+    default: {
+      expert: (data) => ({
+        expertName: data.expertName,
+        payoutAmount: data.amount ?? data.payoutAmount,
+        currency: data.currency,
+        expectedArrivalDate: data.payoutDate ?? data.expectedArrivalDate,
+        payoutId: data.transactionId ?? data.payoutId,
+        _locale: data.locale ?? data._locale,
+      }),
+    },
+  },
+  'expert-notification': {
+    default: {
+      expert: (data) => ({
+        expertName: data.expertName,
+        notificationTitle: data.notificationType ?? data.notificationTitle,
+        notificationMessage: data.message ?? data.notificationMessage,
+        actionUrl: data.actionUrl,
+        actionText: data.actionText,
+      }),
+    },
+  },
+};
+
+export function getPropAdapter(selector: TemplateSelector): PropAdapter {
+  const byEvent = propAdapters[selector.workflowId];
+  if (!byEvent) return passThrough;
+  const bySegment = byEvent[selector.eventType] ?? byEvent['default'];
+  if (!bySegment) return passThrough;
+  return bySegment[selector.userSegment] ?? bySegment['patient'] ?? passThrough;
+}
+
+/**
+ * Phase 6 (fix_fake_email_content_bug): structured breadcrumb so any future
+ * placeholder-leak / wrong-template incident is observable in Sentry within
+ * seconds instead of via customer complaints.
+ *
+ * Logs `{ workflowId, eventType, providedKeys, templateName, locale }` on
+ * every email render path (dynamic + manual). `providedKeys` lists the keys
+ * actually present in the payload — so when an expected key (e.g. `clientName`)
+ * is missing, that absence is visible in the trail leading up to the email send.
+ */
+function recordRenderBreadcrumb(params: {
+  workflowId?: string;
+  eventType?: string;
+  templateName: string;
+  data: Record<string, unknown>;
+}): void {
+  try {
+    Sentry.addBreadcrumb({
+      category: 'email.render',
+      level: 'info',
+      message: `Rendering ${params.templateName}`,
+      data: {
+        workflowId: params.workflowId,
+        eventType: params.eventType,
+        templateName: params.templateName,
+        locale: (params.data.locale as string | undefined) ?? 'en',
+        providedKeys: Object.keys(params.data).sort(),
+      },
+    });
+  } catch {
+    // Sentry must never break email rendering.
+  }
+}
 
 /**
  * Send an email using Novu workflow + Resend service with enhanced template selection
@@ -806,8 +1106,20 @@ export class ElevaEmailService {
       throw new Error(`No template found for selector: ${JSON.stringify(selector)}`);
     }
 
-    // Render with selected template
-    const renderedTemplate = React.createElement(template, data);
+    // Phase 4: translate workflow payload → template props before rendering.
+    // Without this step, props with mismatched names fall through to the
+    // template's default values (the original placeholder-leak bug).
+    const adapter = getPropAdapter(selector);
+    const adaptedProps = adapter(data);
+
+    recordRenderBreadcrumb({
+      workflowId: selector.workflowId,
+      eventType: selector.eventType,
+      templateName: template.displayName ?? template.name ?? 'Unknown',
+      data: adaptedProps,
+    });
+
+    const renderedTemplate = React.createElement(template, adaptedProps);
     const htmlContent = render(renderedTemplate);
 
     return {
@@ -834,36 +1146,23 @@ export class ElevaEmailService {
     meetLink?: string;
     notes?: string;
     locale?: string;
-    // ELEVA-31: Enhanced options
+    // ELEVA-31: Enhanced options accepted for forward compatibility but currently unused.
+    // The dynamic selection path is disabled in Phase 1 because it spreads workflow
+    // payloads onto templates without prop-name translation, which leaks placeholder
+    // defaults like "João Silva" into production emails. The manual mapping below is
+    // the only correct path. See plan: fix_fake_email_content_bug.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
     workflowId?: string;
     eventType?: string;
   }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = 'default',
-      locale = 'en',
-      workflowId = 'appointment-universal',
-      eventType = 'default',
-      ...templateData
-    } = data;
+    recordRenderBreadcrumb({
+      workflowId: data.workflowId ?? 'appointment-universal',
+      eventType: data.eventType ?? 'confirmed',
+      templateName: 'AppointmentConfirmationTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
 
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId,
-        eventType,
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Fallback to original implementation for backward compatibility
     const template = React.createElement(AppointmentConfirmationTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
@@ -936,6 +1235,13 @@ export class ElevaEmailService {
       ? (data.locale as SupportedLocale)
       : 'en';
 
+    recordRenderBreadcrumb({
+      workflowId: 'appointment-confirmation',
+      eventType: 'expert-new',
+      templateName: 'ExpertNewAppointmentTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
+
     const template = React.createElement(ExpertNewAppointmentTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
@@ -961,31 +1267,17 @@ export class ElevaEmailService {
     firstName?: string;
     dashboardUrl?: string;
     locale?: string;
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = 'default',
-      locale = 'en',
-      ...templateData
-    } = data;
+    recordRenderBreadcrumb({
+      workflowId: 'user-lifecycle',
+      eventType: 'welcome',
+      templateName: 'WelcomeEmailTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
 
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'user-lifecycle',
-        eventType: 'welcome',
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Render the React Email template
     const template = React.createElement(WelcomeEmailTemplate, {
       userName: data.userName,
       dashboardUrl: data.dashboardUrl || '/dashboard',
@@ -1004,34 +1296,22 @@ export class ElevaEmailService {
     appointmentType: string;
     appointmentDate: string;
     appointmentTime: string;
+    timezone?: string;
+    duration?: number;
     meetingUrl?: string;
     timeUntilAppointment?: string;
     locale?: string;
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = 'reminder',
-      locale = 'en',
-      ...templateData
-    } = data;
+    recordRenderBreadcrumb({
+      workflowId: 'appointment-universal',
+      eventType: 'reminder',
+      templateName: 'AppointmentReminderEmail',
+      data: data as unknown as Record<string, unknown>,
+    });
 
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'appointment-universal',
-        eventType: 'reminder',
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Import and render the appointment reminder template
     const { default: AppointmentReminderTemplate } = await import(
       '@/emails/appointments/appointment-reminder'
     );
@@ -1042,7 +1322,10 @@ export class ElevaEmailService {
       appointmentType: data.appointmentType,
       appointmentDate: data.appointmentDate,
       appointmentTime: data.appointmentTime,
+      timezone: data.timezone,
+      duration: data.duration,
       meetingLink: data.meetingUrl,
+      locale: data.locale || 'en',
     });
 
     return render(template);
@@ -1064,31 +1347,17 @@ export class ElevaEmailService {
       duration?: string;
     };
     locale?: string;
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = 'default',
-      locale = 'en',
-      ...templateData
-    } = data;
+    recordRenderBreadcrumb({
+      workflowId: 'payment-universal',
+      eventType: 'success',
+      templateName: 'PaymentConfirmationTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
 
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'payment-universal',
-        eventType: 'success',
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Import and render the payment confirmation template
     const { default: PaymentConfirmationTemplate } = await import(
       '@/emails/payments/payment-confirmation'
     );
@@ -1126,29 +1395,16 @@ export class ElevaEmailService {
     };
     reminderType: 'gentle' | 'urgent';
     locale?: string;
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = data.reminderType === 'urgent' ? 'urgent' : 'reminder',
-      locale = 'en',
-      ...templateData
-    } = data;
-
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'multibanco-payment-reminder',
-        eventType: data.reminderType,
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
+    recordRenderBreadcrumb({
+      workflowId: 'multibanco-payment-reminder',
+      eventType: data.reminderType,
+      templateName: 'MultibancoPaymentReminderTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
 
     const template = React.createElement(MultibancoPaymentReminderTemplate, {
       customerName: data.customerName,
@@ -1181,29 +1437,16 @@ export class ElevaEmailService {
     payoutMethod: string;
     transactionId?: string;
     locale?: string;
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'expert',
-      templateVariant = 'default',
-      locale = 'en',
-      ...templateData
-    } = data;
-
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'expert-payout-notification',
-        eventType: 'payout',
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
+    recordRenderBreadcrumb({
+      workflowId: 'expert-payout-notification',
+      eventType: 'payout',
+      templateName: 'ExpertPayoutNotificationTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
 
     const template = React.createElement(ExpertPayoutNotificationTemplate, {
       expertName: data.expertName,
@@ -1257,6 +1500,13 @@ export class ElevaEmailService {
       data.locale?.startsWith('pt') ? 'pt' : data.locale?.startsWith('es') ? 'es' : 'en'
     ) as SupportedLocale;
 
+    recordRenderBreadcrumb({
+      workflowId: 'payment-universal',
+      eventType: 'refund',
+      templateName: 'RefundNotificationTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
+
     const template = React.createElement(RefundNotificationTemplate, {
       customerName: data.customerName,
       expertName: data.expertName,
@@ -1284,31 +1534,17 @@ export class ElevaEmailService {
     actionUrl?: string;
     actionText?: string;
     locale?: string;
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'expert',
-      templateVariant = 'default',
-      locale = 'en',
-      ...templateData
-    } = data;
+    recordRenderBreadcrumb({
+      workflowId: 'expert-notification',
+      eventType: data.notificationType,
+      templateName: 'ExpertNotificationTemplate',
+      data: data as unknown as Record<string, unknown>,
+    });
 
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'expert-notification',
-        eventType: data.notificationType,
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Import and render the expert notification template
     const { default: ExpertNotificationTemplate } = await import(
       '@/emails/experts/expert-notification'
     );
@@ -1383,33 +1619,24 @@ export class ElevaEmailService {
     hostedVoucherUrl: string;
     customerNotes?: string;
     locale?: string;
-    // ELEVA-31: Enhanced options
+    // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
     templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
   }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = 'default',
-      locale = 'en',
-      ...templateData
-    } = data;
+    // Strip the forward-compat selection options before passing to the template,
+    // so they don't end up as unknown DOM/JSX props.
+    const { userSegment: _userSegment, templateVariant: _templateVariant, ...templateProps } = data;
+    void _userSegment;
+    void _templateVariant;
 
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'multibanco-booking-pending',
-        eventType: 'default',
-        userSegment,
-        locale,
-        templateVariant,
-      };
+    recordRenderBreadcrumb({
+      workflowId: 'multibanco-booking-pending',
+      eventType: 'default',
+      templateName: 'MultibancoBookingPendingTemplate',
+      data: templateProps as Record<string, unknown>,
+    });
 
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Fallback to original implementation for backward compatibility
-    const template = React.createElement(MultibancoBookingPendingTemplate, data);
+    const template = React.createElement(MultibancoBookingPendingTemplate, templateProps);
     return render(template);
   }
 
@@ -1430,6 +1657,13 @@ export class ElevaEmailService {
     const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
       ? (data.locale as SupportedLocale)
       : 'en';
+
+    recordRenderBreadcrumb({
+      workflowId: 'reservation-expired',
+      eventType: 'default',
+      templateName: 'ReservationExpiredEmail',
+      data: data as unknown as Record<string, unknown>,
+    });
 
     const template = React.createElement(ReservationExpiredEmail, {
       recipientName: data.recipientName,

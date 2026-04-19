@@ -113,15 +113,17 @@ function getLocaleStrings(locale: string) {
   return i18n[prefix] || i18n.en;
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const PackPurchaseConfirmation = ({
   buyerName = 'Customer',
-  buyerEmail = 'customer@example.com',
-  packName = '5-Session Pack',
-  eventName = 'Consultation',
-  expertName = 'Dr. Maria Santos',
-  sessionsCount = 5,
-  promotionCode = 'PACK-ABC123',
-  expiresAt = '2026-09-01T00:00:00.000Z',
+  buyerEmail = '',
+  packName = 'Your session pack',
+  eventName = 'Your sessions',
+  expertName = 'Your Expert',
+  sessionsCount = 0,
+  promotionCode = '',
+  expiresAt = '',
   bookingUrl = 'https://eleva.care',
   locale = 'en',
 }: PackPurchaseConfirmationProps) => {

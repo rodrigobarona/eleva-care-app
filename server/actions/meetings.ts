@@ -308,62 +308,41 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         (await headers()).get('user-agent') ?? 'Unknown',
       );
 
-      // Step 10: Fetch expert's timezone and trigger Novu workflow for expert notification
-      try {
-        // CRITICAL: Fetch expert's timezone from their schedule settings
-        const expertSchedule = await db.query.ScheduleTable.findFirst({
-          where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, data.clerkUserId),
+      // Step 10: Notify the expert that they have a new booking — but ONLY if
+      // payment has actually succeeded (or there is no payment, e.g. free events).
+      //
+      // For deferred-payment methods (Multibanco), `stripePaymentStatus` is 'pending'
+      // here. Triggering the expert email at this point spammed experts with "New
+      // Booking" notifications for unpaid bookings (production incident:
+      // patimota@gmail.com received 7 such emails plus 7 cancellations when the
+      // vouchers eventually expired). Defer the notification to
+      // `createDeferredCalendarEvent` in the payment_intent.succeeded handler instead.
+      const shouldNotifyExpertNow =
+        !data.stripePaymentStatus || data.stripePaymentStatus === 'succeeded';
+
+      if (shouldNotifyExpertNow) {
+        await triggerExpertAppointmentConfirmation({
+          meetingId: meeting.id,
+          clerkUserId: data.clerkUserId,
+          guestName: data.guestName,
+          guestPhone: data.guestPhone,
+          guestNotes: data.guestNotes,
+          guestTimezone: data.timezone,
+          startTime: startTimeUTC,
+          meetingUrl,
+          locale: data.locale,
+          event: {
+            name: event.name,
+            durationInMinutes: event.durationInMinutes,
+            user: event.user,
+          },
         });
-
-        const expertTimezone = expertSchedule?.timezone || 'UTC';
-        const guestTimezone = data.timezone || 'UTC';
-
-        // Format date and time for the EXPERT in THEIR timezone
-        const appointmentDateForExpert = formatInTimeZone(
-          startTimeUTC,
-          expertTimezone,
-          'EEEE, MMMM d, yyyy',
+      } else {
+        console.log(
+          `⏳ Deferring expert notification for meeting ${meeting.id} ` +
+            `(payment status: ${data.stripePaymentStatus}). ` +
+            `Will be sent when payment_intent.succeeded fires.`,
         );
-        const appointmentTimeForExpert = formatInTimeZone(startTimeUTC, expertTimezone, 'h:mm a');
-        const appointmentDuration = `${event.durationInMinutes} minutes`;
-
-        // Trigger Novu workflow to notify the expert (with EXPERT's timezone)
-        // Use transactionId for idempotency to prevent duplicate emails from webhook retries
-        const transactionId = `expert-appointment-${meeting.id}`;
-        const novuResult = await triggerWorkflow({
-          workflowId: 'appointment-confirmation',
-          to: {
-            subscriberId: data.clerkUserId, // Expert's Clerk ID
-            email: event.user?.email || undefined,
-            firstName: event.user?.firstName || undefined,
-            lastName: event.user?.lastName || undefined,
-          },
-          payload: {
-            expertName:
-              `${event.user?.firstName || ''} ${event.user?.lastName || ''}`.trim() || 'Expert',
-            clientName: data.guestName,
-            clientPhone: data.guestPhone || undefined,
-            appointmentDate: appointmentDateForExpert,
-            appointmentTime: appointmentTimeForExpert,
-            timezone: expertTimezone,
-            guestTimezone: guestTimezone,
-            appointmentDuration,
-            eventTitle: event.name,
-            meetLink: meetingUrl || undefined,
-            notes: data.guestNotes || undefined,
-            locale: data.locale || 'en',
-          },
-          transactionId, // Prevents duplicate notifications from webhook retries
-        });
-
-        if (novuResult) {
-          console.log('✅ Novu appointment confirmation sent to expert:', data.clerkUserId);
-        } else {
-          console.warn('⚠️ Failed to send Novu notification to expert');
-        }
-      } catch (novuError) {
-        // Don't fail the whole meeting creation if Novu fails
-        console.error('❌ Error sending Novu notification:', novuError);
       }
 
       return { error: false, meeting };
@@ -387,5 +366,98 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       guestEmail: unsafeData.guestEmail,
     });
     return { error: true, code: 'UNEXPECTED_ERROR' };
+  }
+}
+
+/**
+ * Triggers the Novu `appointment-confirmation` workflow that emails the EXPERT
+ * about a new (paid) booking. Errors are logged but never thrown — failing to
+ * send a notification must not break webhook processing.
+ *
+ * Called from two places, mutually exclusive at runtime:
+ * 1. {@link createMeeting} — for card payments and free events, where the
+ *    meeting row is created with `stripePaymentStatus === 'succeeded'`.
+ * 2. `createDeferredCalendarEvent` in
+ *    `app/api/webhooks/stripe/handlers/payment.ts` — for deferred-payment
+ *    methods (Multibanco) once `payment_intent.succeeded` fires and the
+ *    calendar event/`meetingUrl` is finally created.
+ *
+ * Idempotency: both call sites pass the same `transactionId`
+ * (`expert-appointment-${meetingId}`). Novu deduplicates by `transactionId`,
+ * so retries or accidental double-fires from race conditions cannot send the
+ * same expert two emails for the same meeting.
+ */
+export async function triggerExpertAppointmentConfirmation(params: {
+  meetingId: string;
+  clerkUserId: string;
+  guestName: string;
+  guestPhone?: string | null;
+  guestNotes?: string | null;
+  guestTimezone?: string;
+  startTime: Date;
+  meetingUrl?: string | null;
+  locale?: string;
+  event: {
+    name: string;
+    durationInMinutes: number;
+    user?: {
+      email?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+    } | null;
+  };
+}): Promise<void> {
+  try {
+    const expertSchedule = await db.query.ScheduleTable.findFirst({
+      where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, params.clerkUserId),
+    });
+
+    const expertTimezone = expertSchedule?.timezone || 'UTC';
+    const guestTimezone = params.guestTimezone || 'UTC';
+
+    const appointmentDateForExpert = formatInTimeZone(
+      params.startTime,
+      expertTimezone,
+      'EEEE, MMMM d, yyyy',
+    );
+    const appointmentTimeForExpert = formatInTimeZone(params.startTime, expertTimezone, 'h:mm a');
+    const appointmentDuration = `${params.event.durationInMinutes} minutes`;
+
+    const transactionId = `expert-appointment-${params.meetingId}`;
+
+    const novuResult = await triggerWorkflow({
+      workflowId: 'appointment-confirmation',
+      to: {
+        subscriberId: params.clerkUserId,
+        email: params.event.user?.email || undefined,
+        firstName: params.event.user?.firstName || undefined,
+        lastName: params.event.user?.lastName || undefined,
+      },
+      payload: {
+        expertName:
+          `${params.event.user?.firstName || ''} ${params.event.user?.lastName || ''}`.trim() ||
+          'Expert',
+        clientName: params.guestName,
+        clientPhone: params.guestPhone || undefined,
+        appointmentDate: appointmentDateForExpert,
+        appointmentTime: appointmentTimeForExpert,
+        timezone: expertTimezone,
+        guestTimezone,
+        appointmentDuration,
+        eventTitle: params.event.name,
+        meetLink: params.meetingUrl || undefined,
+        notes: params.guestNotes || undefined,
+        locale: params.locale || 'en',
+      },
+      transactionId,
+    });
+
+    if (novuResult) {
+      console.log('✅ Novu appointment confirmation sent to expert:', params.clerkUserId);
+    } else {
+      console.warn('⚠️ Failed to send Novu notification to expert');
+    }
+  } catch (novuError) {
+    console.error('❌ Error sending Novu notification:', novuError);
   }
 }
