@@ -42,8 +42,13 @@ interface MultibancoPaymentReminderProps {
 // See plan: fix_fake_email_content_bug.
 export default function MultibancoPaymentReminderTemplate({
   customerName = 'Customer',
-  expertName = 'Your Expert',
-  serviceName = 'Your appointment',
+  // `expertName` and `serviceName` intentionally have NO default: the
+  // detail-table rows below render conditionally on these props being
+  // truthy non-empty strings, so a non-empty default would defeat the
+  // guard and render rows with placeholder text ("Your Expert" /
+  // "Your appointment") even when the adapter omitted the fields.
+  expertName,
+  serviceName,
   appointmentDate = '',
   appointmentTime = '',
   timezone = '',
@@ -59,6 +64,22 @@ export default function MultibancoPaymentReminderTemplate({
   locale = 'en',
 }: MultibancoPaymentReminderProps) {
   const isUrgent = reminderType === 'urgent' || daysRemaining <= 1;
+
+  // Locale-aware fallbacks for subject / previewText interpolation when
+  // the prop is missing — keeps the inbox preview readable while leaving
+  // the conditional table rows below to omit themselves entirely.
+  const expertLabel =
+    typeof expertName === 'string' && expertName.trim().length > 0
+      ? expertName
+      : locale === 'pt'
+        ? 'o seu especialista'
+        : 'your expert';
+  const serviceLabel =
+    typeof serviceName === 'string' && serviceName.trim().length > 0
+      ? serviceName
+      : locale === 'pt'
+        ? 'a sua consulta'
+        : 'your appointment';
 
   // `duration` may arrive as either a number of minutes or a pre-formatted
   // string. Normalize to a render-ready label and a "should we show the
@@ -84,17 +105,18 @@ export default function MultibancoPaymentReminderTemplate({
   const translations = {
     en: {
       urgent: 'URGENT',
-      subject: `Payment Reminder - Appointment with ${expertName}`,
-      subjectUrgent: `URGENT: Payment Reminder - Appointment with ${expertName}`,
-      previewText: `Your payment for the appointment with ${expertName} expires soon`,
-      previewTextUrgent: `URGENT: Your payment for the appointment with ${expertName} expires soon`,
-      title: `Payment Reminder - ${serviceName}`,
+      subject: `Payment Reminder - Appointment with ${expertLabel}`,
+      subjectUrgent: `URGENT: Payment Reminder - Appointment with ${expertLabel}`,
+      previewText: `Your payment for the appointment with ${expertLabel} expires soon`,
+      previewTextUrgent: `URGENT: Your payment for the appointment with ${expertLabel} expires soon`,
+      title: `Payment Reminder - ${serviceLabel}`,
       greeting: 'Hello',
-      reminderMessage: `This is a ${reminderType} reminder that your payment for the appointment with <strong>${expertName}</strong> is still pending and will expire soon.`,
+      reminderMessage: `This is a ${reminderType} reminder that your payment for the appointment with <strong>${expertLabel}</strong> is still pending and will expire soon.`,
       urgentWarning: `⚠️ Don't lose your appointment! Payment expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}.`,
       appointmentDetails: 'Appointment Details',
       paymentDetails: 'Multibanco Payment Details',
       service: 'Service',
+      expert: 'Expert',
       date: 'Date',
       time: 'Time',
       duration: 'Duration',
@@ -116,17 +138,18 @@ export default function MultibancoPaymentReminderTemplate({
     },
     pt: {
       urgent: 'URGENTE',
-      subject: `Lembrete de Pagamento - Consulta com ${expertName}`,
-      subjectUrgent: `URGENTE: Lembrete de Pagamento - Consulta com ${expertName}`,
-      previewText: `O seu pagamento para a consulta com ${expertName} expira em breve`,
-      previewTextUrgent: `URGENTE: O seu pagamento para a consulta com ${expertName} expira em breve`,
-      title: `Lembrete de Pagamento - ${serviceName}`,
+      subject: `Lembrete de Pagamento - Consulta com ${expertLabel}`,
+      subjectUrgent: `URGENTE: Lembrete de Pagamento - Consulta com ${expertLabel}`,
+      previewText: `O seu pagamento para a consulta com ${expertLabel} expira em breve`,
+      previewTextUrgent: `URGENTE: O seu pagamento para a consulta com ${expertLabel} expira em breve`,
+      title: `Lembrete de Pagamento - ${serviceLabel}`,
       greeting: 'Olá',
-      reminderMessage: `Este é um lembrete ${reminderType === 'urgent' ? 'urgente' : 'gentil'} de que o seu pagamento para a consulta com <strong>${expertName}</strong> ainda está pendente e expirará em breve.`,
+      reminderMessage: `Este é um lembrete ${reminderType === 'urgent' ? 'urgente' : 'gentil'} de que o seu pagamento para a consulta com <strong>${expertLabel}</strong> ainda está pendente e expirará em breve.`,
       urgentWarning: `⚠️ Não perca a sua consulta! O pagamento expira em ${daysRemaining} dia${daysRemaining !== 1 ? 's' : ''}.`,
       appointmentDetails: 'Detalhes da Consulta',
       paymentDetails: 'Detalhes do Pagamento Multibanco',
       service: 'Serviço',
+      expert: 'Especialista',
       date: 'Data',
       time: 'Hora',
       duration: 'Duração',
@@ -239,12 +262,14 @@ export default function MultibancoPaymentReminderTemplate({
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.service}:</td>
-            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-              {serviceName}
-            </td>
-          </tr>
+          {serviceName && serviceName.trim().length > 0 && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.service}:</td>
+              <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+                {serviceName}
+              </td>
+            </tr>
+          )}
           {appointmentDate && (
             <tr>
               <td style={createTableCellStyle(true)}>{t.date}:</td>
@@ -271,12 +296,14 @@ export default function MultibancoPaymentReminderTemplate({
               </td>
             </tr>
           )}
-          <tr>
-            <td style={createTableCellStyle(true)}>Expert:</td>
-            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-              {expertName}
-            </td>
-          </tr>
+          {expertName && expertName.trim().length > 0 && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.expert}:</td>
+              <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+                {expertName}
+              </td>
+            </tr>
+          )}
           {customerNotes && (
             <tr>
               <td style={createTableCellStyle(true)}>{t.notes}:</td>
@@ -309,90 +336,98 @@ export default function MultibancoPaymentReminderTemplate({
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.entity}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-              }}
-            >
-              {multibancoEntity}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.reference}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-              }}
-            >
-              {multibancoReference}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.amount}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontSize: '20px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                color: ELEVA_COLORS.success,
-              }}
-            >
-              €{multibancoAmount}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.expires}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontSize: '18px',
-              }}
-            >
-              {voucherExpiresAt}
-            </td>
-          </tr>
+          {multibancoEntity && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.entity}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontFamily: 'monospace',
+                  fontSize: '18px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                }}
+              >
+                {multibancoEntity}
+              </td>
+            </tr>
+          )}
+          {multibancoReference && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.reference}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontFamily: 'monospace',
+                  fontSize: '18px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                }}
+              >
+                {multibancoReference}
+              </td>
+            </tr>
+          )}
+          {multibancoAmount && multibancoAmount !== '0.00' && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.amount}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontSize: '20px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                  color: ELEVA_COLORS.success,
+                }}
+              >
+                €{multibancoAmount}
+              </td>
+            </tr>
+          )}
+          {voucherExpiresAt && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.expires}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontSize: '18px',
+                }}
+              >
+                {voucherExpiresAt}
+              </td>
+            </tr>
+          )}
         </table>
 
         <Text

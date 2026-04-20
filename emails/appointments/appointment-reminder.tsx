@@ -11,17 +11,16 @@ import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
 /**
- * Locales for which this template has a translation entry. Narrower than
- * the global `SupportedLocale` (which also includes `'es'` and `'br'`)
- * because the `translations` table below only ships strings for `'en'`
- * and `'pt'`. Tightening the prop type forces callers to choose one of
- * the implemented locales at compile time instead of silently falling
- * back to English at runtime.
+ * Locales for which this template has a translation entry. Mirrors the
+ * global `SupportedLocale` exactly — the four locales the rest of the
+ * app supports. Tightening the prop type to a runtime-checked union
+ * keeps the type honest: callers can't pass a value the template
+ * doesn't actually translate.
  *
  * To add a new locale, extend both this union AND the `translations`
  * record below.
  */
-export type AppointmentReminderLocale = 'en' | 'pt';
+export type AppointmentReminderLocale = 'en' | 'pt' | 'es' | 'br';
 
 interface AppointmentReminderEmailProps {
   patientName?: string;
@@ -69,11 +68,27 @@ export const AppointmentReminderEmail = ({
   meetingLink,
   locale = 'en',
 }: AppointmentReminderEmailProps) => {
+  // Per-locale fallback for the appointment-type label. Callers occasionally
+  // forward an empty string when the upstream `eventName` is missing, so we
+  // need a non-empty value for the banner / heading / inbox-preview
+  // interpolation. Using a localized fallback keeps the email coherent
+  // for non-English recipients (was previously hardcoded "Your appointment").
+  const APPOINTMENT_TYPE_FALLBACK: Record<AppointmentReminderLocale, string> = {
+    en: 'Your appointment',
+    pt: 'A sua consulta',
+    br: 'Sua consulta',
+    es: 'Su cita',
+  };
+  const safeAppointmentType =
+    typeof appointmentType === 'string' && appointmentType.trim().length > 0
+      ? appointmentType
+      : APPOINTMENT_TYPE_FALLBACK[locale];
+
   // Internationalization support
   const translations = {
     en: {
       subject: `Reminder: Your appointment with ${expertName} is tomorrow`,
-      previewText: `Reminder: Your appointment with ${expertName} is tomorrow - ${appointmentType}`,
+      previewText: `Reminder: Your appointment with ${expertName} is tomorrow - ${safeAppointmentType}`,
       title: 'Appointment Reminder',
       greeting: `Hello ${patientName}, this is a friendly reminder about your upcoming appointment.`,
       yourExpert: 'Your Expert',
@@ -95,7 +110,7 @@ export const AppointmentReminderEmail = ({
     },
     pt: {
       subject: `Lembrete: A sua consulta com ${expertName} é amanhã`,
-      previewText: `Lembrete: A sua consulta com ${expertName} é amanhã - ${appointmentType}`,
+      previewText: `Lembrete: A sua consulta com ${expertName} é amanhã - ${safeAppointmentType}`,
       title: 'Lembrete de Consulta',
       greeting: `Olá ${patientName}, este é um lembrete amigável sobre a sua próxima consulta.`,
       yourExpert: 'O Seu Especialista',
@@ -114,6 +129,54 @@ export const AppointmentReminderEmail = ({
       supportText: 'Se tiver alguma dúvida ou precisar de suporte, contacte a nossa equipa.',
       footerText:
         'Se tiver alguma dúvida ou precisar de alterar a sua consulta, contacte a nossa equipa de suporte.',
+    },
+    // Brazilian Portuguese — mostly mirrors `pt` but uses Brazilian vocabulary
+    // ("conexão de internet" stays the same, but "equipa" → "equipe",
+    // "atual" stays, "videochamada" stays as it's understood in both).
+    br: {
+      subject: `Lembrete: Sua consulta com ${expertName} é amanhã`,
+      previewText: `Lembrete: Sua consulta com ${expertName} é amanhã - ${safeAppointmentType}`,
+      title: 'Lembrete de Consulta',
+      greeting: `Olá ${patientName}, este é um lembrete amigável sobre sua próxima consulta.`,
+      yourExpert: 'Seu Especialista',
+      date: 'Data',
+      time: 'Hora',
+      duration: 'Duração',
+      minutes: 'minutos',
+      timezoneLabel: 'Fuso Horário',
+      joinVideoCall: 'Entrar na Videochamada',
+      howToPrepare: 'Como se preparar',
+      prepareItem1: 'Tenha seu histórico médico e medicamentos atuais à mão',
+      prepareItem2: 'Prepare as perguntas que gostaria de discutir',
+      prepareItem3: 'Garanta uma conexão de internet estável para a videochamada',
+      prepareItem4: 'Entre na reunião 5 minutos antes',
+      needAssistance: 'Precisa de ajuda?',
+      supportText: 'Se tiver alguma dúvida ou precisar de suporte, entre em contato com nossa equipe.',
+      footerText:
+        'Se tiver alguma dúvida ou precisar alterar sua consulta, entre em contato com nossa equipe de suporte.',
+    },
+    es: {
+      subject: `Recordatorio: Su cita con ${expertName} es mañana`,
+      previewText: `Recordatorio: Su cita con ${expertName} es mañana - ${safeAppointmentType}`,
+      title: 'Recordatorio de Cita',
+      greeting: `Hola ${patientName}, este es un recordatorio amistoso sobre su próxima cita.`,
+      yourExpert: 'Su Experto',
+      date: 'Fecha',
+      time: 'Hora',
+      duration: 'Duración',
+      minutes: 'minutos',
+      timezoneLabel: 'Zona Horaria',
+      joinVideoCall: 'Unirse a la Videollamada',
+      howToPrepare: 'Cómo prepararse',
+      prepareItem1: 'Tenga su historial médico y medicamentos actuales a mano',
+      prepareItem2: 'Prepare las preguntas que le gustaría discutir',
+      prepareItem3: 'Asegúrese de tener una conexión a internet estable para la videollamada',
+      prepareItem4: 'Únase a la reunión 5 minutos antes',
+      needAssistance: '¿Necesita ayuda?',
+      supportText:
+        'Si tiene alguna pregunta o necesita asistencia, póngase en contacto con nuestro equipo.',
+      footerText:
+        'Si tiene alguna pregunta o necesita modificar su cita, póngase en contacto con nuestro equipo de soporte.',
     },
   };
 
@@ -148,7 +211,7 @@ export const AppointmentReminderEmail = ({
             fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
           }}
         >
-          {appointmentType}
+          {safeAppointmentType}
         </Text>
       </Section>
 
@@ -167,7 +230,7 @@ export const AppointmentReminderEmail = ({
             paddingBottom: '12px',
           }}
         >
-          {appointmentType}
+          {safeAppointmentType}
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

@@ -2326,3 +2326,118 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
     }
   }
 }
+
+// Stripe holds Multibanco funds in a settlement buffer (≈4 days) after a
+// voucher's 7-day payment window closes. The slot reservation was created
+// at `payment_intent.requires_action` with `expiresAt = voucherExpiresAt`,
+// so the cleanup cron (lt(expiresAt, now)) would otherwise free the slot
+// the moment the voucher expires — even though Stripe is still confirming
+// the payment. We push the reservation expiry forward by this buffer so
+// the slot stays held until Stripe resolves to `succeeded`/`payment_failed`.
+const MULTIBANCO_PROCESSING_BUFFER_MS = 4 * 24 * 60 * 60 * 1000;
+
+/**
+ * Handle `payment_intent.processing` — fires after a Multibanco voucher's
+ * 7-day payment window closes (transitioning the PI from `requires_action`
+ * to `processing`) or for any async payment method whose funds Stripe is
+ * still confirming.
+ *
+ * We extend the matching slot-reservation's `expiresAt` by Stripe's
+ * settlement buffer so `cleanup-expired-reservations` doesn't free the
+ * slot during the buffer window. The post-event Novu trigger in
+ * `triggerNovuNotificationFromStripeEvent` separately delivers a
+ * "your payment is processing" notification to the patient.
+ */
+export async function handlePaymentIntentProcessing(paymentIntent: Stripe.PaymentIntent) {
+  console.log(
+    `Payment intent ${paymentIntent.id} entered processing state. ` +
+      `Payment method type: ${paymentIntent.payment_method_types?.join(', ') || 'unknown'}`,
+  );
+
+  try {
+    const newExpiresAt = new Date(Date.now() + MULTIBANCO_PROCESSING_BUFFER_MS);
+    const updated = await db
+      .update(SlotReservationTable)
+      .set({ expiresAt: newExpiresAt, updatedAt: new Date() })
+      .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id))
+      .returning({ id: SlotReservationTable.id, expiresAt: SlotReservationTable.expiresAt });
+
+    if (updated.length > 0) {
+      console.log(
+        `🛡️ Extended slot reservation ${updated[0].id} expiresAt to ${updated[0].expiresAt.toISOString()} ` +
+          `to cover Stripe's settlement buffer for PI ${paymentIntent.id}`,
+      );
+    } else {
+      // No matching reservation — usually a card payment (no reservation
+      // was ever created since cards are sync). Safe to ignore.
+      console.log(
+        `No slot reservation found for PI ${paymentIntent.id} in processing state — likely a sync card payment`,
+      );
+    }
+  } catch (dbError) {
+    // Don't fail the webhook over a reservation-extension error; the cron
+    // will still free the slot at the original expiresAt if extension
+    // fails (degraded behavior, but webhook stays acked).
+    console.error(
+      `Failed to extend slot reservation for PI ${paymentIntent.id} during processing:`,
+      dbError,
+    );
+  }
+}
+
+/**
+ * Handle `payment_intent.canceled` — fires when the customer or our cron
+ * job (cleanup-expired-reservations) explicitly cancels a pending PI
+ * before it succeeds. Releases the slot reservation immediately so the
+ * patient doesn't have to wait for the cleanup cron's next tick.
+ */
+export async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) {
+  console.log(
+    `Payment intent ${paymentIntent.id} was canceled. Cancellation reason: ${
+      paymentIntent.cancellation_reason || 'unspecified'
+    }`,
+  );
+
+  try {
+    const deleted = await db
+      .delete(SlotReservationTable)
+      .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id))
+      .returning({ id: SlotReservationTable.id });
+
+    if (deleted.length > 0) {
+      console.log(
+        `🗑️ Released slot reservation ${deleted[0].id} for canceled PI ${paymentIntent.id}`,
+      );
+    } else {
+      // No matching reservation — the slot was already freed (e.g., by
+      // a refund flow, the cleanup cron, or because this was a card
+      // payment with no reservation in the first place).
+      console.log(
+        `No slot reservation to release for canceled PI ${paymentIntent.id}`,
+      );
+    }
+  } catch (dbError) {
+    // Same rationale as above — don't fail the webhook.
+    console.error(
+      `Failed to release slot reservation for canceled PI ${paymentIntent.id}:`,
+      dbError,
+    );
+  }
+}
+
+/**
+ * Handle `charge.dispute.updated` and `charge.dispute.closed` — Stripe
+ * recommends listening for status changes on top of `created` so internal
+ * state stays in sync as the dispute moves through `under_review` → `won`
+ * /`lost`/`warning_closed`. We log status changes; transfer status
+ * remains `disputed` until a follow-up business decision is made.
+ */
+export async function handleDisputeUpdated(dispute: Stripe.Dispute) {
+  console.log(
+    `Dispute ${dispute.id} status changed to "${dispute.status}". ` +
+      `Reason: ${dispute.reason || 'unspecified'}, amount: ${dispute.amount}.`,
+  );
+  // Intentionally minimal — the full lifecycle (refund handling, payout
+  // recovery) is better managed manually based on `dispute.status`.
+}
+

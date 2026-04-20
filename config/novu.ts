@@ -36,6 +36,24 @@ export const userLifecycleWorkflow = workflow(
     });
 
     await step.email('welcome-email', async () => {
+      // Defensive guard: only the actual onboarding events should render
+      // the welcome email body. Any other `eventType` reaching this
+      // workflow is a routing bug — a real "account-updated" or payment
+      // event must go through `expert-management` (or another dedicated
+      // workflow), never here. We deliberately render an empty body and
+      // log instead of shipping a misleading "Welcome to Eleva Care!"
+      // for arbitrary triggers (the original bug this guard prevents).
+      const eventType = payload.eventType ?? 'welcome';
+      if (eventType !== 'welcome' && eventType !== 'user-created') {
+        console.warn(
+          `[user-lifecycle] Skipping welcome email for unsupported eventType "${eventType}". Route this notification through a dedicated workflow (e.g. expert-management).`,
+        );
+        return {
+          subject: `Eleva Care notification`,
+          body: '<p>(no email body for this event type)</p>',
+        };
+      }
+
       const emailBody = await elevaEmailService.renderWelcomeEmail({
         userName: payload.userName || payload.firstName || 'User',
         firstName: payload.firstName || payload.userName || 'User',
@@ -301,6 +319,39 @@ export const paymentWorkflow = workflow(
             : locale === 'es'
               ? `❌ Pago fallido - ${payload.currency || 'EUR'} ${payload.amount}`
               : `❌ Payment Failed - ${payload.currency || 'EUR'} ${payload.amount}`;
+      } else if (payload.eventType === 'pending') {
+        // `pending` fires when a Multibanco voucher's 7-day payment window
+        // closed and Stripe is now confirming the funds in its 4-day
+        // settlement buffer (see `handlePaymentIntentProcessing` in
+        // `app/api/webhooks/stripe/handlers/payment.ts`). The patient has
+        // already paid — they just need to know we're processing. The
+        // in-app notification (above) already conveys this; the email is
+        // a minimal "we're confirming your payment" message rather than
+        // the generic HTML fallback that would otherwise render here.
+        const locale = (payload.locale || 'en').toLowerCase().split('-')[0];
+        const customerLine =
+          locale === 'pt'
+            ? `Olá ${payload.customerName || ''},`
+            : locale === 'es'
+              ? `Hola ${payload.customerName || ''},`
+              : `Hello ${payload.customerName || ''},`;
+        const bodyLine =
+          locale === 'pt'
+            ? 'Recebemos a confirmação do seu pagamento Multibanco. Estamos a aguardar a transferência dos fundos do seu banco — esta é uma fase normal e o seu agendamento permanece reservado. Iremos enviar a confirmação final assim que os fundos chegarem (normalmente até 4 dias úteis).'
+            : locale === 'es'
+              ? 'Hemos recibido la confirmación de su pago Multibanco. Estamos esperando que los fondos lleguen desde su banco — esta es una fase normal y su reserva sigue activa. Le enviaremos la confirmación final en cuanto lleguen los fondos (normalmente en un plazo de 4 días hábiles).'
+              : "We've received your Multibanco payment confirmation. We're now waiting for the funds to clear from your bank — this is a normal step and your booking remains reserved. We'll send the final confirmation as soon as the funds arrive (usually within 4 business days).";
+        emailBody = `<div style="font-family: system-ui, sans-serif; line-height: 1.6; color: #1F2937;">
+  <p>${customerLine}</p>
+  <p>${bodyLine}</p>
+  <p style="color: #6B7280; font-size: 14px;">— Eleva Care</p>
+</div>`;
+        subject =
+          locale === 'pt'
+            ? '⏳ A processar o seu pagamento Multibanco'
+            : locale === 'es'
+              ? '⏳ Procesando su pago Multibanco'
+              : '⏳ Processing your Multibanco payment';
       } else {
         // Use generic email renderer for other payment events
         emailBody = await elevaEmailService.renderGenericEmail({
@@ -660,21 +711,52 @@ export const marketplaceWorkflow = workflow(
       },
     }));
 
-    await step.email('marketplace-email', async () => ({
-      subject: `💰 Marketplace Update - Eleva Care`,
-      body: `
-<h2>Marketplace Update</h2>
-<p>Hi ${payload.expertName || 'there'},</p>
-<p>${payload.message || 'Your marketplace account has been updated.'}</p>
-<p>Thank you for being part of our marketplace!</p>
-      `,
-    }));
+    await step.email('marketplace-email', async () => {
+      // Branded React Email template (replaces the prior inline HTML body
+      // that shipped unbranded). Subject reflects the event type so the
+      // expert's inbox shows e.g. "💰 Payment received - Eleva Care"
+      // instead of a generic "Marketplace Update".
+      const emailBody = await elevaEmailService.renderMarketplaceEvent({
+        expertName: payload.expertName,
+        message: payload.message,
+        amount: payload.amount,
+        accountStatus: payload.accountStatus,
+        eventType: payload.eventType,
+        locale: payload.locale,
+      });
+
+      // Subject heading + emoji are picked per-event so the inbox preview
+      // is informative without opening the email. Keep this in sync with
+      // `MarketplaceEventType` in `emails/experts/marketplace-event.tsx`.
+      const heading =
+        payload.eventType === 'payout-processed'
+          ? '🏦 Payout processed'
+          : payload.eventType === 'connect-account-status'
+            ? '🔧 Account update'
+            : payload.eventType === 'refund-processed'
+              ? '↩️ Refund processed'
+              : '💰 Payment received';
+
+      return {
+        subject: `${heading} - Eleva Care`,
+        body: emailBody,
+      };
+    });
   },
   {
     name: 'Marketplace Updates',
     description: 'Notifications for marketplace account and payment status changes',
     payloadSchema: z.object({
-      eventType: z.enum(['payment-received', 'payout-processed', 'connect-account-status']),
+      // `refund-processed` is fired by `notifyAppointmentConflict` in
+      // `app/api/webhooks/stripe/handlers/payment.ts` after a double-booking
+      // refund completes. Keep this enum in sync with `MarketplaceEventType`
+      // in `emails/experts/marketplace-event.tsx`.
+      eventType: z.enum([
+        'payment-received',
+        'payout-processed',
+        'connect-account-status',
+        'refund-processed',
+      ]),
       amount: z.string().optional(),
       expertName: z.string().optional(),
       accountStatus: z.string().optional(),
@@ -708,17 +790,22 @@ export const systemHealthWorkflow = workflow(
       },
     }));
 
-    await step.email('health-email', async () => ({
-      subject: `⚠️ System Health Alert - ${payload.environment}`,
-      body: `
-<h2>System Health Alert</h2>
-<p>Status: ${payload.status}</p>
-<p>Environment: ${payload.environment}</p>
-<p>Error: ${payload.error || 'Unknown error'}</p>
-<p>Timestamp: ${payload.timestamp}</p>
-<p>Please investigate immediately.</p>
-      `,
-    }));
+    await step.email('health-email', async () => {
+      // Branded React Email template (replaces the prior inline HTML body).
+      const emailBody = await elevaEmailService.renderSystemHealthAlert({
+        status: payload.status,
+        environment: payload.environment,
+        error: payload.error,
+        timestamp: payload.timestamp,
+        memory: payload.memory,
+        locale: payload.locale,
+      });
+
+      return {
+        subject: `${payload.status === 'unhealthy' ? '⚠️' : '✅'} System Health: ${payload.status} (${payload.environment})`,
+        body: emailBody,
+      };
+    });
   },
   {
     name: 'System Health',
@@ -748,7 +835,25 @@ export const systemHealthWorkflow = workflow(
   },
 );
 
-// EXISTING EMAIL TEMPLATE WORKFLOWS (Keep these working as they are)
+// `appointment-confirmation` is intentionally kept as a separate workflow
+// from `appointment-universal.confirmed` even though both render the same
+// `ExpertNewAppointmentTemplate`. The two paths exist because:
+//
+//   1. `appointment-universal.confirmed` is the generic Stripe-driven path
+//      (called from `triggerNovuNotificationFromStripeEvent` after a
+//      checkout.session.completed event for the patient side).
+//   2. `appointment-confirmation` is the meeting-actions path called from
+//      `server/actions/meetings.ts` (`triggerExpertAppointmentConfirmation`)
+//      for cases where the booking didn't originate from a Stripe Checkout
+//      Session — e.g. pack-redemption bookings, admin-created meetings,
+//      or any future flow that creates a meeting without a payment intent.
+//      That path needs a workflow it can trigger directly with a flat
+//      payload, without having to fake a Stripe event.
+//
+// Consolidating them would force every non-Stripe meeting creation to also
+// trigger a fake `appointment-universal.confirmed` payload — more friction
+// for marginal cleanliness gains. Keep both, but keep their adapter rows
+// in sync (see lib/integrations/novu/email-service.ts).
 export const appointmentConfirmationWorkflow = workflow(
   'appointment-confirmation',
   async ({ payload, step }) => {
@@ -1165,6 +1270,83 @@ export const reservationExpiredWorkflow = workflow(
   },
 );
 
+// Pack Purchase Confirmation Workflow — sent to the buyer after a session
+// pack is purchased through Stripe Checkout. Carries the redemption promo
+// code that unlocks `sessionsCount` future bookings with the expert. Was
+// previously sent via Resend `sendEmail` directly from the webhook handler,
+// bypassing Novu (no in-app notification, no idempotency, no template
+// selection). Now goes through this workflow like every other email.
+export const packPurchaseConfirmationWorkflow = workflow(
+  'pack-purchase-confirmation',
+  async ({ payload, step }) => {
+    await step.inApp('pack-purchase-inapp', async () => ({
+      subject: `🎉 Your ${payload.sessionsCount}-session pack with ${payload.expertName} is ready`,
+      body: `Your booking code is ${payload.promotionCode}. Redeem it at the expert's booking page when you're ready to book each session.`,
+      data: {
+        packName: payload.packName,
+        eventName: payload.eventName,
+        expertName: payload.expertName,
+        sessionsCount: payload.sessionsCount,
+        promotionCode: payload.promotionCode,
+        bookingUrl: payload.bookingUrl,
+        expiresAt: payload.expiresAt,
+      },
+    }));
+
+    await step.email('pack-purchase-email', async () => {
+      const emailBody = await elevaEmailService.renderPackPurchase({
+        buyerName: payload.buyerName,
+        buyerEmail: payload.buyerEmail,
+        packName: payload.packName,
+        eventName: payload.eventName,
+        expertName: payload.expertName,
+        sessionsCount: payload.sessionsCount,
+        promotionCode: payload.promotionCode,
+        expiresAt: payload.expiresAt,
+        bookingUrl: payload.bookingUrl,
+        locale: payload.locale || 'en',
+      });
+
+      // Match the locale-aware subject we used to build inline in the
+      // webhook handler so existing inboxes show consistent copy.
+      const baseLocale = (payload.locale || 'en').split('-')[0].toLowerCase();
+      const subject =
+        baseLocale === 'pt'
+          ? `Seu pacote de ${payload.sessionsCount} sessões está pronto!`
+          : baseLocale === 'es'
+            ? `¡Tu paquete de ${payload.sessionsCount} sesiones está listo!`
+            : `Your ${payload.sessionsCount}-session pack is ready!`;
+
+      return { subject, body: emailBody };
+    });
+  },
+  {
+    name: 'Pack Purchase Confirmation',
+    description:
+      'Notifies the buyer that their session pack is ready and delivers the redemption promo code.',
+    payloadSchema: z.object({
+      buyerName: z.string(),
+      buyerEmail: z.string().email(),
+      packName: z.string(),
+      eventName: z.string(),
+      expertName: z.string(),
+      sessionsCount: z.number().int().positive(),
+      promotionCode: z.string(),
+      expiresAt: z.string(),
+      bookingUrl: z.string(),
+      locale: z.string().optional().default('en'),
+    }),
+    tags: ['payments', 'packs', 'confirmation'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
+  },
+);
+
 // All workflows exported for the Novu framework
 export const workflows = [
   userLifecycleWorkflow,
@@ -1179,6 +1361,7 @@ export const workflows = [
   multibancoPaymentReminderWorkflow,
   expertPayoutNotificationWorkflow,
   reservationExpiredWorkflow,
+  packPurchaseConfirmationWorkflow,
 ];
 
 // Add to the existing workflow configuration

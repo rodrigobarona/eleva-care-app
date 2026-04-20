@@ -592,6 +592,14 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   // Payment events - use universal workflow with eventType
   // NOTE: payment_intent.succeeded removed - email sent directly via Resend in handlePaymentSucceeded()
   'payment_intent.payment_failed': 'payment-universal', // Uses eventType: 'failed'
+  // payment_intent.processing fires after a Multibanco voucher's payment
+  // window closes — Stripe holds funds in a 4-day buffer before either
+  // succeeding or failing. We want to surface this to the patient so they
+  // know not to re-pay the voucher.
+  'payment_intent.processing': 'payment-universal', // Uses eventType: 'pending'
+  // payment_intent.canceled lets us release the slot reservation early
+  // when the customer (or our cron job) explicitly cancels a pending PI.
+  'payment_intent.canceled': 'payment-universal', // Uses eventType: 'cancelled'
   'charge.refunded': 'payment-universal', // Uses eventType: 'refund'
 
   // Subscription events - use payment universal workflow
@@ -599,12 +607,29 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   'customer.subscription.updated': 'payment-universal', // Uses eventType: 'success'
   'customer.subscription.deleted': 'payment-universal', // Uses eventType: 'cancelled'
 
-  // Invoice events - use payment universal workflow
-  'invoice.payment_succeeded': 'payment-universal', // Uses eventType: 'success'
+  // Invoice events - use payment universal workflow.
+  // `invoice.paid` is Stripe's modern event for "an invoice was paid" and
+  // matches what the production webhook subscribes to (the older
+  // `invoice.payment_succeeded` is still emitted but is being phased out).
+  // Both keys are mapped so `getWorkflowFromStripeEvent()` resolves
+  // either incoming event name (legacy webhook configs, test triggers,
+  // older endpoint subscriptions). No subscription product exists yet —
+  // kept here for forward compatibility when subscriptions land.
+  'invoice.paid': 'payment-universal', // Uses eventType: 'success'
+  'invoice.payment_succeeded': 'payment-universal', // Uses eventType: 'success' (legacy)
   'invoice.payment_failed': 'payment-universal', // Uses eventType: 'failed'
 
-  // Dispute events - use payment universal workflow
-  'charge.dispute.created': 'payment-universal', // Uses eventType: 'dispute'
+  // Dispute events - use payment universal workflow. Stripe explicitly
+  // recommends listening for status changes (won/lost/closed) on top of
+  // the initial `created` event so internal state stays in sync.
+  'charge.dispute.created': 'payment-universal', // Uses eventType: 'disputed'
+  'charge.dispute.updated': 'payment-universal', // Uses eventType: 'disputed'
+  'charge.dispute.closed': 'payment-universal', // Uses eventType: 'disputed'
+
+  // Refund object events — `refund.updated` is the modern equivalent of
+  // `charge.refund.updated` and fires on Refund objects directly. Pair
+  // with `charge.refunded` to catch failed refunds.
+  'refund.updated': 'payment-universal', // Uses eventType: 'refunded'
 
   // Connect account events - use expert management workflow
   'account.updated': 'expert-management', // Uses eventType: 'connect-account-status'
@@ -621,14 +646,23 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
 const STRIPE_TO_PAYMENT_EVENT_TYPE: Record<string, string> = {
   // NOTE: payment_intent.succeeded removed - email sent directly via Resend
   'payment_intent.payment_failed': 'failed',
+  'payment_intent.processing': 'pending',
+  'payment_intent.canceled': 'cancelled',
   'charge.refunded': 'refunded',
+  'refund.updated': 'refunded',
   'checkout.session.completed': 'confirmed',
   'customer.subscription.created': 'confirmed',
   'customer.subscription.updated': 'confirmed',
   'customer.subscription.deleted': 'cancelled',
+  // `invoice.paid` is Stripe's modern event; matches the Dashboard
+  // subscription. Old `invoice.payment_succeeded` kept as fallback for
+  // legacy webhook configs.
+  'invoice.paid': 'success',
   'invoice.payment_succeeded': 'success',
   'invoice.payment_failed': 'failed',
   'charge.dispute.created': 'disputed',
+  'charge.dispute.updated': 'disputed',
+  'charge.dispute.closed': 'disputed',
 };
 
 /**

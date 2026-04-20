@@ -171,7 +171,12 @@ export const PackPurchaseConfirmation = ({
       : '—';
 
   const subject = `${t.successTitle} - ${packName}`;
-  const previewText = `${t.promoInstructions} ${promotionCode}`;
+  // Only append the promo code to the inbox preview when it's actually
+  // present. Without this guard the preview reads "Use the code  to redeem"
+  // (double space + dangling clause) when the code is missing.
+  const previewText = promotionCode
+    ? `${t.promoInstructions} ${promotionCode}`
+    : t.successTitle;
 
   return (
     <EmailLayout
@@ -259,78 +264,90 @@ export const PackPurchaseConfirmation = ({
         </table>
       </Section>
 
-      <Section
-        style={{
-          margin: '32px 0',
-          padding: '32px',
-          backgroundColor: ELEVA_COLORS.neutral.extraLight,
-          borderRadius: '12px',
-          border: `2px dashed ${ELEVA_COLORS.primary}`,
-          textAlign: 'center' as const,
-        }}
-      >
-        <Text
+      {/* Only render the promo block when there is actually a code to show.
+          An empty dashed border with no code in the middle would look like
+          a layout bug to the buyer. */}
+      {promotionCode && (
+        <Section
           style={{
-            ...ELEVA_TEXT_STYLES.heading3,
-            margin: '0 0 12px 0',
-            color: ELEVA_COLORS.primary,
-          }}
-        >
-          {t.promoTitle}
-        </Text>
-        <Text style={{ ...ELEVA_TEXT_STYLES.bodyRegular, margin: '0 0 20px 0' }}>
-          {t.promoInstructions}
-        </Text>
-        <div
-          style={{
-            display: 'inline-block',
-            padding: '16px 32px',
-            backgroundColor: ELEVA_COLORS.surface,
-            borderRadius: '8px',
-            border: `2px solid ${ELEVA_COLORS.primary}`,
+            margin: '32px 0',
+            padding: '32px',
+            backgroundColor: ELEVA_COLORS.neutral.extraLight,
+            borderRadius: '12px',
+            border: `2px dashed ${ELEVA_COLORS.primary}`,
+            textAlign: 'center' as const,
           }}
         >
           <Text
             style={{
-              margin: '0',
-              fontSize: '28px',
-              fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-              fontFamily: 'monospace',
+              ...ELEVA_TEXT_STYLES.heading3,
+              margin: '0 0 12px 0',
               color: ELEVA_COLORS.primary,
-              letterSpacing: '3px',
             }}
           >
-            {promotionCode}
+            {t.promoTitle}
           </Text>
-        </div>
-      </Section>
+          <Text style={{ ...ELEVA_TEXT_STYLES.bodyRegular, margin: '0 0 20px 0' }}>
+            {t.promoInstructions}
+          </Text>
+          <div
+            style={{
+              display: 'inline-block',
+              padding: '16px 32px',
+              backgroundColor: ELEVA_COLORS.surface,
+              borderRadius: '8px',
+              border: `2px solid ${ELEVA_COLORS.primary}`,
+            }}
+          >
+            <Text
+              style={{
+                margin: '0',
+                fontSize: '28px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                fontFamily: 'monospace',
+                color: ELEVA_COLORS.primary,
+                letterSpacing: '3px',
+              }}
+            >
+              {promotionCode}
+            </Text>
+          </div>
+        </Section>
+      )}
 
-      <Section style={ELEVA_CARD_STYLES.default}>
-        <Heading style={{ ...ELEVA_TEXT_STYLES.heading3, margin: '0 0 16px 0' }}>
-          {t.howToUse}
-        </Heading>
-        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          {[t.step1, t.step2, t.step3, t.step4].map((step, index) => (
-            <tr key={index}>
-              <td
-                style={{
-                  padding: '8px 12px 8px 0',
-                  verticalAlign: 'top' as const,
-                  width: '32px',
-                  fontSize: '16px',
-                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                  color: ELEVA_COLORS.primary,
-                }}
-              >
-                {index + 1}.
-              </td>
-              <td style={{ padding: '8px 0', ...ELEVA_TEXT_STYLES.bodyRegular, margin: 0 }}>
-                {step}
-              </td>
-            </tr>
-          ))}
-        </table>
-      </Section>
+      {/* "How to use your code" steps reference the promo code in the
+          previous block. If we don't have a code to redeem, omit the steps
+          entirely — otherwise the buyer sees redemption instructions
+          ("Visit your expert's booking page... Enter the code...") with
+          no code to enter. */}
+      {promotionCode && (
+        <Section style={ELEVA_CARD_STYLES.default}>
+          <Heading style={{ ...ELEVA_TEXT_STYLES.heading3, margin: '0 0 16px 0' }}>
+            {t.howToUse}
+          </Heading>
+          <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+            {[t.step1, t.step2, t.step3, t.step4].map((step, index) => (
+              <tr key={index}>
+                <td
+                  style={{
+                    padding: '8px 12px 8px 0',
+                    verticalAlign: 'top' as const,
+                    width: '32px',
+                    fontSize: '16px',
+                    fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                    color: ELEVA_COLORS.primary,
+                  }}
+                >
+                  {index + 1}.
+                </td>
+                <td style={{ padding: '8px 0', ...ELEVA_TEXT_STYLES.bodyRegular, margin: 0 }}>
+                  {step}
+                </td>
+              </tr>
+            ))}
+          </table>
+        </Section>
+      )}
 
       <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
         <EmailButton

@@ -49,6 +49,7 @@ import {
   STRIPE_PAYMENT_STATUS_UNPAID,
 } from '@/lib/constants/payment-statuses';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
+import { triggerWorkflow } from '@/lib/integrations/novu';
 import { sendEmail } from '@/lib/integrations/novu/email';
 import {
   buildNovuSubscriberFromStripe,
@@ -73,7 +74,10 @@ import { handleIdentityVerificationUpdated } from './handlers/identity';
 import {
   handleChargeRefunded,
   handleDisputeCreated,
+  handleDisputeUpdated,
   handlePaymentFailed,
+  handlePaymentIntentCanceled,
+  handlePaymentIntentProcessing,
   handlePaymentIntentRequiresAction,
   handlePaymentSucceeded,
   handleRefundUpdated,
@@ -673,11 +677,6 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
   });
 
   try {
-    const { default: PackPurchaseConfirmationTemplate } = await import(
-      '@/emails/packs/pack-purchase-confirmation'
-    );
-    const { render } = await import('@react-email/render');
-
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
 
     // Look up expert's username for the booking URL
@@ -699,36 +698,88 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
       console.error('Failed to look up expert username for booking URL:', lookupError);
     }
 
-    const renderedHtml = await render(
-      PackPurchaseConfirmationTemplate({
-        buyerName: buyerName || buyerEmail.split('@')[0],
-        buyerEmail,
-        packName,
-        eventName,
-        expertName,
-        sessionsCount,
-        promotionCode: promoCode.code,
-        expiresAt: expiresAt.toISOString(),
-        bookingUrl,
-        locale,
-      }),
-    );
+    // Route the confirmation through the dedicated `pack-purchase-confirmation`
+    // Novu workflow rather than calling Resend `sendEmail` directly. This
+    // preserves the in-app notification, idempotency via `transactionId`,
+    // template selection, and prop adapter contract — same surface every
+    // other email in this app uses.
+    const resolvedBuyerName = buyerName || buyerEmail.split('@')[0];
+    const [firstName, ...lastNameParts] = resolvedBuyerName.split(' ');
 
-    const emailResult = await sendEmail({
-      to: buyerEmail,
-      subject:
-        locale === 'pt' || locale === 'pt-BR'
-          ? `Seu pacote de ${sessionsCount} sessões está pronto!`
-          : locale === 'es'
-            ? `¡Tu paquete de ${sessionsCount} sesiones está listo!`
-            : `Your ${sessionsCount}-session pack is ready!`,
-      html: renderedHtml,
-    });
+    // SubscriberId uses the Stripe session id (or customer id when present)
+    // instead of `guest_${buyerEmail}` to avoid leaking the buyer's email
+    // address into structured logs / Novu's subscriber ledger. The actual
+    // address still travels to Novu via `to.email` so deliverability is
+    // unaffected.
+    const guestSubscriberId = customerId
+      ? `guest_${customerId}`
+      : `guest_${session.id}`;
 
-    if (emailResult.success) {
-      console.log(`📧 Pack purchase confirmation email sent to ${maskedEmail}`);
-    } else {
-      console.error(`📧 Failed to send pack purchase email to ${maskedEmail}:`, emailResult.error);
+    // Wrap the trigger in a small retry loop so a transient Novu failure
+    // doesn't silently lose the confirmation. The trigger is idempotent
+    // via `transactionId: pack-purchase-${session.id}`, so retrying is
+    // safe — Novu dedupes by transactionId. We deliberately do NOT throw
+    // out of the catch / return a non-2xx status: the pack-purchase row
+    // was already inserted above (no idempotency key on the insert), so
+    // a Stripe webhook retry would re-run `handlePackPurchase` and hit
+    // the `stripeSessionId` unique constraint. Better to ack the webhook
+    // and surface the failure via logs / monitoring.
+    const PACK_NOTIFY_MAX_ATTEMPTS = 3;
+    let packResult: unknown = null;
+    let lastError: unknown = null;
+
+    for (let attempt = 1; attempt <= PACK_NOTIFY_MAX_ATTEMPTS; attempt++) {
+      try {
+        packResult = await triggerWorkflow({
+          workflowId: 'pack-purchase-confirmation',
+          to: {
+            subscriberId: guestSubscriberId,
+            email: buyerEmail,
+            firstName: firstName || undefined,
+            lastName: lastNameParts.join(' ') || undefined,
+          },
+          payload: {
+            buyerName: resolvedBuyerName,
+            buyerEmail,
+            packName,
+            eventName,
+            expertName,
+            sessionsCount,
+            promotionCode: promoCode.code,
+            expiresAt: expiresAt.toISOString(),
+            bookingUrl,
+            locale,
+          },
+          transactionId: `pack-purchase-${session.id}`,
+        });
+
+        if (packResult) {
+          if (attempt > 1) {
+            console.log(
+              `📧 Pack purchase confirmation triggered via Novu for ${maskedEmail} on attempt ${attempt}`,
+            );
+          } else {
+            console.log(`📧 Pack purchase confirmation triggered via Novu for ${maskedEmail}`);
+          }
+          break;
+        }
+      } catch (attemptError) {
+        lastError = attemptError;
+      }
+
+      // Exponential backoff between attempts: 250ms, 500ms.
+      if (attempt < PACK_NOTIFY_MAX_ATTEMPTS) {
+        const backoffMs = 250 * 2 ** (attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+
+    if (!packResult) {
+      console.error(
+        `📧 Failed to trigger pack purchase confirmation via Novu for ${maskedEmail} ` +
+          `after ${PACK_NOTIFY_MAX_ATTEMPTS} attempts (sessionId=${session.id})`,
+        lastError,
+      );
     }
   } catch (emailError) {
     console.error('Failed to send pack purchase email:', emailError);
@@ -1671,18 +1722,37 @@ export async function POST(request: NextRequest) {
       case 'payment_intent.requires_action':
         await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent);
         break;
+      case 'payment_intent.processing':
+        // Multibanco voucher window closed — Stripe holds funds in a
+        // 4-day buffer before resolving to succeeded / payment_failed.
+        // Surfaces "your payment is processing" to the patient via the
+        // post-event Novu trigger (payment-universal, eventType=pending).
+        await handlePaymentIntentProcessing(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'payment_intent.canceled':
+        await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent);
+        break;
       case 'charge.refunded':
         await handleChargeRefunded(event.data.object as Stripe.Charge);
         break;
       case 'charge.refund.updated':
+      case 'refund.updated':
         // Refunds aren't always immediate (e.g., bank-account rejections).
-        // This event fires when the refund's status changes after creation —
-        // critical for catching `failed`/`canceled` so the DB doesn't stay
-        // at `refunded` for a charge that ultimately wasn't.
+        // Both event types carry the Refund object payload — handle them
+        // identically. `refund.updated` is the modern equivalent emitted
+        // on Refund objects directly. Critical for catching `failed`
+        // /`canceled` refund states.
         await handleRefundUpdated(event.data.object as Stripe.Refund);
         break;
       case 'charge.dispute.created':
         await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+      case 'charge.dispute.updated':
+      case 'charge.dispute.closed':
+        // Stripe recommends listening for status changes on top of
+        // `created` so internal state stays in sync as the dispute
+        // moves through `under_review` → won/lost/warning_closed.
+        await handleDisputeUpdated(event.data.object as Stripe.Dispute);
         break;
       case 'payment_intent.created': {
         console.log('Payment intent created:', event.data.object.id);

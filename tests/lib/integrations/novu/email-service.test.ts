@@ -654,6 +654,219 @@ describe('PropAdapter — workflow payload → template props', () => {
     });
   });
 
+  test('appointment-universal.cancelled.patient: explicit identity-style adapter (no passthrough)', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'appointment-universal',
+      eventType: 'cancelled',
+      userSegment: 'patient',
+      locale: 'en',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      customerName: 'Marta',
+      expertName: 'Patricia',
+      serviceName: 'Physio',
+      appointmentDate: 'Tomorrow',
+      appointmentTime: '10:00',
+      timezone: 'Europe/Lisbon',
+      meetingUrl: 'https://meet.google.com/abc',
+      locale: 'en',
+    });
+
+    expect(adapted).toMatchObject({
+      clientName: 'Marta',
+      expertName: 'Patricia',
+      eventTitle: 'Physio',
+      meetLink: 'https://meet.google.com/abc',
+    });
+  });
+
+  test('payment-universal.pending.patient: flattens appointmentDetails + Multibanco fields', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'payment-universal',
+      eventType: 'pending',
+      userSegment: 'patient',
+      locale: 'pt',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      customerName: 'Marta',
+      amount: '70.00',
+      multibancoEntity: '12345',
+      multibancoReference: '999000111',
+      expiresAt: '2026-04-27T23:59:59.000Z',
+      hostedVoucherUrl: 'https://stripe.com/voucher/abc',
+      timezone: 'Europe/Lisbon',
+      appointmentDetails: {
+        service: 'Physio',
+        expert: 'Patricia',
+        date: 'Tomorrow',
+        time: '10:00',
+        duration: 60,
+      },
+      locale: 'pt',
+    });
+
+    expect(adapted).toMatchObject({
+      customerName: 'Marta',
+      expertName: 'Patricia',
+      serviceName: 'Physio',
+      appointmentDate: 'Tomorrow',
+      appointmentTime: '10:00',
+      multibancoEntity: '12345',
+      multibancoReference: '999000111',
+      multibancoAmount: '70.00',
+      voucherExpiresAt: '2026-04-27T23:59:59.000Z',
+      hostedVoucherUrl: 'https://stripe.com/voucher/abc',
+    });
+  });
+
+  test('appointment-confirmation.default.expert: forwards every payload field including clientPhone', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'appointment-confirmation',
+      eventType: 'default',
+      userSegment: 'expert',
+      locale: 'en',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      expertName: 'Patricia',
+      clientName: 'Marta',
+      clientPhone: '+351900000000',
+      appointmentDate: 'Tomorrow',
+      appointmentTime: '10:00',
+      timezone: 'Europe/Lisbon',
+      appointmentDuration: '45 minutes',
+      eventTitle: 'Physio',
+      meetLink: 'https://meet.google.com/abc',
+      locale: 'en',
+    });
+
+    expect(adapted).toMatchObject({
+      expertName: 'Patricia',
+      clientName: 'Marta',
+      clientPhone: '+351900000000',
+      eventTitle: 'Physio',
+      meetLink: 'https://meet.google.com/abc',
+    });
+  });
+
+  test('multibanco-booking-pending.default.patient: explicit pass-through adapter', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'multibanco-booking-pending',
+      eventType: 'default',
+      userSegment: 'patient',
+      locale: 'pt',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      customerName: 'Marta',
+      expertName: 'Patricia',
+      serviceName: 'Physio',
+      multibancoEntity: '12345',
+      multibancoReference: '999000111',
+      multibancoAmount: '70.00',
+      voucherExpiresAt: '2026-04-27T23:59:59.000Z',
+      hostedVoucherUrl: 'https://stripe.com/voucher/abc',
+      locale: 'pt',
+    });
+
+    expect(adapted).toMatchObject({
+      customerName: 'Marta',
+      multibancoEntity: '12345',
+      multibancoAmount: '70.00',
+    });
+  });
+
+  test('reservation-expired.default.patient: maps clientName→recipientName with patient recipientType', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'reservation-expired',
+      eventType: 'default',
+      userSegment: 'patient',
+      locale: 'pt',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      expertName: 'Patricia',
+      clientName: 'Marta',
+      serviceName: 'Physio',
+      appointmentDate: 'Tomorrow',
+      appointmentTime: '10:00',
+      timezone: 'Europe/Lisbon',
+      locale: 'pt',
+    });
+
+    expect(adapted).toMatchObject({
+      recipientName: 'Marta',
+      recipientType: 'patient',
+      expertName: 'Patricia',
+      serviceName: 'Physio',
+    });
+  });
+
+  test('user-lifecycle.welcome.patient: identity-style adapter with dashboardUrl default', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'user-lifecycle',
+      eventType: 'welcome',
+      userSegment: 'patient',
+      locale: 'en',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      userName: 'Marta',
+      firstName: 'Marta',
+      locale: 'en',
+    });
+
+    expect(adapted).toMatchObject({
+      userName: 'Marta',
+      firstName: 'Marta',
+      dashboardUrl: '/dashboard',
+    });
+  });
+
+  test('pack-purchase-confirmation.default.patient: forwards every payload field', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'pack-purchase-confirmation',
+      eventType: 'default',
+      userSegment: 'patient',
+      locale: 'pt',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      buyerName: 'Marta Carvalho',
+      buyerEmail: 'marta@example.com',
+      packName: '5-session physio pack',
+      eventName: 'Physiotherapy session',
+      expertName: 'Patricia Mota',
+      sessionsCount: 5,
+      promotionCode: 'PACK-XYZ-123',
+      expiresAt: '2026-12-31T23:59:59.000Z',
+      bookingUrl: 'https://eleva.care/en/patricia-mota',
+      locale: 'pt',
+    });
+
+    expect(adapted).toMatchObject({
+      buyerName: 'Marta Carvalho',
+      buyerEmail: 'marta@example.com',
+      packName: '5-session physio pack',
+      eventName: 'Physiotherapy session',
+      expertName: 'Patricia Mota',
+      sessionsCount: 5,
+      promotionCode: 'PACK-XYZ-123',
+      expiresAt: '2026-12-31T23:59:59.000Z',
+      bookingUrl: 'https://eleva.care/en/patricia-mota',
+      locale: 'pt',
+    });
+  });
+
   test('unregistered (workflowId, eventType, userSegment) returns identity adapter', () => {
     const adapter = getPropAdapter({
       workflowId: 'unknown-workflow',
