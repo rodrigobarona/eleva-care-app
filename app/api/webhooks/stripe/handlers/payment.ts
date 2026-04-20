@@ -43,6 +43,36 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
   }
 }
 
+/**
+ * Map a Stripe `payment_method_types` array (e.g. `['mb_way']`,
+ * `['card', 'multibanco']`) to a human-readable label suitable for the
+ * "Payment Method:" row in `PaymentConfirmationEmail`. Returns the original
+ * Stripe id title-cased when no friendly mapping exists, or `undefined` when
+ * the array is empty (template hides the row).
+ */
+function friendlyPaymentMethod(types: string[] | null | undefined): string | undefined {
+  if (!types || types.length === 0) return undefined;
+  const primary = types[0];
+  const labels: Record<string, string> = {
+    card: 'Card',
+    multibanco: 'Multibanco',
+    mb_way: 'MB WAY',
+    link: 'Link',
+    klarna: 'Klarna',
+    revolut_pay: 'Revolut Pay',
+    sepa_debit: 'SEPA Debit',
+    bancontact: 'Bancontact',
+    ideal: 'iDEAL',
+    sofort: 'Sofort',
+    giropay: 'Giropay',
+    eps: 'EPS',
+    p24: 'Przelewy24',
+    apple_pay: 'Apple Pay',
+    google_pay: 'Google Pay',
+  };
+  return labels[primary] ?? primary.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // Note: notifyExpertOfPaymentSuccess was removed - it incorrectly used user-lifecycle
 // workflow with eventType: 'welcome', sending welcome emails instead of payment notifications.
 // Expert payment notifications are now handled by marketplace-universal workflow.
@@ -1464,6 +1494,35 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             const amount = (paymentIntent.amount / 100).toFixed(2);
             const currency = paymentIntent.currency?.toUpperCase() || 'EUR';
 
+            // Friendly payment-method label so the receipt email shows e.g.
+            // "MB WAY" instead of leaving the row hidden.
+            const paymentMethod = friendlyPaymentMethod(paymentIntent.payment_method_types);
+
+            // Best-effort lookup of the Stripe receipt URL on the charge
+            // (PI webhook doesn't expand latest_charge). Failures here are
+            // non-fatal — the email's "Download Receipt" button is hidden
+            // when receiptUrl is missing.
+            let receiptUrl: string | undefined;
+            const latestChargeId =
+              typeof paymentIntent.latest_charge === 'string'
+                ? paymentIntent.latest_charge
+                : undefined;
+            if (latestChargeId) {
+              try {
+                const charge = await stripe.charges.retrieve(latestChargeId);
+                receiptUrl = charge.receipt_url ?? undefined;
+              } catch (chargeError) {
+                console.warn(
+                  `Could not retrieve charge ${latestChargeId} for receipt URL:`,
+                  chargeError,
+                );
+              }
+            }
+
+            // The Google Meet link lives on MeetingTable.meetingUrl; surface
+            // it as the "Join Appointment" CTA in the receipt email.
+            const appointmentUrl = meetingDetails.meetingUrl ?? undefined;
+
             // Trigger payment confirmation via Novu workflow for activity tracking
             const paymentResult = await triggerWorkflow({
               workflowId: 'payment-universal',
@@ -1479,6 +1538,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 currency,
                 customerName: guestName,
                 transactionId: paymentIntent.id,
+                paymentMethod,
+                appointmentUrl,
+                receiptUrl,
                 // Include basic appointment reference (full details come from calendar email)
                 appointmentDetails: {
                   service: eventName,

@@ -188,12 +188,17 @@ export const paymentWorkflow = workflow(
       let subject: string;
 
       if (payload.eventType === 'success' || payload.eventType === 'confirmed') {
-        // Use payment confirmation template
+        // Use payment confirmation template. Forward paymentMethod /
+        // appointmentUrl / receiptUrl now that the helper signature accepts
+        // them — without these, the email's CTAs were silently hidden.
         emailBody = await elevaEmailService.renderPaymentConfirmation({
           customerName: payload.customerName,
           amount: payload.amount,
           currency: payload.currency || 'EUR',
           transactionId: payload.transactionId,
+          paymentMethod: payload.paymentMethod,
+          appointmentUrl: payload.appointmentUrl,
+          receiptUrl: payload.receiptUrl,
           appointmentDetails: payload.appointmentDetails
             ? {
                 service: payload.appointmentDetails.service,
@@ -215,13 +220,19 @@ export const paymentWorkflow = workflow(
               ? `✅ Pago confirmado - ${payload.currency || 'EUR'} ${payload.amount}`
               : `✅ Payment Confirmed - ${payload.currency || 'EUR'} ${payload.amount}`;
       } else if (payload.eventType === 'multibanco-reminder') {
-        // Use Multibanco payment reminder template
+        // Use Multibanco payment reminder template. Forward the
+        // hostedVoucherUrl + timezone + customerNotes + daysRemaining now
+        // that the helper signature accepts them — without these the "Pay
+        // now" CTA was hidden by the template's conditional render.
         emailBody = await elevaEmailService.renderMultibancoPaymentReminder({
           customerName: payload.customerName,
           entity: payload.multibancoEntity || '',
           reference: payload.multibancoReference || '',
           amount: payload.amount,
           expiresAt: payload.expiresAt || '',
+          hostedVoucherUrl: payload.hostedVoucherUrl,
+          timezone: payload.timezone,
+          customerNotes: payload.customerNotes,
           appointmentDetails: payload.appointmentDetails
             ? {
                 service: payload.appointmentDetails.service,
@@ -232,6 +243,7 @@ export const paymentWorkflow = workflow(
               }
             : undefined,
           reminderType: payload.reminderType || 'gentle',
+          daysRemaining: payload.daysRemaining,
           locale: payload.locale || 'en',
           userSegment: payload.userSegment || 'patient',
           templateVariant: payload.templateVariant || 'reminder',
@@ -332,11 +344,19 @@ export const paymentWorkflow = workflow(
       transactionId: z.string().optional(),
       customerName: z.string(),
       message: z.string().optional(),
+      // Payment-confirmation extras
+      paymentMethod: z.string().optional(),
+      appointmentUrl: z.string().optional(),
+      receiptUrl: z.string().optional(),
       // Multibanco specific fields
       multibancoEntity: z.string().optional(),
       multibancoReference: z.string().optional(),
       expiresAt: z.string().optional(),
+      hostedVoucherUrl: z.string().optional(),
+      timezone: z.string().optional(),
+      customerNotes: z.string().optional(),
       reminderType: z.enum(['gentle', 'urgent']).optional(),
+      daysRemaining: z.number().optional(),
       // Appointment details
       appointmentDetails: z
         .object({
@@ -895,12 +915,19 @@ export const multibancoPaymentReminderWorkflow = workflow(
     }));
 
     await step.email('multibanco-reminder-email', async () => {
+      // Forward hostedVoucherUrl + timezone + customerNotes + daysRemaining
+      // to the helper. Without these the reminder email's primary "Pay now"
+      // CTA was hidden by the template's conditional render — leaving the
+      // recipient with no clear way to complete the payment.
       const emailBody = await elevaEmailService.renderMultibancoPaymentReminder({
         customerName: payload.customerName,
         entity: payload.multibancoEntity || '',
         reference: payload.multibancoReference || '',
         amount: payload.multibancoAmount || '',
         expiresAt: payload.voucherExpiresAt || '',
+        hostedVoucherUrl: payload.hostedVoucherUrl,
+        timezone: payload.timezone,
+        customerNotes: payload.customerNotes,
         appointmentDetails: payload.appointmentTime
           ? {
               service: payload.serviceName || '',
@@ -911,6 +938,7 @@ export const multibancoPaymentReminderWorkflow = workflow(
             }
           : undefined,
         reminderType: payload.reminderType || 'gentle',
+        daysRemaining: payload.daysRemaining,
         locale: payload.locale || 'en',
         userSegment: 'patient',
         templateVariant: 'reminder',

@@ -1286,7 +1286,34 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
       'metadata' in event.data.object &&
       event.data.object.metadata
     ) {
-      const metadata = event.data.object.metadata as Record<string, string>;
+      let metadata = event.data.object.metadata as Record<string, string>;
+
+      // For Charge / Refund / Dispute events, the charge object's own
+      // metadata is almost always empty — the booking metadata lives on the
+      // parent PaymentIntent. Without this lookup, refund emails render with
+      // a generic "your appointment with Your Expert" fallback because
+      // appointmentDetails never gets populated.
+      if (
+        !metadata.meeting &&
+        'payment_intent' in event.data.object &&
+        typeof event.data.object.payment_intent === 'string' &&
+        event.data.object.payment_intent.length > 0
+      ) {
+        try {
+          const pi = await stripe.paymentIntents.retrieve(event.data.object.payment_intent);
+          if (pi.metadata && pi.metadata.meeting) {
+            metadata = pi.metadata as Record<string, string>;
+            console.log(
+              `📦 Enriched ${event.type} payload from parent PaymentIntent ${pi.id} metadata`,
+            );
+          }
+        } catch (lookupError) {
+          console.warn(
+            `Could not retrieve parent PaymentIntent for ${event.type} ${event.id}:`,
+            lookupError,
+          );
+        }
+      }
 
       // Parse meeting metadata if available
       if (metadata.meeting) {

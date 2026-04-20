@@ -1415,6 +1415,25 @@ export class ElevaEmailService {
     amount: string;
     currency?: string;
     transactionId?: string;
+    /**
+     * Friendly payment-method label (e.g. "MB WAY", "Card"). Caller is
+     * expected to map Stripe's snake_case `payment_method_types[0]` to a
+     * human label (see `friendlyPaymentMethod` in the Stripe payment
+     * handler). When omitted, the template hides the row.
+     */
+    paymentMethod?: string;
+    /**
+     * URL the customer can use to join their appointment (typically the
+     * Google Meet link from `MeetingTable.meetingUrl`). Renders the "Join
+     * Appointment" CTA button when present.
+     */
+    appointmentUrl?: string;
+    /**
+     * Stripe-hosted receipt URL from the underlying charge
+     * (`charge.receipt_url`). Renders the "Download Receipt" CTA button
+     * when present.
+     */
+    receiptUrl?: string;
     appointmentDetails?: {
       service: string;
       expert: string;
@@ -1443,6 +1462,9 @@ export class ElevaEmailService {
       amount: data.amount,
       currency: data.currency || 'EUR',
       transactionId: data.transactionId,
+      paymentMethod: data.paymentMethod,
+      appointmentUrl: data.appointmentUrl,
+      receiptUrl: data.receiptUrl,
       expertName: data.appointmentDetails?.expert,
       serviceName: data.appointmentDetails?.service,
       appointmentDate: data.appointmentDetails?.date,
@@ -1462,6 +1484,18 @@ export class ElevaEmailService {
     reference: string;
     amount: string;
     expiresAt: string;
+    /**
+     * Hosted Stripe voucher URL. The reminder template renders the "Pay now"
+     * CTA button only when this is non-empty (the cron at
+     * `app/api/cron/send-payment-reminders/route.ts` retrieves it from
+     * `payment_intent.next_action.multibanco_display_details.hosted_voucher_url`).
+     * Without this, the entire reminder loses its primary CTA.
+     */
+    hostedVoucherUrl?: string;
+    /** Customer's timezone, appended to the appointment time row in the template. */
+    timezone?: string;
+    /** Optional notes captured at booking; rendered as its own row when present. */
+    customerNotes?: string;
     appointmentDetails?: {
       service: string;
       expert: string;
@@ -1470,6 +1504,8 @@ export class ElevaEmailService {
       duration: string;
     };
     reminderType: 'gentle' | 'urgent';
+    /** Used for the urgent banner countdown copy in the template. */
+    daysRemaining?: number;
     locale?: string;
     // Phase 1: forward-compat options — selection path disabled, see comment above.
     userSegment?: 'patient' | 'expert' | 'admin';
@@ -1488,14 +1524,18 @@ export class ElevaEmailService {
       multibancoReference: data.reference,
       multibancoAmount: data.amount,
       voucherExpiresAt: data.expiresAt,
+      hostedVoucherUrl: data.hostedVoucherUrl,
       expertName: data.appointmentDetails?.expert,
       serviceName: data.appointmentDetails?.service,
       appointmentDate: data.appointmentDetails?.date,
       appointmentTime: data.appointmentDetails?.time,
+      timezone: data.timezone,
       duration: data.appointmentDetails?.duration
         ? parseInt(data.appointmentDetails.duration)
         : undefined,
+      customerNotes: data.customerNotes,
       reminderType: data.reminderType,
+      daysRemaining: data.daysRemaining,
       locale: data.locale || 'en',
     });
 
