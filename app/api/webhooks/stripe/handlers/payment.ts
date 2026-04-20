@@ -1498,32 +1498,21 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             // "MB WAY" instead of leaving the row hidden.
             const paymentMethod = friendlyPaymentMethod(paymentIntent.payment_method_types);
 
-            // Best-effort lookup of the Stripe receipt URL on the charge
-            // (PI webhook doesn't expand latest_charge). Failures here are
-            // non-fatal — the email's "Download Receipt" button is hidden
-            // when receiptUrl is missing.
-            let receiptUrl: string | undefined;
-            const latestChargeId =
-              typeof paymentIntent.latest_charge === 'string'
-                ? paymentIntent.latest_charge
-                : undefined;
-            if (latestChargeId) {
-              try {
-                const charge = await stripe.charges.retrieve(latestChargeId);
-                receiptUrl = charge.receipt_url ?? undefined;
-              } catch (chargeError) {
-                console.warn(
-                  `Could not retrieve charge ${latestChargeId} for receipt URL:`,
-                  chargeError,
-                );
-              }
-            }
-
             // The Google Meet link lives on MeetingTable.meetingUrl; surface
             // it as the "Join Appointment" CTA in the receipt email.
             const appointmentUrl = meetingDetails.meetingUrl ?? undefined;
 
-            // Trigger payment confirmation via Novu workflow for activity tracking
+            // Note: we deliberately do NOT pull a Stripe receipt URL here.
+            // Stripe already auto-emails the customer their official receipt
+            // for every successful charge, so a "Download Receipt" CTA in
+            // our email would be redundant.
+
+            // Trigger payment confirmation via Novu workflow for activity tracking.
+            // `transactionId` (the PaymentIntent id) is still passed at the
+            // workflow level — it's used as the Novu idempotency key and by
+            // the in-app notification's "View transaction" deep link — but
+            // it's intentionally NOT rendered in the email body (an opaque
+            // pi_... id is noise to the customer).
             const paymentResult = await triggerWorkflow({
               workflowId: 'payment-universal',
               to: {
@@ -1540,7 +1529,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 transactionId: paymentIntent.id,
                 paymentMethod,
                 appointmentUrl,
-                receiptUrl,
                 // Include basic appointment reference (full details come from calendar email)
                 appointmentDetails: {
                   service: eventName,

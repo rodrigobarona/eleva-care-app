@@ -188,17 +188,20 @@ export const paymentWorkflow = workflow(
       let subject: string;
 
       if (payload.eventType === 'success' || payload.eventType === 'confirmed') {
-        // Use payment confirmation template. Forward paymentMethod /
-        // appointmentUrl / receiptUrl now that the helper signature accepts
-        // them — without these, the email's CTAs were silently hidden.
+        // Use payment confirmation template. We forward paymentMethod and
+        // appointmentUrl so the email shows the actual payment method
+        // (e.g. "MB WAY") and a "Join Appointment" CTA. We deliberately do
+        // NOT forward `transactionId` (an opaque `pi_...` id is noise to
+        // the customer) or `receiptUrl` (Stripe already auto-emails its
+        // own receipt; a second CTA would be redundant). The fields are
+        // still on the workflow payload for in-app notifications and
+        // idempotency — they're just not rendered in the email body.
         emailBody = await elevaEmailService.renderPaymentConfirmation({
           customerName: payload.customerName,
           amount: payload.amount,
           currency: payload.currency || 'EUR',
-          transactionId: payload.transactionId,
           paymentMethod: payload.paymentMethod,
           appointmentUrl: payload.appointmentUrl,
-          receiptUrl: payload.receiptUrl,
           appointmentDetails: payload.appointmentDetails
             ? {
                 service: payload.appointmentDetails.service,
