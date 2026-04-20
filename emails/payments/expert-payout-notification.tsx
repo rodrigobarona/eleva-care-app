@@ -52,23 +52,32 @@ interface ExpertPayoutNotificationProps {
   _locale?: string; // For i18n support
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const ExpertPayoutNotificationEmail = ({
-  expertName = 'Dr. Maria Santos',
-  payoutAmount = '52.50',
+  expertName = 'Expert',
+  payoutAmount = '0.00',
   currency = 'EUR',
-  appointmentDate = 'Monday, February 19, 2024',
-  appointmentTime = '2:30 PM - 3:30 PM',
-  clientName = 'João Silva',
-  serviceName = 'Mental Health Consultation',
-  payoutId = 'po_1ABCDEF2ghijklmn',
-  expectedArrivalDate = 'February 21, 2024',
-  bankLastFour = '••••4242',
+  appointmentDate = '',
+  appointmentTime = '',
+  clientName = 'Customer',
+  serviceName = 'Your appointment',
+  payoutId = '',
+  expectedArrivalDate = '',
+  bankLastFour = '',
   dashboardUrl = 'https://eleva.care/dashboard/earnings',
   supportUrl = 'https://eleva.care/support',
   _locale = 'en',
 }: ExpertPayoutNotificationProps) => {
   const subject = `💰 Payout sent: ${currency} ${payoutAmount} for your appointment with ${clientName}`;
-  const previewText = `Your earnings from the appointment on ${appointmentDate} have been sent to your bank account. Expected arrival: ${expectedArrivalDate}.`;
+  // Build the preview conditionally so empty appointmentDate /
+  // expectedArrivalDate don't render as "...on  have been sent...
+  // Expected arrival: ." in the inbox preview.
+  const appointmentSnippet = appointmentDate
+    ? `Your earnings from the appointment on ${appointmentDate} have been sent to your bank account.`
+    : 'Your earnings have been sent to your bank account.';
+  const arrivalSnippet = expectedArrivalDate ? ` Expected arrival: ${expectedArrivalDate}.` : '';
+  const previewText = `${appointmentSnippet}${arrivalSnippet}`;
 
   return (
     <EmailLayout
@@ -213,56 +222,60 @@ export const ExpertPayoutNotificationEmail = ({
               {serviceName}
             </td>
           </tr>
-          <tr>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.neutral.light,
-                fontWeight: '500',
-              }}
-            >
-              Appointment Date:
-            </td>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.neutral.dark,
-                textAlign: 'right' as const,
-                fontWeight: '600',
-              }}
-            >
-              {appointmentDate}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.neutral.light,
-                fontWeight: '500',
-              }}
-            >
-              Appointment Time:
-            </td>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.neutral.dark,
-                textAlign: 'right' as const,
-                fontWeight: '600',
-              }}
-            >
-              {appointmentTime}
-            </td>
-          </tr>
+          {appointmentDate && (
+            <tr>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.neutral.light,
+                  fontWeight: '500',
+                }}
+              >
+                Appointment Date:
+              </td>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.neutral.dark,
+                  textAlign: 'right' as const,
+                  fontWeight: '600',
+                }}
+              >
+                {appointmentDate}
+              </td>
+            </tr>
+          )}
+          {appointmentTime && (
+            <tr>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.neutral.light,
+                  fontWeight: '500',
+                }}
+              >
+                Appointment Time:
+              </td>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.neutral.dark,
+                  textAlign: 'right' as const,
+                  fontWeight: '600',
+                }}
+              >
+                {appointmentTime}
+              </td>
+            </tr>
+          )}
           <tr>
             <td
               style={{
@@ -315,80 +328,86 @@ export const ExpertPayoutNotificationEmail = ({
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          <tr>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.primary,
-                fontWeight: '500',
-              }}
-            >
-              Destination Account:
-            </td>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.neutral.dark,
-                textAlign: 'right' as const,
-                fontWeight: '600',
-              }}
-            >
-              {bankLastFour}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.primary,
-                fontWeight: '500',
-              }}
-            >
-              Expected Arrival:
-            </td>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                fontWeight: '700',
-                color: ELEVA_COLORS.success,
-                textAlign: 'right' as const,
-              }}
-            >
-              {expectedArrivalDate}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.primary,
-                fontWeight: '500',
-              }}
-            >
-              Payout ID:
-            </td>
-            <td
-              style={{
-                padding: '12px 0',
-                fontSize: ELEVA_TYPOGRAPHY.body.small.fontSize,
-                fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
-                color: ELEVA_COLORS.neutral.light,
-                textAlign: 'right' as const,
-              }}
-            >
-              {payoutId}
-            </td>
-          </tr>
+          {bankLastFour && (
+            <tr>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.primary,
+                  fontWeight: '500',
+                }}
+              >
+                Destination Account:
+              </td>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.neutral.dark,
+                  textAlign: 'right' as const,
+                  fontWeight: '600',
+                }}
+              >
+                {bankLastFour}
+              </td>
+            </tr>
+          )}
+          {expectedArrivalDate && (
+            <tr>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.primary,
+                  fontWeight: '500',
+                }}
+              >
+                Expected Arrival:
+              </td>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  fontWeight: '700',
+                  color: ELEVA_COLORS.success,
+                  textAlign: 'right' as const,
+                }}
+              >
+                {expectedArrivalDate}
+              </td>
+            </tr>
+          )}
+          {payoutId && (
+            <tr>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.regular.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.primary,
+                  fontWeight: '500',
+                }}
+              >
+                Payout ID:
+              </td>
+              <td
+                style={{
+                  padding: '12px 0',
+                  fontSize: ELEVA_TYPOGRAPHY.body.small.fontSize,
+                  fontFamily: ELEVA_TYPOGRAPHY.fontFamily,
+                  color: ELEVA_COLORS.neutral.light,
+                  textAlign: 'right' as const,
+                }}
+              >
+                {payoutId}
+              </td>
+            </tr>
+          )}
         </table>
 
         <Text
@@ -469,7 +488,9 @@ export const ExpertPayoutNotificationEmail = ({
         {[
           {
             title: 'Track your transfer:',
-            text: `The funds should appear in your bank account by ${expectedArrivalDate}`,
+            text: expectedArrivalDate
+              ? `The funds should appear in your bank account by ${expectedArrivalDate}`
+              : 'The funds should appear in your bank account within 1-2 business days',
           },
           {
             title: 'View earnings history:',
@@ -535,3 +556,20 @@ export const ExpertPayoutNotificationEmail = ({
 };
 
 export default ExpertPayoutNotificationEmail;
+
+// Sample data for React Email preview only — never used in production rendering.
+ExpertPayoutNotificationEmail.PreviewProps = {
+  expertName: 'Dr. Maria Santos',
+  payoutAmount: '52.50',
+  currency: 'EUR',
+  appointmentDate: 'Monday, February 19, 2024',
+  appointmentTime: '2:30 PM - 3:30 PM',
+  clientName: 'João Silva',
+  serviceName: 'Mental Health Consultation',
+  payoutId: 'po_1ABCDEF2ghijklmn',
+  expectedArrivalDate: 'February 21, 2024',
+  bankLastFour: '••••4242',
+  dashboardUrl: 'https://eleva.care/dashboard/earnings',
+  supportUrl: 'https://eleva.care/support',
+  _locale: 'en',
+} as ExpertPayoutNotificationProps;

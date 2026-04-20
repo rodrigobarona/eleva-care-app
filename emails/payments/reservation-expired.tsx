@@ -64,14 +64,16 @@ const DIVIDER_STYLE = {
  * );
  * ```
  */
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export const ReservationExpiredEmail = ({
-  recipientName = 'João Silva',
+  recipientName = 'Customer',
   recipientType = 'patient',
-  expertName = 'Dr. Maria Santos',
-  serviceName = 'Consulta de Cardiologia',
-  appointmentDate = 'Monday, February 19, 2024',
-  appointmentTime = '2:30 PM',
-  timezone = 'Europe/Lisbon',
+  expertName = 'Your Expert',
+  serviceName = 'Your appointment',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
   locale = 'en',
 }: ReservationExpiredEmailProps) => {
   const isPatient = recipientType === 'patient';
@@ -245,16 +247,21 @@ export const ReservationExpiredEmail = ({
                 {isPatient ? expertName : recipientName}
               </td>
             </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.date}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.time}:</td>
-              <td style={createTableCellStyle(false, 'right')}>
-                {appointmentTime} ({timezone})
-              </td>
-            </tr>
+            {appointmentDate && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.date}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.time}:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {appointmentTime}
+                  {timezone && ` (${timezone})`}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Section>

@@ -113,15 +113,39 @@ function getLocaleStrings(locale: string) {
   return i18n[prefix] || i18n.en;
 }
 
+/**
+ * Email sent to the buyer after a successful session-pack purchase. Renders
+ * pack details, the promotion code to apply at booking, and a CTA linking to
+ * the booking page. Localized for `en` / `pt` / `es` / `pt-BR`.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <PackPurchaseConfirmation
+ *   buyerName="Matilde Henriques"
+ *   buyerEmail="matilde@example.com"
+ *   packName="5-Session Wellness Pack"
+ *   eventName="Wellness Consultation"
+ *   expertName="Patricia Mota"
+ *   sessionsCount={5}
+ *   promotionCode="PACK-XY7K9M"
+ *   expiresAt="2026-09-01T00:00:00.000Z"
+ *   bookingUrl="https://eleva.care/en/dr-maria-santos"
+ *   locale="en"
+ * />
+ * ```
+ */
 export const PackPurchaseConfirmation = ({
   buyerName = 'Customer',
-  buyerEmail = 'customer@example.com',
-  packName = '5-Session Pack',
-  eventName = 'Consultation',
-  expertName = 'Dr. Maria Santos',
-  sessionsCount = 5,
-  promotionCode = 'PACK-ABC123',
-  expiresAt = '2026-09-01T00:00:00.000Z',
+  buyerEmail = '',
+  packName = 'Your session pack',
+  eventName = 'Your sessions',
+  expertName = 'Your Expert',
+  sessionsCount = 0,
+  promotionCode = '',
+  expiresAt = '',
   bookingUrl = 'https://eleva.care',
   locale = 'en',
 }: PackPurchaseConfirmationProps) => {
@@ -134,11 +158,17 @@ export const PackPurchaseConfirmation = ({
     : normalizedLocale.startsWith('es')
       ? 'es-ES'
       : 'en-US';
-  const formattedExpiry = new Date(expiresAt).toLocaleDateString(localeTag, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  // Guard against missing or malformed `expiresAt` so the "Valid Until" row
+  // never renders the literal string "Invalid Date".
+  const expiryDate = expiresAt ? new Date(expiresAt) : null;
+  const formattedExpiry =
+    expiryDate && !isNaN(expiryDate.getTime())
+      ? expiryDate.toLocaleDateString(localeTag, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : '—';
 
   const subject = `${t.successTitle} - ${packName}`;
   const previewText = `${t.promoInstructions} ${promotionCode}`;

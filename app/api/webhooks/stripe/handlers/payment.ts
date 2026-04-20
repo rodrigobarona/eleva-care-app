@@ -43,6 +43,42 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
   }
 }
 
+/**
+ * Map a Stripe payment-method id to a human-readable label suitable for the
+ * "Payment Method:" row in `PaymentConfirmationEmail`. Accepts either:
+ *   - a single id string from `Charge.payment_method_details.type` (the
+ *     method that was actually captured — preferred), or
+ *   - the `payment_method_types` array from a PaymentIntent (lists every
+ *     method the PI was eligible for, used as a fallback when the charge
+ *     hasn't been retrieved yet).
+ *
+ * Returns the original Stripe id title-cased when no friendly mapping
+ * exists, or `undefined` when the input is empty (template hides the row).
+ */
+function friendlyPaymentMethod(type: string | string[] | null | undefined): string | undefined {
+  if (!type) return undefined;
+  const primary = Array.isArray(type) ? type[0] : type;
+  if (!primary) return undefined;
+  const labels: Record<string, string> = {
+    card: 'Card',
+    multibanco: 'Multibanco',
+    mb_way: 'MB WAY',
+    link: 'Link',
+    klarna: 'Klarna',
+    revolut_pay: 'Revolut Pay',
+    sepa_debit: 'SEPA Debit',
+    bancontact: 'Bancontact',
+    ideal: 'iDEAL',
+    sofort: 'Sofort',
+    giropay: 'Giropay',
+    eps: 'EPS',
+    p24: 'Przelewy24',
+    apple_pay: 'Apple Pay',
+    google_pay: 'Google Pay',
+  };
+  return labels[primary] ?? primary.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // Note: notifyExpertOfPaymentSuccess was removed - it incorrectly used user-lifecycle
 // workflow with eventType: 'welcome', sending welcome emails instead of payment notifications.
 // Expert payment notifications are now handled by marketplace-universal workflow.
@@ -183,6 +219,10 @@ async function releaseClaim(meetingId: string): Promise<void> {
  * - Does NOT throw on failure - calendar errors are logged but don't fail the webhook
  * - Cleans up any slot reservations after successful calendar creation
  * - Updates the meeting record with the Google Meet URL
+ * - Triggers the expert "New Booking" notification via
+ *   {@link triggerExpertAppointmentConfirmation} once the meeting URL is set.
+ *   For deferred-payment methods this is the FIRST point at which the expert
+ *   is told about the booking — see plan: fix_fake_email_content_bug, Phase 3.
  */
 async function createDeferredCalendarEvent(
   meeting: {
@@ -227,9 +267,13 @@ async function createDeferredCalendarEvent(
 
     console.log(`🔒 Claimed calendar creation for meeting ${meeting.id}`);
 
-    // Get the event details for calendar creation
+    // Get the event details for calendar creation. We also load the related
+    // user (the expert) so we can notify them after the calendar event is
+    // created — that's the correct moment to email the expert about a deferred
+    // (Multibanco) booking, NOT at checkout.session.completed.
     const event = await db.query.EventTable.findFirst({
       where: eq(EventTable.id, meeting.eventId),
+      with: { user: true },
     });
 
     if (!event) {
@@ -296,6 +340,40 @@ async function createDeferredCalendarEvent(
           updatedAt: new Date(),
         })
         .where(eq(MeetingTable.id, meeting.id));
+    }
+
+    // Now that the meeting is fully real (calendar event created, meetingUrl
+    // populated for paid bookings), notify the expert. For deferred-payment
+    // methods this is the FIRST time the expert hears about the booking — by
+    // design. See the JSDoc on `triggerExpertAppointmentConfirmation` and the
+    // expert-spam incident write-up in
+    // docs/02-core-systems/notifications/08-email-render-contract.md.
+    //
+    // The notification has its own try/catch so a Novu outage cannot
+    // re-trigger the outer "Failed to create deferred calendar event" error
+    // path — at this point the calendar event has succeeded and the meeting
+    // is real; only the courtesy email is at risk.
+    try {
+      const { triggerExpertAppointmentConfirmation } = await import('@/server/actions/meetings');
+      await triggerExpertAppointmentConfirmation({
+        meetingId: meeting.id,
+        clerkUserId: meeting.clerkUserId,
+        guestName: meeting.guestName,
+        guestPhone: meeting.guestPhone,
+        guestNotes: meeting.guestNotes,
+        guestTimezone: meeting.timezone,
+        startTime: meeting.startTime,
+        meetingUrl,
+        locale: extractLocaleFromPaymentIntent(paymentIntent),
+        event: {
+          name: event.name,
+          durationInMinutes: event.durationInMinutes,
+          user: event.user,
+        },
+      });
+    } catch (notificationError) {
+      console.error(`⚠️ Failed to notify expert for meeting ${meeting.id}:`, notificationError);
+      // Don't rethrow — calendar event already succeeded.
     }
 
     // Clean up slot reservation if it exists.
@@ -1422,7 +1500,31 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             const amount = (paymentIntent.amount / 100).toFixed(2);
             const currency = paymentIntent.currency?.toUpperCase() || 'EUR';
 
-            // Trigger payment confirmation via Novu workflow for activity tracking
+            // Friendly payment-method label so the receipt email shows e.g.
+            // "MB WAY" instead of leaving the row hidden. Prefer the actual
+            // captured-charge method (`payment_method_details.type`) over
+            // `payment_method_types[]`, which under Dashboard-driven dynamic
+            // payment methods lists every method the PI was eligible for —
+            // not the one the customer actually used.
+            const paymentMethod = friendlyPaymentMethod(
+              latestCharge?.payment_method_details?.type ?? paymentIntent.payment_method_types,
+            );
+
+            // The Google Meet link lives on MeetingTable.meetingUrl; surface
+            // it as the "Join Appointment" CTA in the receipt email.
+            const appointmentUrl = meetingDetails.meetingUrl ?? undefined;
+
+            // Note: we deliberately do NOT pull a Stripe receipt URL here.
+            // Stripe already auto-emails the customer their official receipt
+            // for every successful charge, so a "Download Receipt" CTA in
+            // our email would be redundant.
+
+            // Trigger payment confirmation via Novu workflow for activity tracking.
+            // `transactionId` (the PaymentIntent id) is still passed at the
+            // workflow level — it's used as the Novu idempotency key and by
+            // the in-app notification's "View transaction" deep link — but
+            // it's intentionally NOT rendered in the email body (an opaque
+            // pi_... id is noise to the customer).
             const paymentResult = await triggerWorkflow({
               workflowId: 'payment-universal',
               to: {
@@ -1437,6 +1539,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 currency,
                 customerName: guestName,
                 transactionId: paymentIntent.id,
+                paymentMethod,
+                appointmentUrl,
                 // Include basic appointment reference (full details come from calendar email)
                 appointmentDetails: {
                   service: eventName,

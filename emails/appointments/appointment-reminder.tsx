@@ -10,6 +10,19 @@ import {
 import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
+/**
+ * Locales for which this template has a translation entry. Narrower than
+ * the global `SupportedLocale` (which also includes `'es'` and `'br'`)
+ * because the `translations` table below only ships strings for `'en'`
+ * and `'pt'`. Tightening the prop type forces callers to choose one of
+ * the implemented locales at compile time instead of silently falling
+ * back to English at runtime.
+ *
+ * To add a new locale, extend both this union AND the `translations`
+ * record below.
+ */
+export type AppointmentReminderLocale = 'en' | 'pt';
+
 interface AppointmentReminderEmailProps {
   patientName?: string;
   expertName?: string;
@@ -19,18 +32,41 @@ interface AppointmentReminderEmailProps {
   duration?: number;
   appointmentType?: string;
   meetingLink?: string;
-  locale?: string;
+  locale?: AppointmentReminderLocale;
 }
 
+/**
+ * Reminder email sent to a patient ahead of an upcoming appointment.
+ * Renders appointment details and a "Join Video Call" button when a meeting
+ * link is available. Conditional rows ensure no labels appear without values.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <AppointmentReminderEmail
+ *   patientName="Matilde Henriques"
+ *   expertName="Patricia Mota"
+ *   appointmentType="Physiotherapy session"
+ *   appointmentDate="Monday, April 20, 2026"
+ *   appointmentTime="12:00 PM"
+ *   timezone="Europe/Lisbon"
+ *   duration={60}
+ *   meetingLink="https://meet.google.com/abc-defg-hij"
+ *   locale="en"
+ * />
+ * ```
+ */
 export const AppointmentReminderEmail = ({
-  patientName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  appointmentDate = 'Monday, February 19, 2024',
-  appointmentTime = '2:30 PM - 3:30 PM',
-  timezone = 'Europe/Lisbon',
-  duration = 60,
-  appointmentType = 'Consulta de Cardiologia',
-  meetingLink = 'https://meet.google.com/abc-defg-hij',
+  patientName = 'Customer',
+  expertName = 'Your Expert',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  duration = 0,
+  appointmentType = 'Your appointment',
+  meetingLink,
   locale = 'en',
 }: AppointmentReminderEmailProps) => {
   // Internationalization support
@@ -81,7 +117,9 @@ export const AppointmentReminderEmail = ({
     },
   };
 
-  const t = translations[locale as keyof typeof translations] || translations.en;
+  // `locale` is narrowed to AppointmentReminderLocale ('en' | 'pt'), so this
+  // lookup is exhaustive — no runtime fallback needed.
+  const t = translations[locale];
 
   return (
     <EmailLayout
@@ -89,7 +127,7 @@ export const AppointmentReminderEmail = ({
       previewText={t.previewText}
       headerVariant="branded"
       footerVariant="default"
-      locale={locale as SupportedLocale}
+      locale={locale satisfies SupportedLocale}
     >
       {/* Premium Header Banner */}
       <Section style={ELEVA_CARD_STYLES.branded}>
@@ -134,30 +172,46 @@ export const AppointmentReminderEmail = ({
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.yourExpert}:</td>
-              <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-                {expertName}
-              </td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.date}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.time}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.duration}:</td>
-              <td style={createTableCellStyle(false, 'right')}>
-                {duration} {t.minutes}
-              </td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>{t.timezoneLabel}:</td>
-              <td style={createTableCellStyle(false, 'right')}>{timezone}</td>
-            </tr>
+            {/* Skip the expert row when only the neutral fallback is available
+                — the row would just say "Your Expert" verbatim, which is no
+                more informative than no row at all. Consistent with the
+                conditional rendering of date / time / duration rows below. */}
+            {expertName && expertName !== 'Your Expert' && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.yourExpert}:</td>
+                <td
+                  style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}
+                >
+                  {expertName}
+                </td>
+              </tr>
+            )}
+            {appointmentDate && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.date}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.time}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
+              </tr>
+            )}
+            {duration > 0 && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.duration}:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {duration} {t.minutes}
+                </td>
+              </tr>
+            )}
+            {timezone && (
+              <tr>
+                <td style={createTableCellStyle(true)}>{t.timezoneLabel}:</td>
+                <td style={createTableCellStyle(false, 'right')}>{timezone}</td>
+              </tr>
+            )}
           </tbody>
         </table>
 

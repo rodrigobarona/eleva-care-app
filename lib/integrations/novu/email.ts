@@ -1,5 +1,6 @@
 'use server';
 
+import { normalizeLocale, type SupportedLocale } from '@/emails/utils/i18n';
 import { getTranslations } from 'next-intl/server';
 import type { CreateEmailOptions } from 'resend';
 import { Resend } from 'resend';
@@ -494,6 +495,13 @@ export async function generateExpertNotificationEmail(params: {
     namespace: 'notifications.expertNotification',
   });
 
+  // Narrow `locale` to SupportedLocale before passing to the template
+  // (its prop type is `SupportedLocale`, not arbitrary strings).
+  // `normalizeLocale` collapses regional tags like `pt-BR`/`es-AR` so
+  // Brazilian Portuguese hits its own template instead of falling back to
+  // English on the strict `.includes` check we used to do here.
+  const templateLocale: SupportedLocale = normalizeLocale(params.locale);
+
   const renderedHtml = await render(
     ExpertNotificationTemplate({
       expertName: params.expertName,
@@ -501,7 +509,7 @@ export async function generateExpertNotificationEmail(params: {
       notificationMessage: params.notificationMessage,
       actionUrl: params.actionUrl,
       actionText: params.actionText,
-      locale: params.locale,
+      locale: templateLocale,
     }),
   );
 

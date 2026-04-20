@@ -1241,6 +1241,54 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
       customerId = session.customer as string;
     }
 
+    // Capture any metadata that already lives on the event object (the
+    // PaymentIntent itself carries the booking metadata; Charge / Refund /
+    // Dispute objects almost always have empty metadata).
+    let metadata: Record<string, string> | undefined;
+    if (
+      'metadata' in event.data.object &&
+      event.data.object.metadata &&
+      typeof event.data.object.metadata === 'object'
+    ) {
+      metadata = { ...(event.data.object.metadata as Record<string, string>) };
+    }
+
+    // For payment-universal events, enrich BOTH metadata and customerId
+    // from the parent PaymentIntent BEFORE the customer-data early-return.
+    // Dispute / refund webhooks frequently arrive without a `customer` on
+    // the event object and with empty metadata — without this hoisted
+    // lookup we'd skip the notification entirely (or render a generic
+    // "your appointment with Your Expert" fallback) instead of resolving
+    // the booking owner from the parent PI.
+    if (
+      workflowId === 'payment-universal' &&
+      'payment_intent' in event.data.object &&
+      typeof event.data.object.payment_intent === 'string' &&
+      event.data.object.payment_intent.length > 0 &&
+      (!customerId || !metadata?.meeting)
+    ) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(event.data.object.payment_intent);
+        if (pi.metadata?.meeting && !metadata?.meeting) {
+          metadata = pi.metadata as Record<string, string>;
+          console.log(
+            `📦 Enriched ${event.type} payload from parent PaymentIntent ${pi.id} metadata`,
+          );
+        }
+        if (!customerId && typeof pi.customer === 'string' && pi.customer.length > 0) {
+          customerId = pi.customer;
+          console.log(
+            `📦 Resolved customerId from parent PaymentIntent ${pi.id} for ${event.type}`,
+          );
+        }
+      } catch (lookupError) {
+        console.warn(
+          `Could not retrieve parent PaymentIntent for ${event.type} ${event.id}:`,
+          lookupError,
+        );
+      }
+    }
+
     // Retrieve customer data if we have a customer ID
     if (customerId) {
       try {
@@ -1280,135 +1328,129 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
         }
       | undefined;
 
-    // Check if this is a payment event with meeting metadata
-    if (
-      workflowId === 'payment-universal' &&
-      'metadata' in event.data.object &&
-      event.data.object.metadata
-    ) {
-      const metadata = event.data.object.metadata as Record<string, string>;
+    // Check if this is a payment event with meeting metadata. The PI
+    // enrichment above already merged the parent PI's metadata into
+    // `metadata` when the event-object metadata was missing the booking
+    // payload, so we can read directly from `metadata.meeting` here.
+    if (workflowId === 'payment-universal' && metadata?.meeting) {
+      try {
+        const meetingData = JSON.parse(metadata.meeting) as {
+          id?: string;
+          expert?: string;
+          guest?: string;
+          guestName?: string;
+          start?: string;
+          dur?: number;
+          notes?: string;
+          timezone?: string;
+          locale?: string;
+        };
 
-      // Parse meeting metadata if available
-      if (metadata.meeting) {
-        try {
-          const meetingData = JSON.parse(metadata.meeting) as {
-            id?: string;
-            expert?: string;
-            guest?: string;
-            guestName?: string;
-            start?: string;
-            dur?: number;
-            notes?: string;
-            timezone?: string;
-            locale?: string;
-          };
+        // Resolve expert name from database
+        let expertName = 'Expert';
+        if (meetingData.expert) {
+          try {
+            const expertUser = await db
+              .select({
+                firstName: UserTable.firstName,
+                lastName: UserTable.lastName,
+              })
+              .from(UserTable)
+              .where(eq(UserTable.clerkUserId, meetingData.expert))
+              .limit(1);
 
-          // Resolve expert name from database
-          let expertName = 'Expert';
-          if (meetingData.expert) {
-            try {
-              const expertUser = await db
-                .select({
-                  firstName: UserTable.firstName,
-                  lastName: UserTable.lastName,
-                })
-                .from(UserTable)
-                .where(eq(UserTable.clerkUserId, meetingData.expert))
-                .limit(1);
-
-              if (expertUser.length > 0 && expertUser[0]) {
-                const { firstName, lastName } = expertUser[0];
-                expertName = [firstName, lastName].filter(Boolean).join(' ') || 'Expert';
-              }
-            } catch (dbError) {
-              console.warn('Could not resolve expert name from database:', dbError);
+            if (expertUser.length > 0 && expertUser[0]) {
+              const { firstName, lastName } = expertUser[0];
+              expertName = [firstName, lastName].filter(Boolean).join(' ') || 'Expert';
             }
+          } catch (dbError) {
+            console.warn('Could not resolve expert name from database:', dbError);
           }
-
-          // Fetch expert's timezone from ScheduleTable
-          let expertTimezone = 'Europe/Lisbon'; // Default fallback for experts
-          if (meetingData.expert) {
-            try {
-              const expertSchedule = await db.query.ScheduleTable.findFirst({
-                where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, meetingData.expert!),
-              });
-
-              if (expertSchedule?.timezone) {
-                expertTimezone = expertSchedule.timezone;
-              }
-            } catch (dbError) {
-              console.warn('Could not resolve expert timezone from database:', dbError);
-            }
-          }
-
-          // Resolve service name from event if available
-          let serviceName = 'Consultation';
-          if (meetingData.id) {
-            try {
-              const eventRecord = await db
-                .select({ name: EventTable.name })
-                .from(EventTable)
-                .where(eq(EventTable.id, meetingData.id))
-                .limit(1);
-
-              if (eventRecord.length > 0 && eventRecord[0]) {
-                serviceName = eventRecord[0].name || 'Consultation';
-              }
-            } catch (dbError) {
-              console.warn('Could not resolve service name from database:', dbError);
-            }
-          }
-
-          // Format date and time from ISO string with locale support
-          const startDate = meetingData.start ? new Date(meetingData.start) : new Date();
-          const patientTimezone = meetingData.timezone || 'UTC';
-          const patientLocale = getDateFnsLocale(meetingData.locale);
-          // Default expert locale to English for professional contexts
-          const expertLocale = getDateFnsLocale('en');
-
-          // Format for patient (in their local timezone with their locale)
-          const patientDate = formatInTimeZone(startDate, patientTimezone, 'EEEE, MMMM d, yyyy', {
-            locale: patientLocale,
-          });
-          const patientTime = formatInTimeZone(startDate, patientTimezone, 'h:mm a', {
-            locale: patientLocale,
-          });
-
-          // Format for expert (in their local timezone)
-          const expertDate = formatInTimeZone(startDate, expertTimezone, 'EEEE, MMMM d, yyyy', {
-            locale: expertLocale,
-          });
-          const expertTime = formatInTimeZone(startDate, expertTimezone, 'h:mm a', {
-            locale: expertLocale,
-          });
-
-          appointmentDetails = {
-            service: serviceName,
-            expert: expertName,
-            // Patient-formatted (for patient emails)
-            date: patientDate,
-            time: `${patientTime} (${patientTimezone})`,
-            // Expert-formatted (for expert emails)
-            expertDate: expertDate,
-            expertTime: `${expertTime} (${expertTimezone})`,
-            // Common fields
-            duration: meetingData.dur ? `${meetingData.dur} minutes` : '60 minutes',
-            patientTimezone,
-            expertTimezone,
-            notes: meetingData.notes,
-          };
-
-          // Log sanitized appointment details (without PHI/PII)
-          console.log('📅 Extracted appointment details from payment metadata:', {
-            service: appointmentDetails.service,
-            duration: appointmentDetails.duration,
-            patientTimezone: appointmentDetails.patientTimezone,
-            expertTimezone: appointmentDetails.expertTimezone,
-            hasNotes: !!appointmentDetails.notes,
-          });
-        } catch (parseError) {
-          console.warn('Could not parse meeting metadata:', parseError);
         }
+
+        // Fetch expert's timezone from ScheduleTable
+        let expertTimezone = 'Europe/Lisbon'; // Default fallback for experts
+        if (meetingData.expert) {
+          try {
+            const expertSchedule = await db.query.ScheduleTable.findFirst({
+              where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, meetingData.expert!),
+            });
+
+            if (expertSchedule?.timezone) {
+              expertTimezone = expertSchedule.timezone;
+            }
+          } catch (dbError) {
+            console.warn('Could not resolve expert timezone from database:', dbError);
+          }
+        }
+
+        // Resolve service name from event if available
+        let serviceName = 'Consultation';
+        if (meetingData.id) {
+          try {
+            const eventRecord = await db
+              .select({ name: EventTable.name })
+              .from(EventTable)
+              .where(eq(EventTable.id, meetingData.id))
+              .limit(1);
+
+            if (eventRecord.length > 0 && eventRecord[0]) {
+              serviceName = eventRecord[0].name || 'Consultation';
+            }
+          } catch (dbError) {
+            console.warn('Could not resolve service name from database:', dbError);
+          }
+        }
+
+        // Format date and time from ISO string with locale support
+        const startDate = meetingData.start ? new Date(meetingData.start) : new Date();
+        const patientTimezone = meetingData.timezone || 'UTC';
+        const patientLocale = getDateFnsLocale(meetingData.locale);
+        // Default expert locale to English for professional contexts
+        const expertLocale = getDateFnsLocale('en');
+
+        // Format for patient (in their local timezone with their locale)
+        const patientDate = formatInTimeZone(startDate, patientTimezone, 'EEEE, MMMM d, yyyy', {
+          locale: patientLocale,
+        });
+        const patientTime = formatInTimeZone(startDate, patientTimezone, 'h:mm a', {
+          locale: patientLocale,
+        });
+
+        // Format for expert (in their local timezone)
+        const expertDate = formatInTimeZone(startDate, expertTimezone, 'EEEE, MMMM d, yyyy', {
+          locale: expertLocale,
+        });
+        const expertTime = formatInTimeZone(startDate, expertTimezone, 'h:mm a', {
+          locale: expertLocale,
+        });
+
+        appointmentDetails = {
+          service: serviceName,
+          expert: expertName,
+          // Patient-formatted (for patient emails)
+          date: patientDate,
+          time: `${patientTime} (${patientTimezone})`,
+          // Expert-formatted (for expert emails)
+          expertDate: expertDate,
+          expertTime: `${expertTime} (${expertTimezone})`,
+          // Common fields
+          duration: meetingData.dur ? `${meetingData.dur} minutes` : '60 minutes',
+          patientTimezone,
+          expertTimezone,
+          notes: meetingData.notes,
+        };
+
+        // Log sanitized appointment details (without PHI/PII)
+        console.log('📅 Extracted appointment details from payment metadata:', {
+          service: appointmentDetails.service,
+          duration: appointmentDetails.duration,
+          patientTimezone: appointmentDetails.patientTimezone,
+          expertTimezone: appointmentDetails.expertTimezone,
+          hasNotes: !!appointmentDetails.notes,
+        });
+      } catch (parseError) {
+        console.warn('Could not parse meeting metadata:', parseError);
       }
     }
 

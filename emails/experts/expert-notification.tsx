@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
 interface ExpertNotificationEmailProps {
@@ -8,18 +9,52 @@ interface ExpertNotificationEmailProps {
   notificationMessage?: string;
   actionUrl?: string;
   actionText?: string;
-  locale?: string;
+  /**
+   * Locale used by the surrounding `EmailLayout` (header / footer copy is
+   * localized there). The body of this template is generic — title and
+   * message strings come straight from the caller, so they should already
+   * be in the recipient's language at the point of trigger.
+   */
+  locale?: SupportedLocale;
 }
 
+/**
+ * Generic notification email for experts (e.g. account updates, security
+ * alerts, marketplace events). Renders a heading, a body block with the
+ * notification message, and an optional call-to-action button.
+ *
+ * Realistic sample values live only in `PreviewProps` so React Email's dev
+ * preview is rich while production rendering can never inherit them.
+ *
+ * @example
+ * ```tsx
+ * <ExpertNotificationEmail
+ *   expertName="Patricia Mota"
+ *   notificationTitle="Account update"
+ *   notificationMessage="Your payout has been sent to your bank account."
+ *   actionUrl="https://eleva.care/dashboard/earnings"
+ *   actionText="View earnings"
+ * />
+ * ```
+ */
 export const ExpertNotificationEmail = ({
-  expertName = 'Dr. Maria Santos',
-  notificationTitle = 'New Appointment Request',
-  notificationMessage = 'You have received a new appointment request from João Silva for a cardiology consultation. Please review the request and confirm your availability.',
-  actionUrl = 'https://eleva.care/dashboard/appointments',
-  actionText = 'View Appointments',
+  expertName = 'Expert',
+  notificationTitle = 'You have a new notification',
+  notificationMessage = '',
+  actionUrl,
+  actionText,
+  locale = 'en',
 }: ExpertNotificationEmailProps) => {
   const subject = `${notificationTitle} - Eleva Care`;
-  const previewText = `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`;
+  // Only append the message snippet when there's actually a message, so we
+  // don't end up with "You have a new notification - ..." in the inbox
+  // preview. Only add the ellipsis when the message was actually truncated.
+  const trimmedMessage = notificationMessage.trim();
+  const previewText = trimmedMessage.length
+    ? `${notificationTitle} - ${
+        trimmedMessage.length > 100 ? `${trimmedMessage.substring(0, 100)}...` : trimmedMessage
+      }`
+    : notificationTitle;
 
   return (
     <EmailLayout
@@ -27,6 +62,7 @@ export const ExpertNotificationEmail = ({
       previewText={previewText}
       headerVariant="branded"
       footerVariant="default"
+      locale={locale}
     >
       <Heading
         style={{
@@ -52,29 +88,31 @@ export const ExpertNotificationEmail = ({
         {notificationTitle}
       </Text>
 
-      <Section
-        style={{
-          backgroundColor: '#F0FDFF',
-          border: '1px solid #B8F5FF',
-          borderRadius: '12px',
-          padding: '24px',
-          margin: '24px 0',
-        }}
-      >
-        <Text
+      {trimmedMessage.length > 0 && (
+        <Section
           style={{
-            color: '#234E52',
-            fontSize: '16px',
-            lineHeight: '1.6',
-            margin: '0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            backgroundColor: '#F0FDFF',
+            border: '1px solid #B8F5FF',
+            borderRadius: '12px',
+            padding: '24px',
+            margin: '24px 0',
           }}
         >
-          {notificationMessage}
-        </Text>
-      </Section>
+          <Text
+            style={{
+              color: '#234E52',
+              fontSize: '16px',
+              lineHeight: '1.6',
+              margin: '0',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            {trimmedMessage}
+          </Text>
+        </Section>
+      )}
 
-      {actionUrl && (
+      {actionUrl && actionText && (
         <Section style={{ textAlign: 'center', margin: '32px 0' }}>
           <EmailButton href={actionUrl} variant="primary" size="lg">
             {actionText}

@@ -48,21 +48,31 @@ interface ExpertNewAppointmentProps {
  * );
  * ```
  */
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export default function ExpertNewAppointmentTemplate({
-  expertName = 'Patricia Mota',
-  clientName = 'Marta Carvalho',
+  expertName = 'Expert',
+  clientName = 'New patient',
   clientPhone,
-  appointmentDate = 'Wednesday, January 21, 2026',
-  appointmentTime = '12:30 PM',
-  timezone = 'Europe/Lisbon',
-  appointmentDuration = '45 minutes',
-  eventTitle = 'Physical Therapy Appointment',
-  meetLink = 'https://meet.google.com/abc-defg-hij',
-  notes = 'First consultation - health check',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  appointmentDuration = '',
+  eventTitle = 'New appointment',
+  meetLink,
+  notes,
   locale = 'en',
 }: ExpertNewAppointmentProps) {
   const subject = `New Booking: ${eventTitle} with ${clientName}`;
-  const previewText = `You have a new appointment with ${clientName} on ${appointmentDate} at ${appointmentTime}`;
+  // Build preview text dynamically so missing date/time don't produce
+  // awkward "on  at " fragments.
+  const previewText = [
+    `You have a new appointment with ${clientName}`,
+    appointmentDate ? `on ${appointmentDate}` : null,
+    appointmentTime ? `at ${appointmentTime}` : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <EmailLayout
@@ -149,20 +159,39 @@ export default function ExpertNewAppointmentTemplate({
                 </td>
               </tr>
             )}
-            <tr>
-              <td style={createTableCellStyle(true)}>Date:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>Time:</td>
-              <td style={createTableCellStyle(false, 'right')}>
-                {appointmentTime} ({timezone})
-              </td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>Duration:</td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
-            </tr>
+            {/* Date / time are coupled — a time without a date would be
+                confusing to an expert reading this notification. Render any
+                of the three permutations cleanly. */}
+            {appointmentDate && appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Date &amp; Time:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {appointmentDate} at {appointmentTime}
+                  {timezone && ` (${timezone})`}
+                </td>
+              </tr>
+            )}
+            {appointmentDate && !appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Date:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {!appointmentDate && appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Time:</td>
+                <td style={createTableCellStyle(false, 'right')}>
+                  {appointmentTime}
+                  {timezone && ` (${timezone})`}
+                </td>
+              </tr>
+            )}
+            {appointmentDuration && (
+              <tr>
+                <td style={createTableCellStyle(true)}>Duration:</td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
+              </tr>
+            )}
             {notes && (
               <tr>
                 <td style={createTableCellStyle(true)}>Patient Notes:</td>

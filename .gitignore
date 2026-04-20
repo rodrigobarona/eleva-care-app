@@ -48,3 +48,6 @@ _backup_env
 
 # auto-generated source files
 .source/
+
+# Cursor IDE auto-generated state (counters, timestamps, exec IDs)
+.cursor/hooks/state/

@@ -1,5 +1,38 @@
 export type SupportedLocale = 'en' | 'pt' | 'es' | 'br';
 
+const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'pt', 'es', 'br'];
+
+/**
+ * Normalize an arbitrary locale string into a `SupportedLocale`. Handles
+ * the BCP-47 regional tags we receive from Stripe / Clerk / browser
+ * `Accept-Language` headers (e.g. `pt-BR`, `pt_PT`, `es-AR`, `en-US`) and
+ * collapses them onto our four supported templates.
+ *
+ *   - `pt-BR`, `pt_br`, `pt-br` → `'br'` (Brazilian Portuguese has its own
+ *     translations and shouldn't silently fall back to European Portuguese)
+ *   - `pt-PT`, `pt_pt`, plain `pt` → `'pt'`
+ *   - `es-AR`, `es-MX`, plain `es` → `'es'`
+ *   - everything else → `'en'`
+ *
+ * Returns `'en'` when the input is `undefined`, empty, or unknown so that
+ * callers don't have to defensively check the result before passing it to
+ * a template prop typed as `SupportedLocale`.
+ */
+export function normalizeLocale(input: string | null | undefined): SupportedLocale {
+  if (!input) return 'en';
+  const lower = input.trim().toLowerCase();
+  if (lower.length === 0) return 'en';
+
+  // Brazilian Portuguese gets its own template — match before stripping
+  // the region subtag so it doesn't collapse to `'pt'`.
+  if (lower === 'br' || lower === 'pt-br' || lower === 'pt_br') return 'br';
+
+  const primary = lower.split(/[-_]/)[0];
+  return (SUPPORTED_LOCALES as readonly string[]).includes(primary)
+    ? (primary as SupportedLocale)
+    : 'en';
+}
+
 export interface EmailTheme {
   mode: 'light' | 'dark';
   colors: {

@@ -174,17 +174,13 @@ export async function GET(request: NextRequest) {
     );
 
     // **Step 2: Send notifications only for truly orphaned reservations (no meeting exists)**
+    //
+    // Only the PATIENT is notified here. Experts are intentionally not notified
+    // about expired Multibanco reservations — see the comment at the bottom of
+    // the loop and the JSDoc on `triggerExpertAppointmentConfirmation`.
     let notificationsSent = 0;
     for (const expired of orphanedReservations) {
-      const {
-        reservation,
-        eventName,
-        expertFirstName,
-        expertLastName,
-        expertClerkId,
-        expertEmail,
-        expertTimezone,
-      } = expired;
+      const { reservation, eventName, expertFirstName, expertLastName, expertTimezone } = expired;
       const expertName = [expertFirstName, expertLastName].filter(Boolean).join(' ') || 'Expert';
 
       // Use expert's actual timezone from their schedule settings
@@ -258,44 +254,17 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Send notification to expert (via Novu for in-app + email)
-      try {
-        const expertResult = await triggerWorkflow({
-          workflowId: 'reservation-expired',
-          to: {
-            subscriberId: expertClerkId,
-            email: expertEmail || undefined,
-            firstName: expertFirstName || undefined,
-            lastName: expertLastName || undefined,
-          },
-          payload: {
-            expertName,
-            clientName: guestName,
-            serviceName: eventName,
-            appointmentDate,
-            appointmentTime,
-            timezone,
-            locale,
-            recipientType: 'expert',
-          },
-          transactionId: `reservation-expired-${reservation.id}`, // Idempotency key
-        });
-
-        // Validate result - triggerWorkflow can return null without throwing
-        if (!expertResult) {
-          throw new Error(
-            `Workflow trigger returned null for expert notification (reservationId: ${reservation.id}, recipient: ${expertClerkId})`,
-          );
-        }
-
-        console.log(`✅ Expiration notification sent to expert: ${expertClerkId}`);
-        notificationsSent++;
-      } catch (expertError) {
-        console.error(
-          `❌ Failed to send expiration notification to expert ${expertClerkId}:`,
-          expertError,
-        );
-      }
+      // Expert is intentionally NOT notified about expired Multibanco reservations.
+      //
+      // With the Phase 3 expert-notification timing fix, experts are never told
+      // about a booking until payment has actually succeeded. Since the voucher
+      // expired without payment, the expert never knew the booking existed —
+      // sending them a "Pending booking cancelled" email would be noise about
+      // something they have no context for.
+      //
+      // Production incident: an expert account received 7 such cancellation
+      // emails in one day for vouchers that expired without payment. This is the
+      // fix. See docs/02-core-systems/notifications/08-email-render-contract.md.
     }
 
     // **Step 3: Clean up expired reservations**

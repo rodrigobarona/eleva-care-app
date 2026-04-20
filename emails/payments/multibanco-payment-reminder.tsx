@@ -18,7 +18,15 @@ interface MultibancoPaymentReminderProps {
   appointmentDate?: string;
   appointmentTime?: string;
   timezone?: string;
-  duration?: number;
+  /**
+   * Appointment duration. Accepts either a number of minutes (e.g. `60`)
+   * or a pre-formatted string (e.g. `"60 minutes"`) — the cron at
+   * `app/api/cron/send-payment-reminders/route.ts` forwards
+   * `event.durationInMinutes` (number) while the Stripe webhook forwards
+   * `appointmentDetails.duration` (string). The conditional below treats
+   * both as "present" when they carry a non-empty / positive value.
+   */
+  duration?: number | string;
   multibancoEntity?: string;
   multibancoReference?: string;
   multibancoAmount?: string;
@@ -30,25 +38,47 @@ interface MultibancoPaymentReminderProps {
   locale?: string;
 }
 
+// Neutral fallbacks — realistic samples live only in PreviewProps below.
+// See plan: fix_fake_email_content_bug.
 export default function MultibancoPaymentReminderTemplate({
-  customerName = 'João Silva',
-  expertName = 'Dr. Maria Santos',
-  serviceName = 'Consulta de Cardiologia',
-  appointmentDate = '2024-02-19',
-  appointmentTime = '14:30',
-  timezone = 'Europe/Lisbon',
-  duration = 60,
-  multibancoEntity = '12345',
-  multibancoReference = '987654321',
-  multibancoAmount = '75.00',
-  voucherExpiresAt = '2024-02-20',
-  hostedVoucherUrl = 'https://eleva.care/payment/voucher/123',
+  customerName = 'Customer',
+  expertName = 'Your Expert',
+  serviceName = 'Your appointment',
+  appointmentDate = '',
+  appointmentTime = '',
+  timezone = '',
+  duration,
+  multibancoEntity = '',
+  multibancoReference = '',
+  multibancoAmount = '0.00',
+  voucherExpiresAt = '',
+  hostedVoucherUrl = '',
   customerNotes = '',
   reminderType = 'urgent',
   daysRemaining = 1,
   locale = 'en',
 }: MultibancoPaymentReminderProps) {
   const isUrgent = reminderType === 'urgent' || daysRemaining <= 1;
+
+  // `duration` may arrive as either a number of minutes or a pre-formatted
+  // string. Normalize to a render-ready label and a "should we show the
+  // row?" flag so a value of `"60 minutes"` doesn't get hidden by a
+  // numeric `> 0` check.
+  const durationNumber =
+    typeof duration === 'number'
+      ? duration
+      : typeof duration === 'string' && duration.trim().length > 0
+        ? Number.parseInt(duration, 10)
+        : Number.NaN;
+  const hasDuration =
+    (typeof duration === 'string' && duration.trim().length > 0) ||
+    (Number.isFinite(durationNumber) && durationNumber > 0);
+  const durationLabel =
+    typeof duration === 'string' && duration.trim().length > 0
+      ? duration
+      : Number.isFinite(durationNumber) && durationNumber > 0
+        ? `${durationNumber}`
+        : '';
 
   // Internationalization support
   const translations = {
@@ -215,22 +245,32 @@ export default function MultibancoPaymentReminderTemplate({
               {serviceName}
             </td>
           </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.date}:</td>
-            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.time}:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {appointmentTime} ({timezone})
-            </td>
-          </tr>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.duration}:</td>
-            <td style={createTableCellStyle(false, 'right')}>
-              {duration} {t.minutes}
-            </td>
-          </tr>
+          {appointmentDate && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.date}:</td>
+              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+            </tr>
+          )}
+          {appointmentTime && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.time}:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {appointmentTime}
+                {timezone && ` (${timezone})`}
+              </td>
+            </tr>
+          )}
+          {hasDuration && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.duration}:</td>
+              <td style={createTableCellStyle(false, 'right')}>
+                {/* When the caller already supplied a string like "60 minutes"
+                    we render it verbatim and skip the trailing minutes label
+                    to avoid "60 minutes minutes". */}
+                {typeof duration === 'string' ? durationLabel : `${durationLabel} ${t.minutes}`}
+              </td>
+            </tr>
+          )}
           <tr>
             <td style={createTableCellStyle(true)}>Expert:</td>
             <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
@@ -383,22 +423,25 @@ export default function MultibancoPaymentReminderTemplate({
         />
       </Section>
 
-      {/* Premium Action Button */}
-      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-        <EmailButton
-          href={hostedVoucherUrl}
-          style={{
-            ...ELEVA_BUTTON_STYLES.primary,
-            backgroundColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-            borderColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-            fontSize: isUrgent ? '20px' : '18px',
-            padding: isUrgent ? '24px 48px' : '20px 40px',
-            animation: isUrgent ? 'pulse 2s infinite' : 'none',
-          }}
-        >
-          {isUrgent ? t.payNowUrgent : t.completePayment}
-        </EmailButton>
-      </Section>
+      {/* Premium Action Button — only render when we have a real voucher URL.
+          An empty href would otherwise reload the email view in some clients. */}
+      {hostedVoucherUrl && (
+        <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+          <EmailButton
+            href={hostedVoucherUrl}
+            style={{
+              ...ELEVA_BUTTON_STYLES.primary,
+              backgroundColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+              borderColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+              fontSize: isUrgent ? '20px' : '18px',
+              padding: isUrgent ? '24px 48px' : '20px 40px',
+              animation: isUrgent ? 'pulse 2s infinite' : 'none',
+            }}
+          >
+            {isUrgent ? t.payNowUrgent : t.completePayment}
+          </EmailButton>
+        </Section>
+      )}
 
       {/* Premium Warning Section */}
       <Section style={ELEVA_CARD_STYLES.warning}>
@@ -436,3 +479,23 @@ export default function MultibancoPaymentReminderTemplate({
     </EmailLayout>
   );
 }
+
+// Sample data for React Email preview only — never used in production rendering.
+MultibancoPaymentReminderTemplate.PreviewProps = {
+  customerName: 'João Silva',
+  expertName: 'Dr. Maria Santos',
+  serviceName: 'Consulta de Cardiologia',
+  appointmentDate: '2024-02-19',
+  appointmentTime: '14:30',
+  timezone: 'Europe/Lisbon',
+  duration: 60,
+  multibancoEntity: '12345',
+  multibancoReference: '987654321',
+  multibancoAmount: '75.00',
+  voucherExpiresAt: '2024-02-20',
+  hostedVoucherUrl: 'https://eleva.care/payment/voucher/123',
+  customerNotes: 'First consultation - health check',
+  reminderType: 'urgent',
+  daysRemaining: 1,
+  locale: 'en',
+} as MultibancoPaymentReminderProps;
