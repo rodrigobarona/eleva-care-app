@@ -43,19 +43,29 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_ACCOUNT_UPDATE:
-        // Note: This was previously used for payment notifications with eventType: 'welcome'
-        // which incorrectly sent welcome emails. Changed to 'account-updated' for proper usage.
+        // ACCOUNT_UPDATE is exclusively used for expert-side notifications
+        // (payment failure / refund / connect-account changes). Routing
+        // through `user-lifecycle` would trigger its welcome-email step
+        // and ship a "Welcome to Eleva Care!" body for events that have
+        // nothing to do with onboarding — that was the original placeholder-
+        // leak bug class. The right destination is `expert-management`
+        // with `notificationType: 'account-update'`, which renders
+        // `ExpertNotificationEmail` (a generic branded notification card)
+        // and uses the supplied `message` / `actionUrl` verbatim.
         await triggerWorkflow({
-          workflowId: 'user-lifecycle',
+          workflowId: 'expert-management',
           to: {
             subscriberId: userId,
             ...(data.email ? { email: data.email as string } : {}),
             ...(data.firstName ? { firstName: data.firstName as string } : {}),
           },
           payload: {
-            eventType: 'account-updated',
-            userName: (data.userName as string) || 'User',
-            ...data,
+            notificationType: 'account-update',
+            expertName: (data.userName as string) || (data.firstName as string) || 'Expert',
+            message: (data.message as string) || (data.title as string) || 'Account update',
+            actionUrl: (data.actionUrl as string) || undefined,
+            actionText: (data.actionText as string) || undefined,
+            locale: (data.locale as string) || 'en',
           },
         });
         break;

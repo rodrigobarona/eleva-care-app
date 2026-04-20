@@ -6,11 +6,14 @@ import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-c
 import { AppointmentReminderEmail } from '@/emails/appointments/appointment-reminder';
 import ExpertNewAppointmentTemplate from '@/emails/experts/expert-new-appointment';
 import { ExpertNotificationEmail } from '@/emails/experts/expert-notification';
+import MarketplaceEventEmail from '@/emails/experts/marketplace-event';
+import SystemHealthAlertEmail from '@/emails/system/system-health-alert';
 import { ExpertPayoutNotificationTemplate, RefundNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
 import ReservationExpiredEmail from '@/emails/payments/reservation-expired';
+import PackPurchaseConfirmationTemplate from '@/emails/packs/pack-purchase-confirmation';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
 import { normalizeLocale, type SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
@@ -223,11 +226,6 @@ interface EmailGenerationResult {
   html: string;
   text: string;
   subject: string;
-}
-
-interface TriggerWorkflowPayload {
-  subscriberId: string;
-  [key: string]: unknown;
 }
 
 /**
@@ -446,6 +444,15 @@ export class TemplateSelectionService {
         },
         expert: {
           default: asTemplate(ReservationExpiredEmail),
+        },
+      },
+    },
+
+    'pack-purchase-confirmation': {
+      default: {
+        patient: {
+          default: PackPurchaseConfirmationTemplate,
+          branded: PackPurchaseConfirmationTemplate,
         },
       },
     },
@@ -669,6 +676,63 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
         locale: data.locale,
       }),
     },
+    // `cancelled` / `default` events fall back to the AppointmentConfirmation
+    // template (per templateMappings). Use the same prop shape as `confirmed`
+    // so empty cells / placeholder leaks don't sneak in via passThrough.
+    cancelled: {
+      patient: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+      expert: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        clientPhone: data.clientPhone,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+    },
+    default: {
+      patient: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+      expert: (data) => ({
+        expertName: data.expertName,
+        clientName: data.customerName ?? data.clientName,
+        clientPhone: data.clientPhone,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.serviceName ?? data.eventTitle,
+        meetLink: data.meetingUrl ?? data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+    },
   },
   'payment-universal': {
     // app/api/webhooks/stripe/handlers/payment.ts → flatten appointmentDetails
@@ -732,6 +796,33 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
         };
       },
     },
+    // `pending` routes to the MultibancoBookingPendingTemplate per
+    // templateMappings — flatten appointmentDetails into the Multibanco prop
+    // names the template expects (entity / reference / amount / expires /
+    // hostedVoucherUrl). Fired by `handlePaymentIntentRequiresAction` for
+    // freshly created vouchers and by `handlePaymentIntentProcessing` for
+    // vouchers that hit the 4-day buffer window.
+    pending: {
+      patient: (data) => {
+        const details = (data.appointmentDetails as Record<string, unknown> | undefined) ?? {};
+        return {
+          customerName: data.customerName,
+          expertName: details.expert,
+          serviceName: details.service,
+          appointmentDate: details.date,
+          appointmentTime: details.time,
+          timezone: data.timezone,
+          duration: details.duration,
+          multibancoEntity: data.multibancoEntity,
+          multibancoReference: data.multibancoReference,
+          multibancoAmount: data.amount,
+          voucherExpiresAt: data.expiresAt,
+          hostedVoucherUrl: data.hostedVoucherUrl,
+          customerNotes: data.customerNotes,
+          locale: data.locale,
+        };
+      },
+    },
   },
   'multibanco-payment-reminder': {
     // app/api/cron/send-payment-reminders/route.ts uses these eventTypes.
@@ -783,6 +874,129 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
         notificationMessage: data.message ?? data.notificationMessage,
         actionUrl: data.actionUrl,
         actionText: data.actionText,
+      }),
+    },
+  },
+  'pack-purchase-confirmation': {
+    // Workflow payload is already built to match the template's prop names
+    // (see `app/api/webhooks/stripe/route.ts` `handlePackPurchase`), so this
+    // is effectively pass-through. Kept explicit so future renames trigger a
+    // test failure instead of a silent passthrough fallback.
+    default: {
+      patient: (data) => ({
+        buyerName: data.buyerName,
+        buyerEmail: data.buyerEmail,
+        packName: data.packName,
+        eventName: data.eventName,
+        expertName: data.expertName,
+        sessionsCount: data.sessionsCount,
+        promotionCode: data.promotionCode,
+        expiresAt: data.expiresAt,
+        bookingUrl: data.bookingUrl,
+        locale: data.locale,
+      }),
+    },
+  },
+  // Direct workflow → AppointmentConfirmationTemplate. Called from
+  // `triggerExpertAppointmentConfirmation` in `server/actions/meetings.ts`
+  // for the expert side of the booking. Payload is already shaped for the
+  // template; adapter is identity but kept explicit to match the
+  // configuration-gap warning policy.
+  'appointment-confirmation': {
+    default: {
+      patient: (data) => ({
+        expertName: data.expertName,
+        clientName: data.clientName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.eventTitle,
+        meetLink: data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+      expert: (data) => ({
+        expertName: data.expertName,
+        clientName: data.clientName,
+        clientPhone: data.clientPhone,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        appointmentDuration: data.appointmentDuration,
+        eventTitle: data.eventTitle,
+        meetLink: data.meetLink,
+        notes: data.notes,
+        locale: data.locale,
+      }),
+    },
+  },
+  // Direct workflow → MultibancoBookingPendingTemplate. Triggered from
+  // `app/api/webhooks/stripe/handlers/payment.ts` `handlePaymentIntentRequiresAction`.
+  // Payload already matches the template's props.
+  'multibanco-booking-pending': {
+    default: {
+      patient: (data) => ({
+        customerName: data.customerName,
+        expertName: data.expertName,
+        serviceName: data.serviceName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        duration: data.duration,
+        multibancoEntity: data.multibancoEntity,
+        multibancoReference: data.multibancoReference,
+        multibancoAmount: data.multibancoAmount,
+        voucherExpiresAt: data.voucherExpiresAt,
+        hostedVoucherUrl: data.hostedVoucherUrl,
+        customerNotes: data.customerNotes,
+        locale: data.locale,
+      }),
+    },
+  },
+  // Direct workflow → ReservationExpiredEmail. Patient-only per the
+  // workflow's early-return; expert mapping kept for safety/symmetry.
+  'reservation-expired': {
+    default: {
+      patient: (data) => ({
+        recipientName: data.clientName ?? data.recipientName,
+        recipientType: 'patient' as const,
+        expertName: data.expertName,
+        serviceName: data.serviceName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        locale: data.locale,
+      }),
+      expert: (data) => ({
+        recipientName: data.expertName ?? data.recipientName,
+        recipientType: 'expert' as const,
+        expertName: data.expertName,
+        serviceName: data.serviceName,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        timezone: data.timezone,
+        locale: data.locale,
+      }),
+    },
+  },
+  // user-lifecycle currently only renders the welcome email body for the
+  // `welcome` / `user-created` event types (everything else is rejected
+  // by the workflow's defensive guard). Identity adapter, but explicit
+  // so the contract is asserted by tests.
+  'user-lifecycle': {
+    welcome: {
+      patient: (data) => ({
+        userName: data.userName ?? data.firstName,
+        firstName: data.firstName ?? data.userName,
+        dashboardUrl: data.dashboardUrl ?? '/dashboard',
+        locale: data.locale,
+      }),
+      expert: (data) => ({
+        userName: data.userName ?? data.firstName,
+        firstName: data.firstName ?? data.userName,
+        dashboardUrl: data.dashboardUrl ?? '/dashboard',
+        locale: data.locale,
       }),
     },
   },
@@ -1124,35 +1338,13 @@ export async function getSubscriberForEmail(clerkUserId: string) {
   }
 }
 
-export async function triggerNovuWorkflow(workflowId: string, payload: TriggerWorkflowPayload) {
-  if (!novu) {
-    const errorMsg = `[Novu Email Service] Cannot trigger workflow ${workflowId}: ${initializationError || 'client not initialized'}`;
-    console.error(errorMsg);
-    throw new Error(initializationError || 'Novu client not initialized');
-  }
-
-  try {
-    console.log('[Novu Email Service] 🔔 Triggering workflow:', {
-      workflowId,
-      subscriberId: payload.subscriberId,
-    });
-
-    const result = await novu.trigger({
-      workflowId,
-      to: payload.subscriberId,
-      payload,
-    });
-
-    console.log('[Novu Email Service] ✅ Successfully triggered workflow:', workflowId);
-    return result;
-  } catch (error) {
-    console.error('[Novu Email Service] ❌ Failed to trigger workflow:', {
-      workflowId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    throw error;
-  }
-}
+// `triggerNovuWorkflow` was previously exported here with a `to: string`
+// signature that conflicted with the canonical version in
+// `lib/integrations/novu/utils.ts` (`to: subscriber`). The package barrel
+// re-exports the utils version so this duplicate had zero production
+// callers but lived as a footgun for anyone importing from this file
+// directly. Removed in the 2026-04 audit. Use `triggerNovuWorkflow` from
+// `@/lib/integrations/novu` (or `@/lib/integrations/novu/utils`) instead.
 
 /**
  * Enhanced email rendering service for existing React Email templates
@@ -1418,11 +1610,11 @@ export class ElevaEmailService {
       '@/emails/appointments/appointment-reminder'
     );
 
-    // The reminder template only ships `en` and `pt` translations, so
-    // collapse `es` / `br` (and anything else `normalizeLocale` produced)
-    // down to `pt` for Portuguese-family locales and `en` otherwise.
-    const normalized: SupportedLocale = normalizeLocale(data.locale);
-    const locale: 'en' | 'pt' = normalized === 'pt' || normalized === 'br' ? 'pt' : 'en';
+    // The reminder template now ships full translations for every
+    // SupportedLocale (en / pt / es / br), so we can pass the normalized
+    // locale through directly. No more collapsing es/br patients to
+    // English reminders.
+    const locale: SupportedLocale = normalizeLocale(data.locale);
 
     const template = React.createElement(AppointmentReminderTemplate, {
       patientName: data.userName,
@@ -1824,6 +2016,151 @@ export class ElevaEmailService {
       appointmentTime: data.appointmentTime,
       timezone: data.timezone || 'UTC',
       locale,
+    });
+
+    return render(template);
+  }
+
+  /**
+   * Render the pack-purchase confirmation email. Triggered after a session
+   * pack is purchased through Stripe Checkout — the buyer gets the promo
+   * code that unlocks `sessionsCount` future bookings with the expert.
+   *
+   * @example
+   * ```typescript
+   * const html = await elevaEmailService.renderPackPurchase({
+   *   buyerName: 'Marta Carvalho',
+   *   buyerEmail: 'marta@example.com',
+   *   packName: '5-session pack',
+   *   eventName: 'Physiotherapy session',
+   *   expertName: 'Patricia Mota',
+   *   sessionsCount: 5,
+   *   promotionCode: 'PACK-XYZ-123',
+   *   expiresAt: '2026-12-31T23:59:59.000Z',
+   *   bookingUrl: 'https://eleva.care/en/patricia-mota',
+   *   locale: 'en',
+   * });
+   * ```
+   */
+  async renderPackPurchase(data: {
+    buyerName: string;
+    buyerEmail: string;
+    packName: string;
+    eventName: string;
+    expertName: string;
+    sessionsCount: number;
+    promotionCode: string;
+    expiresAt: string;
+    bookingUrl: string;
+    locale?: string;
+  }) {
+    // The pack template implements `en`, `pt`, `es` (with `pt-BR` collapsed
+    // to `pt` inside the template via prefix matching). We still normalize
+    // here so regional tags map cleanly and Brazilian Portuguese hits the
+    // `pt` translations explicitly.
+    const normalized: SupportedLocale = normalizeLocale(data.locale);
+    const locale: 'en' | 'pt' | 'es' =
+      normalized === 'br' ? 'pt' : normalized === 'es' ? 'es' : normalized === 'pt' ? 'pt' : 'en';
+
+    recordRenderBreadcrumb({
+      workflowId: 'pack-purchase-confirmation',
+      eventType: 'default',
+      templateName: 'PackPurchaseConfirmation',
+      data: data as unknown as Record<string, unknown>,
+    });
+
+    const template = React.createElement(PackPurchaseConfirmationTemplate, {
+      buyerName: data.buyerName,
+      buyerEmail: data.buyerEmail,
+      packName: data.packName,
+      eventName: data.eventName,
+      expertName: data.expertName,
+      sessionsCount: data.sessionsCount,
+      promotionCode: data.promotionCode,
+      expiresAt: data.expiresAt,
+      bookingUrl: data.bookingUrl,
+      locale,
+    });
+
+    return render(template);
+  }
+
+  /**
+   * Render the marketplace-event email used by the `marketplace-universal`
+   * Novu workflow. Replaces the inline HTML body that previously shipped
+   * unbranded for `payment-received`, `payout-processed`,
+   * `connect-account-status`, and `refund-processed` events.
+   */
+  async renderMarketplaceEvent(data: {
+    expertName?: string;
+    message?: string;
+    amount?: string;
+    currency?: string;
+    accountStatus?: string;
+    eventType?:
+      | 'payment-received'
+      | 'payout-processed'
+      | 'connect-account-status'
+      | 'refund-processed';
+    actionUrl?: string;
+    actionText?: string;
+    locale?: string;
+  }) {
+    const normalized: SupportedLocale = normalizeLocale(data.locale);
+
+    recordRenderBreadcrumb({
+      workflowId: 'marketplace-universal',
+      eventType: data.eventType ?? 'payment-received',
+      templateName: 'MarketplaceEventEmail',
+      data: data as unknown as Record<string, unknown>,
+    });
+
+    const template = React.createElement(MarketplaceEventEmail, {
+      expertName: data.expertName,
+      message: data.message,
+      amount: data.amount,
+      currency: data.currency,
+      accountStatus: data.accountStatus,
+      eventType: data.eventType,
+      actionUrl: data.actionUrl,
+      actionText: data.actionText,
+      locale: normalized,
+    });
+
+    return render(template);
+  }
+
+  /**
+   * Render the system-health-alert email used by the `system-health` Novu
+   * workflow (admin-facing). Replaces the inline HTML body in
+   * `config/novu.ts`.
+   */
+  async renderSystemHealthAlert(data: {
+    status: 'healthy' | 'unhealthy';
+    environment: string;
+    error?: string;
+    timestamp?: string;
+    memory?: { used: number; total: number; percentage: number };
+    locale?: string;
+  }) {
+    const normalized: SupportedLocale = normalizeLocale(data.locale);
+
+    recordRenderBreadcrumb({
+      workflowId: 'system-health',
+      eventType: 'health-check-failure',
+      templateName: 'SystemHealthAlertEmail',
+      data: data as unknown as Record<string, unknown>,
+    });
+
+    const template = React.createElement(SystemHealthAlertEmail, {
+      status: data.status,
+      environment: data.environment,
+      error: data.error,
+      timestamp: data.timestamp,
+      memoryPercentage: data.memory?.percentage,
+      memoryUsed: data.memory?.used,
+      memoryTotal: data.memory?.total,
+      locale: normalized,
     });
 
     return render(template);

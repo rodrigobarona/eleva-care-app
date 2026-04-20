@@ -2326,3 +2326,62 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
     }
   }
 }
+
+/**
+ * Handle `payment_intent.processing` — fires after a Multibanco voucher's
+ * 7-day payment window closes (transitioning the PI from `requires_action`
+ * to `processing`) or for any async payment method whose funds Stripe is
+ * still confirming. We don't change DB state here; the post-event Novu
+ * trigger in `triggerNovuNotificationFromStripeEvent` will deliver a
+ * "your payment is processing" notification to the patient via the
+ * `payment-universal` workflow with `eventType: 'pending'`.
+ *
+ * Without this handler, the event would log as "Unhandled event type"
+ * and the patient would only learn what happened 4 days later when the
+ * PI finally transitions to `succeeded` or `payment_failed`.
+ */
+export async function handlePaymentIntentProcessing(paymentIntent: Stripe.PaymentIntent) {
+  console.log(
+    `Payment intent ${paymentIntent.id} entered processing state. ` +
+      `Payment method type: ${paymentIntent.payment_method_types?.join(', ') || 'unknown'}`,
+  );
+  // Intentionally no DB writes — the slot reservation created at
+  // `requires_action` stays valid through the processing buffer. Stripe
+  // will resolve to `succeeded` or `payment_failed` within ~4 days.
+}
+
+/**
+ * Handle `payment_intent.canceled` — fires when the customer or our cron
+ * job (cleanup-expired-reservations) explicitly cancels a pending PI
+ * before it succeeds. Used to release the slot reservation early.
+ */
+export async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) {
+  console.log(
+    `Payment intent ${paymentIntent.id} was canceled. Cancellation reason: ${
+      paymentIntent.cancellation_reason || 'unspecified'
+    }`,
+  );
+  // The actual reservation release happens in
+  // `app/api/cron/cleanup-expired-reservations` based on `expiresAt` and
+  // in `handleChargeRefunded` for refund-driven cancellations. This
+  // handler exists so the post-event Novu trigger fires (so we can send
+  // a "booking cancelled" email if appropriate) and so the event no
+  // longer logs as "Unhandled".
+}
+
+/**
+ * Handle `charge.dispute.updated` and `charge.dispute.closed` — Stripe
+ * recommends listening for status changes on top of `created` so internal
+ * state stays in sync as the dispute moves through `under_review` → `won`
+ * /`lost`/`warning_closed`. We log status changes; transfer status
+ * remains `disputed` until a follow-up business decision is made.
+ */
+export async function handleDisputeUpdated(dispute: Stripe.Dispute) {
+  console.log(
+    `Dispute ${dispute.id} status changed to "${dispute.status}". ` +
+      `Reason: ${dispute.reason || 'unspecified'}, amount: ${dispute.amount}.`,
+  );
+  // Intentionally minimal — the full lifecycle (refund handling, payout
+  // recovery) is better managed manually based on `dispute.status`.
+}
+

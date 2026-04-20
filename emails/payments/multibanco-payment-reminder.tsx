@@ -239,12 +239,14 @@ export default function MultibancoPaymentReminderTemplate({
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          <tr>
-            <td style={createTableCellStyle(true)}>{t.service}:</td>
-            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-              {serviceName}
-            </td>
-          </tr>
+          {serviceName && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.service}:</td>
+              <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+                {serviceName}
+              </td>
+            </tr>
+          )}
           {appointmentDate && (
             <tr>
               <td style={createTableCellStyle(true)}>{t.date}:</td>
@@ -271,12 +273,14 @@ export default function MultibancoPaymentReminderTemplate({
               </td>
             </tr>
           )}
-          <tr>
-            <td style={createTableCellStyle(true)}>Expert:</td>
-            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
-              {expertName}
-            </td>
-          </tr>
+          {expertName && (
+            <tr>
+              <td style={createTableCellStyle(true)}>Expert:</td>
+              <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+                {expertName}
+              </td>
+            </tr>
+          )}
           {customerNotes && (
             <tr>
               <td style={createTableCellStyle(true)}>{t.notes}:</td>
@@ -309,90 +313,98 @@ export default function MultibancoPaymentReminderTemplate({
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.entity}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-              }}
-            >
-              {multibancoEntity}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.reference}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontFamily: 'monospace',
-                fontSize: '18px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-              }}
-            >
-              {multibancoReference}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.amount}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontSize: '20px',
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                color: ELEVA_COLORS.success,
-              }}
-            >
-              €{multibancoAmount}
-            </td>
-          </tr>
-          <tr>
-            <td
-              style={{
-                ...createTableCellStyle(true),
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
-              }}
-            >
-              {t.expires}:
-            </td>
-            <td
-              style={{
-                ...createTableCellStyle(false, 'right'),
-                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
-                fontSize: '18px',
-              }}
-            >
-              {voucherExpiresAt}
-            </td>
-          </tr>
+          {multibancoEntity && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.entity}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontFamily: 'monospace',
+                  fontSize: '18px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                }}
+              >
+                {multibancoEntity}
+              </td>
+            </tr>
+          )}
+          {multibancoReference && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.reference}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontFamily: 'monospace',
+                  fontSize: '18px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                }}
+              >
+                {multibancoReference}
+              </td>
+            </tr>
+          )}
+          {multibancoAmount && multibancoAmount !== '0.00' && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.amount}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontSize: '20px',
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                  color: ELEVA_COLORS.success,
+                }}
+              >
+                €{multibancoAmount}
+              </td>
+            </tr>
+          )}
+          {voucherExpiresAt && (
+            <tr>
+              <td
+                style={{
+                  ...createTableCellStyle(true),
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+                }}
+              >
+                {t.expires}:
+              </td>
+              <td
+                style={{
+                  ...createTableCellStyle(false, 'right'),
+                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                  color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                  fontSize: '18px',
+                }}
+              >
+                {voucherExpiresAt}
+              </td>
+            </tr>
+          )}
         </table>
 
         <Text
