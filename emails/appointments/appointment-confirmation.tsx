@@ -63,7 +63,12 @@ export default function AppointmentConfirmationTemplate({
   locale = 'en',
 }: AppointmentConfirmationProps) {
   const subject = `Appointment Confirmed: ${eventTitle} with ${expertName}`;
-  const previewText = `Your appointment with ${expertName} is confirmed for ${appointmentDate} at ${appointmentTime}`;
+  // Compose previewText conditionally so empty date/time fields don't
+  // render as "...confirmed for  at " in the inbox preview.
+  const dateTimeFragment = [appointmentDate, appointmentTime].filter(Boolean).join(' ');
+  const previewText = dateTimeFragment
+    ? `Your appointment with ${expertName} is confirmed for ${dateTimeFragment}`
+    : `Your appointment with ${expertName} is confirmed`;
 
   return (
     <EmailLayout

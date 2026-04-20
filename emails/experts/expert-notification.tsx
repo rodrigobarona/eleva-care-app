@@ -88,27 +88,29 @@ export const ExpertNotificationEmail = ({
         {notificationTitle}
       </Text>
 
-      <Section
-        style={{
-          backgroundColor: '#F0FDFF',
-          border: '1px solid #B8F5FF',
-          borderRadius: '12px',
-          padding: '24px',
-          margin: '24px 0',
-        }}
-      >
-        <Text
+      {trimmedMessage.length > 0 && (
+        <Section
           style={{
-            color: '#234E52',
-            fontSize: '16px',
-            lineHeight: '1.6',
-            margin: '0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            backgroundColor: '#F0FDFF',
+            border: '1px solid #B8F5FF',
+            borderRadius: '12px',
+            padding: '24px',
+            margin: '24px 0',
           }}
         >
-          {notificationMessage}
-        </Text>
-      </Section>
+          <Text
+            style={{
+              color: '#234E52',
+              fontSize: '16px',
+              lineHeight: '1.6',
+              margin: '0',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            {trimmedMessage}
+          </Text>
+        </Section>
+      )}
 
       {actionUrl && actionText && (
         <Section style={{ textAlign: 'center', margin: '32px 0' }}>

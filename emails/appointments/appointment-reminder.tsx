@@ -10,6 +10,19 @@ import {
 import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
+/**
+ * Locales for which this template has a translation entry. Narrower than
+ * the global `SupportedLocale` (which also includes `'es'` and `'br'`)
+ * because the `translations` table below only ships strings for `'en'`
+ * and `'pt'`. Tightening the prop type forces callers to choose one of
+ * the implemented locales at compile time instead of silently falling
+ * back to English at runtime.
+ *
+ * To add a new locale, extend both this union AND the `translations`
+ * record below.
+ */
+export type AppointmentReminderLocale = 'en' | 'pt';
+
 interface AppointmentReminderEmailProps {
   patientName?: string;
   expertName?: string;
@@ -19,14 +32,7 @@ interface AppointmentReminderEmailProps {
   duration?: number;
   appointmentType?: string;
   meetingLink?: string;
-  /**
-   * Recipient's locale. Typed as `SupportedLocale` to surface unsupported
-   * values at compile time rather than silently falling back to English at
-   * runtime. The translation table inside this template only includes `en`
-   * and `pt` — extending it requires both adding a new key here and a new
-   * entry in `translations` below.
-   */
-  locale?: SupportedLocale;
+  locale?: AppointmentReminderLocale;
 }
 
 /**
@@ -111,7 +117,9 @@ export const AppointmentReminderEmail = ({
     },
   };
 
-  const t = translations[locale as keyof typeof translations] || translations.en;
+  // `locale` is narrowed to AppointmentReminderLocale ('en' | 'pt'), so this
+  // lookup is exhaustive — no runtime fallback needed.
+  const t = translations[locale];
 
   return (
     <EmailLayout
@@ -119,7 +127,7 @@ export const AppointmentReminderEmail = ({
       previewText={t.previewText}
       headerVariant="branded"
       footerVariant="default"
-      locale={locale as SupportedLocale}
+      locale={locale satisfies SupportedLocale}
     >
       {/* Premium Header Banner */}
       <Section style={ELEVA_CARD_STYLES.branded}>

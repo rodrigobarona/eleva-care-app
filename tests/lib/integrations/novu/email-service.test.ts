@@ -1,7 +1,3 @@
-// NOTE: do NOT import `jest` from `@jest/globals` below — doing so disables
-// the global mock-hoisting that the `jest.mock` calls above rely on, causing
-// the React Email render mock to be bypassed and the real render to attempt
-// dynamic imports that need --experimental-vm-modules.
 import {
   ElevaEmailService,
   getPropAdapter,
@@ -27,10 +23,13 @@ import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals';
  * If either invariant breaks, this suite fails.
  */
 
-// Set up mocks BEFORE importing the modules under test so the mocks are in
-// place when the module's top-level code runs. Jest hoists `jest.mock` calls
-// automatically, but placing them physically above the imports makes the
-// order explicit and matches the project's coding guidelines.
+// Mocks are declared physically above the imports so the order matches the
+// project guideline and doesn't rely on Jest's automatic `jest.mock` hoist.
+//
+// NOTE: do NOT import `jest` from `@jest/globals` here — doing so disables
+// the global mock-hoisting these `jest.mock` calls rely on, causing the
+// React Email render mock to be bypassed and the real render to attempt
+// dynamic imports that need --experimental-vm-modules.
 
 // Mock the Novu client so the module loads without real credentials.
 jest.mock('@novu/api', () => ({
@@ -532,6 +531,77 @@ describe('PropAdapter — workflow payload → template props', () => {
     });
   });
 
+  test('payment-universal.success.patient: forwards paymentMethod / appointmentUrl / receiptUrl', () => {
+    const adapter = getPropAdapter({
+      workflowId: 'payment-universal',
+      eventType: 'success',
+      userSegment: 'patient',
+      locale: 'en',
+      templateVariant: 'default',
+    });
+
+    const adapted = adapter({
+      customerName: 'Matilde',
+      amount: '70.00',
+      currency: 'EUR',
+      transactionId: 'pi_real',
+      paymentMethod: 'MB WAY',
+      appointmentUrl: 'https://meet.google.com/abc-defg-hij',
+      receiptUrl: 'https://stripe.com/receipts/abc',
+      appointmentDetails: {
+        service: 'Physio',
+        expert: 'Patricia',
+        date: 'Tomorrow',
+        time: '10:00',
+        duration: '45 minutes',
+      },
+      locale: 'en',
+    });
+
+    expect(adapted).toMatchObject({
+      paymentMethod: 'MB WAY',
+      appointmentUrl: 'https://meet.google.com/abc-defg-hij',
+      receiptUrl: 'https://stripe.com/receipts/abc',
+    });
+  });
+
+  test('payment-universal.confirmed.patient mirrors success mapping', () => {
+    const successAdapter = getPropAdapter({
+      workflowId: 'payment-universal',
+      eventType: 'success',
+      userSegment: 'patient',
+      locale: 'en',
+      templateVariant: 'default',
+    });
+    const confirmedAdapter = getPropAdapter({
+      workflowId: 'payment-universal',
+      eventType: 'confirmed',
+      userSegment: 'patient',
+      locale: 'en',
+      templateVariant: 'default',
+    });
+
+    const payload = {
+      customerName: 'Matilde',
+      amount: '70.00',
+      currency: 'EUR',
+      transactionId: 'pi_real',
+      paymentMethod: 'Card',
+      appointmentUrl: 'https://meet.google.com/xyz',
+      receiptUrl: 'https://stripe.com/receipts/xyz',
+      appointmentDetails: {
+        service: 'Physio',
+        expert: 'Patricia',
+        date: 'Tomorrow',
+        time: '10:00',
+        duration: '45 minutes',
+      },
+      locale: 'en',
+    };
+
+    expect(confirmedAdapter(payload)).toEqual(successAdapter(payload));
+  });
+
   test('expert-payout-notification.payout.expert: amount→payoutAmount, payoutDate→expectedArrivalDate, transactionId→payoutId', () => {
     const adapter = getPropAdapter({
       workflowId: 'expert-payout-notification',
@@ -595,5 +665,41 @@ describe('PropAdapter — workflow payload → template props', () => {
 
     const data = { foo: 'bar' };
     expect(adapter(data)).toEqual(data);
+  });
+});
+
+describe('normalizeLocale', () => {
+  // The helper lives in `emails/utils/i18n` and is consumed by
+  // `email-service.ts` and `email.ts` so regional tags from Stripe / Clerk
+  // / Accept-Language headers don't silently fall back to English on the
+  // template's strict `.includes(['en','pt','es'])` check.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { normalizeLocale } =
+    require('@/emails/utils/i18n') as typeof import('@/emails/utils/i18n');
+
+  test('collapses regional tags onto the supported template locales', () => {
+    expect(normalizeLocale('pt-BR')).toBe('br');
+    expect(normalizeLocale('pt_br')).toBe('br');
+    expect(normalizeLocale('PT-BR')).toBe('br');
+    expect(normalizeLocale('br')).toBe('br');
+
+    expect(normalizeLocale('pt-PT')).toBe('pt');
+    expect(normalizeLocale('pt')).toBe('pt');
+
+    expect(normalizeLocale('es-AR')).toBe('es');
+    expect(normalizeLocale('es-MX')).toBe('es');
+    expect(normalizeLocale('es')).toBe('es');
+
+    expect(normalizeLocale('en-US')).toBe('en');
+    expect(normalizeLocale('en')).toBe('en');
+  });
+
+  test("falls back to 'en' for unknown / empty / nullish input", () => {
+    expect(normalizeLocale(undefined)).toBe('en');
+    expect(normalizeLocale(null)).toBe('en');
+    expect(normalizeLocale('')).toBe('en');
+    expect(normalizeLocale('   ')).toBe('en');
+    expect(normalizeLocale('fr-FR')).toBe('en');
+    expect(normalizeLocale('de')).toBe('en');
   });
 });

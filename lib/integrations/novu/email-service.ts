@@ -12,7 +12,7 @@ import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-paym
 import PaymentConfirmationTemplate from '@/emails/payments/payment-confirmation';
 import ReservationExpiredEmail from '@/emails/payments/reservation-expired';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
-import type { SupportedLocale } from '@/emails/utils/i18n';
+import { normalizeLocale, type SupportedLocale } from '@/emails/utils/i18n';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
@@ -671,8 +671,17 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
     },
   },
   'payment-universal': {
+    // app/api/webhooks/stripe/handlers/payment.ts → flatten appointmentDetails
+    // and forward the receipt-side fields (paymentMethod / appointmentUrl /
+    // receiptUrl) that the PaymentConfirmation template renders. Without
+    // these explicit copies they'd fall through to the template's defaults
+    // and the "Payment method" / "Join appointment" / "Download receipt"
+    // rows would silently disappear.
+    //
+    // `success` and `confirmed` map to the same shape because
+    // `config/novu.ts` (L190) treats them as a single branch when picking
+    // the email template — keep both entries in sync.
     success: {
-      // app/api/webhooks/stripe/handlers/payment.ts → flatten appointmentDetails.
       patient: (data) => {
         const details = (data.appointmentDetails as Record<string, unknown> | undefined) ?? {};
         return {
@@ -680,6 +689,28 @@ const propAdapters: Record<string, Record<string, Record<string, PropAdapter>>> 
           amount: data.amount,
           currency: data.currency,
           transactionId: data.transactionId,
+          paymentMethod: data.paymentMethod,
+          appointmentUrl: data.appointmentUrl,
+          receiptUrl: data.receiptUrl,
+          expertName: details.expert,
+          serviceName: details.service,
+          appointmentDate: details.date,
+          appointmentTime: details.time,
+          locale: data.locale,
+        };
+      },
+    },
+    confirmed: {
+      patient: (data) => {
+        const details = (data.appointmentDetails as Record<string, unknown> | undefined) ?? {};
+        return {
+          customerName: data.customerName,
+          amount: data.amount,
+          currency: data.currency,
+          transactionId: data.transactionId,
+          paymentMethod: data.paymentMethod,
+          appointmentUrl: data.appointmentUrl,
+          receiptUrl: data.receiptUrl,
           expertName: details.expert,
           serviceName: details.service,
           appointmentDate: details.date,
@@ -1189,7 +1220,9 @@ export class ElevaEmailService {
     });
 
     const renderedTemplate = React.createElement(template, adaptedProps);
-    const htmlContent = render(renderedTemplate);
+    // `render` from @react-email/render returns Promise<string>; await it so
+    // callers receive `{ html: string }` instead of `{ html: Promise<string> }`.
+    const htmlContent = await render(renderedTemplate);
 
     return {
       html: htmlContent,
@@ -1298,11 +1331,11 @@ export class ElevaEmailService {
     notes?: string;
     locale?: string;
   }) {
-    // Validate and cast locale to SupportedLocale, defaulting to 'en'
-    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
-    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
-      ? (data.locale as SupportedLocale)
-      : 'en';
+    // Validate and cast locale to SupportedLocale, defaulting to 'en'.
+    // `normalizeLocale` collapses regional tags like `pt-BR`/`es-AR` so
+    // Brazilian Portuguese hits its own template instead of falling back
+    // to English.
+    const locale: SupportedLocale = normalizeLocale(data.locale);
 
     recordRenderBreadcrumb({
       workflowId: 'appointment-confirmation',
@@ -1385,12 +1418,11 @@ export class ElevaEmailService {
       '@/emails/appointments/appointment-reminder'
     );
 
-    // Narrow `locale` to SupportedLocale before passing to the template
-    // (its prop type is `SupportedLocale`, not arbitrary strings).
-    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
-    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
-      ? (data.locale as SupportedLocale)
-      : 'en';
+    // The reminder template only ships `en` and `pt` translations, so
+    // collapse `es` / `br` (and anything else `normalizeLocale` produced)
+    // down to `pt` for Portuguese-family locales and `en` otherwise.
+    const normalized: SupportedLocale = normalizeLocale(data.locale);
+    const locale: 'en' | 'pt' = normalized === 'pt' || normalized === 'br' ? 'pt' : 'en';
 
     const template = React.createElement(AppointmentReminderTemplate, {
       patientName: data.userName,
@@ -1530,9 +1562,9 @@ export class ElevaEmailService {
       appointmentDate: data.appointmentDetails?.date,
       appointmentTime: data.appointmentDetails?.time,
       timezone: data.timezone,
-      duration: data.appointmentDetails?.duration
-        ? parseInt(data.appointmentDetails.duration)
-        : undefined,
+      // Forward as-is; the template now accepts both numeric minutes and
+      // pre-formatted strings (e.g. "60 minutes") and renders them sensibly.
+      duration: data.appointmentDetails?.duration,
       customerNotes: data.customerNotes,
       reminderType: data.reminderType,
       daysRemaining: data.daysRemaining,
@@ -1666,10 +1698,7 @@ export class ElevaEmailService {
     );
 
     // Narrow `locale` to SupportedLocale before passing to the template.
-    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
-    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
-      ? (data.locale as SupportedLocale)
-      : 'en';
+    const locale: SupportedLocale = normalizeLocale(data.locale);
 
     const template = React.createElement(ExpertNotificationTemplate, {
       expertName: data.expertName,
@@ -1777,10 +1806,7 @@ export class ElevaEmailService {
     timezone?: string;
     locale?: string;
   }) {
-    const validLocales: SupportedLocale[] = ['en', 'pt', 'es'];
-    const locale: SupportedLocale = validLocales.includes(data.locale as SupportedLocale)
-      ? (data.locale as SupportedLocale)
-      : 'en';
+    const locale: SupportedLocale = normalizeLocale(data.locale);
 
     recordRenderBreadcrumb({
       workflowId: 'reservation-expired',

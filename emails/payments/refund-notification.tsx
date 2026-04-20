@@ -361,18 +361,22 @@ export const RefundNotificationEmail = ({
               </td>
               <td style={createTableCellStyle(false, 'right')}>{expertName}</td>
             </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>
-                {locale === 'pt' ? 'Data' : locale === 'es' ? 'Fecha' : 'Date'}
-              </td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
-            </tr>
-            <tr>
-              <td style={createTableCellStyle(true)}>
-                {locale === 'pt' ? 'Hora' : locale === 'es' ? 'Hora' : 'Time'}
-              </td>
-              <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
-            </tr>
+            {appointmentDate && (
+              <tr>
+                <td style={createTableCellStyle(true)}>
+                  {locale === 'pt' ? 'Data' : locale === 'es' ? 'Fecha' : 'Date'}
+                </td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+              </tr>
+            )}
+            {appointmentTime && (
+              <tr>
+                <td style={createTableCellStyle(true)}>
+                  {locale === 'pt' ? 'Hora' : locale === 'es' ? 'Hora' : 'Time'}
+                </td>
+                <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Section>

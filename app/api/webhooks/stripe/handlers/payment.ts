@@ -44,15 +44,21 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
 }
 
 /**
- * Map a Stripe `payment_method_types` array (e.g. `['mb_way']`,
- * `['card', 'multibanco']`) to a human-readable label suitable for the
- * "Payment Method:" row in `PaymentConfirmationEmail`. Returns the original
- * Stripe id title-cased when no friendly mapping exists, or `undefined` when
- * the array is empty (template hides the row).
+ * Map a Stripe payment-method id to a human-readable label suitable for the
+ * "Payment Method:" row in `PaymentConfirmationEmail`. Accepts either:
+ *   - a single id string from `Charge.payment_method_details.type` (the
+ *     method that was actually captured — preferred), or
+ *   - the `payment_method_types` array from a PaymentIntent (lists every
+ *     method the PI was eligible for, used as a fallback when the charge
+ *     hasn't been retrieved yet).
+ *
+ * Returns the original Stripe id title-cased when no friendly mapping
+ * exists, or `undefined` when the input is empty (template hides the row).
  */
-function friendlyPaymentMethod(types: string[] | null | undefined): string | undefined {
-  if (!types || types.length === 0) return undefined;
-  const primary = types[0];
+function friendlyPaymentMethod(type: string | string[] | null | undefined): string | undefined {
+  if (!type) return undefined;
+  const primary = Array.isArray(type) ? type[0] : type;
+  if (!primary) return undefined;
   const labels: Record<string, string> = {
     card: 'Card',
     multibanco: 'Multibanco',
@@ -1495,8 +1501,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             const currency = paymentIntent.currency?.toUpperCase() || 'EUR';
 
             // Friendly payment-method label so the receipt email shows e.g.
-            // "MB WAY" instead of leaving the row hidden.
-            const paymentMethod = friendlyPaymentMethod(paymentIntent.payment_method_types);
+            // "MB WAY" instead of leaving the row hidden. Prefer the actual
+            // captured-charge method (`payment_method_details.type`) over
+            // `payment_method_types[]`, which under Dashboard-driven dynamic
+            // payment methods lists every method the PI was eligible for —
+            // not the one the customer actually used.
+            const paymentMethod = friendlyPaymentMethod(
+              latestCharge?.payment_method_details?.type ?? paymentIntent.payment_method_types,
+            );
 
             // The Google Meet link lives on MeetingTable.meetingUrl; surface
             // it as the "Join Appointment" CTA in the receipt email.

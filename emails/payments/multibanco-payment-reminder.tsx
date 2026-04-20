@@ -18,7 +18,15 @@ interface MultibancoPaymentReminderProps {
   appointmentDate?: string;
   appointmentTime?: string;
   timezone?: string;
-  duration?: number;
+  /**
+   * Appointment duration. Accepts either a number of minutes (e.g. `60`)
+   * or a pre-formatted string (e.g. `"60 minutes"`) — the cron at
+   * `app/api/cron/send-payment-reminders/route.ts` forwards
+   * `event.durationInMinutes` (number) while the Stripe webhook forwards
+   * `appointmentDetails.duration` (string). The conditional below treats
+   * both as "present" when they carry a non-empty / positive value.
+   */
+  duration?: number | string;
   multibancoEntity?: string;
   multibancoReference?: string;
   multibancoAmount?: string;
@@ -39,7 +47,7 @@ export default function MultibancoPaymentReminderTemplate({
   appointmentDate = '',
   appointmentTime = '',
   timezone = '',
-  duration = 0,
+  duration,
   multibancoEntity = '',
   multibancoReference = '',
   multibancoAmount = '0.00',
@@ -51,6 +59,26 @@ export default function MultibancoPaymentReminderTemplate({
   locale = 'en',
 }: MultibancoPaymentReminderProps) {
   const isUrgent = reminderType === 'urgent' || daysRemaining <= 1;
+
+  // `duration` may arrive as either a number of minutes or a pre-formatted
+  // string. Normalize to a render-ready label and a "should we show the
+  // row?" flag so a value of `"60 minutes"` doesn't get hidden by a
+  // numeric `> 0` check.
+  const durationNumber =
+    typeof duration === 'number'
+      ? duration
+      : typeof duration === 'string' && duration.trim().length > 0
+        ? Number.parseInt(duration, 10)
+        : Number.NaN;
+  const hasDuration =
+    (typeof duration === 'string' && duration.trim().length > 0) ||
+    (Number.isFinite(durationNumber) && durationNumber > 0);
+  const durationLabel =
+    typeof duration === 'string' && duration.trim().length > 0
+      ? duration
+      : Number.isFinite(durationNumber) && durationNumber > 0
+        ? `${durationNumber}`
+        : '';
 
   // Internationalization support
   const translations = {
@@ -232,11 +260,14 @@ export default function MultibancoPaymentReminderTemplate({
               </td>
             </tr>
           )}
-          {duration > 0 && (
+          {hasDuration && (
             <tr>
               <td style={createTableCellStyle(true)}>{t.duration}:</td>
               <td style={createTableCellStyle(false, 'right')}>
-                {duration} {t.minutes}
+                {/* When the caller already supplied a string like "60 minutes"
+                    we render it verbatim and skip the trailing minutes label
+                    to avoid "60 minutes minutes". */}
+                {typeof duration === 'string' ? durationLabel : `${durationLabel} ${t.minutes}`}
               </td>
             </tr>
           )}
