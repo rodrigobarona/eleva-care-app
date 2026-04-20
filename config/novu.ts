@@ -319,6 +319,39 @@ export const paymentWorkflow = workflow(
             : locale === 'es'
               ? `❌ Pago fallido - ${payload.currency || 'EUR'} ${payload.amount}`
               : `❌ Payment Failed - ${payload.currency || 'EUR'} ${payload.amount}`;
+      } else if (payload.eventType === 'pending') {
+        // `pending` fires when a Multibanco voucher's 7-day payment window
+        // closed and Stripe is now confirming the funds in its 4-day
+        // settlement buffer (see `handlePaymentIntentProcessing` in
+        // `app/api/webhooks/stripe/handlers/payment.ts`). The patient has
+        // already paid — they just need to know we're processing. The
+        // in-app notification (above) already conveys this; the email is
+        // a minimal "we're confirming your payment" message rather than
+        // the generic HTML fallback that would otherwise render here.
+        const locale = (payload.locale || 'en').toLowerCase().split('-')[0];
+        const customerLine =
+          locale === 'pt'
+            ? `Olá ${payload.customerName || ''},`
+            : locale === 'es'
+              ? `Hola ${payload.customerName || ''},`
+              : `Hello ${payload.customerName || ''},`;
+        const bodyLine =
+          locale === 'pt'
+            ? 'Recebemos a confirmação do seu pagamento Multibanco. Estamos a aguardar a transferência dos fundos do seu banco — esta é uma fase normal e o seu agendamento permanece reservado. Iremos enviar a confirmação final assim que os fundos chegarem (normalmente até 4 dias úteis).'
+            : locale === 'es'
+              ? 'Hemos recibido la confirmación de su pago Multibanco. Estamos esperando que los fondos lleguen desde su banco — esta es una fase normal y su reserva sigue activa. Le enviaremos la confirmación final en cuanto lleguen los fondos (normalmente en un plazo de 4 días hábiles).'
+              : "We've received your Multibanco payment confirmation. We're now waiting for the funds to clear from your bank — this is a normal step and your booking remains reserved. We'll send the final confirmation as soon as the funds arrive (usually within 4 business days).";
+        emailBody = `<div style="font-family: system-ui, sans-serif; line-height: 1.6; color: #1F2937;">
+  <p>${customerLine}</p>
+  <p>${bodyLine}</p>
+  <p style="color: #6B7280; font-size: 14px;">— Eleva Care</p>
+</div>`;
+        subject =
+          locale === 'pt'
+            ? '⏳ A processar o seu pagamento Multibanco'
+            : locale === 'es'
+              ? '⏳ Procesando su pago Multibanco'
+              : '⏳ Processing your Multibanco payment';
       } else {
         // Use generic email renderer for other payment events
         emailBody = await elevaEmailService.renderGenericEmail({
@@ -692,15 +725,20 @@ export const marketplaceWorkflow = workflow(
         locale: payload.locale,
       });
 
+      // Subject heading + emoji are picked per-event so the inbox preview
+      // is informative without opening the email. Keep this in sync with
+      // `MarketplaceEventType` in `emails/experts/marketplace-event.tsx`.
       const heading =
         payload.eventType === 'payout-processed'
-          ? 'Payout processed'
+          ? '🏦 Payout processed'
           : payload.eventType === 'connect-account-status'
-            ? 'Account update'
-            : 'Payment received';
+            ? '🔧 Account update'
+            : payload.eventType === 'refund-processed'
+              ? '↩️ Refund processed'
+              : '💰 Payment received';
 
       return {
-        subject: `💰 ${heading} - Eleva Care`,
+        subject: `${heading} - Eleva Care`,
         body: emailBody,
       };
     });
@@ -709,7 +747,16 @@ export const marketplaceWorkflow = workflow(
     name: 'Marketplace Updates',
     description: 'Notifications for marketplace account and payment status changes',
     payloadSchema: z.object({
-      eventType: z.enum(['payment-received', 'payout-processed', 'connect-account-status']),
+      // `refund-processed` is fired by `notifyAppointmentConflict` in
+      // `app/api/webhooks/stripe/handlers/payment.ts` after a double-booking
+      // refund completes. Keep this enum in sync with `MarketplaceEventType`
+      // in `emails/experts/marketplace-event.tsx`.
+      eventType: z.enum([
+        'payment-received',
+        'payout-processed',
+        'connect-account-status',
+        'refund-processed',
+      ]),
       amount: z.string().optional(),
       expertName: z.string().optional(),
       accountStatus: z.string().optional(),

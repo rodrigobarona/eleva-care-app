@@ -705,34 +705,80 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     // other email in this app uses.
     const resolvedBuyerName = buyerName || buyerEmail.split('@')[0];
     const [firstName, ...lastNameParts] = resolvedBuyerName.split(' ');
-    const packResult = await triggerWorkflow({
-      workflowId: 'pack-purchase-confirmation',
-      to: {
-        subscriberId: `guest_${buyerEmail}`,
-        email: buyerEmail,
-        firstName: firstName || undefined,
-        lastName: lastNameParts.join(' ') || undefined,
-      },
-      payload: {
-        buyerName: resolvedBuyerName,
-        buyerEmail,
-        packName,
-        eventName,
-        expertName,
-        sessionsCount,
-        promotionCode: promoCode.code,
-        expiresAt: expiresAt.toISOString(),
-        bookingUrl,
-        locale,
-      },
-      transactionId: `pack-purchase-${session.id}`,
-    });
 
-    if (packResult) {
-      console.log(`📧 Pack purchase confirmation triggered via Novu for ${maskedEmail}`);
-    } else {
+    // SubscriberId uses the Stripe session id (or customer id when present)
+    // instead of `guest_${buyerEmail}` to avoid leaking the buyer's email
+    // address into structured logs / Novu's subscriber ledger. The actual
+    // address still travels to Novu via `to.email` so deliverability is
+    // unaffected.
+    const guestSubscriberId = customerId
+      ? `guest_${customerId}`
+      : `guest_${session.id}`;
+
+    // Wrap the trigger in a small retry loop so a transient Novu failure
+    // doesn't silently lose the confirmation. The trigger is idempotent
+    // via `transactionId: pack-purchase-${session.id}`, so retrying is
+    // safe — Novu dedupes by transactionId. We deliberately do NOT throw
+    // out of the catch / return a non-2xx status: the pack-purchase row
+    // was already inserted above (no idempotency key on the insert), so
+    // a Stripe webhook retry would re-run `handlePackPurchase` and hit
+    // the `stripeSessionId` unique constraint. Better to ack the webhook
+    // and surface the failure via logs / monitoring.
+    const PACK_NOTIFY_MAX_ATTEMPTS = 3;
+    let packResult: unknown = null;
+    let lastError: unknown = null;
+
+    for (let attempt = 1; attempt <= PACK_NOTIFY_MAX_ATTEMPTS; attempt++) {
+      try {
+        packResult = await triggerWorkflow({
+          workflowId: 'pack-purchase-confirmation',
+          to: {
+            subscriberId: guestSubscriberId,
+            email: buyerEmail,
+            firstName: firstName || undefined,
+            lastName: lastNameParts.join(' ') || undefined,
+          },
+          payload: {
+            buyerName: resolvedBuyerName,
+            buyerEmail,
+            packName,
+            eventName,
+            expertName,
+            sessionsCount,
+            promotionCode: promoCode.code,
+            expiresAt: expiresAt.toISOString(),
+            bookingUrl,
+            locale,
+          },
+          transactionId: `pack-purchase-${session.id}`,
+        });
+
+        if (packResult) {
+          if (attempt > 1) {
+            console.log(
+              `📧 Pack purchase confirmation triggered via Novu for ${maskedEmail} on attempt ${attempt}`,
+            );
+          } else {
+            console.log(`📧 Pack purchase confirmation triggered via Novu for ${maskedEmail}`);
+          }
+          break;
+        }
+      } catch (attemptError) {
+        lastError = attemptError;
+      }
+
+      // Exponential backoff between attempts: 250ms, 500ms.
+      if (attempt < PACK_NOTIFY_MAX_ATTEMPTS) {
+        const backoffMs = 250 * 2 ** (attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+
+    if (!packResult) {
       console.error(
-        `📧 Failed to trigger pack purchase confirmation via Novu for ${maskedEmail}`,
+        `📧 Failed to trigger pack purchase confirmation via Novu for ${maskedEmail} ` +
+          `after ${PACK_NOTIFY_MAX_ATTEMPTS} attempts (sessionId=${session.id})`,
+        lastError,
       );
     }
   } catch (emailError) {

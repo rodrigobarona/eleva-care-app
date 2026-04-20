@@ -315,32 +315,39 @@ export const PackPurchaseConfirmation = ({
         </Section>
       )}
 
-      <Section style={ELEVA_CARD_STYLES.default}>
-        <Heading style={{ ...ELEVA_TEXT_STYLES.heading3, margin: '0 0 16px 0' }}>
-          {t.howToUse}
-        </Heading>
-        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          {[t.step1, t.step2, t.step3, t.step4].map((step, index) => (
-            <tr key={index}>
-              <td
-                style={{
-                  padding: '8px 12px 8px 0',
-                  verticalAlign: 'top' as const,
-                  width: '32px',
-                  fontSize: '16px',
-                  fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
-                  color: ELEVA_COLORS.primary,
-                }}
-              >
-                {index + 1}.
-              </td>
-              <td style={{ padding: '8px 0', ...ELEVA_TEXT_STYLES.bodyRegular, margin: 0 }}>
-                {step}
-              </td>
-            </tr>
-          ))}
-        </table>
-      </Section>
+      {/* "How to use your code" steps reference the promo code in the
+          previous block. If we don't have a code to redeem, omit the steps
+          entirely — otherwise the buyer sees redemption instructions
+          ("Visit your expert's booking page... Enter the code...") with
+          no code to enter. */}
+      {promotionCode && (
+        <Section style={ELEVA_CARD_STYLES.default}>
+          <Heading style={{ ...ELEVA_TEXT_STYLES.heading3, margin: '0 0 16px 0' }}>
+            {t.howToUse}
+          </Heading>
+          <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+            {[t.step1, t.step2, t.step3, t.step4].map((step, index) => (
+              <tr key={index}>
+                <td
+                  style={{
+                    padding: '8px 12px 8px 0',
+                    verticalAlign: 'top' as const,
+                    width: '32px',
+                    fontSize: '16px',
+                    fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                    color: ELEVA_COLORS.primary,
+                  }}
+                >
+                  {index + 1}.
+                </td>
+                <td style={{ padding: '8px 0', ...ELEVA_TEXT_STYLES.bodyRegular, margin: 0 }}>
+                  {step}
+                </td>
+              </tr>
+            ))}
+          </table>
+        </Section>
+      )}
 
       <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
         <EmailButton

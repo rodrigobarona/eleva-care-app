@@ -193,8 +193,10 @@ the connected account, not the platform) or duplicate work.
 
 ### 4.2 `/api/webhooks/stripe` — main platform endpoint (22 events) ✅
 
-Switch handler: [`app/api/webhooks/stripe/route.ts`](../../../app/api/webhooks/stripe/route.ts)
-L1551-1697; post-event Novu trigger: `triggerNovuNotificationFromStripeEvent`.
+Routing happens in the top-level `POST` handler's `event.type` switch in
+[`app/api/webhooks/stripe/route.ts`](../../../app/api/webhooks/stripe/route.ts);
+the post-event Novu trigger is `triggerNovuNotificationFromStripeEvent`
+in the same file.
 
 Subscribed and code-handled (all ✅):
 
@@ -232,8 +234,9 @@ identity.verification_session.{created,processing,requires_input,verified}
 
 ### 4.4 `/api/webhooks/stripe-connect` — Connected-accounts endpoint (15 events) ✅
 
-Switch handler: [`app/api/webhooks/stripe-connect/route.ts`](../../../app/api/webhooks/stripe-connect/route.ts)
-L90-280. **Critical — events on this endpoint scope to "Connected and v2
+Routing happens in the top-level `POST` handler's `event.type` switch in
+[`app/api/webhooks/stripe-connect/route.ts`](../../../app/api/webhooks/stripe-connect/route.ts).
+**Critical — events on this endpoint scope to "Connected and v2
 accounts", not "Your account".** Connect-side refunds (initiated from the
 expert's Express dashboard or the Connect view of your Dashboard) fire here
 and would be missed entirely if subscribed only on the main endpoint.
@@ -264,9 +267,9 @@ If you suspect coverage drift later, walk through this once:
 1. Open each of the three endpoints in the Stripe Dashboard.
 2. For each, expand "Listen to events" and capture the subscribed list.
 3. Diff against the code-handled events:
-   - Main: switch in [`app/api/webhooks/stripe/route.ts`](../../../app/api/webhooks/stripe/route.ts) L1551-1697.
-   - Identity: prefix match in [`app/api/webhooks/stripe-identity/route.ts`](../../../app/api/webhooks/stripe-identity/route.ts).
-   - Connect: switch in [`app/api/webhooks/stripe-connect/route.ts`](../../../app/api/webhooks/stripe-connect/route.ts) L90-280.
+   - Main: the `event.type` switch inside the `POST` handler in [`app/api/webhooks/stripe/route.ts`](../../../app/api/webhooks/stripe/route.ts).
+   - Identity: the `event.type.startsWith('identity.verification_session')` prefix match in [`app/api/webhooks/stripe-identity/route.ts`](../../../app/api/webhooks/stripe-identity/route.ts) → `handleVerificationSessionEvent`.
+   - Connect: the `event.type` switch inside the `POST` handler in [`app/api/webhooks/stripe-connect/route.ts`](../../../app/api/webhooks/stripe-connect/route.ts).
 4. For any handler missing a subscription, add it in the Dashboard.
    For any subscription with no handler, decide: add a case, or unsubscribe.
 5. Cross-check `STRIPE_EVENT_TO_WORKFLOW_MAPPINGS` in

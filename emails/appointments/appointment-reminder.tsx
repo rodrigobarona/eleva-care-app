@@ -68,15 +68,21 @@ export const AppointmentReminderEmail = ({
   meetingLink,
   locale = 'en',
 }: AppointmentReminderEmailProps) => {
-  // Defensive default: callers occasionally forward an empty string when
-  // the upstream `eventName` is missing. Without this guard the inbox
-  // preview would read "...tomorrow - " (trailing dash + nothing) and the
-  // banner / heading would render an empty paragraph. Keep the same neutral
-  // fallback the prop default uses.
+  // Per-locale fallback for the appointment-type label. Callers occasionally
+  // forward an empty string when the upstream `eventName` is missing, so we
+  // need a non-empty value for the banner / heading / inbox-preview
+  // interpolation. Using a localized fallback keeps the email coherent
+  // for non-English recipients (was previously hardcoded "Your appointment").
+  const APPOINTMENT_TYPE_FALLBACK: Record<AppointmentReminderLocale, string> = {
+    en: 'Your appointment',
+    pt: 'A sua consulta',
+    br: 'Sua consulta',
+    es: 'Su cita',
+  };
   const safeAppointmentType =
     typeof appointmentType === 'string' && appointmentType.trim().length > 0
       ? appointmentType
-      : 'Your appointment';
+      : APPOINTMENT_TYPE_FALLBACK[locale];
 
   // Internationalization support
   const translations = {

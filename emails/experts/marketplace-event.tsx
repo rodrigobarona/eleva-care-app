@@ -52,6 +52,12 @@ const ICONS: Record<MarketplaceEventType, string> = {
   'refund-processed': '↩️',
 };
 
+// Heading translations are kept in this file (rather than in a shared
+// `emails/utils/i18n` helper) on purpose: they are template-specific copy
+// keyed by `MarketplaceEventType`, exhaustively typed, and used in exactly
+// one place. Promoting them to a shared util would just relocate the same
+// 16 strings without giving any other template a useful contract — the
+// labels here have no overlap with other templates' translation tables.
 const HEADINGS: Record<MarketplaceEventLocale, Record<MarketplaceEventType, string>> = {
   en: {
     'payment-received': 'Payment received',

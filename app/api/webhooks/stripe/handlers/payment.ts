@@ -2327,33 +2327,69 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
   }
 }
 
+// Stripe holds Multibanco funds in a settlement buffer (≈4 days) after a
+// voucher's 7-day payment window closes. The slot reservation was created
+// at `payment_intent.requires_action` with `expiresAt = voucherExpiresAt`,
+// so the cleanup cron (lt(expiresAt, now)) would otherwise free the slot
+// the moment the voucher expires — even though Stripe is still confirming
+// the payment. We push the reservation expiry forward by this buffer so
+// the slot stays held until Stripe resolves to `succeeded`/`payment_failed`.
+const MULTIBANCO_PROCESSING_BUFFER_MS = 4 * 24 * 60 * 60 * 1000;
+
 /**
  * Handle `payment_intent.processing` — fires after a Multibanco voucher's
  * 7-day payment window closes (transitioning the PI from `requires_action`
  * to `processing`) or for any async payment method whose funds Stripe is
- * still confirming. We don't change DB state here; the post-event Novu
- * trigger in `triggerNovuNotificationFromStripeEvent` will deliver a
- * "your payment is processing" notification to the patient via the
- * `payment-universal` workflow with `eventType: 'pending'`.
+ * still confirming.
  *
- * Without this handler, the event would log as "Unhandled event type"
- * and the patient would only learn what happened 4 days later when the
- * PI finally transitions to `succeeded` or `payment_failed`.
+ * We extend the matching slot-reservation's `expiresAt` by Stripe's
+ * settlement buffer so `cleanup-expired-reservations` doesn't free the
+ * slot during the buffer window. The post-event Novu trigger in
+ * `triggerNovuNotificationFromStripeEvent` separately delivers a
+ * "your payment is processing" notification to the patient.
  */
 export async function handlePaymentIntentProcessing(paymentIntent: Stripe.PaymentIntent) {
   console.log(
     `Payment intent ${paymentIntent.id} entered processing state. ` +
       `Payment method type: ${paymentIntent.payment_method_types?.join(', ') || 'unknown'}`,
   );
-  // Intentionally no DB writes — the slot reservation created at
-  // `requires_action` stays valid through the processing buffer. Stripe
-  // will resolve to `succeeded` or `payment_failed` within ~4 days.
+
+  try {
+    const newExpiresAt = new Date(Date.now() + MULTIBANCO_PROCESSING_BUFFER_MS);
+    const updated = await db
+      .update(SlotReservationTable)
+      .set({ expiresAt: newExpiresAt, updatedAt: new Date() })
+      .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id))
+      .returning({ id: SlotReservationTable.id, expiresAt: SlotReservationTable.expiresAt });
+
+    if (updated.length > 0) {
+      console.log(
+        `🛡️ Extended slot reservation ${updated[0].id} expiresAt to ${updated[0].expiresAt.toISOString()} ` +
+          `to cover Stripe's settlement buffer for PI ${paymentIntent.id}`,
+      );
+    } else {
+      // No matching reservation — usually a card payment (no reservation
+      // was ever created since cards are sync). Safe to ignore.
+      console.log(
+        `No slot reservation found for PI ${paymentIntent.id} in processing state — likely a sync card payment`,
+      );
+    }
+  } catch (dbError) {
+    // Don't fail the webhook over a reservation-extension error; the cron
+    // will still free the slot at the original expiresAt if extension
+    // fails (degraded behavior, but webhook stays acked).
+    console.error(
+      `Failed to extend slot reservation for PI ${paymentIntent.id} during processing:`,
+      dbError,
+    );
+  }
 }
 
 /**
  * Handle `payment_intent.canceled` — fires when the customer or our cron
  * job (cleanup-expired-reservations) explicitly cancels a pending PI
- * before it succeeds. Used to release the slot reservation early.
+ * before it succeeds. Releases the slot reservation immediately so the
+ * patient doesn't have to wait for the cleanup cron's next tick.
  */
 export async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) {
   console.log(
@@ -2361,12 +2397,32 @@ export async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentI
       paymentIntent.cancellation_reason || 'unspecified'
     }`,
   );
-  // The actual reservation release happens in
-  // `app/api/cron/cleanup-expired-reservations` based on `expiresAt` and
-  // in `handleChargeRefunded` for refund-driven cancellations. This
-  // handler exists so the post-event Novu trigger fires (so we can send
-  // a "booking cancelled" email if appropriate) and so the event no
-  // longer logs as "Unhandled".
+
+  try {
+    const deleted = await db
+      .delete(SlotReservationTable)
+      .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id))
+      .returning({ id: SlotReservationTable.id });
+
+    if (deleted.length > 0) {
+      console.log(
+        `🗑️ Released slot reservation ${deleted[0].id} for canceled PI ${paymentIntent.id}`,
+      );
+    } else {
+      // No matching reservation — the slot was already freed (e.g., by
+      // a refund flow, the cleanup cron, or because this was a card
+      // payment with no reservation in the first place).
+      console.log(
+        `No slot reservation to release for canceled PI ${paymentIntent.id}`,
+      );
+    }
+  } catch (dbError) {
+    // Same rationale as above — don't fail the webhook.
+    console.error(
+      `Failed to release slot reservation for canceled PI ${paymentIntent.id}:`,
+      dbError,
+    );
+  }
 }
 
 /**

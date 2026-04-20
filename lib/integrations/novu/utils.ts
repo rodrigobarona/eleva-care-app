@@ -611,9 +611,12 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   // `invoice.paid` is Stripe's modern event for "an invoice was paid" and
   // matches what the production webhook subscribes to (the older
   // `invoice.payment_succeeded` is still emitted but is being phased out).
-  // No subscription product exists yet — kept here for forward
-  // compatibility when subscriptions land.
+  // Both keys are mapped so `getWorkflowFromStripeEvent()` resolves
+  // either incoming event name (legacy webhook configs, test triggers,
+  // older endpoint subscriptions). No subscription product exists yet —
+  // kept here for forward compatibility when subscriptions land.
   'invoice.paid': 'payment-universal', // Uses eventType: 'success'
+  'invoice.payment_succeeded': 'payment-universal', // Uses eventType: 'success' (legacy)
   'invoice.payment_failed': 'payment-universal', // Uses eventType: 'failed'
 
   // Dispute events - use payment universal workflow. Stripe explicitly

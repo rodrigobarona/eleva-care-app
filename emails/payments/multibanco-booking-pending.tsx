@@ -60,8 +60,13 @@ interface MultibancoBookingPendingProps {
  */
 export default function MultibancoBookingPendingTemplate({
   customerName = 'Customer',
-  expertName = 'Your Expert',
-  serviceName = 'Your appointment',
+  // `expertName` and `serviceName` intentionally have NO default: the
+  // detail-table rows below render conditionally on these props being
+  // truthy non-empty strings, so a non-empty default would defeat the
+  // guard and render rows with placeholder text ("Your Expert" /
+  // "Your appointment") even when the adapter omitted the fields.
+  expertName,
+  serviceName,
   appointmentDate = '',
   appointmentTime = '',
   timezone = '',
@@ -74,17 +79,27 @@ export default function MultibancoBookingPendingTemplate({
   customerNotes,
   locale = 'en',
 }: MultibancoBookingPendingProps) {
+  // Use derived values for translation interpolation so subject /
+  // previewText / mainMessage stay readable when the props are missing,
+  // without re-introducing fallbacks into the conditional table rows.
+  const expertLabel =
+    typeof expertName === 'string' && expertName.trim().length > 0
+      ? expertName
+      : locale === 'pt'
+        ? 'o seu especialista'
+        : 'your expert';
   // Internationalization support
   const translations = {
     en: {
-      subject: `Appointment with ${expertName} - Payment Pending via Multibanco`,
-      previewText: `Complete your booking with ${expertName} by paying via Multibanco`,
+      subject: `Appointment with ${expertLabel} - Payment Pending via Multibanco`,
+      previewText: `Complete your booking with ${expertLabel} by paying via Multibanco`,
       title: 'Payment Pending - Complete Your Booking',
       greeting: 'Hello',
-      mainMessage: `We've reserved your appointment with <strong>${expertName}</strong> and are waiting for your payment confirmation via Multibanco.`,
+      mainMessage: `We've reserved your appointment with <strong>${expertLabel}</strong> and are waiting for your payment confirmation via Multibanco.`,
       appointmentDetails: 'Appointment Details',
       paymentDetails: 'Multibanco Payment Details',
       service: 'Service',
+      expert: 'Expert',
       date: 'Date',
       time: 'Time',
       duration: 'Duration',
@@ -101,14 +116,15 @@ export default function MultibancoBookingPendingTemplate({
       paymentUrgent: 'Payment required to secure your appointment',
     },
     pt: {
-      subject: `Consulta com ${expertName} - Pagamento Pendente via Multibanco`,
-      previewText: `Complete a sua marcação com ${expertName} pagando via Multibanco`,
+      subject: `Consulta com ${expertLabel} - Pagamento Pendente via Multibanco`,
+      previewText: `Complete a sua marcação com ${expertLabel} pagando via Multibanco`,
       title: 'Pagamento Pendente - Complete a Sua Marcação',
       greeting: 'Olá',
-      mainMessage: `Reservámos a sua consulta com <strong>${expertName}</strong> e aguardamos a confirmação do pagamento via Multibanco.`,
+      mainMessage: `Reservámos a sua consulta com <strong>${expertLabel}</strong> e aguardamos a confirmação do pagamento via Multibanco.`,
       appointmentDetails: 'Detalhes da Consulta',
       paymentDetails: 'Detalhes do Pagamento Multibanco',
       service: 'Serviço',
+      expert: 'Especialista',
       date: 'Data',
       time: 'Hora',
       duration: 'Duração',
@@ -192,7 +208,7 @@ export default function MultibancoBookingPendingTemplate({
         </Heading>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
-          {serviceName && (
+          {serviceName && serviceName.trim().length > 0 && (
             <tr>
               <td style={createTableCellStyle(true)}>{t.service}:</td>
               <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
@@ -223,9 +239,9 @@ export default function MultibancoBookingPendingTemplate({
               </td>
             </tr>
           )}
-          {expertName && (
+          {expertName && expertName.trim().length > 0 && (
             <tr>
-              <td style={createTableCellStyle(true)}>Expert:</td>
+              <td style={createTableCellStyle(true)}>{t.expert}:</td>
               <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
                 {expertName}
               </td>
