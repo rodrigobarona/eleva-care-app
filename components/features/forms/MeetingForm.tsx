@@ -28,7 +28,7 @@ import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { CalendarIcon, Clock, Globe, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
-  parseAsIsoDate,
+  createParser,
   parseAsIsoDateTime,
   parseAsString,
   parseAsStringLiteral,
@@ -67,6 +67,28 @@ export function validateCheckoutUrl(url: string): void {
     throw error;
   }
 }
+
+/**
+ * Custom date parser that serializes/parses using local date methods
+ * instead of UTC. Fixes the off-by-one day bug where parseAsIsoDate
+ * uses .toISOString() (UTC) causing dates to shift back one day
+ * for users in UTC+ timezones.
+ */
+const parseAsLocalDate = createParser({
+  parse: (v: string) => {
+    const [year, month, day] = v.split('-').map(Number);
+    if (!year || !month || !day) return null;
+    const date = new Date(year, month - 1, day);
+    return isNaN(date.getTime()) ? null : date;
+  },
+  serialize: (v: Date) => {
+    const year = v.getFullYear();
+    const month = String(v.getMonth() + 1).padStart(2, '0');
+    const day = String(v.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  },
+  eq: (a: Date, b: Date) => a.getTime() === b.getTime(),
+});
 
 interface BlockedDate {
   id: number;
@@ -457,7 +479,7 @@ export function MeetingFormContent({
   const queryStateParsers = React.useMemo(
     () => ({
       step: parseAsStringLiteral(['1', '2', '3'] as const).withDefault('1'),
-      date: parseAsIsoDate,
+      date: parseAsLocalDate,
       time: parseAsIsoDateTime,
       name: parseAsString.withDefault(''),
       email: parseAsString.withDefault(''),
