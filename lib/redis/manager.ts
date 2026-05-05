@@ -596,15 +596,17 @@ export const FormCache = {
   },
 
   /**
-   * Mark form submission as completed
+   * Mark form submission as completed with a short TTL.
+   * The brief window (default 5s) absorbs near-simultaneous duplicates
+   * without blocking legitimate retries (user goes back, tries again).
    */
-  async markCompleted(key: string): Promise<void> {
+  async markCompleted(key: string, ttlSeconds: number = 5): Promise<void> {
     try {
       const cached = await FormCache.get(key);
       if (cached) {
         cached.status = 'completed';
         cached.timestamp = Date.now();
-        await FormCache.set(key, cached);
+        await FormCache.set(key, cached, ttlSeconds);
       } else {
         console.warn('No cached data found to mark as completed for key:', key);
       }
