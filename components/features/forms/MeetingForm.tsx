@@ -714,11 +714,23 @@ export function MeetingFormContent({
       case 'SLOT_ALREADY_BOOKED':
         return 'This time slot has been booked. Please choose a different time.';
       case 'SLOT_TEMPORARILY_RESERVED':
-        return 'This time slot is temporarily reserved. Please try another time.';
+        return 'This time slot is temporarily reserved by another user. Please pick a different time or try again in a few minutes.';
       case 'INVALID_TIME_SLOT':
         return 'This time is no longer available. Please pick another slot.';
+      case 'CONNECT_ACCOUNT_NOT_READY':
+        return 'This expert cannot accept payments right now. Please try again later.';
+      case 'EVENT_OWNERSHIP_MISMATCH':
+        return 'There was an issue verifying this event. Please refresh the page and try again.';
+      case 'EVENT_NOT_PAYABLE':
+        return 'This event is not configured for payment. Please contact the expert.';
+      case 'PRICE_MISMATCH':
+        return 'The price has been updated. Please refresh the page to see the latest price.';
+      case 'VALIDATION_ERROR':
+        return 'Some required information is missing. Please check your details and try again.';
+      case 'IDEMPOTENCY_MISMATCH':
+        return 'Your payment session expired. Please try again.';
       default:
-        return fallback || 'Failed to schedule meeting. Please try again.';
+        return fallback || 'Something went wrong. Please try again or choose a different time.';
     }
   }, []);
 
@@ -893,7 +905,9 @@ export function MeetingFormContent({
         if (!silent) {
           form.setError('root', {
             message:
-              error instanceof Error ? error.message : 'There was an error creating your payment.',
+              error instanceof Error
+                ? error.message
+                : 'Something went wrong setting up your payment. Please try again.',
           });
         }
         return null;
@@ -965,17 +979,23 @@ export function MeetingFormContent({
         if (checkoutUrl) {
           setCheckoutUrl(checkoutUrl);
           transitionToStep('3');
-          redirectToCheckout(checkoutUrl, 'Payment session is invalid. Please try again.');
+          redirectToCheckout(
+            checkoutUrl,
+            'Your payment session has expired. Please try again to get a new one.',
+          );
           return;
         }
 
         form.setError('root', {
-          message: 'Could not create payment checkout',
+          message: "We couldn't set up your payment. Please try again or choose a different time.",
         });
       } catch (error) {
         console.error('[MeetingForm] submitMeeting: exception', error);
         form.setError('root', {
-          message: 'Failed to schedule meeting. Please try again.',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Something went wrong. Please try again or choose a different time.',
         });
       } finally {
         isProcessingRef.current = false;
@@ -1183,7 +1203,12 @@ export function MeetingFormContent({
           '[MeetingForm] handleNextStep: PAID path - redirecting to',
           existingCheckoutUrl,
         );
-        if (redirectToCheckout(existingCheckoutUrl, 'Payment session expired. Please try again.')) {
+        if (
+          redirectToCheckout(
+            existingCheckoutUrl,
+            'Your payment session has expired. Please try again to get a new one.',
+          )
+        ) {
           return;
         }
       }
@@ -1204,7 +1229,7 @@ export function MeetingFormContent({
               if (
                 redirectToCheckout(
                   prefetchRedirectUrl,
-                  'Payment session expired. Please try again.',
+                  'Your payment session has expired. Please try again to get a new one.',
                 )
               ) {
                 return;
@@ -1232,17 +1257,27 @@ export function MeetingFormContent({
 
         if (redirectUrl) {
           console.log('[MeetingForm] handleNextStep: PAID path - redirecting to checkout');
-          if (redirectToCheckout(redirectUrl, 'Payment session expired. Please try again.')) {
+          if (
+            redirectToCheckout(
+              redirectUrl,
+              'Your payment session has expired. Please try again to get a new one.',
+            )
+          ) {
             return;
           }
-          throw new Error('Invalid checkout URL - redirect blocked for security');
+          throw new Error('The checkout URL could not be verified. Please try again.');
         } else {
-          throw new Error('Failed to get checkout URL');
+          throw new Error(
+            "We couldn't set up your payment. Please try again or choose a different time.",
+          );
         }
       } catch (error) {
         console.error('[MeetingForm] handleNextStep: PAID path - exception', error);
         form.setError('root', {
-          message: 'Failed to process request',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Something went wrong setting up your payment. Please try again.',
         });
         isProcessingRef.current = false;
         setIsProcessing(false);
