@@ -484,6 +484,13 @@ export function MeetingFormContent({
   // created for the same booking if the calls overlapped.
   const idempotencyKeyCache = React.useRef<{ signature: string; key: string } | null>(null);
 
+  // Per-attempt nonce included in the idempotency signature so that
+  // retries after going back to step 2 produce a NEW Stripe key. Without
+  // this, the deterministic hash of (eventId|email|startTime) stays the
+  // same across attempts, but the Stripe request body changes (transfer
+  // schedule depends on Date.now()), causing StripeIdempotencyError.
+  const checkoutAttemptNonce = React.useRef<string>(crypto.randomUUID());
+
   // **REF: Store handleNextStep to break circular dependency**
   const handleNextStepRef = React.useRef<((nextStep: '1' | '2' | '3') => Promise<void>) | null>(
     null,
@@ -584,6 +591,7 @@ export function MeetingFormContent({
     activeRequestId.current = null;
     prefetchPromiseRef.current = null;
     idempotencyKeyCache.current = null;
+    checkoutAttemptNonce.current = crypto.randomUUID();
     setCheckoutUrl(null);
     checkoutUrlRef.current = null;
     form.clearErrors('root');
@@ -750,12 +758,12 @@ export function MeetingFormContent({
 
       const currentRequestId = generateRequestKey();
 
-      // Derive a DETERMINISTIC Stripe idempotency key from the booking context.
-      // Cache it in a ref so prefetch + submit + any retries within the same
-      // booking context produce the same key. Stripe honours matching keys for
-      // 24h and returns the same Checkout Session — preventing duplicate
-      // sessions from prefetch racing against explicit submit.
-      const idempotencySignature = `${eventId}|${formValues.guestEmail.toLowerCase().trim()}|${formValues.startTime.toISOString()}`;
+      // Derive a Stripe idempotency key from the booking context + attempt
+      // nonce. The nonce ensures retries after going back to step 2 get a
+      // fresh key (avoiding StripeIdempotencyError when time-sensitive params
+      // like transfer schedule change). Within a single attempt, prefetch +
+      // submit share the same key so Stripe deduplicates them.
+      const idempotencySignature = `${eventId}|${formValues.guestEmail.toLowerCase().trim()}|${formValues.startTime.toISOString()}|${checkoutAttemptNonce.current}`;
       let stripeIdempotencyKey: string;
       if (idempotencyKeyCache.current?.signature === idempotencySignature) {
         stripeIdempotencyKey = idempotencyKeyCache.current.key;
@@ -830,6 +838,11 @@ export function MeetingFormContent({
             errorCode,
             errorData,
           );
+
+          if (errorCode === 'IDEMPOTENCY_MISMATCH') {
+            checkoutAttemptNonce.current = crypto.randomUUID();
+            idempotencyKeyCache.current = null;
+          }
 
           if (errorCode && NON_RETRYABLE_ERROR_CODES.has(errorCode)) {
             prefetchFailureRef.current = { code: errorCode, message: errorMessage };

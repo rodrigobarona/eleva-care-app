@@ -1161,6 +1161,16 @@ export async function POST(request: NextRequest) {
     // the 4xx early-return behavior in errorResponse().
     await clearFormCache();
 
+    if (error instanceof Stripe.errors.StripeError && error.type === 'StripeIdempotencyError') {
+      return NextResponse.json(
+        {
+          error: 'Payment session expired. Please try again.',
+          code: 'IDEMPOTENCY_MISMATCH',
+        },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json(
       {
         error: 'Failed to create checkout session',
