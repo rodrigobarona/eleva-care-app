@@ -47,6 +47,12 @@ const checkoutRequestSchema = z.object({
 // states keep the normal FORM_DEFAULT_TTL_SECONDS from lib/redis/manager.ts.
 const FORM_PROCESSING_TTL_SECONDS = 30;
 
+// Cooldown (seconds) before the same (eventId, guestEmail, startTime) can
+// re-attempt after a slot reservation error (409). Short enough that a
+// user-initiated retry (going back to step 2 and clicking again) is never
+// blocked, but long enough to absorb an automated prefetch retry storm.
+const SLOT_ERROR_COOLDOWN_SECONDS = 10;
+
 // Payment rate limiting configuration (stricter than identity verification)
 const PAYMENT_RATE_LIMITS = {
   // User-based limits (very strict for financial operations)
@@ -338,6 +344,28 @@ export async function POST(request: NextRequest) {
   const errorResponse = async (body: unknown, status: number, init?: ResponseInit) => {
     await clearFormCache();
     return NextResponse.json(body, { status, ...init });
+  };
+
+  const slotErrorResponse = async (body: unknown, status: number) => {
+    if (formCacheKey) {
+      try {
+        await FormCache.set(
+          formCacheKey,
+          {
+            eventId,
+            guestEmail: meetingData?.guestEmail || '',
+            startTime: meetingData?.startTime || '',
+            status: 'failed',
+            timestamp: Date.now(),
+          },
+          SLOT_ERROR_COOLDOWN_SECONDS,
+        );
+      } catch (cacheError) {
+        console.error('Failed to mark FormCache as failed for slot error:', cacheError);
+      }
+      formCacheKey = null;
+    }
+    return NextResponse.json(body, { status });
   };
 
   try {
@@ -714,7 +742,11 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Handle slot result before proceeding to Stripe
+    // Handle slot result before proceeding to Stripe.
+    // Slot errors use slotErrorResponse which keeps a short-lived 'failed'
+    // entry in FormCache (SLOT_ERROR_COOLDOWN_SECONDS) instead of deleting it,
+    // preventing the client prefetch loop from immediately re-acquiring the
+    // lock and hammering the server.
     if (slotResult.type === 'ALREADY_BOOKED_BY_YOU') {
       console.warn('Guest attempting to re-book their own confirmed slot:', {
         eventId,
@@ -722,7 +754,7 @@ export async function POST(request: NextRequest) {
         requestingUser: meetingData.guestEmail,
         existingMeetingId: slotResult.conflictingMeeting.id,
       });
-      return await errorResponse(
+      return await slotErrorResponse(
         {
           error:
             'You already have a confirmed booking for this time. Check your email for the meeting details, or choose a different time.',
@@ -738,7 +770,7 @@ export async function POST(request: NextRequest) {
         startTime: appointmentStartTime,
         requestingUser: meetingData.guestEmail,
       });
-      return await errorResponse(
+      return await slotErrorResponse(
         {
           error: 'This time slot has been booked by another user. Please choose a different time.',
           code: 'SLOT_ALREADY_BOOKED',
@@ -753,7 +785,7 @@ export async function POST(request: NextRequest) {
         reservedBy: slotResult.reservation?.guestEmail ?? '(concurrent insert)',
         expiresAt: slotResult.reservation?.expiresAt ?? '(unknown)',
       });
-      return await errorResponse(
+      return await slotErrorResponse(
         {
           error:
             'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',

@@ -643,7 +643,10 @@ export const FormCache = {
    * Generate a unique key for form submission
    */
   generateKey(eventId: string, guestEmail: string, startTime: string): string {
-    return `${eventId}-${guestEmail}-${startTime}`.replace(/[^a-zA-Z0-9-_]/g, '_');
+    return `${eventId}-${guestEmail.toLowerCase().trim()}-${startTime}`.replace(
+      /[^a-zA-Z0-9-_]/g,
+      '_',
+    );
   },
 };
 

@@ -42,6 +42,19 @@ import type { z } from 'zod';
 // Stripe checkout URL validation
 const ALLOWED_CHECKOUT_HOSTS = new Set(['checkout.stripe.com']);
 
+const SLOT_ERROR_CODES = new Set([
+  'SLOT_TEMPORARILY_RESERVED',
+  'SLOT_ALREADY_BOOKED',
+  'ALREADY_BOOKED_BY_YOU',
+]);
+
+const NON_RETRYABLE_ERROR_CODES = new Set([
+  ...SLOT_ERROR_CODES,
+  'CONNECT_ACCOUNT_NOT_READY',
+  'EVENT_OWNERSHIP_MISMATCH',
+  'EVENT_NOT_PAYABLE',
+]);
+
 /**
  * Validates a Stripe checkout URL
  * @param url - The URL to validate
@@ -446,7 +459,6 @@ export function MeetingFormContent({
   const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
-  const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
 
   // **RENDERING STATE: Use state for UI updates**
@@ -459,7 +471,9 @@ export function MeetingFormContent({
   const lastRequestTimestamp = React.useRef<number>(0);
   const activeRequestId = React.useRef<string | null>(null);
   const isPrefetchRequest = React.useRef(false);
+  const isPrefetchingRef = React.useRef(false);
   const prefetchPromiseRef = React.useRef<Promise<string | null> | null>(null);
+  const prefetchFailureRef = React.useRef<{ code: string; message: string } | null>(null);
   const checkoutUrlRef = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
@@ -563,11 +577,25 @@ export function MeetingFormContent({
     return validTimes.filter((time) => !isDateBlocked(time));
   }, [validTimes, isDateBlocked, blockedDates]);
 
+  const resetPrefetchState = React.useCallback(() => {
+    prefetchFailureRef.current = null;
+    isPrefetchingRef.current = false;
+    isPrefetchRequest.current = false;
+    activeRequestId.current = null;
+    prefetchPromiseRef.current = null;
+    idempotencyKeyCache.current = null;
+    setCheckoutUrl(null);
+    checkoutUrlRef.current = null;
+    form.clearErrors('root');
+  }, [form]);
+
   // Enhanced step transition with validation
   const transitionToStep = React.useCallback(
     (nextStep: typeof currentStep) => {
       // Special handling for transition to step 2
       if (nextStep === '2') {
+        resetPrefetchState();
+
         // Check that we have the required date and time
         const hasDate = !!form.getValues('date');
         const hasTime = !!form.getValues('startTime');
@@ -600,7 +628,7 @@ export function MeetingFormContent({
       // Update the step in the URL
       setQueryStates({ step: nextStep });
     },
-    [setQueryStates, form, queryStates.date, queryStates.time],
+    [setQueryStates, form, queryStates.date, queryStates.time, resetPrefetchState],
   );
 
   const redirectToCheckout = React.useCallback(
@@ -793,17 +821,31 @@ export function MeetingFormContent({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          const errorCode = (errorData.code as string) || undefined;
+          const errorMessage: string = errorData.error || 'Failed to create payment intent';
+
           console.log(
-            '[MeetingForm] createPaymentIntent: API error status=%d',
+            '[MeetingForm] createPaymentIntent: API error status=%d code=%s',
             response.status,
+            errorCode,
             errorData,
           );
+
+          if (errorCode && NON_RETRYABLE_ERROR_CODES.has(errorCode)) {
+            prefetchFailureRef.current = { code: errorCode, message: errorMessage };
+          }
+
+          if (errorCode && SLOT_ERROR_CODES.has(errorCode)) {
+            form.setError('root', {
+              message: getCreateMeetingErrorMessage(errorCode, errorMessage),
+            });
+          }
 
           if (response.status === 403 && errorData.error === 'Access denied') {
             throw new Error(errorData.message || 'Request blocked for security reasons');
           }
 
-          throw new Error(errorData.error || 'Failed to create payment intent');
+          throw new Error(errorMessage);
         }
 
         const { url } = await response.json();
@@ -860,6 +902,7 @@ export function MeetingFormContent({
       price,
       username,
       generateRequestKey,
+      getCreateMeetingErrorMessage,
     ],
   );
 
@@ -975,47 +1018,44 @@ export function MeetingFormContent({
   const watchedGuestEmail = useWatch({ control: form.control, name: 'guestEmail' });
 
   React.useEffect(() => {
-    // Only prefetch if we're on step 2, have complete valid form data, price > 0, and not already fetched
     const hasCompletedForm =
       watchedGuestName?.length > 2 &&
       watchedGuestEmail?.length > 5 &&
       watchedGuestEmail.includes('@');
 
     const canPrefetch =
-      currentStep === '2' && hasCompletedForm && price > 0 && !checkoutUrl && !isPrefetching;
+      currentStep === '2' &&
+      hasCompletedForm &&
+      price > 0 &&
+      !checkoutUrl &&
+      !isPrefetchingRef.current &&
+      !prefetchFailureRef.current;
 
-    if (canPrefetch) {
-      // Prefetch with a longer delay to avoid interfering with user typing
-      const timer = setTimeout(() => {
-        setIsPrefetching(true);
-        isPrefetchRequest.current = true;
-        const promise = createPaymentIntent({ silent: true });
-        prefetchPromiseRef.current = promise;
-        promise
-          .then((url) => {
-            console.log('[MeetingForm] prefetch: %s', url ? 'success' : 'returned null');
-          })
-          .catch((error) => {
-            console.error('[MeetingForm] prefetch: failed', error);
-          })
-          .finally(() => {
-            prefetchPromiseRef.current = null;
-            isPrefetchRequest.current = false;
-            setIsPrefetching(false);
-          });
-      }, 800); // Short delay to avoid typing interference while improving perceived speed
+    if (!canPrefetch) return;
 
-      return () => clearTimeout(timer);
-    }
-  }, [
-    currentStep,
-    watchedGuestName,
-    watchedGuestEmail,
-    price,
-    checkoutUrl,
-    isPrefetching,
-    createPaymentIntent,
-  ]);
+    const timer = setTimeout(() => {
+      if (isPrefetchingRef.current || prefetchFailureRef.current) return;
+
+      isPrefetchingRef.current = true;
+      isPrefetchRequest.current = true;
+      const promise = createPaymentIntent({ silent: true });
+      prefetchPromiseRef.current = promise;
+      promise
+        .then((url) => {
+          console.log('[MeetingForm] prefetch: %s', url ? 'success' : 'returned null');
+        })
+        .catch((error) => {
+          console.error('[MeetingForm] prefetch: failed', error);
+        })
+        .finally(() => {
+          prefetchPromiseRef.current = null;
+          isPrefetchRequest.current = false;
+          isPrefetchingRef.current = false;
+        });
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [currentStep, watchedGuestName, watchedGuestEmail, price, checkoutUrl, createPaymentIntent]);
 
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
@@ -1287,6 +1327,7 @@ export function MeetingFormContent({
   // Handle time selection
   const handleTimeSelect = React.useCallback(
     (selectedTime: Date) => {
+      prefetchFailureRef.current = null;
       form.setValue('startTime', selectedTime, { shouldValidate: false });
       setQueryStates({ time: selectedTime });
       transitionToStep('2'); // Automatically move to step 2 when time is selected
