@@ -5,7 +5,7 @@
  * For patients without ClerkIDs, their email is used as the subscriber ID
  * (Novu auto-creates subscribers when triggered with a new subscriberId).
  *
- * Schedule: Every 15 minutes via QStash
+ * Schedule: Twice daily via QStash
  */
 import { formatDateTime, getUpcomingAppointments } from '@/lib/cron/appointment-utils';
 import { triggerWorkflow } from '@/lib/integrations/novu';
@@ -19,16 +19,16 @@ export const preferredRegion = 'auto';
 /** Maximum execution time in seconds (1 minute for processing appointments) */
 export const maxDuration = 60;
 
-/** Minutes from now for urgent reminder window start (1 hour) */
-const WINDOW_START_MINUTES = 60;
+/** Minutes from now for urgent reminder window start (15 minutes) */
+const WINDOW_START_MINUTES = 15;
 
-/** Minutes from now for urgent reminder window end (1.25 hours) */
-const WINDOW_END_MINUTES = 75;
+/** Minutes from now for urgent reminder window end (12 hours) */
+const WINDOW_END_MINUTES = 12 * 60;
 
 /**
  * Cron job handler that sends 1-hour urgent appointment reminders.
  *
- * Processes all confirmed appointments starting in 60-75 minutes and sends:
+ * Processes all confirmed appointments starting in 15 minutes to 12 hours and sends:
  * - Expert urgent reminders via Novu (in-app + email) using ClerkID as subscriberId
  * - Patient urgent reminders via Novu (email only) using email as subscriberId
  *
@@ -36,7 +36,7 @@ const WINDOW_END_MINUTES = 75;
  * accounts still receive email notifications and appear in Novu activity logs.
  *
  * Uses idempotency keys (transactionId) to prevent duplicate reminders on cron retries.
- * Runs every 15 minutes to catch appointments within the window.
+ * Runs twice daily to cover same-half-day appointments within the widened window.
  *
  * @returns {Promise<NextResponse>} JSON response with reminder statistics
  *

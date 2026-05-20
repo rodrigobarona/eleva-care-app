@@ -5,7 +5,7 @@
  * For patients without ClerkIDs, their email is used as the subscriber ID
  * (Novu auto-creates subscribers when triggered with a new subscriberId).
  *
- * Schedule: Every hour via QStash
+ * Schedule: Twice daily via QStash
  */
 import {
   formatDateTime,
@@ -23,16 +23,16 @@ export const preferredRegion = 'auto';
 /** Maximum execution time in seconds (1 minute for processing multiple appointments) */
 export const maxDuration = 60;
 
-/** Minutes from now for reminder window start (24 hours) */
-const WINDOW_START_MINUTES = 24 * 60;
+/** Minutes from now for reminder window start (12 hours) */
+const WINDOW_START_MINUTES = 12 * 60;
 
-/** Minutes from now for reminder window end (25 hours) */
-const WINDOW_END_MINUTES = 25 * 60;
+/** Minutes from now for reminder window end (36 hours) */
+const WINDOW_END_MINUTES = 36 * 60;
 
 /**
  * Cron job handler that sends 24-hour appointment reminders.
  *
- * Processes all confirmed appointments starting in 24-25 hours and sends:
+ * Processes all confirmed appointments starting in 12-36 hours and sends:
  * - Expert reminders via Novu (in-app + email) using ClerkID as subscriberId
  * - Patient reminders via Novu (email only) using email as subscriberId
  *

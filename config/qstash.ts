@@ -32,22 +32,22 @@ export const qstash = {
     // 📅 APPOINTMENT MANAGEMENT
     appointmentReminders: {
       endpoint: '/api/cron/appointment-reminders',
-      cron: '0 * * * *', // Every hour - 24-hour reminders (1-hour window per run)
+      cron: '0 8,20 * * *', // Twice daily - 24-hour reminders with widened window
       description: '24-hour appointment reminders for confirmed bookings',
       priority: 'high',
     },
 
     appointmentReminders1Hr: {
       endpoint: '/api/cron/appointment-reminders-1hr',
-      cron: '*/15 * * * *', // Every 15 minutes - catches 1-hour reminders
-      description: '1-hour appointment reminders for upcoming sessions',
+      cron: '0 7,19 * * *', // Twice daily - same-half-day appointment reminders
+      description: 'Same-half-day appointment reminders for upcoming sessions',
       priority: 'high',
     },
 
     // 💰 PAYMENT & PAYOUT PROCESSING
     processExpertTransfers: {
       endpoint: '/api/cron/process-expert-transfers',
-      cron: '0 */2 * * *', // Every 2 hours - process aged payments
+      cron: '0 8 * * *', // Daily at 8 AM UTC - process aged payments
       description: 'Process pending expert payouts based on aging requirements',
       priority: 'critical',
     },
@@ -68,7 +68,7 @@ export const qstash = {
 
     sendPaymentReminders: {
       endpoint: '/api/cron/send-payment-reminders',
-      cron: '0 */6 * * *', // Every 6 hours - Multibanco payment reminders
+      cron: '0 9 * * *', // Daily at 9 AM UTC - Multibanco payment reminders
       description: 'Send staged Multibanco payment reminders (Day 3 gentle, Day 6 urgent)',
       priority: 'high',
     },
@@ -76,7 +76,7 @@ export const qstash = {
     // 🧹 CLEANUP & MAINTENANCE
     cleanupExpiredReservations: {
       endpoint: '/api/cron/cleanup-expired-reservations',
-      cron: '*/15 * * * *', // Every 15 minutes - remove expired slot reservations
+      cron: '0 6,18 * * *', // Twice daily - remove expired slot reservations
       description: 'Clean up expired slot reservations and pending payments',
       priority: 'medium',
     },

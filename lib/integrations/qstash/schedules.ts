@@ -46,7 +46,7 @@ const SCHEDULE_CONFIGS = [
   {
     name: 'process-expert-transfers',
     endpoint: '/api/cron/process-expert-transfers',
-    schedule: { cron: '0 */2 * * *' }, // Every 2 hours (at minute 0)
+    schedule: { cron: '0 8 * * *' }, // Daily at 8 AM UTC
   },
   {
     name: 'process-pending-payouts',
@@ -61,7 +61,7 @@ const SCHEDULE_CONFIGS = [
   {
     name: 'cleanup-expired-reservations',
     endpoint: '/api/cron/cleanup-expired-reservations',
-    schedule: { cron: '*/15 * * * *' }, // Every 15 minutes
+    schedule: { cron: '0 6,18 * * *' }, // Twice daily at 6 AM and 6 PM UTC
   },
   {
     name: 'cleanup-blocked-dates',
@@ -71,17 +71,17 @@ const SCHEDULE_CONFIGS = [
   {
     name: 'appointment-reminders',
     endpoint: '/api/cron/appointment-reminders',
-    schedule: { cron: '0 * * * *' }, // Every hour (1-hour window per run)
+    schedule: { cron: '0 8,20 * * *' }, // Twice daily at 8 AM and 8 PM UTC
   },
   {
     name: 'appointment-reminders-1hr',
     endpoint: '/api/cron/appointment-reminders-1hr',
-    schedule: { cron: '*/15 * * * *' }, // Every 15 minutes
+    schedule: { cron: '0 7,19 * * *' }, // Twice daily at 7 AM and 7 PM UTC
   },
   {
     name: 'send-payment-reminders',
     endpoint: '/api/cron/send-payment-reminders',
-    schedule: { cron: '0 */6 * * *' }, // Every 6 hours (at minute 0)
+    schedule: { cron: '0 9 * * *' }, // Daily at 9 AM UTC
   },
 ];
 
