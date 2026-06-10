@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { generatePrivateBookingLink } from '@/server/actions/events';
-import { CopyCheck, Link as LinkIcon, Loader2, LockOpen } from 'lucide-react';
+import { Clock, CopyCheck, Link as LinkIcon, Loader2, LockOpen } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
 
@@ -35,15 +36,19 @@ export function PrivateBookingLinkDialog({
   username,
 }: PrivateBookingLinkDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [dateTime, setDateTime] = React.useState('');
+  const [date, setDate] = React.useState<Date | undefined>(undefined);
+  const [time, setTime] = React.useState('10:00');
   const [expiryDays, setExpiryDays] = React.useState('7');
   const [guestEmail, setGuestEmail] = React.useState('');
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [generatedUrl, setGeneratedUrl] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
 
+  const timeZone = React.useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+
   const resetState = React.useCallback(() => {
-    setDateTime('');
+    setDate(undefined);
+    setTime('10:00');
     setExpiryDays('7');
     setGuestEmail('');
     setGeneratedUrl(null);
@@ -60,13 +65,20 @@ export function PrivateBookingLinkDialog({
   );
 
   const handleGenerate = React.useCallback(async () => {
-    if (!dateTime) {
-      toast.error('Please choose a date and time');
+    if (!date) {
+      toast.error('Please choose a date');
+      return;
+    }
+    if (!time) {
+      toast.error('Please choose a time');
       return;
     }
 
-    // datetime-local has no timezone; interpret it in the expert's local zone.
-    const start = new Date(dateTime);
+    // The time is entered in the expert's local zone; combine the selected
+    // calendar day with the time-of-day so the ISO start reflects that slot.
+    const [hours, minutes] = time.split(':').map(Number);
+    const start = new Date(date);
+    start.setHours(hours ?? 0, minutes ?? 0, 0, 0);
     if (Number.isNaN(start.getTime())) {
       toast.error('Invalid date and time');
       return;
@@ -94,7 +106,7 @@ export function PrivateBookingLinkDialog({
     } finally {
       setIsGenerating(false);
     }
-  }, [dateTime, eventId, expiryDays, guestEmail, username]);
+  }, [date, time, eventId, expiryDays, guestEmail, username]);
 
   const handleCopy = React.useCallback(() => {
     if (!generatedUrl) return;
@@ -123,7 +135,7 @@ export function PrivateBookingLinkDialog({
         </TooltipContent>
       </Tooltip>
 
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Private booking link</DialogTitle>
           <DialogDescription>
@@ -134,17 +146,38 @@ export function PrivateBookingLinkDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="private-link-datetime">Date and time</Label>
-            <Input
-              id="private-link-datetime"
-              type="datetime-local"
-              value={dateTime}
-              onChange={(e) => {
-                setDateTime(e.target.value);
-                setGeneratedUrl(null);
-              }}
-            />
+          <div className="space-y-3">
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(next) => {
+                  setDate(next);
+                  setGeneratedUrl(null);
+                }}
+                disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+                className="rounded-md border p-2"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="private-link-time">Start time</Label>
+              <div className="relative">
+                <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="private-link-time"
+                  type="time"
+                  value={time}
+                  onChange={(e) => {
+                    setTime(e.target.value);
+                    setGeneratedUrl(null);
+                  }}
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Times are in your timezone: <span className="font-medium">{timeZone}</span>
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -196,7 +229,7 @@ export function PrivateBookingLinkDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" onClick={handleGenerate} disabled={isGenerating || !dateTime}>
+          <Button type="button" onClick={handleGenerate} disabled={isGenerating || !date || !time}>
             {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {generatedUrl ? 'Regenerate link' : 'Generate link'}
           </Button>
