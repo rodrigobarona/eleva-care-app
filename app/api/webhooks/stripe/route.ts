@@ -208,6 +208,8 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     eventName?: string;
     expirationDays?: string;
     locale?: string;
+    /** Signed private booking link token (bypasses schedule validation) */
+    inviteToken?: string;
   };
   application_fee_amount?: number | null;
   payment_intent: string | null;
@@ -922,8 +924,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       locale: meetingData.locale || 'en',
       // Forwarded from the Checkout Session metadata so a private booking link
       // can bypass schedule validation for deferred (e.g. Multibanco) payments.
-      inviteToken:
-        (session.metadata as { inviteToken?: string } | null | undefined)?.inviteToken || undefined,
+      inviteToken: session.metadata?.inviteToken || undefined,
     });
 
     // Handle possible errors

@@ -201,9 +201,11 @@ async function CalendarWithAvailability({
   }
 
   // Private booking link: offer exactly the shared slot, bypassing the weekly
-  // schedule, blocked dates, and minimum notice. We still honor real conflicts
-  // (existing meetings / Google Calendar busy) so the expert can't be
-  // double-booked.
+  // schedule, blocked dates, minimum notice, and event buffers (buffers are
+  // display-only in MeetingForm; real enforcement lives in
+  // getValidTimesFromSchedule, which invites intentionally skip). We still honor
+  // real conflicts (existing meetings / Google Calendar busy) so the expert
+  // can't be double-booked.
   if (invitePayload) {
     const slotStart = new Date(invitePayload.startTime);
     const slotEnd = addMinutes(slotStart, event.durationInMinutes);

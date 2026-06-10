@@ -401,6 +401,19 @@ const generatePrivateBookingLinkSchema = z.object({
  * @param input - eventId, the expert's username, the chosen ISO start time,
  *   optional expiry in days (default 7), and an optional guest email lock.
  * @returns The absolute booking URL on success, or an error flag/message.
+ *
+ * @example
+ * const result = await generatePrivateBookingLink({
+ *   eventId: '3f1c2b9e-7a4d-4c0e-9b2a-1d5e6f7a8b90',
+ *   username: 'patricia-mota',
+ *   startTime: '2026-07-15T14:30:00.000Z',
+ *   expiryDays: 14,
+ *   guestEmail: 'jane@example.com',
+ * });
+ * // result -> {
+ * //   error: false,
+ * //   url: 'https://eleva.care/patricia-mota/consultation?invite=<signed-token>',
+ * // }
  */
 export async function generatePrivateBookingLink(
   input: z.infer<typeof generatePrivateBookingLinkSchema>,
