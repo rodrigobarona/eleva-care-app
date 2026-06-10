@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { generatePrivateBookingLink } from '@/server/actions/events';
-import { CopyCheck, Link as LinkIcon, Loader2 } from 'lucide-react';
+import { CopyCheck, Link as LinkIcon, Loader2, LockOpen } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
 
@@ -114,7 +114,7 @@ export function PrivateBookingLinkDialog({
         <TooltipTrigger asChild>
           <DialogTrigger asChild>
             <Button size="icon" variant="ghost" className="rounded-none border-r">
-              <LinkIcon className="h-4 w-4" />
+              <LockOpen className="h-4 w-4" />
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
