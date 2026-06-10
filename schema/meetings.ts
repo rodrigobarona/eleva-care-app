@@ -78,4 +78,7 @@ export const meetingActionSchema = z.object({
   stripeAmount: z.number().optional(),
   stripeApplicationFeeAmount: z.number().optional(),
   locale: z.string().optional().default('en'),
+  // Signed private-booking token; when valid, bypasses schedule validation
+  // (weekly availability, blocked dates, minimum notice) for one exact slot.
+  inviteToken: z.string().optional(),
 });

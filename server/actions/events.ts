@@ -1,9 +1,11 @@
 'use server';
 
+import { ENV_HELPERS } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
+import { createPrivateBookingToken } from '@/lib/utils/server/private-booking-token';
 import { eventFormSchema } from '@/schema/events';
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
 import { EVENT_CREATED, EVENT_DELETED, EVENT_UPDATED } from '@/types/audit';
@@ -14,7 +16,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import 'use-server';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /**
  * @fileoverview Server actions for managing events in the Eleva Care application.
@@ -377,4 +379,74 @@ export async function getEventMeetingsCount(eventId: string): Promise<number> {
     .where(eq(MeetingTable.eventId, eventId));
 
   return result[0]?.count ?? 0;
+}
+
+const generatePrivateBookingLinkSchema = z.object({
+  eventId: z.string().uuid(),
+  username: z.string().min(1),
+  startTime: z.string().min(1),
+  expiryDays: z.coerce.number().int().min(1).max(90).optional(),
+  guestEmail: z.string().email().optional().or(z.literal('')),
+});
+
+/**
+ * Generates a stateless, HMAC-signed "private booking link" for one of the
+ * caller's own events. The returned URL lets a single customer book one exact
+ * date/time, bypassing the expert's normal availability (weekly schedule,
+ * blocked dates, minimum notice) and working even for inactive events.
+ *
+ * Ownership is enforced here; the booking page re-verifies the token against
+ * the resolved expert before applying any bypass.
+ *
+ * @param input - eventId, the expert's username, the chosen ISO start time,
+ *   optional expiry in days (default 7), and an optional guest email lock.
+ * @returns The absolute booking URL on success, or an error flag/message.
+ */
+export async function generatePrivateBookingLink(
+  input: z.infer<typeof generatePrivateBookingLinkSchema>,
+): Promise<{ error: boolean; url?: string; message?: string }> {
+  const { userId } = await auth();
+  if (!userId) {
+    return { error: true, message: 'Not authenticated' };
+  }
+
+  const { success, data } = generatePrivateBookingLinkSchema.safeParse(input);
+  if (!success) {
+    return { error: true, message: 'Invalid input' };
+  }
+
+  // Verify the caller owns the event and resolve its slug
+  const event = await db.query.EventTable.findFirst({
+    where: and(eq(EventTable.id, data.eventId), eq(EventTable.clerkUserId, userId)),
+  });
+  if (!event) {
+    return { error: true, message: 'Event not found' };
+  }
+
+  const start = new Date(data.startTime);
+  if (Number.isNaN(start.getTime())) {
+    return { error: true, message: 'Invalid date and time' };
+  }
+
+  const expiryDays = data.expiryDays ?? 7;
+  const exp = Math.floor(Date.now() / 1000) + expiryDays * 24 * 60 * 60;
+
+  let token: string;
+  try {
+    token = createPrivateBookingToken({
+      eventId: event.id,
+      clerkUserId: userId,
+      startTime: start.toISOString(),
+      exp,
+      guestEmail: data.guestEmail || undefined,
+    });
+  } catch (error) {
+    console.error('Failed to create private booking token:', error);
+    return { error: true, message: 'Link signing is not configured' };
+  }
+
+  const baseUrl = ENV_HELPERS.getBaseUrl();
+  const url = `${baseUrl}/${data.username}/${event.slug}?invite=${encodeURIComponent(token)}`;
+
+  return { error: false, url };
 }
