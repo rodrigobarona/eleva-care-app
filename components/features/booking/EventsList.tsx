@@ -1,7 +1,6 @@
 'use client';
 
 import { CopyEventButton } from '@/components/features/booking/CopyEventButton';
-import { PrivateBookingLinkDialog } from '@/components/features/booking/PrivateBookingLinkDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -325,12 +324,6 @@ function SortableEventCard({
                   username={username}
                   wrapped
                   className="rounded-none border-r"
-                />
-
-                <PrivateBookingLinkDialog
-                  eventId={event.id}
-                  eventName={event.name}
-                  username={username}
                 />
 
                 <Tooltip>

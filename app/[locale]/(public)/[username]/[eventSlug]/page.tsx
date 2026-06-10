@@ -20,10 +20,6 @@ import {
   DEFAULT_TIME_SLOT_INTERVAL,
 } from '@/lib/constants/scheduling';
 import { Link } from '@/lib/i18n/navigation';
-import {
-  type PrivateBookingTokenPayload,
-  verifyPrivateBookingToken,
-} from '@/lib/utils/server/private-booking-token';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
@@ -75,17 +71,10 @@ interface EventType {
 
 export default async function BookEventPage(props: PageProps) {
   const { username, eventSlug, locale } = await props.params;
-  const searchParams = await props.searchParams;
-  const inviteToken = typeof searchParams.invite === 'string' ? searchParams.invite : undefined;
 
   return (
     <ProfileAccessControl username={username} context="BookEventPage" additionalPath={eventSlug}>
-      <BookEventPageContent
-        username={username}
-        eventSlug={eventSlug}
-        locale={locale}
-        inviteToken={inviteToken}
-      />
+      <BookEventPageContent username={username} eventSlug={eventSlug} locale={locale} />
     </ProfileAccessControl>
   );
 }
@@ -95,12 +84,10 @@ async function BookEventPageContent({
   username,
   eventSlug,
   locale,
-  inviteToken,
 }: {
   username: string;
   eventSlug: string;
   locale: string;
-  inviteToken?: string;
 }) {
   // Get user data - we know it exists because ProfileAccessControl validated it
   const data = await getProfileAccessData(username);
@@ -110,23 +97,12 @@ async function BookEventPageContent({
 
   const { user } = data;
 
-  // A valid private booking token unlocks one exact slot and allows booking
-  // even when the event is inactive and the slot is outside availability.
-  const invitePayload = inviteToken ? verifyPrivateBookingToken(inviteToken) : null;
-  const isValidInvite = Boolean(invitePayload && invitePayload.clerkUserId === user.id);
-
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
-      isValidInvite
-        ? and(eq(userIdCol, user.id), eq(slug, eventSlug))
-        : and(eq(isActive, true), eq(userIdCol, user.id), eq(slug, eventSlug)),
+      and(eq(isActive, true), eq(userIdCol, user.id), eq(slug, eventSlug)),
   });
 
   if (event == null) return notFound();
-
-  // Ensure the token was issued for this exact event; otherwise treat it as a
-  // normal (non-invite) visit rather than honoring a mismatched link.
-  const validInvite = isValidInvite && invitePayload?.eventId === event.id ? invitePayload : null;
 
   // Use cached Clerk user lookup instead of direct API call
   const calendarUser = await getCachedUserById(user.id);
@@ -150,8 +126,6 @@ async function BookEventPageContent({
             event={event}
             calendarUser={calendarUser}
             locale={locale}
-            inviteToken={validInvite ? inviteToken : undefined}
-            invitePayload={validInvite}
           />
         </Suspense>
       </CardContent>
@@ -169,8 +143,6 @@ async function CalendarWithAvailability({
   event,
   calendarUser,
   locale,
-  inviteToken,
-  invitePayload,
 }: {
   userId: string;
   eventId: string;
@@ -180,8 +152,6 @@ async function CalendarWithAvailability({
   event: EventType;
   calendarUser: User;
   locale: string;
-  inviteToken?: string;
-  invitePayload?: PrivateBookingTokenPayload | null;
 }) {
   const calendarService = GoogleCalendarService.getInstance();
 
@@ -197,52 +167,6 @@ async function CalendarWithAvailability({
           </CardDescription>
         </CardHeader>
       </Card>
-    );
-  }
-
-  // Private booking link: offer exactly the shared slot, bypassing the weekly
-  // schedule, blocked dates, minimum notice, and event buffers (buffers are
-  // display-only in MeetingForm; real enforcement lives in
-  // getValidTimesFromSchedule, which invites intentionally skip). We still honor
-  // real conflicts (existing meetings / Google Calendar busy) so the expert
-  // can't be double-booked.
-  if (invitePayload) {
-    const slotStart = new Date(invitePayload.startTime);
-    const slotEnd = addMinutes(slotStart, event.durationInMinutes);
-
-    const calendarEvents = await calendarService.getCalendarEventTimes(userId, {
-      start: slotStart,
-      end: slotEnd,
-    });
-    const hasConflict = calendarEvents.some((busy) => busy.start < slotEnd && busy.end > slotStart);
-
-    if (hasConflict) {
-      return <SlotNoLongerAvailable username={username} />;
-    }
-
-    return (
-      <MeetingForm
-        validTimes={[slotStart]}
-        eventId={eventId}
-        clerkUserId={userId}
-        price={price}
-        username={username}
-        eventSlug={eventSlug}
-        expertName={
-          calendarUser.firstName
-            ? `${calendarUser.firstName} ${calendarUser.lastName || ''}`.trim()
-            : calendarUser.fullName || 'Expert'
-        }
-        expertImageUrl={calendarUser.imageUrl || '/placeholder-avatar.jpg'}
-        eventTitle={event.name}
-        eventDescription={event.description || 'Book a consultation session'}
-        eventDuration={event.durationInMinutes}
-        eventLocation="Google Meet"
-        locale={locale}
-        blockedDates={[]}
-        inviteToken={inviteToken}
-        lockedSlot
-      />
     );
   }
 
@@ -401,32 +325,6 @@ async function CalendarWithAvailability({
 // Use the reusable booking loading skeleton
 function CalendarLoadingSkeleton() {
   return <BookingLoadingSkeleton />;
-}
-
-// Shown when a private booking link points at a slot that has since been
-// taken by another booking or a Google Calendar event.
-function SlotNoLongerAvailable({ username }: { username: string }) {
-  return (
-    <Card className="mx-auto max-w-lg">
-      <CardHeader>
-        <CardTitle>This time is no longer available</CardTitle>
-        <CardDescription>
-          The slot from this private booking link has just been taken. Please contact the expert to
-          arrange another time.
-        </CardDescription>
-      </CardHeader>
-      <CardFooter>
-        <Link
-          href={{
-            pathname: '/[username]',
-            params: { username },
-          }}
-        >
-          <Button variant="secondary">View Profile</Button>
-        </Link>
-      </CardFooter>
-    </Card>
-  );
 }
 
 function NoTimeSlots({

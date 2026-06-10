@@ -39,7 +39,6 @@ const checkoutRequestSchema = z.object({
   }),
   username: z.string().min(1),
   eventSlug: z.string().min(1),
-  inviteToken: z.string().optional(),
 });
 
 // Short TTL (seconds) for the FormCache `processing` state. Acts as a
@@ -391,7 +390,6 @@ export async function POST(request: NextRequest) {
       price: clientProvidedPrice,
       meetingData: extractedMeetingData,
       username,
-      inviteToken,
     } = parsed.data;
 
     // Approval is always server-controlled, never accepted from the client
@@ -1066,9 +1064,7 @@ export async function POST(request: NextRequest) {
             customer_name: meetingData.guestName,
           }),
         // ADD METADATA TO CHECKOUT SESSION (for webhook processing)
-        // Carry the private booking token (if any) as a separate key so the
-        // webhook can bypass schedule validation when creating the meeting.
-        metadata: inviteToken ? { ...sharedMetadata, inviteToken } : sharedMetadata,
+        metadata: sharedMetadata,
         payment_intent_data: {
           application_fee_amount: platformFee,
           // Settlement merchant is the expert: their statement descriptor is

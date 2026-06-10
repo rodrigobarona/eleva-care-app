@@ -4,7 +4,6 @@ import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { logAuditEvent } from '@/lib/utils/server/audit';
-import { verifyPrivateBookingToken } from '@/lib/utils/server/private-booking-token';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
@@ -69,17 +68,6 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
   // Step 1: Validate the incoming data against our schema
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true, code: 'VALIDATION_ERROR' };
-
-  // Private booking link: a valid token (matching this event, expert, and exact
-  // slot) lets us bypass schedule/blocked-date/minimum-notice validation while
-  // still honoring real double-booking and Google Calendar conflicts below.
-  const invitePayload = data.inviteToken ? verifyPrivateBookingToken(data.inviteToken) : null;
-  const hasValidInvite = Boolean(
-    invitePayload &&
-      invitePayload.eventId === data.eventId &&
-      invitePayload.clerkUserId === data.clerkUserId &&
-      new Date(invitePayload.startTime).getTime() === data.startTime.getTime(),
-  );
 
   try {
     // Step 2: Check for duplicate booking from the same user first
@@ -168,14 +156,10 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       };
     }
 
-    // Step 4: Find the associated event and verify it exists. Normally the
-    // event must be active, but a valid private booking link can target an
-    // inactive event the expert shared deliberately.
+    // Step 4: Find the associated event and verify it exists and is active
     const event = await db.query.EventTable.findFirst({
       where: ({ clerkUserId, isActive, id }, { eq, and }) =>
-        hasValidInvite
-          ? and(eq(clerkUserId, data.clerkUserId), eq(id, data.eventId))
-          : and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
+        and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
       with: {
         user: true, // Include user data for Novu notifications
       },
@@ -192,33 +176,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     const isAlreadyPaid = data.stripePaymentStatus === 'succeeded';
     const shouldSkipTimeValidation = isAlreadyPaid && data.stripeSessionId;
 
-    if (hasValidInvite && !shouldSkipTimeValidation) {
-      // Private booking link: skip schedule/blocked-date/minimum-notice checks
-      // but still reject if the slot conflicts with an existing Google Calendar
-      // event (which includes the expert's other booked meetings).
-      console.log('🔗 Validating private booking link slot (schedule bypass)...');
-
-      const calendarService = GoogleCalendarService.getInstance();
-      const endTime = addMinutes(startTimeUTC, event.durationInMinutes);
-      const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
-        start: startTimeUTC,
-        end: endTime,
-      });
-
-      const hasConflict = calendarEvents.some(
-        (busy) => busy.start < endTime && busy.end > startTimeUTC,
-      );
-      if (hasConflict) {
-        console.error('❌ Private booking link slot conflicts with calendar:', {
-          requestedTime: startTimeUTC,
-          eventId: data.eventId,
-          guestEmail: data.guestEmail,
-        });
-        return { error: true, code: 'INVALID_TIME_SLOT' };
-      }
-
-      console.log('✅ Private booking link slot is free');
-    } else if (!shouldSkipTimeValidation) {
+    if (!shouldSkipTimeValidation) {
       console.log('⏰ Validating time slot availability...');
 
       // Get calendar events for the time slot

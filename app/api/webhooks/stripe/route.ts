@@ -208,8 +208,6 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     eventName?: string;
     expirationDays?: string;
     locale?: string;
-    /** Signed private booking link token (bypasses schedule validation) */
-    inviteToken?: string;
   };
   application_fee_amount?: number | null;
   payment_intent: string | null;
@@ -713,7 +711,9 @@ async function handlePackPurchase(session: StripeCheckoutSession) {
     // address into structured logs / Novu's subscriber ledger. The actual
     // address still travels to Novu via `to.email` so deliverability is
     // unaffected.
-    const guestSubscriberId = customerId ? `guest_${customerId}` : `guest_${session.id}`;
+    const guestSubscriberId = customerId
+      ? `guest_${customerId}`
+      : `guest_${session.id}`;
 
     // Wrap the trigger in a small retry loop so a transient Novu failure
     // doesn't silently lose the confirmation. The trigger is idempotent
@@ -922,9 +922,6 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       stripeAmount: resolvedAmounts.grossAmount || undefined,
       stripeApplicationFeeAmount: resolvedAmounts.platformFeeAmount || undefined,
       locale: meetingData.locale || 'en',
-      // Forwarded from the Checkout Session metadata so a private booking link
-      // can bypass schedule validation for deferred (e.g. Multibanco) payments.
-      inviteToken: session.metadata?.inviteToken || undefined,
     });
 
     // Handle possible errors

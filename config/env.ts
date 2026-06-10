@@ -23,9 +23,6 @@ export const ENV_CONFIG = {
   CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || '',
   CLERK_WEBHOOK_SIGNING_SECRET: process.env.CLERK_WEBHOOK_SIGNING_SECRET || '',
 
-  // Private booking links (HMAC signing secret for expert-shared slot tokens)
-  PRIVATE_BOOKING_LINK_SECRET: process.env.PRIVATE_BOOKING_LINK_SECRET || '',
-
   // Clerk Core 2 (v6) Redirect URLs - Use proper naming convention
   NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:
     process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',

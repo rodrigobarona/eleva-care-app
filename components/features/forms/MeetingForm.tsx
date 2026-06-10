@@ -128,10 +128,6 @@ interface MeetingFormProps {
   beforeEventBuffer?: number;
   afterEventBuffer?: number;
   blockedDates?: BlockedDate[];
-  /** Signed private-booking token, forwarded to the server to bypass schedule checks. */
-  inviteToken?: string;
-  /** When true, the form offers a single pre-selected slot (private link). */
-  lockedSlot?: boolean;
 }
 
 // Define the query state type for reuse
@@ -456,8 +452,6 @@ export function MeetingFormContent({
   beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER,
   afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER,
   blockedDates,
-  inviteToken,
-  lockedSlot = false,
 }: MeetingFormProps) {
   const router = useRouter();
 
@@ -583,13 +577,12 @@ export function MeetingFormContent({
     [blockedDates],
   );
 
-  // Filter valid times to exclude blocked dates. Private booking links bypass
-  // blocked dates entirely, so the single shared slot is always offered.
+  // Filter valid times to exclude blocked dates
   const filteredValidTimes = React.useMemo(() => {
-    if (lockedSlot || !blockedDates || blockedDates.length === 0) return validTimes;
+    if (!blockedDates || blockedDates.length === 0) return validTimes;
 
     return validTimes.filter((time) => !isDateBlocked(time));
-  }, [validTimes, isDateBlocked, blockedDates, lockedSlot]);
+  }, [validTimes, isDateBlocked, blockedDates]);
 
   const resetPrefetchState = React.useCallback(() => {
     prefetchFailureRef.current = null;
@@ -843,7 +836,6 @@ export function MeetingFormContent({
             },
             username,
             eventSlug,
-            inviteToken,
           }),
         });
 
@@ -936,7 +928,6 @@ export function MeetingFormContent({
       locale,
       price,
       username,
-      inviteToken,
       generateRequestKey,
       getCreateMeetingErrorMessage,
     ],
@@ -967,7 +958,6 @@ export function MeetingFormContent({
             eventId,
             clerkUserId,
             locale: locale || 'en',
-            inviteToken,
           });
 
           if (data?.error) {
@@ -1026,7 +1016,6 @@ export function MeetingFormContent({
       transitionToStep,
       username,
       eventSlug,
-      inviteToken,
     ],
   );
 
@@ -1169,7 +1158,6 @@ export function MeetingFormContent({
             eventId,
             clerkUserId,
             locale: locale || 'en',
-            inviteToken,
           });
 
           if (data?.error) {
@@ -1310,7 +1298,6 @@ export function MeetingFormContent({
       locale,
       username,
       eventSlug,
-      inviteToken,
     ],
   );
 
@@ -1330,17 +1317,6 @@ export function MeetingFormContent({
     form.setValue('date', localDate, { shouldValidate: false });
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates, timezone]);
-
-  // Private booking links: preselect the single shared slot so the customer
-  // only needs to confirm their details.
-  React.useEffect(() => {
-    if (!lockedSlot || !validTimes.length) return;
-    if (queryStates.time || form.getValues('startTime')) return;
-
-    const lockedTime = validTimes[0];
-    form.setValue('startTime', lockedTime, { shouldValidate: false });
-    setQueryStates({ time: lockedTime });
-  }, [lockedSlot, validTimes, queryStates.time, form, setQueryStates]);
 
   // Optimized URL synchronization - only run once on mount and when URL changes
   React.useEffect(() => {
