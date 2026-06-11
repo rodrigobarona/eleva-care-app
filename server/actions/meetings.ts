@@ -4,6 +4,7 @@ import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
 import { triggerWorkflow } from '@/lib/integrations/novu';
 import { logAuditEvent } from '@/lib/utils/server/audit';
+import { hasTimedCalendarConflict } from '@/lib/utils/server/calendar-conflicts';
 import { verifyPrivateBookingToken } from '@/lib/utils/server/private-booking-token';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';
@@ -198,15 +199,11 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       // event (which includes the expert's other booked meetings).
       console.log('🔗 Validating private booking link slot (schedule bypass)...');
 
-      const calendarService = GoogleCalendarService.getInstance();
       const endTime = addMinutes(startTimeUTC, event.durationInMinutes);
-      const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
-        start: startTimeUTC,
-        end: endTime,
-      });
-
-      const hasConflict = calendarEvents.some(
-        (busy) => busy.start < endTime && busy.end > startTimeUTC,
+      const hasConflict = await hasTimedCalendarConflict(
+        event.clerkUserId,
+        startTimeUTC,
+        endTime,
       );
       if (hasConflict) {
         console.error('❌ Private booking link slot conflicts with calendar:', {

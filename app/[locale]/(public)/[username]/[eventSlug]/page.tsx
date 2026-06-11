@@ -24,6 +24,7 @@ import {
   type PrivateBookingTokenPayload,
   verifyPrivateBookingToken,
 } from '@/lib/utils/server/private-booking-token';
+import { hasTimedCalendarConflict } from '@/lib/utils/server/calendar-conflicts';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
@@ -210,11 +211,7 @@ async function CalendarWithAvailability({
     const slotStart = new Date(invitePayload.startTime);
     const slotEnd = addMinutes(slotStart, event.durationInMinutes);
 
-    const calendarEvents = await calendarService.getCalendarEventTimes(userId, {
-      start: slotStart,
-      end: slotEnd,
-    });
-    const hasConflict = calendarEvents.some((busy) => busy.start < slotEnd && busy.end > slotStart);
+    const hasConflict = await hasTimedCalendarConflict(userId, slotStart, slotEnd);
 
     if (hasConflict) {
       return <SlotNoLongerAvailable username={username} />;

@@ -12,10 +12,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { generatePrivateBookingLink } from '@/server/actions/events';
-import { Clock, CopyCheck, Link as LinkIcon, Loader2, LockOpen } from 'lucide-react';
+import { format } from 'date-fns';
+import { CalendarDays, Clock, Copy, CopyCheck, Loader2, LockOpen } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
 
@@ -43,6 +52,7 @@ export function PrivateBookingLinkDialog({
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [generatedUrl, setGeneratedUrl] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [calendarOpen, setCalendarOpen] = React.useState(false);
 
   const timeZone = React.useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
@@ -135,7 +145,7 @@ export function PrivateBookingLinkDialog({
         </TooltipContent>
       </Tooltip>
 
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Private booking link</DialogTitle>
           <DialogDescription>
@@ -146,38 +156,60 @@ export function PrivateBookingLinkDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(next) => {
-                  setDate(next);
-                  setGeneratedUrl(null);
-                }}
-                disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
-                className="rounded-md border p-2"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="private-link-time">Start time</Label>
-              <div className="relative">
-                <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="private-link-time"
-                  type="time"
-                  value={time}
-                  onChange={(e) => {
-                    setTime(e.target.value);
-                    setGeneratedUrl(null);
-                  }}
-                  className="pl-9"
-                />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !date && 'text-muted-foreground',
+                      )}
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      {date ? format(date, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={(next) => {
+                        setDate(next);
+                        setGeneratedUrl(null);
+                        setCalendarOpen(false);
+                      }}
+                      disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+                      autoFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Times are in your timezone: <span className="font-medium">{timeZone}</span>
-              </p>
+              <div className="space-y-2">
+                <Label htmlFor="private-link-time">Start time</Label>
+                <InputGroup>
+                  <InputGroupAddon>
+                    <Clock className="h-4 w-4" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="private-link-time"
+                    type="time"
+                    value={time}
+                    onChange={(e) => {
+                      setTime(e.target.value);
+                      setGeneratedUrl(null);
+                    }}
+                  />
+                </InputGroup>
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Times are in your timezone: <span className="font-medium">{timeZone}</span>
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -213,17 +245,19 @@ export function PrivateBookingLinkDialog({
           {generatedUrl && (
             <div className="space-y-2">
               <Label htmlFor="private-link-url">Shareable link</Label>
-              <div className="flex gap-2">
-                <Input
+              <InputGroup>
+                <InputGroupInput
                   id="private-link-url"
                   readOnly
                   value={generatedUrl}
                   className="font-mono text-xs"
                 />
-                <Button type="button" size="icon" variant="outline" onClick={handleCopy}>
-                  {copied ? <CopyCheck className="h-4 w-4" /> : <LinkIcon className="h-4 w-4" />}
-                </Button>
-              </div>
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton size="icon-xs" aria-label="Copy link" onClick={handleCopy}>
+                    {copied ? <CopyCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
             </div>
           )}
         </div>
