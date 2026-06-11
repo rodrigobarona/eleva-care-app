@@ -203,6 +203,12 @@ export function PrivateBookingLinkDialog({
                       setTime(e.target.value);
                       setGeneratedUrl(null);
                     }}
+                    onClick={(e) => {
+                      if (typeof e.currentTarget.showPicker === 'function') {
+                        e.currentTarget.showPicker();
+                      }
+                    }}
+                    className="[&::-webkit-calendar-picker-indicator]:hidden"
                   />
                 </InputGroup>
               </div>
