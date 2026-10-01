@@ -44,7 +44,8 @@ initBotId({
     },
 
     // 🎯 HIGH PRIORITY: Meeting Creation Server Actions
-    // Note: Server actions are invoked from pages, so we protect the pages that use them
+    // Note: Server actions are invoked from pages, so we protect the pages that use them.
+    // Private routes are unprefixed (/booking/...), so locale patterns do not match them.
     {
       path: '/*/booking',
       method: 'POST',
@@ -57,6 +58,13 @@ initBotId({
       method: 'POST',
       advancedOptions: {
         checkLevel: 'basic', // Free on all plans
+      },
+    },
+    {
+      path: '/booking/events/new',
+      method: 'POST',
+      advancedOptions: {
+        checkLevel: 'basic',
       },
     },
 

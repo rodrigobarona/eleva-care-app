@@ -188,9 +188,11 @@ export function EventForm({
       });
 
       if (eventData?.error) {
-        form.setError('root', {
-          message: 'Failed to save event',
-        });
+        const message =
+          'message' in eventData && typeof eventData.message === 'string' && eventData.message
+            ? eventData.message
+            : 'Failed to save event';
+        form.setError('root', { message });
         return;
       }
 
