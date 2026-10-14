@@ -8,12 +8,12 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/layout/sidebar/sidebar';
 import { useIsExpert } from '@/components/shared/providers/AuthorizationProvider';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUser } from '@clerk/nextjs';
 import {
   Bell,
@@ -110,34 +110,34 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarInset>
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild>
-                <Link href="/">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-eleva-primary text-white">
-                    <Leaf className="size-4" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Eleva Care</span>
-                    <span className="truncate text-xs">Professional</span>
-                  </div>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarContent>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/">
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-eleva-primary text-white">
+                  <Leaf className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Eleva Care</span>
+                  <span className="truncate text-xs">Professional</span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent className="overflow-hidden">
+        <ScrollArea className="min-h-0 flex-1" viewportClassName="scroll-fade">
           <NavMain items={mainItems} />
-          <NavSecondary items={secondaryItems} className="mt-auto" />
-        </SidebarContent>
-        <SidebarFooter>
-          <Suspense fallback={<NavUser.Skeleton />}>
-            <NavUser />
-          </Suspense>
-        </SidebarFooter>
-      </SidebarInset>
+        </ScrollArea>
+        <NavSecondary items={secondaryItems} />
+      </SidebarContent>
+      <SidebarFooter>
+        <Suspense fallback={<NavUser.Skeleton />}>
+          <NavUser />
+        </Suspense>
+      </SidebarFooter>
     </Sidebar>
   );
 }
