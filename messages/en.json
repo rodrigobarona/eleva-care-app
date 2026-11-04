@@ -350,20 +350,18 @@
     "nav": {
       "services": {
         "title": "Services",
-        "pregnancy": "Pregnancy Care",
-        "postpartum": "Postpartum Support",
-        "menopause": "Menopause Care"
+        "overview": "Our Services",
+        "experts": "Find an Expert"
       },
       "company": {
         "title": "Company",
         "about": "About Us",
-        "join": "Join Us",
+        "history": "Our Story",
+        "join": "Become an Expert",
         "dashboard": "Expert Dashboard"
       },
       "support": {
         "title": "Support",
-        "help": "Help Center",
-        "community": "Community",
         "contact": "Contact"
       },
       "trust": {

@@ -117,26 +117,18 @@ export default function Footer() {
                           <ul className="mt-6 space-y-4 text-sm/6">
                             <li>
                               <Link
-                                href="/services/pregnancy"
+                                href={{ pathname: '/', hash: 'services' }}
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
-                                {t('nav.services.pregnancy')}
+                                {t('nav.services.overview')}
                               </Link>
                             </li>
                             <li>
                               <Link
-                                href="/services/postpartum"
+                                href={{ pathname: '/', hash: 'experts' }}
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
-                                {t('nav.services.postpartum')}
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                href="/services/menopause"
-                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                              >
-                                {t('nav.services.menopause')}
+                                {t('nav.services.experts')}
                               </Link>
                             </li>
                           </ul>
@@ -153,6 +145,14 @@ export default function Footer() {
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.company.about')}
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/history"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.company.history')}
                               </Link>
                             </li>
                             <li>
@@ -180,28 +180,12 @@ export default function Footer() {
                           </h3>
                           <ul className="mt-6 space-y-4 text-sm/6">
                             <li>
-                              <Link
-                                href="/help"
-                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                              >
-                                {t('nav.support.help')}
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                href="/community"
-                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                              >
-                                {t('nav.support.community')}
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                href="/contact"
+                              <a
+                                href="mailto:support@eleva.care"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.support.contact')}
-                              </Link>
+                              </a>
                             </li>
                           </ul>
                         </div>

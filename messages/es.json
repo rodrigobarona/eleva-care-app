@@ -349,20 +349,18 @@
     "nav": {
       "services": {
         "title": "Servicios",
-        "pregnancy": "Cuidado del Embarazo",
-        "postpartum": "Apoyo Posparto",
-        "menopause": "Cuidado de la Menopausia"
+        "overview": "Nuestros Servicios",
+        "experts": "Encontrar un Experto"
       },
       "company": {
         "title": "Empresa",
         "about": "Sobre Nosotros",
-        "join": "Únete a Nosotros",
+        "history": "Nuestra Historia",
+        "join": "Conviértete en Experto",
         "dashboard": "Panel de Expertos"
       },
       "support": {
         "title": "Soporte",
-        "help": "Centro de Ayuda",
-        "community": "Comunidad",
         "contact": "Contacto"
       },
       "trust": {

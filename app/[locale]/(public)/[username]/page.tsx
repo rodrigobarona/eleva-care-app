@@ -7,7 +7,7 @@ import { auth } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
@@ -39,11 +39,12 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     // Use the centralized utility to get profile data
     const data = await getProfileAccessData(username);
 
+    // Throw notFound() here rather than only in the page body: the page is wrapped
+    // in loading.tsx's Suspense boundary, so a notFound() thrown during streaming
+    // ships a 200 "soft 404". Metadata resolves before streaming for crawlers,
+    // which makes unknown paths (e.g. /help, /contact) return a real 404.
     if (!data) {
-      return {
-        title: 'User Not Found | Eleva Care',
-        description: 'The requested user profile could not be found.',
-      };
+      notFound();
     }
 
     const { user } = data;
@@ -98,6 +99,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       specialties,
     );
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error generating metadata for user profile:', error);
 
     // Fallback metadata

@@ -342,20 +342,18 @@
     "nav": {
       "services": {
         "title": "Serviços",
-        "pregnancy": "Cuidados na Gravidez",
-        "postpartum": "Suporte Pós-parto",
-        "menopause": "Cuidados na Menopausa"
+        "overview": "Nossos Serviços",
+        "experts": "Encontrar Especialista"
       },
       "company": {
         "title": "Empresa",
         "about": "Sobre Nós",
-        "join": "Junte-se a Nós",
+        "history": "Nossa História",
+        "join": "Seja um Especialista",
         "dashboard": "Painel de Especialistas"
       },
       "support": {
         "title": "Suporte",
-        "help": "Central de Ajuda",
-        "community": "Comunidade",
         "contact": "Contato"
       },
       "trust": {
