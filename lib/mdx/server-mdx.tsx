@@ -231,6 +231,12 @@ export async function renderMDXContent({
     <MDXRemote
       source={content}
       options={{
+        // next-mdx-remote v6 defaults blockJS to true, which strips JSX expression
+        // props like `description={[...]}` (used by about/history MDX) and leaves
+        // them undefined at runtime. Content is trusted, path-validated repo files,
+        // so allow expressions while still blocking dangerous globals (eval, process, …).
+        blockJS: false,
+        blockDangerousJS: true,
         mdxOptions: {
           remarkPlugins: finalRemarkPlugins,
           rehypePlugins,
