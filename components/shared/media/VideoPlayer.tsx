@@ -1,7 +1,10 @@
 interface VideoPlayerProps {
   width?: number;
   height?: number;
-  src: string;
+  /** Single source (MIME type inferred from the extension). Ignored when `sources` is set. */
+  src?: string;
+  /** Multiple sources in order of preference (e.g. webm first, mp4 fallback). */
+  sources?: { src: string; type?: string }[];
   playsInline?: boolean;
   autoPlay?: boolean;
   muted?: boolean;
@@ -29,6 +32,7 @@ export function VideoPlayer({
   width,
   height,
   src,
+  sources,
   playsInline,
   autoPlay,
   muted,
@@ -42,7 +46,6 @@ export function VideoPlayer({
   // Normalize paths by removing leading slashes
   const normalizePath = (path: string) => path.replace(/^\/+/, '');
 
-  const videoSrc = normalizePath(src);
   const posterSrc = poster ? `/${normalizePath(poster)}` : undefined;
 
   // Determine video MIME type based on file extension
@@ -60,13 +63,19 @@ export function VideoPlayer({
     }
   };
 
+  // Keep absolute URLs as-is; normalize bare relative paths to root-relative so
+  // they don't resolve against locale-prefixed routes.
+  const toUrl = (path: string) => (/^(https?:)?\/\//.test(path) ? path : `/${normalizePath(path)}`);
+
+  const videoSources =
+    sources && sources.length > 0
+      ? sources.map((s) => ({ src: toUrl(s.src), type: s.type ?? getVideoType(s.src) }))
+      : src
+        ? [{ src: toUrl(src), type: getVideoType(src) }]
+        : [];
+
   return (
     <>
-      {poster && (
-        <picture style={{ display: 'none' }}>
-          <img src={poster} alt="" />
-        </picture>
-      )}
       <video
         width={width}
         height={height}
@@ -80,7 +89,9 @@ export function VideoPlayer({
         className={className}
         poster={posterSrc}
       >
-        <source src={videoSrc} type={getVideoType(src)} />
+        {videoSources.map((source) => (
+          <source key={source.src} src={source.src} type={source.type} />
+        ))}
         {/* Always include at least one track element for accessibility */}
         <track
           kind="captions"
@@ -95,7 +106,7 @@ export function VideoPlayer({
             key={caption.src}
             kind="captions"
             label={caption.label}
-            src={normalizePath(caption.src)}
+            src={toUrl(caption.src)}
             srcLang={caption.srcLang}
             default={caption.default}
           />

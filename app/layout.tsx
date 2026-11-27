@@ -52,7 +52,8 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
   weight: ['400', '500'], // 400: regular, 500: medium
   variable: '--font-ibm-plex-mono',
-  preload: true,
+  // Only used for transaction IDs; don't compete with critical fonts
+  preload: false,
   adjustFontFallback: true,
 });
 
@@ -70,45 +71,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        {/* DNS Prefetch and Preconnect for external services */}
-
-        {/* Clerk Authentication */}
-        <link rel="dns-prefetch" href="https://clerk.eleva.care" />
-        <link rel="dns-prefetch" href="https://api.clerk.com" />
+        {/*
+          Only Clerk's Frontend API is needed at first paint (clerk-js + session).
+          next/font self-hosts fonts, Vercel Analytics is same-origin, Stripe.js
+          only loads in the private earnings dashboard, and PostHog/Novu load
+          lazily after hydration, so preconnecting to them only wastes sockets.
+          The hero poster is preloaded by next/image (`priority`).
+        */}
         <link rel="preconnect" href="https://clerk.eleva.care" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://api.clerk.com" crossOrigin="anonymous" />
-
-        {/* Vercel Analytics & Speed Insights */}
-        <link rel="dns-prefetch" href="https://vercel-insights.com" />
-        <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
-        <link rel="preconnect" href="https://vercel-insights.com" crossOrigin="anonymous" />
-
-        {/* Stripe Payments */}
-        <link rel="dns-prefetch" href="https://js.stripe.com" />
-        <link rel="dns-prefetch" href="https://api.stripe.com" />
-        <link rel="preconnect" href="https://js.stripe.com" crossOrigin="anonymous" />
-
-        {/* PostHog Analytics (EU Region) */}
-        <link rel="dns-prefetch" href="https://eu.posthog.com" />
-        <link rel="dns-prefetch" href="https://eu-assets.i.posthog.com" />
-        <link rel="preconnect" href="https://eu.posthog.com" crossOrigin="anonymous" />
-
-        {/* Novu Notifications (EU region) */}
-        <link rel="dns-prefetch" href="https://eu.api.novu.co" />
-        <link rel="dns-prefetch" href="https://eu.ws.novu.co" />
-        <link rel="preconnect" href="https://eu.api.novu.co" crossOrigin="anonymous" />
-
-        {/* Google Fonts (Next.js handles this automatically, but explicit is better) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-
-        {/* Preload critical assets */}
-        <link
-          rel="preload"
-          href="/img/videos/eleva-care-intro-banner-poster.webp"
-          as="image"
-          type="image/webp"
-        />
+        <link rel="dns-prefetch" href="https://clerk.eleva.care" />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ErrorBoundaryWrapper>
