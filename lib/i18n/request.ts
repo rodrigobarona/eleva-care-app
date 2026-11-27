@@ -78,7 +78,11 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages,
-    // Optional: set time zone if needed based on locale
-    // timeZone: 'UTC',
+    // Explicit time zone for next-intl. Without one, use-intl reports
+    // ENVIRONMENT_FALLBACK (once per process) on the first render that uses
+    // translations, which crashed server rendering of the first page per worker.
+    // next-intl is not used for date formatting here (booking times use
+    // date-fns-tz with the viewer's zone), so this only satisfies the config.
+    timeZone: 'Europe/Lisbon',
   };
 });

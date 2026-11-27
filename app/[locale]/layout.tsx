@@ -2,7 +2,7 @@ import { isValidLocale } from '@/app/i18n';
 import { IntlProvider } from '@/app/providers';
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
 import { locales } from '@/lib/i18n/routing';
-import { getMessages, setRequestLocale } from 'next-intl/server';
+import { getMessages, getTimeZone, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import type React from 'react';
 
@@ -95,12 +95,12 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   // Enable static rendering
   setRequestLocale(locale);
-  const messages = await getMessages();
+  const [messages, timeZone] = await Promise.all([getMessages(), getTimeZone()]);
 
   // Use the dedicated IntlProvider component for localized routes
   // The IntlProvider now automatically updates the HTML lang attribute
   return (
-    <IntlProvider locale={locale} messages={messages}>
+    <IntlProvider locale={locale} messages={messages} timeZone={timeZone}>
       <SmoothScrollProvider>{children}</SmoothScrollProvider>
     </IntlProvider>
   );

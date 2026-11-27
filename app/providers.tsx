@@ -7,22 +7,17 @@ import { ClerkProvider, useUser } from '@clerk/nextjs';
 import { NovuProvider } from '@novu/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
-import dynamic from 'next/dynamic';
 import { useParams, usePathname } from 'next/navigation';
 import { posthog, PostHog, PostHogConfig } from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useState } from 'react';
+import { CookieManager } from 'react-cookie-manager';
 import { Toaster } from 'sonner';
 
 // Import the createCookieTranslations function
 import { createCookieTranslations } from '../lib/i18n/cookie-translations';
 import PostHogPageView from './PostHogPageView';
 
-// Dynamically import CookieManager to prevent SSR issues
-const CookieManager = dynamic(
-  () => import('react-cookie-manager').then((mod) => mod.CookieManager),
-  { ssr: false, loading: () => null },
-);
 
 // TypeScript interfaces for Clerk metadata
 interface ClerkPublicMetadata {
@@ -331,6 +326,13 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
     >
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <AuthorizationProvider>
+          {/*
+            CookieManager wraps the whole app, so it MUST render on the server.
+            It used to be loaded with next/dynamic({ ssr: false }), which made the
+            server HTML body empty on every page (nothing visible until all JS
+            loaded and hydrated). It is SSR-safe: its first render returns only
+            {children}; the banner/modals mount after effects run.
+          */}
           <CookieManager
             cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
             showManageButton={true}
@@ -367,10 +369,17 @@ export function IntlProvider({
   children,
   locale,
   messages,
+  timeZone,
 }: {
   children: React.ReactNode;
   locale: string;
   messages: Record<string, unknown>;
+  /**
+   * Required now that pages server-render: a client-rendered
+   * NextIntlClientProvider does not inherit the server config, and a missing
+   * timeZone makes use-intl raise ENVIRONMENT_FALLBACK during SSR.
+   */
+  timeZone: string;
 }) {
   // Update HTML lang attribute when the locale changes
   useEffect(() => {
@@ -394,6 +403,7 @@ export function IntlProvider({
     <NextIntlClientProvider
       locale={locale}
       messages={messages}
+      timeZone={timeZone}
       onError={(error) => {
         if (error.code === 'MISSING_MESSAGE') {
           if (process.env.NODE_ENV === 'development') {
