@@ -1,15 +1,12 @@
 import { isValidLocale } from '@/app/i18n';
+import ApproachSection from '@/components/sections/home/ApproachSection';
 import ExpertsSection from '@/components/sections/home/ExpertsSection';
 import Hero from '@/components/sections/home/Hero';
-import {
-  ApproachSkeleton,
-  ExpertsSkeleton,
-  ServicesSkeleton,
-} from '@/components/shared/loading/HomePageSkeletons';
+import ServicesSection from '@/components/sections/home/Services';
+import { ExpertsSkeleton } from '@/components/shared/loading/HomePageSkeletons';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
-import dynamic from 'next/dynamic';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Suspense } from 'react';
 
 // Define the page props
@@ -83,28 +80,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-// Dynamic imports with proper loading states
-// Services and Approach are client components that don't fetch data, use dynamic() to code-split
-const ServicesSection = dynamic(() => import('@/components/sections/home/Services'), {
-  loading: () => <ServicesSkeleton />,
-  ssr: true, // Enable SSR for SEO
-});
+// Static (ISR) home page: re-generated at most once an hour, or on demand when an
+// expert profile changes (see HOME_EXPERTS_CACHE_TAG). Avoid adding request-time
+// APIs (cookies, headers, auth, no-store fetches) here: they make the page dynamic
+// and every visit then costs server CPU.
+export const revalidate = 3600;
 
-const ApproachSection = dynamic(() => import('@/components/sections/home/ApproachSection'), {
-  loading: () => <ApproachSkeleton />,
-  ssr: true, // Enable SSR for SEO
-});
+export default async function HomePage({ params }: PageProps) {
+  const { locale } = await params;
+  // Must run before any next-intl API in this segment: without it next-intl reads
+  // the locale from headers(), which silently makes the route dynamic (no ISR).
+  setRequestLocale(locale);
 
-export default function HomePage() {
   return (
     <main>
-      {/* Hero: Static content, no data fetching, renders immediately */}
+      {/* Hero, Services, Approach: server components (static copy, markdown rendered on the server) */}
       <Hero />
 
-      {/* Services: Client component, code-split with dynamic import */}
       <ServicesSection />
 
-      {/* Approach: Client component, code-split with dynamic import */}
       <ApproachSection />
 
       {/* Experts: Server component with database queries, wrapped in Suspense */}

@@ -63,14 +63,14 @@ async function getCalendarStatus(clerkUserId: string) {
   }
 }
 
-async function getValidTimesForEvent(eventId: string) {
+/**
+ * Returns the next available slot for an event (at most one), used for the
+ * "next available" badge. Evaluation stops at the first valid slot instead of
+ * computing the full two-month window, which used to dominate the profile
+ * page's render CPU (once per event card).
+ */
+async function getNextAvailableTimeForEvent(event: Event) {
   try {
-    const event = await db.query.EventTable.findFirst({
-      where: ({ id }, { eq }) => eq(id, eventId),
-    });
-
-    if (!event) return [];
-
     const now = new Date();
 
     // Fetch scheduling settings for the user
@@ -85,7 +85,7 @@ async function getValidTimesForEvent(eventId: string) {
       }
     } catch (error) {
       logger.error('Error fetching scheduling settings', {
-        eventId,
+        eventId: event.id,
         error: error instanceof Error ? error.message : String(error),
       });
       // Continue with the default value
@@ -116,11 +116,12 @@ async function getValidTimesForEvent(eventId: string) {
       currentTime = new Date(currentTime.getTime() + timeSlotInterval * 60000);
     }
 
-    const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
-    return validTimes;
+    return await getValidTimesFromSchedule(timeSlots, event, calendarEvents, undefined, {
+      limit: 1,
+    });
   } catch (error) {
     logger.error('Error fetching valid times for event', {
-      eventId,
+      eventId: event.id,
       error: error instanceof Error ? error.message : String(error),
     });
     return [];
@@ -364,7 +365,7 @@ async function EventCardWithAvailability({ event, username }: { event: Event; us
   // so the UI can still render the event card. This prevents a single event's error from breaking the entire list.
   let validTimes: Date[] = [];
   try {
-    validTimes = await getValidTimesForEvent(event.id);
+    validTimes = await getNextAvailableTimeForEvent(event);
     logger.info('Valid times retrieved', { eventId: event.id, timeCount: validTimes.length });
   } catch (error) {
     logger.error('Error loading availability for event', {

@@ -5,7 +5,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/layo
 import { Separator } from '@/components/ui/separator';
 import { defaultLocale } from '@/lib/i18n/routing';
 import { auth } from '@clerk/nextjs/server';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTimeZone } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -26,10 +26,13 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   const locale = cookieStore.get('ELEVA_LOCALE')?.value || defaultLocale;
 
   // Load messages for the detected locale
-  const messages = await getMessages({ locale });
+  const [messages, timeZone] = await Promise.all([
+    getMessages({ locale }),
+    getTimeZone({ locale }),
+  ]);
 
   return (
-    <IntlProvider locale={locale} messages={messages}>
+    <IntlProvider locale={locale} messages={messages} timeZone={timeZone}>
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>

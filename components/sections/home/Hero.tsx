@@ -1,57 +1,39 @@
-'use client';
-
 import { PlatformDisclaimer } from '@/components/shared/ui-utilities/PlatformDisclaimer';
 import { Button } from '@/components/ui/button';
 import { ClipboardList } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import dynamic from 'next/dynamic';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
-// Dynamically import VideoPlayer to reduce initial bundle size
-const VideoPlayer = dynamic(
-  () =>
-    import('@/components/shared/media/VideoPlayer').then((mod) => ({ default: mod.VideoPlayer })),
-  {
-    ssr: false,
-    loading: () => null,
-  },
-);
+import { HeroVideo } from './HeroVideo';
 
-const Hero = () => {
-  const t = useTranslations('hero');
+/**
+ * Server component: markdown and copy render on the server (react-markdown is
+ * not shipped to the client). Only HeroVideo and PlatformDisclaimer are client.
+ */
+const Hero = async () => {
+  const t = await getTranslations('hero');
 
   return (
     <section
       className="lg:rounded-5xl relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900"
       data-component-name="hero"
     >
-      {/* Priority load poster image for instant FCP */}
+      {/* Poster = LCP element; preloaded once by next/image with high fetch priority */}
       <Image
         src="/img/videos/eleva-care-intro-banner-poster.webp"
         alt="Eleva Care Hero"
         width={1920}
         height={1080}
-        priority
+        preload
+        fetchPriority="high"
         quality={90}
         className="lg:rounded-5xl absolute rounded-2xl object-cover"
         sizes="100vw"
       />
-      {/* Load video after initial render */}
-      <VideoPlayer
-        src="img/videos/eleva-care-intro-banner.webm"
-        width={1920}
-        height={1080}
-        playsInline
-        autoPlay
-        muted
-        loop
-        controls={false}
-        preload="none"
-        poster="img/videos/eleva-care-intro-banner-poster.webp"
-        className="lg:rounded-5xl absolute rounded-2xl object-cover"
-      />
+      {/* Mounted client-side after hydration (skipped for reduced motion / Data Saver) */}
+      <HeroVideo className="lg:rounded-5xl absolute rounded-2xl object-cover" />
       <div className="absolute z-0 h-full w-full bg-eleva-neutral-900/40" />
       <div className="relative px-4 lg:px-6">
         <div className="z-20 mx-auto flex max-w-2xl flex-col justify-end pt-44 lg:max-w-7xl lg:justify-between lg:pt-72">

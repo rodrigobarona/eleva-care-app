@@ -8,7 +8,7 @@ import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 
@@ -77,6 +77,10 @@ export default async function HistoryPage({ params }: PageProps) {
   if (!isValidLocale(locale)) {
     redirect('/history'); // Default locale (en) has no prefix
   }
+
+  // Must run before any next-intl API in this segment: without it next-intl reads
+  // the locale from headers(), which silently makes the route dynamic (no ISR).
+  setRequestLocale(locale);
 
   // Merge base MDX components with custom components
   const components = {

@@ -3,34 +3,28 @@
 import { AuthorizationProvider } from '@/components/shared/providers/AuthorizationProvider';
 import { ENV_CONFIG } from '@/config/env';
 import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
-import { ClerkProvider, useUser } from '@clerk/nextjs';
-import { NovuProvider } from '@novu/react';
+import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
-import { useParams, usePathname } from 'next/navigation';
-import { posthog, PostHog, PostHogConfig } from 'posthog-js';
-import { PostHogProvider as PHProvider } from 'posthog-js/react';
-import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import type { PostHog, PostHogConfig } from 'posthog-js';
+import { useEffect, useRef, useState } from 'react';
+import { CookieManager } from 'react-cookie-manager';
 import { Toaster } from 'sonner';
 
 // Import the createCookieTranslations function
 import { createCookieTranslations } from '../lib/i18n/cookie-translations';
-import PostHogPageView from './PostHogPageView';
 
-// Dynamically import CookieManager to prevent SSR issues
-const CookieManager = dynamic(
-  () => import('react-cookie-manager').then((mod) => mod.CookieManager),
+/**
+ * PostHog pageview + user trackers. Loaded lazily (and only after posthog-js
+ * has initialized) so posthog-js / posthog-js/react are not in the critical
+ * client bundle. Renders null and never wraps children, so ssr: false is safe.
+ */
+const PostHogClientTrackers = dynamic(
+  () => import('@/components/analytics/PostHogClientTrackers'),
   { ssr: false, loading: () => null },
 );
-
-// TypeScript interfaces for Clerk metadata
-interface ClerkPublicMetadata {
-  signInCount?: number;
-  role?: string;
-  onboardingCompleted?: boolean;
-  sessionCount?: number;
-}
 
 // Enhanced configuration function
 const getPostHogConfig = (): Partial<PostHogConfig> => {
@@ -81,119 +75,6 @@ const getPostHogConfig = (): Partial<PostHogConfig> => {
   };
 };
 
-// PostHog user identification and tracking
-function PostHogUserTracker() {
-  const { user, isLoaded } = useUser();
-  const pathname = usePathname();
-  const params = useParams();
-
-  useEffect(() => {
-    if (!isLoaded || typeof window === 'undefined') return;
-
-    const locale = (params?.locale as string) || 'en';
-    const isPrivateRoute =
-      pathname?.startsWith('/(private)') ||
-      pathname?.includes('/dashboard') ||
-      pathname?.includes('/account') ||
-      pathname?.includes('/admin');
-
-    posthog.register({
-      route_type: isPrivateRoute ? 'private' : 'public',
-      locale: locale,
-      user_authenticated: !!user,
-    });
-
-    if (user) {
-      const metadata = user.publicMetadata as ClerkPublicMetadata;
-
-      posthog.identify(user.id, {
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName,
-        first_name: user.firstName,
-        last_name: user.lastName,
-        phone: user.primaryPhoneNumber?.phoneNumber,
-        avatar: user.imageUrl,
-        created_at: user.createdAt,
-        last_sign_in: user.lastSignInAt,
-        email_verified: user.primaryEmailAddress?.verification?.status === 'verified',
-        phone_verified: user.primaryPhoneNumber?.verification?.status === 'verified',
-        has_image: !!user.imageUrl,
-        sign_in_count: metadata?.signInCount || 0,
-        user_role: metadata?.role || 'user',
-        onboarding_completed: metadata?.onboardingCompleted || false,
-        preferred_locale: locale,
-        timezone: (() => {
-          try {
-            return Intl.DateTimeFormat().resolvedOptions().timeZone;
-          } catch (error) {
-            console.warn('Failed to get timezone, using UTC:', error);
-            return 'UTC';
-          }
-        })(),
-      });
-
-      posthog.people.set({
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName,
-        avatar: user.imageUrl,
-        locale: locale,
-        last_seen: new Date().toISOString(),
-        total_sessions: (metadata?.sessionCount || 0) + 1,
-      });
-
-      if (user.lastSignInAt) {
-        const timeSinceLastSignIn = Date.now() - new Date(user.lastSignInAt).getTime();
-        if (timeSinceLastSignIn < 60000) {
-          posthog.capture('user_signed_in', {
-            sign_in_method: 'clerk',
-            is_new_session: true,
-            locale: locale,
-          });
-        }
-      }
-    } else {
-      posthog.register({
-        user_type: 'anonymous',
-        locale: locale,
-      });
-    }
-
-    posthog.register({
-      page_type: isPrivateRoute ? 'app' : 'marketing',
-      page_section: isPrivateRoute
-        ? pathname?.split('/')[2] || 'dashboard'
-        : pathname?.split('/')[2] || 'home',
-    });
-  }, [user, isLoaded, pathname, params]);
-
-  return null;
-}
-
-/**
- * NovuWrapper - Provides Novu context for notification components
- * Uses @novu/react NovuProvider with EU region endpoints
- * HMAC authentication is handled separately via useSecureNovu hook
- */
-function NovuWrapper({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
-
-  // Ensure Clerk user is loaded and applicationIdentifier is available
-  if (!isLoaded || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
-    return <>{children}</>;
-  }
-
-  return (
-    <NovuProvider
-      applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
-      subscriberId={user.id}
-      backendUrl={ENV_CONFIG.NOVU_BASE_URL}
-      socketUrl={ENV_CONFIG.NOVU_SOCKET_URL}
-    >
-      {children}
-    </NovuProvider>
-  );
-}
-
 interface ClientProvidersProps {
   children: React.ReactNode;
   messages: Record<string, unknown>;
@@ -205,7 +86,7 @@ interface ClientProvidersProps {
  * Includes feature flags, session recording, and performance monitoring
  */
 export function ClientProviders({ children, messages }: ClientProvidersProps) {
-  const [posthogLoaded, setPosthogLoaded] = useState(false);
+  const [posthogClient, setPosthogClient] = useState<PostHog | null>(null);
   const params = useParams();
 
   // Get the current locale from the URL params
@@ -229,8 +110,14 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
     return localization;
   };
 
+  // Keep the latest locale available to the (run-once) PostHog init below
+  const localeRef = useRef(currentLocale);
   useEffect(() => {
-    // Enhanced PostHog setup
+    localeRef.current = currentLocale;
+  }, [currentLocale]);
+
+  useEffect(() => {
+    // Enhanced PostHog setup (runs once; global listeners are added once)
     if (typeof window === 'undefined') return;
 
     const apiKey = ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY;
@@ -249,77 +136,108 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
       return;
     }
 
-    try {
-      // Initialize PostHog with enhanced configuration
-      const config = getPostHogConfig();
+    let cancelled = false;
+    let ph: PostHog | null = null;
 
-      posthog.init(apiKey, {
-        ...config,
-        loaded: (ph: PostHog) => {
-          setPosthogLoaded(true);
-          config.loaded?.(ph);
-
-          // Track application start
-          ph.capture('app_loaded', {
-            locale: currentLocale,
-            user_agent: navigator.userAgent,
-            screen_width: window.screen.width,
-            screen_height: window.screen.height,
-            viewport_width: window.innerWidth,
-            viewport_height: window.innerHeight,
-            timezone: (() => {
-              try {
-                return Intl.DateTimeFormat().resolvedOptions().timeZone;
-              } catch (error) {
-                console.warn('Failed to get timezone, using UTC:', error);
-                return 'UTC';
-              }
-            })(),
-            language: navigator.language,
-            platform: navigator.platform,
-          });
-        },
+    // Global listeners (registered once, removed on unmount)
+    const onError = (event: ErrorEvent) => {
+      ph?.capture('javascript_error', {
+        error_message: event.error?.message || event.message,
+        error_stack: event.error?.stack,
+        filename: event.filename,
+        line_number: event.lineno,
+        column_number: event.colno,
+        user_agent: navigator.userAgent,
       });
+    };
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      ph?.capture('unhandled_promise_rejection', {
+        reason: event.reason?.toString() || 'Unknown reason',
+        stack: event.reason?.stack,
+      });
+    };
+    const onVisibilityChange = () => {
+      ph?.capture('page_visibility_changed', {
+        visibility_state: document.visibilityState,
+      });
+    };
+    const onOnline = () => ph?.capture('network_status_changed', { status: 'online' });
+    const onOffline = () => ph?.capture('network_status_changed', { status: 'offline' });
 
-      // Enhanced error tracking
-      window.addEventListener('error', (event) => {
-        posthog.capture('javascript_error', {
-          error_message: event.error?.message || event.message,
-          error_stack: event.error?.stack,
-          filename: event.filename,
-          line_number: event.lineno,
-          column_number: event.colno,
-          user_agent: navigator.userAgent,
+    const init = async () => {
+      try {
+        // Lazy-load posthog-js so it stays out of the critical bundle
+        const { posthog } = await import('posthog-js');
+        if (cancelled) return;
+
+        // Initialize PostHog with enhanced configuration
+        const config = getPostHogConfig();
+
+        posthog.init(apiKey, {
+          ...config,
+          loaded: (instance: PostHog) => {
+            config.loaded?.(instance);
+
+            // Track application start
+            instance.capture('app_loaded', {
+              locale: localeRef.current,
+              user_agent: navigator.userAgent,
+              screen_width: window.screen.width,
+              screen_height: window.screen.height,
+              viewport_width: window.innerWidth,
+              viewport_height: window.innerHeight,
+              timezone: (() => {
+                try {
+                  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+                } catch (error) {
+                  console.warn('Failed to get timezone, using UTC:', error);
+                  return 'UTC';
+                }
+              })(),
+              language: navigator.language,
+              platform: navigator.platform,
+            });
+
+            if (!cancelled) setPosthogClient(instance);
+          },
         });
-      });
 
-      // Track unhandled promise rejections
-      window.addEventListener('unhandledrejection', (event) => {
-        posthog.capture('unhandled_promise_rejection', {
-          reason: event.reason?.toString() || 'Unknown reason',
-          stack: event.reason?.stack,
-        });
-      });
+        ph = posthog;
 
-      // Track page visibility changes
-      document.addEventListener('visibilitychange', () => {
-        posthog.capture('page_visibility_changed', {
-          visibility_state: document.visibilityState,
-        });
-      });
+        // Enhanced error tracking
+        window.addEventListener('error', onError);
+        // Track unhandled promise rejections
+        window.addEventListener('unhandledrejection', onUnhandledRejection);
+        // Track page visibility changes
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        // Track network status
+        window.addEventListener('online', onOnline);
+        window.addEventListener('offline', onOffline);
+      } catch (error) {
+        console.error('[PostHog] Failed to initialize:', error);
+      }
+    };
 
-      // Track network status
-      window.addEventListener('online', () => {
-        posthog.capture('network_status_changed', { status: 'online' });
-      });
-
-      window.addEventListener('offline', () => {
-        posthog.capture('network_status_changed', { status: 'offline' });
-      });
-    } catch (error) {
-      console.error('[PostHog] Failed to initialize:', error);
+    // Defer until the browser is idle (timeout fallback for Safari)
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(() => void init(), { timeout: 4000 });
+    } else {
+      timeoutId = setTimeout(() => void init(), 1500);
     }
-  }, [currentLocale]);
+
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onUnhandledRejection);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   return (
     <ClerkProvider
@@ -331,6 +249,13 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
     >
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <AuthorizationProvider>
+          {/*
+            CookieManager wraps the whole app, so it MUST render on the server.
+            It used to be loaded with next/dynamic({ ssr: false }), which made the
+            server HTML body empty on every page (nothing visible until all JS
+            loaded and hydrated). It is SSR-safe: its first render returns only
+            {children}; the banner/modals mount after effects run.
+          */}
           <CookieManager
             cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
             showManageButton={true}
@@ -341,15 +266,8 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
             privacyPolicyUrl="/legal/cookie"
             translations={createCookieTranslations(messages)}
           >
-            <PHProvider client={posthog}>
-              {posthogLoaded && (
-                <>
-                  <PostHogPageView />
-                  <PostHogUserTracker />
-                </>
-              )}
-              <NovuWrapper>{children}</NovuWrapper>
-            </PHProvider>
+            {posthogClient && <PostHogClientTrackers client={posthogClient} />}
+            {children}
             <Toaster closeButton position="bottom-right" richColors />
           </CookieManager>
         </AuthorizationProvider>
@@ -367,10 +285,17 @@ export function IntlProvider({
   children,
   locale,
   messages,
+  timeZone,
 }: {
   children: React.ReactNode;
   locale: string;
   messages: Record<string, unknown>;
+  /**
+   * Required now that pages server-render: a client-rendered
+   * NextIntlClientProvider does not inherit the server config, and a missing
+   * timeZone makes use-intl raise ENVIRONMENT_FALLBACK during SSR.
+   */
+  timeZone: string;
 }) {
   // Update HTML lang attribute when the locale changes
   useEffect(() => {
@@ -394,6 +319,7 @@ export function IntlProvider({
     <NextIntlClientProvider
       locale={locale}
       messages={messages}
+      timeZone={timeZone}
       onError={(error) => {
         if (error.code === 'MISSING_MESSAGE') {
           if (process.env.NODE_ENV === 'development') {

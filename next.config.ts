@@ -53,6 +53,26 @@ const config: NextConfig = {
     '/*': ['./content/**'],
   },
 
+  // Crawlers that receive blocking metadata: <title>, description, canonical and
+  // OpenGraph tags rendered inside <head> instead of streamed into <body> after
+  // the page shell. Crawlers that do not run JavaScript (most AI/LLM crawlers)
+  // read <head> most reliably, so this maximises search + AI indexing.
+  // Setting this replaces Next's default list (HTML_LIMITED_BOT_UA_RE), so the
+  // default pattern is repeated first, then Googlebot and AI/answer-engine
+  // crawlers (OpenAI, Anthropic, Perplexity, Common Crawl, Amazon, Meta, ...).
+  // Static (ISR) pages are unaffected: everyone gets the same prerendered HTML.
+  htmlLimitedBots: new RegExp(
+    [
+      // Next.js 16 default
+      '[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight',
+      // Search
+      'Googlebot',
+      // AI / LLM crawlers and assistants
+      'GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|CCBot|Amazonbot|Meta-ExternalAgent|meta-externalfetcher|DuckAssistBot|MistralAI-User|cohere-ai|YouBot|Bytespider',
+    ].join('|'),
+    'i',
+  ),
+
   // Enable React Compiler for automatic memoization
   reactCompiler: true,
 
@@ -75,7 +95,7 @@ const config: NextConfig = {
   },
 
   // External packages that should not be bundled by webpack
-  serverExternalPackages: ['googleapis'],
+  serverExternalPackages: ['@googleapis/calendar'],
 
   // Turbopack configuration (moved from experimental in Next.js 16)
   turbopack: {

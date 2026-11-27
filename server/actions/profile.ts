@@ -1,8 +1,10 @@
 import { db } from '@/drizzle/db';
+import { HOME_EXPERTS_CACHE_TAG } from '@/lib/constants/cache-tags';
 import { ProfileTable } from '@/drizzle/schema';
 import { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { del } from '@vercel/blob';
+import { revalidateTag } from 'next/cache';
 import type { z } from 'zod';
 
 /**
@@ -153,6 +155,9 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
         console.error('Failed to mark profile step as complete:', error);
       }
     }
+
+    // Name, photo, headline and bio appear in the home page experts carousel
+    revalidateTag(HOME_EXPERTS_CACHE_TAG, { expire: 0 });
 
     return { success: true };
   } catch (error) {

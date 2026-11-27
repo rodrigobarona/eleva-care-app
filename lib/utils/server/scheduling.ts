@@ -16,7 +16,6 @@ import {
   setHours,
   setMinutes,
   startOfDay,
-  subMinutes,
 } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -25,25 +24,43 @@ interface ScheduleEvent {
   durationInMinutes: number;
 }
 
+interface GetValidTimesOptions {
+  /**
+   * Stop after this many valid times. `times` is expected in ascending order, so
+   * `{ limit: 1 }` returns the next available slot without evaluating the rest
+   * of the booking window (used by the profile page's "next available" badge).
+   */
+  limit?: number;
+}
+
+const MINUTE_MS = 60_000;
+
 export async function getValidTimesFromSchedule(
   times: Date[],
   event: ScheduleEvent,
   calendarEvents: Array<{ start: Date; end: Date }>,
   excludeGuestEmail?: string,
+  options: GetValidTimesOptions = {},
 ) {
-  const schedule = await db.query.ScheduleTable.findFirst({
-    where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
-    with: { availabilities: true },
-  });
+  // The three lookups are independent, so run them in parallel.
+  const currentTime = new Date();
+  const [schedule, activeReservations, settings] = await Promise.all([
+    db.query.ScheduleTable.findFirst({
+      where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
+      with: { availabilities: true },
+    }),
+    // Active slot reservations for this expert
+    db.query.SlotReservationTable.findMany({
+      where: (fields, { eq, and, gt }) =>
+        and(eq(fields.clerkUserId, event.clerkUserId), gt(fields.expiresAt, currentTime)),
+    }),
+    // Scheduling settings for minimum notice period and buffer times
+    db.query.schedulingSettings.findFirst({
+      where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
+    }),
+  ]);
 
   if (schedule == null) return [];
-
-  // Get active slot reservations for this expert
-  const currentTime = new Date();
-  const activeReservations = await db.query.SlotReservationTable.findMany({
-    where: (fields, { eq, and, gt }) =>
-      and(eq(fields.clerkUserId, event.clerkUserId), gt(fields.expiresAt, currentTime)),
-  });
 
   // Convert reservations to a Set for faster lookup (exclude returning guest's own reservations)
   const reservedTimes = new Set(
@@ -65,17 +82,7 @@ export async function getValidTimesFromSchedule(
         })),
       },
     );
-  } else {
-    // In production, just log the count
-    console.log(
-      `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations for expert ${event.clerkUserId}`,
-    );
   }
-
-  // Get scheduling settings for minimum notice period and buffer times
-  const settings = await db.query.schedulingSettings.findFirst({
-    where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
-  });
 
   const minimumNotice = settings?.minimumNotice ?? 1440; // Default to 24 hours if not set
   const beforeEventBuffer = settings?.beforeEventBuffer ?? 15; // Default to 15 minutes if not set
@@ -91,8 +98,42 @@ export async function getValidTimesFromSchedule(
   // For day-level granularity, calculate the earliest possible day
   const earliestStartOfDay = startOfDay(earliestPossibleTime);
 
-  const validTimes = [];
+  // --- Loop-invariant work, hoisted out of the per-slot loop ---------------
+  // A booking page evaluates thousands of slots (e.g. 60 days x 48 slots/day)
+  // against every calendar event, so per-slot allocations and timezone math
+  // dominate the CPU cost of rendering availability.
+
+  // Calendar events as epoch-ms pairs (avoids Date allocation per comparison)
+  const busyIntervals = calendarEvents.map((calendarEvent) => ({
+    start: calendarEvent.start.getTime(),
+    end: calendarEvent.end.getTime(),
+  }));
+
+  const groupedAvailabilities = Object.groupBy(schedule.availabilities, (a) => a.dayOfWeek);
+
+  // Availability windows depend only on the slot's calendar day (in the server's
+  // local time, matching getAvailabilities' setHours/isMonday semantics), so
+  // compute them once per day instead of once per slot.
+  const availabilitiesByDay = new Map<string, Array<{ start: Date; end: Date }>>();
+  const getDayAvailabilities = (time: Date) => {
+    // Seconds/ms are part of the key: getAvailabilities copies them from `time`.
+    const dayKey = `${time.getFullYear()}-${time.getMonth()}-${time.getDate()}-${time.getSeconds()}-${time.getMilliseconds()}`;
+    let availabilities = availabilitiesByDay.get(dayKey);
+    if (availabilities === undefined) {
+      availabilities = getAvailabilities(groupedAvailabilities, time, schedule.timezone);
+      availabilitiesByDay.set(dayKey, availabilities);
+    }
+    return availabilities;
+  };
+
+  const beforeBufferMs = beforeEventBuffer * MINUTE_MS;
+  const afterBufferMs = (event.durationInMinutes + afterEventBuffer) * MINUTE_MS;
+  const limit = options.limit ?? Number.POSITIVE_INFINITY;
+
+  const validTimes: Date[] = [];
   for (const time of times) {
+    if (validTimes.length >= limit) break;
+
     // Check if this time slot is currently reserved
     if (reservedTimes.has(time.toISOString())) {
       if (process.env.NODE_ENV === 'development') {
@@ -120,31 +161,27 @@ export async function getValidTimesFromSchedule(
       // No additional time filtering needed here
     }
 
-    // Check if time conflicts with any calendar event, including buffer times
-    const hasCalendarConflict = calendarEvents.some((calendarEvent) => {
-      const meetingStartWithBuffer = subMinutes(time, beforeEventBuffer);
-      const meetingEndWithBuffer = addMinutes(
-        addMinutes(time, event.durationInMinutes),
-        afterEventBuffer,
-      );
+    // Meeting window including buffers (epoch ms)
+    const timeMs = time.getTime();
+    const meetingStartWithBuffer = timeMs - beforeBufferMs;
+    const meetingEndWithBuffer = timeMs + afterBufferMs;
 
-      // Check if the meeting time (including buffers) overlaps with any calendar event
-      return (
-        (meetingStartWithBuffer >= calendarEvent.start &&
-          meetingStartWithBuffer < calendarEvent.end) ||
-        (meetingEndWithBuffer > calendarEvent.start && meetingEndWithBuffer <= calendarEvent.end) ||
-        (meetingStartWithBuffer <= calendarEvent.start && meetingEndWithBuffer >= calendarEvent.end)
-      );
-    });
+    // Check if the meeting time (including buffers) overlaps with any calendar event
+    const hasCalendarConflict = busyIntervals.some(
+      (busy) =>
+        (meetingStartWithBuffer >= busy.start && meetingStartWithBuffer < busy.end) ||
+        (meetingEndWithBuffer > busy.start && meetingEndWithBuffer <= busy.end) ||
+        (meetingStartWithBuffer <= busy.start && meetingEndWithBuffer >= busy.end),
+    );
 
     if (hasCalendarConflict) continue;
 
-    const groupedAvailabilities = Object.groupBy(schedule.availabilities, (a) => a.dayOfWeek);
+    const availabilities = getDayAvailabilities(time);
+    if (availabilities.length === 0) continue;
 
-    const availabilities = getAvailabilities(groupedAvailabilities, time, schedule.timezone);
     const eventInterval = {
-      start: subMinutes(time, beforeEventBuffer), // Include buffer before event
-      end: addMinutes(addMinutes(time, event.durationInMinutes), afterEventBuffer), // Include buffer after event
+      start: new Date(meetingStartWithBuffer), // Include buffer before event
+      end: new Date(meetingEndWithBuffer), // Include buffer after event
     };
 
     const isTimeValid = availabilities.some(

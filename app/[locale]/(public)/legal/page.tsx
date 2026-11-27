@@ -1,6 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -34,6 +35,10 @@ export default async function LegalPage({ params }: PageProps) {
   if (!isValidLocale(locale)) {
     redirect('/legal/terms'); // Default locale (en) has no prefix
   }
+
+  // Must run before any next-intl API in this segment: without it next-intl reads
+  // the locale from headers(), which silently makes the route dynamic (no ISR).
+  setRequestLocale(locale);
 
   // Redirect to the default legal document (terms)
   redirect(`/${locale}/legal/terms`);

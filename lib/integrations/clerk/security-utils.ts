@@ -13,6 +13,11 @@ export interface SessionSecurityAnalysis {
   riskScore: 'low' | 'medium' | 'high';
   shouldNotify: boolean;
   reason: string;
+  /**
+   * The user's `securityAlerts` preference, read from the same Clerk fetch as the
+   * analysis. Undefined when the analysis failed (caller should fall back).
+   */
+  userWantsNotifications?: boolean;
 }
 
 export interface ClerkSessionData {
@@ -68,17 +73,30 @@ export interface LoginPattern {
   recentLocations: string[]; // Recent IP addresses or locations
 }
 
+type PrivateMetadata = Record<string, unknown>;
+
 /**
  * Analyze a session for security risks using Clerk's data
  * This leverages Clerk's built-in device and location tracking
+ *
+ * Performance: the user is fetched from Clerk ONCE and every step (device,
+ * timing, location, login pattern) reads and updates an in-memory copy of
+ * privateMetadata in the same order the previous per-helper implementation did,
+ * followed by a single updateUserMetadata call. Previously each helper re-fetched
+ * the user (up to 7 getUser calls per login) and wrote separately (up to 4
+ * writes), and every write fired another `user.updated` webhook.
  */
 export async function analyzeSessionSecurity(
   sessionData: ClerkSessionData,
   userId: string,
 ): Promise<SessionSecurityAnalysis> {
   try {
-    // Get user preferences
-    const preferences = await getUserSecurityPreferences(userId);
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+
+    const preferences = resolveSecurityPreferences(user.publicMetadata);
+    const privateMetadata: PrivateMetadata = { ...(user.privateMetadata ?? {}) };
+    const loginTime = sessionData.created_at || Date.now();
 
     // Initialize analysis
     const analysis: SessionSecurityAnalysis = {
@@ -88,11 +106,12 @@ export async function analyzeSessionSecurity(
       riskScore: 'low',
       shouldNotify: false,
       reason: 'Normal login activity',
+      userWantsNotifications: preferences.securityAlerts !== false,
     };
 
     // 1. Device Detection - Check if client_id is new
     if (sessionData.client_id && preferences.newDeviceAlerts) {
-      analysis.isNewDevice = await isNewDevice(userId, sessionData.client_id);
+      analysis.isNewDevice = checkNewDevice(privateMetadata, userId, sessionData.client_id);
       if (analysis.isNewDevice) {
         console.log(`🔍 New device detected for user ${userId}: ${sessionData.client_id}`);
       }
@@ -100,10 +119,7 @@ export async function analyzeSessionSecurity(
 
     // 2. Timing Analysis - Check if login time is unusual
     if (preferences.unusualTimingAlerts) {
-      analysis.isUnusualTiming = await isUnusualTiming(
-        userId,
-        sessionData.created_at || Date.now(),
-      );
+      analysis.isUnusualTiming = checkUnusualTiming(privateMetadata, userId, loginTime);
       if (analysis.isUnusualTiming) {
         console.log(`🔍 Unusual timing detected for user ${userId}`);
       }
@@ -111,7 +127,7 @@ export async function analyzeSessionSecurity(
 
     // 3. Geographic Anomaly - Check for location changes using Vercel's geolocation
     if (preferences.locationChangeAlerts) {
-      analysis.isGeographicAnomaly = await isGeographicAnomaly(userId, sessionData);
+      analysis.isGeographicAnomaly = checkGeographicAnomaly(privateMetadata, userId, sessionData);
       if (analysis.isGeographicAnomaly) {
         console.log(`🔍 Geographic anomaly detected for user ${userId}`);
       }
@@ -138,11 +154,18 @@ export async function analyzeSessionSecurity(
 
     // Store device info for future analysis
     if (sessionData.client_id) {
-      await updateDeviceInfo(userId, sessionData.client_id, sessionData.created_at || Date.now());
+      applyDeviceInfo(privateMetadata, sessionData.client_id, loginTime);
     }
 
     // Update login patterns
-    await updateLoginPatterns(userId, sessionData.created_at || Date.now());
+    applyLoginPattern(privateMetadata, userId, loginTime);
+
+    // Single write with every update applied
+    try {
+      await client.users.updateUserMetadata(userId, { privateMetadata });
+    } catch (error) {
+      console.error('Error saving session security metadata:', error);
+    }
 
     return analysis;
   } catch (error) {
@@ -275,25 +298,33 @@ export async function logSecurityEvent(event: {
 // ============================================================================
 
 /**
+ * Apply defaults to the securityPreferences stored in a user's publicMetadata
+ */
+function resolveSecurityPreferences(
+  publicMetadata: Record<string, unknown> | null | undefined,
+): UserSecurityPreferences {
+  const preferences = (publicMetadata?.securityPreferences as UserSecurityPreferences) || {};
+
+  // Set defaults for undefined preferences
+  return {
+    securityAlerts: preferences.securityAlerts !== false, // Default to true
+    newDeviceAlerts: preferences.newDeviceAlerts !== false, // Default to true
+    locationChangeAlerts: preferences.locationChangeAlerts !== false, // Default to true
+    unusualTimingAlerts: preferences.unusualTimingAlerts !== false, // Default to true
+    emailNotifications: preferences.emailNotifications !== false, // Default to true
+    inAppNotifications: preferences.inAppNotifications !== false, // Default to true
+    ...preferences,
+  };
+}
+
+/**
  * Get user's security preferences from Clerk's publicMetadata
  */
 export async function getUserSecurityPreferences(userId: string): Promise<UserSecurityPreferences> {
   try {
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
-
-    const preferences = (user.publicMetadata?.securityPreferences as UserSecurityPreferences) || {};
-
-    // Set defaults for undefined preferences
-    return {
-      securityAlerts: preferences.securityAlerts !== false, // Default to true
-      newDeviceAlerts: preferences.newDeviceAlerts !== false, // Default to true
-      locationChangeAlerts: preferences.locationChangeAlerts !== false, // Default to true
-      unusualTimingAlerts: preferences.unusualTimingAlerts !== false, // Default to true
-      emailNotifications: preferences.emailNotifications !== false, // Default to true
-      inAppNotifications: preferences.inAppNotifications !== false, // Default to true
-      ...preferences,
-    };
+    return resolveSecurityPreferences(user.publicMetadata);
   } catch (error) {
     console.error('Error fetching user security preferences:', error);
     // Return safe defaults
@@ -337,16 +368,16 @@ export async function updateUserSecurityPreferences(
   }
 }
 
+// The helpers below operate on an in-memory copy of the user's privateMetadata
+// (see analyzeSessionSecurity). Each keeps the decision logic and error fallback
+// of the previous per-call implementation.
+
 /**
  * Check if the client_id represents a new device for the user
  */
-async function isNewDevice(userId: string, clientId: string): Promise<boolean> {
+function checkNewDevice(privateMetadata: PrivateMetadata, userId: string, clientId: string): boolean {
   try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
-    // Get stored device info from user's private metadata
-    const deviceHistory = (user.privateMetadata?.deviceHistory as DeviceInfo[]) || [];
+    const deviceHistory = (privateMetadata.deviceHistory as DeviceInfo[]) || [];
 
     // Check if this client_id has been seen before
     const existingDevice = deviceHistory.find((device) => device.clientId === clientId);
@@ -356,14 +387,9 @@ async function isNewDevice(userId: string, clientId: string): Promise<boolean> {
       return true;
     }
 
-    // Update last seen time for existing device
+    // Update last seen time for existing device (applyDeviceInfo refines it)
     existingDevice.lastSeen = Date.now();
-    await client.users.updateUserMetadata(userId, {
-      privateMetadata: {
-        ...user.privateMetadata,
-        deviceHistory,
-      },
-    });
+    privateMetadata.deviceHistory = deviceHistory;
 
     return false;
   } catch (error) {
@@ -376,13 +402,13 @@ async function isNewDevice(userId: string, clientId: string): Promise<boolean> {
 /**
  * Check if the login time is unusual for the user
  */
-async function isUnusualTiming(userId: string, loginTime: number): Promise<boolean> {
+function checkUnusualTiming(
+  privateMetadata: PrivateMetadata,
+  userId: string,
+  loginTime: number,
+): boolean {
   try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
-    // Get stored login patterns from user's private metadata
-    const loginPattern = user.privateMetadata?.loginPattern as LoginPattern;
+    const loginPattern = privateMetadata.loginPattern as LoginPattern;
 
     if (!loginPattern || !loginPattern.typicalHours.length) {
       // Not enough data to determine unusual timing
@@ -403,8 +429,8 @@ async function isUnusualTiming(userId: string, loginTime: number): Promise<boole
 
     // Check frequency - is this login much sooner than usual?
     const timeSinceLastLogin = loginTime - loginPattern.lastLoginTime;
-    const hourssSinceLastLogin = timeSinceLastLogin / (1000 * 60 * 60);
-    const isUnusualFrequency = hourssSinceLastLogin < loginPattern.averageFrequency * 0.1; // Much more frequent than usual
+    const hoursSinceLastLogin = timeSinceLastLogin / (1000 * 60 * 60);
+    const isUnusualFrequency = hoursSinceLastLogin < loginPattern.averageFrequency * 0.1; // Much more frequent than usual
 
     const isUnusual = !isTypicalHour || !isTypicalDay || isUnusualFrequency;
 
@@ -414,7 +440,7 @@ async function isUnusualTiming(userId: string, loginTime: number): Promise<boole
         loginDay,
         isTypicalHour,
         isTypicalDay,
-        hourssSinceLastLogin,
+        hoursSinceLastLogin,
         averageFrequency: loginPattern.averageFrequency,
       });
     }
@@ -430,10 +456,11 @@ async function isUnusualTiming(userId: string, loginTime: number): Promise<boole
  * Check for geographic anomalies (location changes)
  * Uses Vercel's built-in geolocation data (free and reliable)
  */
-async function isGeographicAnomaly(
+function checkGeographicAnomaly(
+  privateMetadata: PrivateMetadata,
   userId: string,
   sessionData: ClerkSessionData,
-): Promise<boolean> {
+): boolean {
   try {
     const vercelGeoData = sessionData.vercelGeoData;
 
@@ -442,14 +469,11 @@ async function isGeographicAnomaly(
       return false;
     }
 
-    // Get user's location history from private metadata
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const loginPattern = user.privateMetadata?.loginPattern as LoginPattern;
+    const loginPattern = privateMetadata.loginPattern as LoginPattern;
 
     if (!loginPattern || !loginPattern.recentLocations.length) {
       // First login or no location history - store current location and not anomalous
-      await updateLocationHistory(userId, formatVercelLocation(vercelGeoData));
+      applyLocationHistory(privateMetadata, userId, formatVercelLocation(vercelGeoData));
       return false;
     }
 
@@ -489,7 +513,7 @@ async function isGeographicAnomaly(
       });
 
       // Update location history with new location
-      await updateLocationHistory(userId, currentLocationString);
+      applyLocationHistory(privateMetadata, userId, currentLocationString);
     }
 
     return isNewLocation;
@@ -500,18 +524,11 @@ async function isGeographicAnomaly(
 }
 
 /**
- * Update device information for future analysis
+ * Record the device for future analysis (keeps the 10 most recent devices)
  */
-async function updateDeviceInfo(
-  userId: string,
-  clientId: string,
-  timestamp: number,
-): Promise<void> {
+function applyDeviceInfo(privateMetadata: PrivateMetadata, clientId: string, timestamp: number) {
   try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
-    const deviceHistory = (user.privateMetadata?.deviceHistory as DeviceInfo[]) || [];
+    const deviceHistory = (privateMetadata.deviceHistory as DeviceInfo[]) || [];
 
     let deviceInfo = deviceHistory.find((device) => device.clientId === clientId);
 
@@ -529,14 +546,9 @@ async function updateDeviceInfo(
     }
 
     // Keep only last 10 devices to prevent metadata bloat
-    const recentDevices = deviceHistory.sort((a, b) => b.lastSeen - a.lastSeen).slice(0, 10);
-
-    await client.users.updateUserMetadata(userId, {
-      privateMetadata: {
-        ...user.privateMetadata,
-        deviceHistory: recentDevices,
-      },
-    });
+    privateMetadata.deviceHistory = deviceHistory
+      .sort((a, b) => b.lastSeen - a.lastSeen)
+      .slice(0, 10);
   } catch (error) {
     console.error('Error updating device info:', error);
   }
@@ -545,12 +557,9 @@ async function updateDeviceInfo(
 /**
  * Update login patterns for timing analysis
  */
-async function updateLoginPatterns(userId: string, loginTime: number): Promise<void> {
+function applyLoginPattern(privateMetadata: PrivateMetadata, userId: string, loginTime: number) {
   try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
-    const existingPattern = user.privateMetadata?.loginPattern as LoginPattern;
+    const existingPattern = privateMetadata.loginPattern as LoginPattern;
     const loginDate = new Date(loginTime);
     const loginHour = loginDate.getHours();
     const loginDay = loginDate.getDay();
@@ -604,12 +613,7 @@ async function updateLoginPatterns(userId: string, loginTime: number): Promise<v
       };
     }
 
-    await client.users.updateUserMetadata(userId, {
-      privateMetadata: {
-        ...user.privateMetadata,
-        loginPattern,
-      },
-    });
+    privateMetadata.loginPattern = loginPattern;
   } catch (error) {
     console.error('Error updating login patterns:', error);
   }
@@ -662,15 +666,12 @@ function toRadians(degrees: number): number {
 }
 
 /**
- * Update user's location history in private metadata
+ * Update user's location history (keeps the 5 most recent locations)
  * Now uses Vercel's geolocation data for more accurate tracking
  */
-async function updateLocationHistory(userId: string, location: string): Promise<void> {
+function applyLocationHistory(privateMetadata: PrivateMetadata, userId: string, location: string) {
   try {
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
-    const loginPattern = (user.privateMetadata?.loginPattern as LoginPattern) || {
+    const loginPattern = (privateMetadata.loginPattern as LoginPattern) || {
       userId,
       typicalHours: [],
       typicalDays: [],
@@ -684,17 +685,10 @@ async function updateLocationHistory(userId: string, location: string): Promise<
       .filter((loc, index, arr) => arr.indexOf(loc) === index) // Remove duplicates
       .slice(0, 5); // Keep only 5 most recent
 
-    const updatedPattern = {
+    privateMetadata.loginPattern = {
       ...loginPattern,
       recentLocations: updatedLocations,
     };
-
-    await client.users.updateUserMetadata(userId, {
-      privateMetadata: {
-        ...user.privateMetadata,
-        loginPattern: updatedPattern,
-      },
-    });
 
     console.log(`📍 Updated location history for user ${userId}:`, updatedLocations);
   } catch (error) {

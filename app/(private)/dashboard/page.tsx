@@ -45,24 +45,28 @@ export default async function HomePage() {
   // Use the flag first, fall back to the steps check
   const isSetupCompleted = setupCompleteFlag || allStepsCompleted;
 
-  // Get profile publication status from database (single source of truth)
-  const profile = isExpert
-    ? await db.query.ProfileTable.findFirst({
-        where: eq(ProfileTable.clerkUserId, userId),
-        columns: {
-          published: true,
-        },
-      })
-    : null;
-  const isProfilePublished = profile?.published ?? false;
+  // Profile publication status (DB is the single source of truth) and the
+  // earnings preview are independent, so load them in parallel.
   const now = new Date();
-  const earningsPreview = isExpert
-    ? await getExpertEarningsDashboardData({
-        clerkUserId: userId,
-        year: now.getUTCFullYear(),
-        month: now.getUTCMonth() + 1,
-      })
-    : null;
+  const [profile, earningsPreview] = isExpert
+    ? await Promise.all([
+        db.query.ProfileTable.findFirst({
+          where: eq(ProfileTable.clerkUserId, userId),
+          columns: {
+            published: true,
+          },
+        }),
+        // The preview card only shows this month's DB-derived totals, so skip the
+        // Stripe balance/payout calls (the earnings page fetches those).
+        getExpertEarningsDashboardData({
+          clerkUserId: userId,
+          year: now.getUTCFullYear(),
+          month: now.getUTCMonth() + 1,
+          includeStripe: false,
+        }),
+      ])
+    : [null, null];
+  const isProfilePublished = profile?.published ?? false;
 
   return (
     <div className="over container max-w-6xl py-6">

@@ -14,7 +14,10 @@ import { getGoogleAccessToken } from '@/server/utils/tokenUtils';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { google } from 'googleapis';
+// Calendar-only client: the full `googleapis` package loads every Google API
+// definition at import time, which slowed cold starts of the booking page,
+// meetings actions and the Stripe webhook that import this module.
+import { calendar, auth as googleAuth } from '@googleapis/calendar';
 import 'use-server';
 
 /**
@@ -87,7 +90,7 @@ class GoogleCalendarService {
       }
 
       // Create and configure Google OAuth client
-      const client = new google.auth.OAuth2(
+      const client = new googleAuth.OAuth2(
         process.env.GOOGLE_OAUTH_CLIENT_ID,
         process.env.GOOGLE_OAUTH_CLIENT_SECRET,
         process.env.GOOGLE_OAUTH_REDIRECT_URL,
@@ -115,7 +118,7 @@ class GoogleCalendarService {
   async getCalendarEventTimes(clerkUserId: string, { start, end }: { start: Date; end: Date }) {
     const oAuthClient = await this.getOAuthClient(clerkUserId);
 
-    const response = await google.calendar('v3').freebusy.query({
+    const response = await calendar('v3').freebusy.query({
       auth: oAuthClient,
       requestBody: {
         timeMin: start.toISOString(),
@@ -258,7 +261,7 @@ class GoogleCalendarService {
     });
 
     // Create the actual calendar event
-    const calendarEvent = await google.calendar('v3').events.insert({
+    const calendarEvent = await calendar('v3').events.insert({
       calendarId: 'primary',
       auth: oAuthClient,
       sendUpdates: 'all',
@@ -348,7 +351,7 @@ class GoogleCalendarService {
             const updatedDescription = descriptionParts.join('\n\n');
 
             // Update the calendar event with the new description
-            await google.calendar('v3').events.patch({
+            await calendar('v3').events.patch({
               calendarId: 'primary',
               eventId: calendarEvent.data.id || '',
               auth: oAuthClient,
@@ -505,10 +508,10 @@ export async function getGoogleCalendarClient(userId: string) {
       throw new Error('No Google access token found');
     }
 
-    const oauth2Client = new google.auth.OAuth2();
+    const oauth2Client = new googleAuth.OAuth2();
     oauth2Client.setCredentials({ access_token: accessToken });
 
-    return google.calendar({
+    return calendar({
       version: 'v3',
       auth: oauth2Client,
     });

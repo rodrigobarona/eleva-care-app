@@ -1,12 +1,10 @@
-'use client';
-
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
-import type React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-const ApproachSection: React.FC = () => {
-  const t = useTranslations('approach');
+// Server component: markdown renders on the server, no client JS.
+const ApproachSection = async () => {
+  const t = await getTranslations('approach');
 
   return (
     <section
@@ -40,7 +38,7 @@ const ApproachSection: React.FC = () => {
               </h2>
             </div>
             <ol className="mx-auto mt-6 list-none text-eleva-neutral-100 marker:text-[#40514e] lg:mt-8">
-              {t.raw('items').map((item: string, index: number) => (
+              {(t.raw('items') as string[]).map((item, index) => (
                 <li
                   key={item}
                   className="flex flex-row items-start pr-4 sm:text-balance lg:items-center lg:pr-0"

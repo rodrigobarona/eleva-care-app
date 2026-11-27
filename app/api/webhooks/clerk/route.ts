@@ -246,8 +246,11 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
         // Analyze session for security risks using Clerk's built-in data
         const securityAnalysis = await analyzeSessionSecurity(sessionData, sessionData.user_id);
 
-        // Check user's notification preferences
-        const userWantsNotifications = await shouldSendSecurityNotification(sessionData.user_id);
+        // User's notification preference comes from the same Clerk fetch as the
+        // analysis; only re-fetch when the analysis failed and couldn't read it.
+        const userWantsNotifications =
+          securityAnalysis.userWantsNotifications ??
+          (await shouldSendSecurityNotification(sessionData.user_id));
 
         // Log security event for audit trail
         logSecurityEvent({
@@ -375,8 +378,6 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
 
     // Trigger the Novu workflow
     console.log(`🔔 Triggering Novu workflow '${workflowId}' for Clerk event '${evt.type}'`);
-    console.log('📋 Payload being sent to Novu:', JSON.stringify(payload, null, 2));
-    console.log('👤 Subscriber being sent to Novu:', JSON.stringify(subscriber, null, 2));
     const result = await triggerNovuWorkflow(workflowId, subscriber, payload);
 
     if (result.success) {
@@ -429,7 +430,6 @@ export async function POST(req: NextRequest) {
         `📍 Location: ${vercelGeoData.city || 'Unknown'}, ${vercelGeoData.countryRegion || ''} ${vercelGeoData.country}`,
       );
     }
-    console.log('Webhook payload:', evt.data);
 
     // Add IP address and geolocation data to session data for security analysis
     if (evt.type.startsWith('session.') && evt.data) {

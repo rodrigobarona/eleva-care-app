@@ -1,5 +1,3 @@
-'use client';
-
 import {
   Accordion,
   AccordionContent,
@@ -7,12 +5,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Card, CardContent } from '@/components/ui/card';
-import { ServiceIcons } from '@/lib/icons/ServiceIcons';
 import { ChevronRight } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
-import type React from 'react';
 import ReactMarkdown from 'react-markdown';
+
+import { ServiceIcon } from './ServiceIcon';
 
 type ServiceItem = {
   icon: string;
@@ -23,8 +21,9 @@ type ServiceItem = {
   cta: string;
 };
 
-const ServiceSection: React.FC = () => {
-  const t = useTranslations('services');
+// Server component: markdown renders on the server; Accordion is the only client part.
+const ServiceSection = async () => {
+  const t = await getTranslations('services');
 
   return (
     <section
@@ -44,7 +43,7 @@ const ServiceSection: React.FC = () => {
           {t('description')}
         </p>
         <div className="mt-12 grid gap-2 md:grid-cols-2 md:gap-10 lg:grid-cols-2">
-          {t.raw('items').map((service: ServiceItem) => (
+          {(t.raw('items') as ServiceItem[]).map((service) => (
             <Card
               key={service.title}
               className="flex flex-col overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -63,7 +62,7 @@ const ServiceSection: React.FC = () => {
               <CardContent className="flex-1 p-6 pt-6">
                 <div className="flex min-h-48 flex-col">
                   <div className="mb-4 flex items-center">
-                    {ServiceIcons[service.icon as keyof typeof ServiceIcons]?.()}
+                    <ServiceIcon name={service.icon} />
                     <h3 className="ml-2 font-serif text-2xl font-normal text-eleva-primary">
                       {service.title}
                     </h3>
