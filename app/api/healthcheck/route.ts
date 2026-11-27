@@ -230,9 +230,12 @@ export async function GET(request: Request) {
       }
     }
 
-    // Successful checks are intentionally not sent to PostHog: uptime probes run
-    // thousands of times a month and each event adds function CPU. Only failures
-    // are tracked (see the catch block below).
+    // Healthy checks are intentionally not sent to PostHog: uptime probes run
+    // thousands of times a month and each event adds function CPU. Degraded and
+    // unhealthy results (and thrown errors, see the catch block) are still tracked.
+    if (healthData.status !== 'healthy') {
+      await trackHealthCheck(healthData, healthData.status === 'unhealthy');
+    }
 
     // Return appropriate HTTP status code based on health
     const httpStatus = healthData.status === 'unhealthy' ? 503 : 200;

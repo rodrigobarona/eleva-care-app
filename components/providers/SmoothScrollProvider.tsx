@@ -60,9 +60,11 @@ export function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
   const lenisRef = useRef<Lenis | null>(null);
   const wakeRef = useRef<() => void>(() => {});
   const pathname = usePathname();
-  const [reducedMotion, setReducedMotion] = useState(false);
+  // null until matchMedia has been read, so Lenis is never created (and then
+  // immediately destroyed) for visitors who prefer reduced motion.
+  const [reducedMotion, setReducedMotion] = useState<boolean | null>(null);
 
-  const enabled = !reducedMotion && !isBookingRoute(pathname);
+  const enabled = reducedMotion === false && !isBookingRoute(pathname);
 
   // Track prefers-reduced-motion (client-only, after mount)
   useEffect(() => {

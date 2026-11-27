@@ -43,6 +43,15 @@ const getHomeExperts = unstable_cache(
     // Get only the users that have profiles (batch request with caching)
     const users = await getCachedUsersByIds(profiles.map((profile) => profile.clerkUserId));
 
+    // getCachedUsersByIds swallows Clerk errors and returns [] or a partial list.
+    // Throw instead so unstable_cache does not store (and serve for an hour) an
+    // empty or incomplete carousel; the next request simply retries.
+    if (users.length < profiles.length) {
+      throw new Error(
+        `Home experts: resolved ${users.length}/${profiles.length} Clerk users; not caching`,
+      );
+    }
+
     return users
       .map((user) => {
         const profile = profiles.find((p) => p.clerkUserId === user.id);

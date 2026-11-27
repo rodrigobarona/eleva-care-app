@@ -988,11 +988,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Check for conflicts (blocked dates, overlaps, minimum notice)
         // Only perform conflict check if we have valid duration data
-        const conflictResult = await checkAppointmentConflict(
-          meetingData.expert,
-          appointmentStart,
-          meetingData.id,
-        );
+        // Skipped on the repair path: the booking was already validated, and the
+        // overlap query would match this same succeeded meeting and refund it.
+        const conflictResult: Awaited<ReturnType<typeof checkAppointmentConflict>> =
+          existingSuccessfulMeeting
+            ? { hasConflict: false }
+            : await checkAppointmentConflict(meetingData.expert, appointmentStart, meetingData.id);
 
         if (conflictResult.hasConflict) {
           console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);

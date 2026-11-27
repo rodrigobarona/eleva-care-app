@@ -37,7 +37,7 @@ Sentry.init({
   // Override with SENTRY_TRACES_SAMPLE_RATE (e.g. 0.1) while investigating performance.
   tracesSampleRate:
     ENV_CONFIG.NODE_ENV === 'production'
-      ? Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.02)
+      ? parseSampleRate(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.02)
       : 1.0,
 
   // Additional configuration options
@@ -79,3 +79,9 @@ Sentry.init({
     'Middleware redirect',
   ],
 });
+
+/** Parse a 0..1 sample rate from env; blank or invalid values fall back to the default. */
+function parseSampleRate(value: string | undefined, fallback: number): number {
+  const rate = value?.trim() ? Number(value) : Number.NaN;
+  return Number.isFinite(rate) && rate >= 0 && rate <= 1 ? rate : fallback;
+}

@@ -15,7 +15,7 @@ import {
 } from '@/types/audit';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 /**
  * Toggles the publication status of an expert profile.
@@ -157,7 +157,7 @@ export async function toggleProfilePublication() {
     }
 
     // Revalidate paths where profile data might be displayed
-    revalidateTag(HOME_EXPERTS_CACHE_TAG, 'max');
+    updateTag(HOME_EXPERTS_CACHE_TAG);
     revalidatePath('/');
     revalidatePath('/experts');
     revalidatePath('/booking/expert/[username]');
