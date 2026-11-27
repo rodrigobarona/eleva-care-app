@@ -33,7 +33,14 @@ Sentry.init({
   // Adjust this value in production to reduce data volume
   // 1.0 = 100% of transactions (recommended for initial setup)
   // 0.1 = 10% of transactions (recommended for high-traffic production)
-  tracesSampleRate: ENV_CONFIG.NODE_ENV === 'production' ? 0.1 : 1.0,
+  // Production: 2% of server transactions. Each sampled transaction adds span
+  // creation and serialization CPU to the function, which Vercel bills as Fluid
+  // Active CPU. Errors are still captured at 100% (sampling only affects tracing).
+  // Override with SENTRY_TRACES_SAMPLE_RATE (e.g. 0.1) while investigating performance.
+  tracesSampleRate:
+    ENV_CONFIG.NODE_ENV === 'production'
+      ? Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.02)
+      : 1.0,
 
   // Additional configuration options
   debug: ENV_CONFIG.NODE_ENV === 'development',

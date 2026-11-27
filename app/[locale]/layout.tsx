@@ -27,7 +27,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   // Await params before using locale
   const { locale } = await params;
 
-  console.log('Root layout - generateMetadata called with locale:', locale);
 
   // Validate locale before proceeding
   if (!isValidLocale(locale)) {
@@ -87,7 +86,6 @@ export default async function LocaleLayout({ children, params }: Props) {
   // Await params before using locale
   const { locale } = await params;
 
-  console.log('Root layout rendering with locale:', locale);
 
   // Validate locale before proceeding
   if (!isValidLocale(locale)) {

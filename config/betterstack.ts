@@ -46,9 +46,13 @@ export const betterstackConfig = {
 
   /**
    * Cache duration for status data (in seconds)
-   * Default: 180 seconds (3 minutes)
+   *
+   * The footer status badge renders on every public page, and the shortest fetch
+   * revalidate on a page becomes that page's ISR revalidate. At 180s this forced
+   * every static page (about, legal, trust, home) to regenerate every 3 minutes.
+   * 1 hour keeps static pages cheap; the status page link is always live.
    */
-  cacheDuration: 180,
+  cacheDuration: 3600,
 } as const satisfies {
   apiKey: string | undefined;
   statusPageUrl: string | undefined;

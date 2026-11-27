@@ -83,6 +83,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
+// Static (ISR) home page: re-generated at most once an hour, or on demand when an
+// expert profile changes (see HOME_EXPERTS_CACHE_TAG). Avoid adding request-time
+// APIs (cookies, headers, auth, no-store fetches) here: they make the page dynamic
+// and every visit then costs server CPU.
+export const revalidate = 3600;
+
 // Dynamic imports with proper loading states
 // Services and Approach are client components that don't fetch data, use dynamic() to code-split
 const ServicesSection = dynamic(() => import('@/components/sections/home/Services'), {

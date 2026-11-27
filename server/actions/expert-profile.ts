@@ -4,6 +4,7 @@ import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
+import { HOME_EXPERTS_CACHE_TAG } from '@/lib/constants/cache-tags';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getRequestMetadata } from '@/lib/utils/server/server-utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
@@ -14,7 +15,7 @@ import {
 } from '@/types/audit';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 /**
  * Toggles the publication status of an expert profile.
@@ -156,6 +157,7 @@ export async function toggleProfilePublication() {
     }
 
     // Revalidate paths where profile data might be displayed
+    revalidateTag(HOME_EXPERTS_CACHE_TAG, 'max');
     revalidatePath('/');
     revalidatePath('/experts');
     revalidatePath('/booking/expert/[username]');

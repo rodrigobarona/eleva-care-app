@@ -8,67 +8,82 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { db } from '@/drizzle/db';
+import { HOME_EXPERTS_CACHE_TAG } from '@/lib/constants/cache-tags';
 import { getCachedUsersByIds } from '@/lib/cache/clerk-cache';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
+import { unstable_cache } from 'next/cache';
 import Image from 'next/image';
 import Link from 'next/link';
 
+/**
+ * Load the experts shown on the home page.
+ *
+ * Wrapped in `unstable_cache` so the home page can be statically rendered (ISR).
+ * Without it, the Upstash Redis client's `no-store` fetches (via getCachedUsersByIds)
+ * forced `/[locale]` (the home page) to be server-rendered on every request,
+ * burning Fluid Active CPU on the most visited page.
+ */
+const getHomeExperts = unstable_cache(
+  async () => {
+    // Optimize: Get only published profiles with necessary fields and limit to top experts
+    const profiles = await db.query.ProfileTable.findMany({
+      where: ({ published }) => eq(published, true),
+      with: {
+        primaryCategory: true,
+      },
+      orderBy: ({ order }) => order,
+      limit: 12, // Limit to top 12 experts for better performance
+    });
+
+    if (profiles.length === 0) {
+      return [];
+    }
+
+    // Get only the users that have profiles (batch request with caching)
+    const users = await getCachedUsersByIds(profiles.map((profile) => profile.clerkUserId));
+
+    return users
+      .map((user) => {
+        const profile = profiles.find((p) => p.clerkUserId === user.id);
+        if (!profile) return null;
+
+        return {
+          id: user.id,
+          name: `${profile.firstName} ${profile.lastName}`,
+          username: user.username,
+          image: profile.profilePicture || user.imageUrl,
+          headline: profile.headline || '',
+          shortBio: profile.shortBio || '',
+          order: profile.order || 0,
+          rating: '5.0',
+          isTopExpert: profile.isTopExpert,
+          isVerified: profile.isVerified,
+          category: profile.primaryCategory?.name || '',
+        };
+      })
+      .filter((expert): expert is NonNullable<typeof expert> => expert !== null)
+      .sort((a, b) => {
+        // First sort by order (lower numbers come first)
+        if (a.order !== b.order) {
+          return a.order - b.order;
+        }
+        // If order is the same, sort by name as secondary criteria
+        return a.name.localeCompare(b.name);
+      });
+  },
+  ['home-experts-v1'],
+  { revalidate: 3600, tags: [HOME_EXPERTS_CACHE_TAG] },
+);
+
 const ExpertsSection = async () => {
   const t = await getTranslations('experts');
-
-  // Optimize: Get only published profiles with necessary fields and limit to top experts
-  const profiles = await db.query.ProfileTable.findMany({
-    where: ({ published }) => eq(published, true),
-    with: {
-      primaryCategory: true,
-    },
-    orderBy: ({ order }) => order,
-    limit: 12, // Limit to top 12 experts for better performance
-  });
+  const expertsWithPricing = await getHomeExperts();
 
   // Early return if no profiles
-  if (profiles.length === 0) {
+  if (expertsWithPricing.length === 0) {
     return null;
   }
-
-  // Get only the users that have profiles (batch request with caching)
-  const users = await getCachedUsersByIds(profiles.map((profile) => profile.clerkUserId));
-
-  const expertsData = await Promise.all(
-    users.map(async (user) => {
-      // Get the corresponding profile
-      const profile = profiles.find((p) => p.clerkUserId === user.id);
-
-      if (!profile) return null; // This shouldn't happen due to our filtered users list
-
-      return {
-        id: user.id,
-        name: `${profile.firstName} ${profile.lastName}`,
-        username: user.username,
-        image: profile.profilePicture || user.imageUrl,
-        headline: profile.headline || '',
-        shortBio: profile.shortBio || '',
-        order: profile.order || 0,
-        rating: '5.0',
-        isTopExpert: profile.isTopExpert,
-        isVerified: profile.isVerified,
-        category: profile.primaryCategory?.name || '',
-      };
-    }),
-  );
-
-  // Filter out any null values (shouldn't happen) and profiles without prices
-  const expertsWithPricing = expertsData
-    .filter((expert): expert is NonNullable<typeof expert> => expert !== null)
-    .sort((a, b) => {
-      // First sort by order (lower numbers come first)
-      if (a.order !== b.order) {
-        return a.order - b.order;
-      }
-      // If order is the same, sort by name as secondary criteria
-      return a.name.localeCompare(b.name);
-    });
 
   return (
     <section id="experts" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
