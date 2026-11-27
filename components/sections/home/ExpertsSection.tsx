@@ -43,12 +43,13 @@ const getHomeExperts = unstable_cache(
     // Get only the users that have profiles (batch request with caching)
     const users = await getCachedUsersByIds(profiles.map((profile) => profile.clerkUserId));
 
-    // getCachedUsersByIds swallows Clerk errors and returns [] or a partial list.
-    // Throw instead so unstable_cache does not store (and serve for an hour) an
-    // empty or incomplete carousel; the next request simply retries.
-    if (users.length < profiles.length) {
+    // getCachedUsersByIds swallows Clerk errors and returns []. Throw instead so
+    // neither unstable_cache nor the ISR page stores an empty carousel for an hour
+    // (on revalidation Next keeps serving the previous page and retries).
+    // A partial list is normal: a published profile can point at a deleted Clerk user.
+    if (users.length === 0) {
       throw new Error(
-        `Home experts: resolved ${users.length}/${profiles.length} Clerk users; not caching`,
+        `Home experts: resolved 0/${profiles.length} Clerk users (Clerk error?); not caching`,
       );
     }
 
