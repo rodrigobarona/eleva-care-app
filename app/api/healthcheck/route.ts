@@ -230,12 +230,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // Healthy checks are intentionally not sent to PostHog: uptime probes run
-    // thousands of times a month and each event adds function CPU. Degraded and
-    // unhealthy results (and thrown errors, see the catch block) are still tracked.
-    if (healthData.status !== 'healthy') {
-      await trackHealthCheck(healthData, healthData.status === 'unhealthy');
-    }
+    // Track successful health check in PostHog
+    await trackHealthCheck(healthData);
 
     // Return appropriate HTTP status code based on health
     const httpStatus = healthData.status === 'unhealthy' ? 503 : 200;
@@ -325,7 +321,8 @@ export async function POST(request: Request) {
       environmentSummary: ENV_HELPERS.getEnvironmentSummary(),
     };
 
-    // Successful checks are not tracked (see GET handler); failures still are.
+    // Track successful POST request in PostHog
+    await trackHealthCheck(responseData);
 
     return NextResponse.json(responseData, {
       status: 200,

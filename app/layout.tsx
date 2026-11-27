@@ -67,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       // to our IntlProvider that it should update the lang attribute
       lang={defaultLocale}
       data-dynamic-lang="true"
-      className={cn(`${dmSans.variable} ${lora.variable} ${ibmPlexMono.variable}`, 'scroll-smooth')}
+      className={cn(`${dmSans.variable} ${lora.variable} ${ibmPlexMono.variable}`, 'motion-safe:scroll-smooth')}
       suppressHydrationWarning
     >
       <head>

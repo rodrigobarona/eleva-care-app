@@ -173,7 +173,7 @@ export function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
         top = element.getBoundingClientRect().top + window.scrollY + offset;
       }
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      window.scrollTo({ top, behavior: prefersReduced ? 'auto' : 'smooth' });
+      window.scrollTo({ top, behavior: prefersReduced ? 'instant' : 'smooth' });
     },
     [],
   );

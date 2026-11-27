@@ -4,7 +4,7 @@ import { ProfileTable } from '@/drizzle/schema';
 import { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { del } from '@vercel/blob';
-import { updateTag } from 'next/cache';
+import { revalidateTag } from 'next/cache';
 import type { z } from 'zod';
 
 /**
@@ -157,7 +157,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
     }
 
     // Name, photo, headline and bio appear in the home page experts carousel
-    updateTag(HOME_EXPERTS_CACHE_TAG);
+    revalidateTag(HOME_EXPERTS_CACHE_TAG, { expire: 0 });
 
     return { success: true };
   } catch (error) {

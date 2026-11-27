@@ -29,7 +29,7 @@ import { resolveMarketplaceAmounts } from '@/lib/payments/marketplace-amounts';
 import { extractLocaleFromPaymentIntent } from '@/lib/utils/locale';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { format, toZonedTime } from 'date-fns-tz';
-import { and, eq, isNull, lt, sql } from 'drizzle-orm';
+import { and, eq, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import Stripe from 'stripe';
 
 // Helper function to parse metadata safely
@@ -436,6 +436,8 @@ async function checkAppointmentConflict(
   expertId: string,
   startTime: Date,
   eventId: string,
+  /** Excluded from the overlap check so a retried webhook doesn't match its own meeting. */
+  excludePaymentIntentId?: string,
 ): Promise<{
   hasConflict: boolean;
   reason?: string;
@@ -536,6 +538,12 @@ async function checkAppointmentConflict(
         and(
           eq(MeetingTable.clerkUserId, expertId),
           eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+          excludePaymentIntentId
+            ? or(
+                isNull(MeetingTable.stripePaymentIntentId),
+                ne(MeetingTable.stripePaymentIntentId, excludePaymentIntentId),
+              )
+            : undefined,
           lt(MeetingTable.startTime, endTime),
           sql`${MeetingTable.startTime} + make_interval(mins => ${EventTable.durationInMinutes}) > ${startTime.toISOString()}::timestamp`,
         ),
@@ -988,12 +996,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Check for conflicts (blocked dates, overlaps, minimum notice)
         // Only perform conflict check if we have valid duration data
-        // Skipped on the repair path: the booking was already validated, and the
-        // overlap query would match this same succeeded meeting and refund it.
-        const conflictResult: Awaited<ReturnType<typeof checkAppointmentConflict>> =
-          existingSuccessfulMeeting
-            ? { hasConflict: false }
-            : await checkAppointmentConflict(meetingData.expert, appointmentStart, meetingData.id);
+        // Still runs on the repair path (so a conflict refund that failed earlier is
+        // retried), but never matches this payment's own meeting as an overlap.
+        const conflictResult = await checkAppointmentConflict(
+          meetingData.expert,
+          appointmentStart,
+          meetingData.id,
+          paymentIntent.id,
+        );
 
         if (conflictResult.hasConflict) {
           console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);

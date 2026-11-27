@@ -116,7 +116,8 @@ export async function getValidTimesFromSchedule(
   // compute them once per day instead of once per slot.
   const availabilitiesByDay = new Map<string, Array<{ start: Date; end: Date }>>();
   const getDayAvailabilities = (time: Date) => {
-    const dayKey = `${time.getFullYear()}-${time.getMonth()}-${time.getDate()}`;
+    // Seconds/ms are part of the key: getAvailabilities copies them from `time`.
+    const dayKey = `${time.getFullYear()}-${time.getMonth()}-${time.getDate()}-${time.getSeconds()}-${time.getMilliseconds()}`;
     let availabilities = availabilitiesByDay.get(dayKey);
     if (availabilities === undefined) {
       availabilities = getAvailabilities(groupedAvailabilities, time, schedule.timezone);
