@@ -603,29 +603,43 @@ export async function getExpertEarningsDashboardData({
   clerkUserId,
   year,
   month,
+  includeStripe = true,
 }: {
   clerkUserId: string;
   year: number;
   month: number | null;
+  /**
+   * Fetch the live Stripe balance and recent payouts (2 Stripe API calls).
+   * Pass false when only the DB-derived summaries are needed, e.g. the
+   * dashboard home preview card; stripeBalance/recentPayouts are then empty.
+   */
+  includeStripe?: boolean;
 }): Promise<ExpertEarningsDashboardData> {
   const startDate = new Date(Date.UTC(year, 0, 1));
   const endDate = new Date(Date.UTC(year + 1, 0, 1));
 
-  const user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.clerkUserId, clerkUserId),
-    columns: {
-      stripeConnectAccountId: true,
-    },
-  });
-
-  const transfers = await db.query.PaymentTransferTable.findMany({
-    where: and(
-      eq(PaymentTransferTable.expertClerkUserId, clerkUserId),
-      gte(PaymentTransferTable.sessionStartTime, startDate),
-      lt(PaymentTransferTable.sessionStartTime, endDate),
-    ),
-    orderBy: (table, { desc }) => [desc(table.sessionStartTime)],
-  });
+  // Independent lookups run in parallel; meetings depend on the transfers.
+  const [user, transfers, packPurchases] = await Promise.all([
+    db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, clerkUserId),
+      columns: {
+        stripeConnectAccountId: true,
+      },
+    }),
+    db.query.PaymentTransferTable.findMany({
+      where: and(
+        eq(PaymentTransferTable.expertClerkUserId, clerkUserId),
+        gte(PaymentTransferTable.sessionStartTime, startDate),
+        lt(PaymentTransferTable.sessionStartTime, endDate),
+      ),
+      orderBy: (table, { desc }) => [desc(table.sessionStartTime)],
+    }),
+    getPackPurchasesForExpert({
+      clerkUserId,
+      startDate,
+      endDate,
+    }),
+  ]);
 
   const paymentIntentIds = transfers
     .map((transfer) => transfer.paymentIntentId)
@@ -649,12 +663,6 @@ export async function getExpertEarningsDashboardData({
       })
     : [];
 
-  const packPurchases = await getPackPurchasesForExpert({
-    clerkUserId,
-    startDate,
-    endDate,
-  });
-
   const meetingsByPaymentIntentId = new Map(
     meetings
       .filter((meeting) => Boolean(meeting.stripePaymentIntentId))
@@ -669,7 +677,7 @@ export async function getExpertEarningsDashboardData({
   let stripeBalance: StripeBalanceSummary | null = null;
   let recentPayouts: StripePayoutSnapshot[] = [];
 
-  if (user?.stripeConnectAccountId) {
+  if (includeStripe && user?.stripeConnectAccountId) {
     const [balance, payouts] = await Promise.all([
       getConnectAccountBalance(user.stripeConnectAccountId),
       getConnectAccountPayouts(user.stripeConnectAccountId),

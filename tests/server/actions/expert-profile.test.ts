@@ -84,6 +84,7 @@ jest.mock('next/cache', () => ({
     .mockImplementation((...args: Parameters<typeof revalidatePathMock>) =>
       revalidatePathMock(...args),
     ),
+  revalidateTag: jest.fn(),
 }));
 
 // Mock drizzle-orm

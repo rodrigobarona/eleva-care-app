@@ -188,6 +188,11 @@ export const MeetingTable = pgTable(
     sessionIdIndex: index('meetings_sessionId_idx').on(table.stripeSessionId),
     transferIdIndex: index('meetings_transferId_idx').on(table.stripeTransferId),
     payoutIdIndex: index('meetings_payoutId_idx').on(table.stripePayoutId),
+    // Expert meetings by time (appointments list, payment conflict check, reminders)
+    clerkUserIdStartTimeIndex: index('meetings_clerkUserId_startTime_idx').on(
+      table.clerkUserId,
+      table.startTime,
+    ),
   }),
 );
 
@@ -373,6 +378,10 @@ export const UserTable = pgTable(
     stripeIdentityVerificationIdIndex: index('users_stripe_identity_verification_id_idx').on(
       table.stripeIdentityVerificationId,
     ),
+    // Looked up on every Stripe Connect `account.updated` webhook
+    stripeConnectAccountIdIndex: index('users_stripe_connect_account_id_idx').on(
+      table.stripeConnectAccountId,
+    ),
   }),
 );
 
@@ -498,21 +507,38 @@ export const PaymentTransferTable = pgTable(
     uniquePaymentIntent: unique('payment_transfers_payment_intent_unique').on(
       table.paymentIntentId,
     ),
+    // Earnings dashboard: transfers per expert within a session date range
+    expertSessionStartIndex: index('payment_transfers_expert_session_start_idx').on(
+      table.expertClerkUserId,
+      table.sessionStartTime,
+    ),
+    // Transfer/payout crons: transfers by status that are due
+    statusScheduledTransferIndex: index('payment_transfers_status_scheduled_idx').on(
+      table.status,
+      table.scheduledTransferTime,
+    ),
   }),
 );
 
 // Add the scheduling settings table
-export const schedulingSettings = pgTable('scheduling_settings', {
-  id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
-  beforeEventBuffer: integer('before_event_buffer').notNull().default(0), // in minutes
-  afterEventBuffer: integer('after_event_buffer').notNull().default(0), // in minutes
-  minimumNotice: integer('minimum_notice').notNull().default(0), // in minutes
-  timeSlotInterval: integer('time_slot_interval').notNull().default(15), // in minutes
-  bookingWindowDays: integer('booking_window_days').notNull().default(60), // number of days in advance that can be booked
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+export const schedulingSettings = pgTable(
+  'scheduling_settings',
+  {
+    id: serial('id').primaryKey(),
+    userId: text('user_id').notNull(), // Clerk user ID
+    beforeEventBuffer: integer('before_event_buffer').notNull().default(0), // in minutes
+    afterEventBuffer: integer('after_event_buffer').notNull().default(0), // in minutes
+    minimumNotice: integer('minimum_notice').notNull().default(0), // in minutes
+    timeSlotInterval: integer('time_slot_interval').notNull().default(15), // in minutes
+    bookingWindowDays: integer('booking_window_days').notNull().default(60), // number of days in advance that can be booked
+    createdAt: timestamp('created_at').defaultNow(),
+    updatedAt: timestamp('updated_at').defaultNow(),
+  },
+  (table) => ({
+    // Read on every booking page render and availability validation
+    userIdIndex: index('scheduling_settings_user_id_idx').on(table.userId),
+  }),
+);
 
 // Relations and types
 export type SchedulingSettings = typeof schedulingSettings.$inferSelect;
@@ -523,15 +549,21 @@ export const schedulingSettingsRelations = relations(schedulingSettings, () => (
   // Add relations if needed
 }));
 
-export const BlockedDatesTable = pgTable('blocked_dates', {
-  id: serial('id').primaryKey(),
-  clerkUserId: text('clerk_user_id').notNull(),
-  date: date('date').notNull(),
-  timezone: text('timezone').notNull().default('UTC'),
-  reason: text('reason'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const BlockedDatesTable = pgTable(
+  'blocked_dates',
+  {
+    id: serial('id').primaryKey(),
+    clerkUserId: text('clerk_user_id').notNull(),
+    date: date('date').notNull(),
+    timezone: text('timezone').notNull().default('UTC'),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    clerkUserIdIndex: index('blocked_dates_clerk_user_id_idx').on(table.clerkUserId),
+  }),
+);
 
 // Relations
 export const blockedDatesRelations = relations(BlockedDatesTable, ({ one }) => ({
