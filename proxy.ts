@@ -221,8 +221,14 @@ async function isExpertWithIncompleteSetup(authObj: MiddlewareAuthObject): Promi
   const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
   if (!isExpert) return false;
 
-  // Get expert setup data from unsafeMetadata (still read from session claims)
-  const unsafeMeta = authObj.sessionClaims?.unsafeMetadata as
+  // Expert setup data lives in unsafeMetadata. The production session token does
+  // not include that claim, and treating it as "no setup" sent every expert from
+  // /dashboard to /setup, so fall back to the (cached) Clerk user.
+  const claimsUnsafe = authObj.sessionClaims?.unsafeMetadata as Record<string, unknown> | undefined;
+  const unsafeMetaSource =
+    claimsUnsafe ??
+    (authObj.userId ? (await getClerkUserMeta(authObj.userId))?.unsafeMetadata : undefined);
+  const unsafeMeta = unsafeMetaSource as
     | {
         expertSetup?: {
           events?: boolean;
@@ -492,16 +498,50 @@ const roleCache = new WeakMap<object, string | string[] | undefined>();
  */
 const API_ROLE_CACHE_TTL_MS = 30_000;
 const API_ROLE_CACHE_MAX_ENTRIES = 1_000;
-const apiRoleCache = new Map<string, { role: string | string[] | undefined; expiresAt: number }>();
+type ClerkUserMeta = {
+  role: string | string[] | undefined;
+  unsafeMetadata: Record<string, unknown> | undefined;
+};
+const apiRoleCache = new Map<string, ClerkUserMeta & { expiresAt: number }>();
+
+/**
+ * Role + unsafeMetadata for a user from the Clerk API (cached per instance).
+ * Used only when the session token doesn't carry these claims.
+ */
+async function getClerkUserMeta(userId: string): Promise<ClerkUserMeta | undefined> {
+  const cached = apiRoleCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) return cached;
+
+  try {
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
+    const meta: ClerkUserMeta = {
+      role: user.publicMetadata?.role as string | string[] | undefined,
+      unsafeMetadata: user.unsafeMetadata as Record<string, unknown> | undefined,
+    };
+    if (apiRoleCache.size >= API_ROLE_CACHE_MAX_ENTRIES) {
+      apiRoleCache.clear();
+    }
+    apiRoleCache.set(userId, { ...meta, expiresAt: Date.now() + API_ROLE_CACHE_TTL_MS });
+    return meta;
+  } catch (error) {
+    console.error('Failed to fetch user metadata from Clerk API:', error);
+    return undefined;
+  }
+}
 
 async function getUserRoles(authObj: MiddlewareAuthObject): Promise<string | string[] | undefined> {
   if (roleCache.has(authObj)) {
     return roleCache.get(authObj);
   }
 
-  // Fast path: read from JWT session claims
-  const claimsRole = (authObj.sessionClaims?.metadata as { role?: string | string[] } | undefined)
-    ?.role;
+  // Fast path: read from JWT session claims. The production session token exposes
+  // the role as a top-level `role` claim; `metadata.role` is the documented shape.
+  const claims = authObj.sessionClaims as
+    | { metadata?: { role?: string | string[] }; role?: string | string[] }
+    | null
+    | undefined;
+  const claimsRole = claims?.metadata?.role ?? claims?.role;
 
   if (claimsRole) {
     roleCache.set(authObj, claimsRole);
@@ -510,27 +550,10 @@ async function getUserRoles(authObj: MiddlewareAuthObject): Promise<string | str
 
   // Fallback: fetch from Clerk API when JWT doesn't contain role data
   if (authObj.userId) {
-    const cached = apiRoleCache.get(authObj.userId);
-    if (cached && cached.expiresAt > Date.now()) {
-      roleCache.set(authObj, cached.role);
-      return cached.role;
-    }
-
-    try {
-      const clerk = await clerkClient();
-      const user = await clerk.users.getUser(authObj.userId);
-      const publicRole = user.publicMetadata?.role as string | string[] | undefined;
-      roleCache.set(authObj, publicRole);
-      if (apiRoleCache.size >= API_ROLE_CACHE_MAX_ENTRIES) {
-        apiRoleCache.clear();
-      }
-      apiRoleCache.set(authObj.userId, {
-        role: publicRole,
-        expiresAt: Date.now() + API_ROLE_CACHE_TTL_MS,
-      });
-      return publicRole;
-    } catch (error) {
-      console.error('Failed to fetch user roles from Clerk API:', error);
+    const meta = await getClerkUserMeta(authObj.userId);
+    if (meta) {
+      roleCache.set(authObj, meta.role);
+      return meta.role;
     }
   }
 
