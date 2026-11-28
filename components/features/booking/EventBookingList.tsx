@@ -8,7 +8,11 @@ import { formatEventDescription } from '@/lib/utils/formatters';
 import { logger } from '@/lib/utils/logger';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import GoogleCalendarService from '@/server/googleCalendar';
-import { addMonths } from 'date-fns';
+import {
+  DEFAULT_BOOKING_WINDOW_DAYS,
+  DEFAULT_MINIMUM_NOTICE,
+} from '@/lib/constants/scheduling';
+import { addDays, addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { ChevronDown, Package } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -75,6 +79,8 @@ async function getNextAvailableTimeForEvent(event: Event) {
 
     // Fetch scheduling settings for the user
     let timeSlotInterval = 15; // Default fallback value
+    let bookingWindowDays = DEFAULT_BOOKING_WINDOW_DAYS;
+    let minimumNotice = DEFAULT_MINIMUM_NOTICE;
     try {
       const settings = await db.query.schedulingSettings.findFirst({
         where: ({ userId }, { eq }) => eq(userId, event.clerkUserId),
@@ -82,6 +88,12 @@ async function getNextAvailableTimeForEvent(event: Event) {
 
       if (settings?.timeSlotInterval) {
         timeSlotInterval = settings.timeSlotInterval;
+      }
+      if (settings?.bookingWindowDays) {
+        bookingWindowDays = settings.bookingWindowDays;
+      }
+      if (settings?.minimumNotice) {
+        minimumNotice = settings.minimumNotice;
       }
     } catch (error) {
       logger.error('Error fetching scheduling settings', {
@@ -101,7 +113,12 @@ async function getNextAvailableTimeForEvent(event: Event) {
       return new Date(roundedMinutes * 60000);
     })();
 
-    const endDate = addMonths(startTime, 2);
+    // Same window as the booking page ([eventSlug]/page.tsx): the expert's booking
+    // window counted from the first bookable day. A fixed 2-month search here
+    // advertised "next available" slots the booking page then refused to offer.
+    const endDate = endOfDay(
+      addDays(startOfDay(addMinutes(now, minimumNotice)), bookingWindowDays),
+    );
 
     const calendarService = GoogleCalendarService.getInstance();
     const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
