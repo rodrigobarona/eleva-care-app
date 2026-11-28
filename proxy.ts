@@ -225,51 +225,48 @@ async function isExpertWithIncompleteSetup(authObj: MiddlewareAuthObject): Promi
   // not include that claim, and treating it as "no setup" sent every expert from
   // /dashboard to /setup, so fall back to the (cached) Clerk user.
   const claimsUnsafe = authObj.sessionClaims?.unsafeMetadata as Record<string, unknown> | undefined;
-  const unsafeMetaSource =
-    claimsUnsafe ??
-    (authObj.userId ? (await getClerkUserMeta(authObj.userId))?.unsafeMetadata : undefined);
-  const unsafeMeta = unsafeMetaSource as
-    | {
-        expertSetup?: {
-          events?: boolean;
-          payment?: boolean;
-          profile?: boolean;
-          identity?: boolean;
-          availability?: boolean;
-          google_account?: boolean;
-        };
-        setupComplete?: boolean;
-      }
-    | undefined;
+  if (claimsUnsafe) return isSetupIncomplete(claimsUnsafe, userRoleData);
+  if (!authObj.userId) return false;
 
-  const expertSetup = unsafeMeta?.expertSetup;
+  const cachedMeta = await getClerkUserMeta(authObj.userId);
+  if (!isSetupIncomplete(cachedMeta?.unsafeMetadata, userRoleData)) return false;
+
+  // Never redirect based on a cached snapshot taken before setup was completed:
+  // confirm with a fresh read before sending the expert to /setup.
+  const freshMeta = await getClerkUserMeta(authObj.userId, { fresh: true });
+  if (!freshMeta) return false; // Clerk unavailable: don't block the dashboard
+  return isSetupIncomplete(freshMeta.unsafeMetadata, userRoleData);
+}
+
+const REQUIRED_SETUP_STEPS = [
+  'events',
+  'payment',
+  'profile',
+  'identity',
+  'availability',
+  'google_account',
+] as const;
+
+function isSetupIncomplete(
+  unsafeMetadata: Record<string, unknown> | undefined,
+  userRoleData: string | string[],
+): boolean {
+  const expertSetup = (unsafeMetadata as { expertSetup?: Record<string, unknown> } | undefined)
+    ?.expertSetup;
   if (!expertSetup) return true;
 
-  const requiredSetupSteps = [
-    'events',
-    'payment',
-    'profile',
-    'identity',
-    'availability',
-    'google_account',
-  ];
-
-  const setupComplete = requiredSetupSteps.every(
-    (step) => expertSetup[step as keyof typeof expertSetup] === true,
-  );
+  const missingSteps = REQUIRED_SETUP_STEPS.filter((step) => expertSetup[step] !== true);
 
   if (PROXY_DEBUG) {
     debugLog('[DEBUG] Expert setup check:', {
       role: userRoleData,
       setupData: expertSetup,
-      complete: setupComplete,
-      missingSteps: requiredSetupSteps.filter(
-        (step) => expertSetup[step as keyof typeof expertSetup] !== true,
-      ),
+      complete: missingSteps.length === 0,
+      missingSteps,
     });
   }
 
-  return !setupComplete;
+  return missingSteps.length > 0;
 }
 
 /**
@@ -508,9 +505,12 @@ const apiRoleCache = new Map<string, ClerkUserMeta & { expiresAt: number }>();
  * Role + unsafeMetadata for a user from the Clerk API (cached per instance).
  * Used only when the session token doesn't carry these claims.
  */
-async function getClerkUserMeta(userId: string): Promise<ClerkUserMeta | undefined> {
+async function getClerkUserMeta(
+  userId: string,
+  { fresh = false }: { fresh?: boolean } = {},
+): Promise<ClerkUserMeta | undefined> {
   const cached = apiRoleCache.get(userId);
-  if (cached && cached.expiresAt > Date.now()) return cached;
+  if (!fresh && cached && cached.expiresAt > Date.now()) return cached;
 
   try {
     const clerk = await clerkClient();

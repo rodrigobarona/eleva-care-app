@@ -8,7 +8,7 @@ import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactConfetti from 'react-confetti';
 
 // Generate unique IDs for skeleton items
@@ -37,6 +37,9 @@ export default function ExpertSetupPage() {
   const { isLoaded, user } = useUser();
   const [showConfetti, setShowConfetti] = useState(false);
   const [isProfilePublished, setIsProfilePublished] = useState(false);
+  // Bumped on every publish toggle so an in-flight status refresh that started
+  // before the toggle can't overwrite the newer value.
+  const publishVersionRef = useRef(0);
 
   // Button text mapping by step ID
   const buttonTextMap: Record<string, string> = {
@@ -141,7 +144,9 @@ export default function ExpertSetupPage() {
     const handleVisibilityChange = async () => {
       if (!document.hidden && isLoaded && user) {
         try {
+          const versionAtStart = publishVersionRef.current;
           const result = await checkExpertSetupStatus();
+          if (publishVersionRef.current !== versionAtStart) return;
           if (result.success && result.isPublished !== undefined) {
             setIsProfilePublished(Boolean(result.isPublished));
           }
@@ -213,7 +218,10 @@ export default function ExpertSetupPage() {
         {allStepsCompleted ? (
           <SetupCompletePublishCard
             isPublished={isProfilePublished}
-            onPublishStatusChange={(newStatus) => setIsProfilePublished(newStatus)}
+            onPublishStatusChange={(newStatus) => {
+              publishVersionRef.current += 1;
+              setIsProfilePublished(newStatus);
+            }}
           />
         ) : null}
 
