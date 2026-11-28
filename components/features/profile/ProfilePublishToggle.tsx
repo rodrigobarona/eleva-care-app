@@ -23,9 +23,14 @@ import { toast } from 'sonner';
 
 interface ProfilePublishToggleProps {
   initialPublishedStatus: boolean;
+  /** Called after the publication status was changed successfully. */
+  onPublishedChange?: (isPublished: boolean) => void;
 }
 
-export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishToggleProps) {
+export function ProfilePublishToggle({
+  initialPublishedStatus,
+  onPublishedChange,
+}: ProfilePublishToggleProps) {
   const t = useTranslations('profilePublish');
   const [isPublished, setIsPublished] = useState(initialPublishedStatus);
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +111,7 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
 
       if (result.success) {
         setIsPublished(result.isPublished);
+        onPublishedChange?.(result.isPublished);
         toast.success(result.message);
         // Close the dialog on success
         setShowConfirmDialog(false);

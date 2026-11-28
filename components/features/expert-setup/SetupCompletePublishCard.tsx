@@ -3,7 +3,6 @@
 import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
@@ -27,25 +26,13 @@ export function SetupCompletePublishCard({
     setIsPublished(initialIsPublished);
   }, [initialIsPublished]);
 
-  // Poll for publication status changes
-  useEffect(() => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const result = await checkExpertSetupStatus();
-        if (result.success && result.isPublished !== undefined) {
-          const newStatus = Boolean(result.isPublished);
-          if (newStatus !== isPublished) {
-            setIsPublished(newStatus);
-            onPublishStatusChange?.(newStatus);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to poll publication status:', error);
-      }
-    }, 2000); // Poll every 2 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [isPublished, onPublishStatusChange]);
+  // The toggle reports changes directly (no polling: a 2s interval called a server
+  // action, i.e. Clerk + DB work, for as long as the setup page stayed open).
+  // Changes made in another tab are picked up by the setup page's visibility refresh.
+  const handlePublishedChange = (newStatus: boolean) => {
+    setIsPublished(newStatus);
+    onPublishStatusChange?.(newStatus);
+  };
 
   return (
     <div className="mb-10 rounded-xl border-2 border-green-100 bg-green-50 p-8 text-center shadow-sm">
@@ -66,7 +53,10 @@ export function SetupCompletePublishCard({
 
           <div className="mt-6">
             <div className="flex flex-col items-center gap-3">
-              <ProfilePublishToggle initialPublishedStatus={isPublished} />
+              <ProfilePublishToggle
+                initialPublishedStatus={isPublished}
+                onPublishedChange={handlePublishedChange}
+              />
 
               {isPublished && username && (
                 <Button asChild variant="outline" className="mt-2 w-full">
